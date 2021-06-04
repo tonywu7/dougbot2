@@ -1,1 +1,10 @@
 @use 'styles';
+
+#bot-name {
+    font-weight: 750;
+    padding: 0 0 0 .6rem;
+    border-left: .45rem solid;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 1rem;
+}

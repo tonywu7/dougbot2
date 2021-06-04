@@ -41,22 +41,20 @@
 </head>
 
 <body>
-    <div class="masthead-container">
+    <section class="masthead-container">
         {% include 'commons/masthead.html' %}
-    </div>
-    <div class="top-container">
+    </section>
+    <section class="top-container">
         {% block top %}
         {% endblock %}
-    </div>
-    <div class="main-container">
+    </section>
+    <section class="main-container">
         {% block body %}
         {% endblock %}
-    </div>
-    <div>
-    </div>
-    <div class="footer-container">
+    </section>
+    <section class="footer-container">
         {% include 'commons/footer.html' %}
-    </div>
+    </section>
     <div class="fixed-overlay"></div>
 </body>
 

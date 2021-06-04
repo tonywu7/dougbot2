@@ -1,4 +1,5 @@
 @use 'colors';
+@use 'layout';
 @use 'buttons';
 @use 'typefaces';
 @use 'utility';
@@ -11,6 +12,8 @@
     }
 
     --masthead-height: 3rem;
+    --footer-height: calc(100vh - 4rem);
+    --sidebar-width: 288px;
 
     --box-shadow-1: 0 4px 4px rgba(0, 0, 0, .12),
     0 4px 8px rgba(0, 0, 0, .09);
@@ -66,33 +69,14 @@ a {
     }
 }
 
+h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
 input {
     border-radius: 0;
-}
-
-.masthead-container {
-    width: 100vw;
-    height: var(--masthead-height);
-    position: fixed;
-    top: 0;
-    left: 0;
-
-    z-index: 5000;
-
-    background-color: colors.$grey-2;
-    box-shadow: var(--box-shadow-1);
-
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: space-between;
-}
-
-.masthead-container+div {
-    margin-top: var(--masthead-height);
-}
-
-.top-container {
-    padding: 6px 0;
 }
 
 .flex-select {
@@ -612,17 +596,6 @@ select.custom-select {
     color: var(--accent-color-text);
 }
 
-.fixed-overlay {
-    position: fixed;
-    top: var(--masthead-height);
-    left: 0;
-    width: 0;
-    bottom: 0;
-    overflow-x: visible;
-    overflow-y: visible;
-    z-index: 5000;
-}
-
 .timed-button {
     position: relative;
 
@@ -646,19 +619,8 @@ select.custom-select {
     color: var(--accent-color-text, --accent-color);
 }
 
+.masthead-container,
 .footer-container {
-    width: 100vw;
-    height: 4rem;
-    margin-top: 4rem;
-
-    position: sticky;
-    top: calc(100vh - 4rem);
-    z-index: -1;
-
     background-color: colors.$grey-2;
     box-shadow: var(--box-shadow-1);
-
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: space-between;
 }
