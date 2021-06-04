@@ -1,0 +1,23 @@
+{
+    "name": "telescope2",
+    "version": "0.0.1",
+    "description": "",
+    "author": "@tonyzbf",
+    "license": "AGPL-3.0-or-later",
+    "browserlist": [
+        "defaults",
+        "not ie > 0",
+        "not baidu > 0",
+        "not and_qq > 0",
+        "not and_uc > 0",
+        "> 5%"
+    ],
+    "devDependencies": {
+        "@types/bootstrap": "^5.0.3",
+        "@types/lodash": "^4.14.167",
+        "requirejs": "^2.3.6"
+    },
+    "repository": {
+        "url": "https://github.com/tonyzbf/telescope2"
+    }
+}

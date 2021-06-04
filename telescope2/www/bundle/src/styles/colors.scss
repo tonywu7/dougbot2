@@ -1,0 +1,107 @@
+$pepper-orange-0: #fd7c1c;
+$pepper-orange-1: #e37263;
+$pepper-orange-2: #c83a0c;
+$pepper-yellow-1: #d67c01;
+$pepper-violet-1: #fe1df6;
+$pepper-violet-2: #9d12e1;
+
+/* from YouTube */
+$play-button-red: #ff0000;
+$play-button-less-red: #cf3b39;
+
+/* from Twitch */
+$chat-purple-12: #d1b3ff;
+$chat-purple-10: #a970ff;
+$chat-purple-9: #9147ff;
+$chat-purple-7: #5c16c5;
+$chat-purple-5: #330c6e;
+$chat-purple-3: #15052e;
+
+$chat-cherry: #e91916;
+$chat-orange: #ffca61;
+$chat-sun: #fafa19;
+$chat-lime: #bfff00;
+$chat-seafoam: #6bffc4;
+$chat-turquoise: #00fafa;
+$chat-marine: #1f69ff;
+$chat-wine: #bd0078;
+
+$bs-blue: #0d6efd;
+$bs-indigo: #6610f2;
+$bs-purple: #6f42c1;
+$bs-pink: #d63384;
+$bs-red: #dc3545;
+$bs-orange: #fd7e14;
+$bs-yellow: #ffc107;
+$bs-green: #198754;
+$bs-teal: #20c997;
+$bs-cyan: #0dcaf0;
+
+$chat-marine-brighter: #528bff;
+$chat-marine-brightest: #6b9af8;
+$chat-marine-darkest: #283a5c;
+
+$chat-muted-blush: #facccc;
+$chat-muted-canary: #feee86;
+$chat-muted-sky: #56bde6;
+$chat-muted-lavender: #bda8ff;
+
+$grey-0: #0e0e10;
+$grey-1: #111114;
+$grey-2: #18181b;
+$grey-3: #1f1f23;
+$grey-4: #26262c;
+$grey-5: #323239;
+$grey-6: #3b3b44;
+$grey-7: #53535f;
+$grey-8: #848494;
+$grey-9: #adadb8;
+$grey-10: #c8c8d0;
+$grey-11: #d3d3d9;
+$grey-12: #dedee3;
+$grey-13: #e6e6ea;
+$grey-14: #efeff1;
+$grey-15: #f7f7f8;
+
+$color-text-brighter: $grey-13;
+$color-text: $grey-11;
+$color-text-muted: $grey-9;
+
+$color-bg: $grey-1;
+
+$color-em: $chat-marine;
+$color-strong: $chat-purple-9;
+$color-anchor: $chat-purple-9;
+
+$color-heading: $pepper-orange-0;
+
+$color-error: $chat-cherry;
+$color-warning: $chat-orange;
+
+.color-dark-bg {
+    background-color: $color-bg;
+}
+
+.color-light-bg {
+    background-color: $grey-14;
+}
+
+.color-error-fg {
+    color: $bs-red;
+}
+
+.color-warning-fg {
+    color: $bs-yellow;
+}
+
+.color-info-fg {
+    color: $bs-blue;
+}
+
+.color-success-fg {
+    color: $bs-green;
+}
+
+.color-danger-bg {
+    background-color: $bs-red;
+}
