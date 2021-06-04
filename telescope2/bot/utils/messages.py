@@ -1,4 +1,4 @@
-# models.py
+# messages.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,15 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
-from django.db import models
+from discord.ext.commands import Context
 
 
-class BotPrefs(models.Model):
-    prefix: str = models.CharField(max_length=16, default='t;', blank=False)
-
-    def to_options(self):
-        return {
-            'command_prefix': self.prefix,
-        }
+def trimmed_msg(ctx: Context) -> str:
+    return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]

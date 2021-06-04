@@ -17,6 +17,9 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from .client import run
+
 
 def index(req: HttpRequest) -> HttpResponse:
+    run()
     return render(req, 'bot/index.html')

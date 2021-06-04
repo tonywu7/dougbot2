@@ -17,47 +17,47 @@
 from __future__ import annotations
 
 import asyncio
-import logging
-import multiprocessing
-from typing import Type
+import threading
+from typing import Dict, Type
 
 from discord import Client
-from discord.ext import commands
-from discord.ext.commands import Bot, Context
 from django.conf import settings
 
+from .bot import Telescope
 
-class Telescope(Bot):
-    def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        super().__init__(loop=loop, **options)
-        self.log = logging.getLogger('telescope')
-
-        self.event(self.on_ready)
-        self.add_command(self.cmd_echo)
-
-    async def on_ready(self):
-        self.log.info('Bot ready')
-        self.log.info(f'User {self.user}')
-
-    @commands.command('echo')
-    async def cmd_echo(self, ctx: Context, *args):
-        await ctx.send(ctx.message)
+instance = None
 
 
-class BotProcess(multiprocessing.Process):
-    def __init__(self, client_cls: Type[Client], *args, **kwargs) -> None:
+class BotThread(threading.Thread):
+    def __init__(self, client_cls: Type[Client], client_opts: Dict, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._client_cls = client_cls
-        self._client_options = kwargs
-
-        self.client: Client
-        self.loop: asyncio.BaseEventLoop
+        self._client_options = client_opts
 
     def run_client(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.client = self._client_cls(loop=self.loop, **self._client_options)
-        self.client.run(settings.DISCORD_SECRET)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = self._client_cls(loop=loop, **self._client_options)
+        global instance
+        instance = client
+        loop.create_task(client.start(settings.DISCORD_SECRET))
+        loop.run_forever()
 
     def run(self) -> None:
         return self.run_client()
+
+
+def run():
+    from .models import BotPrefs
+
+    try:
+        prefs = BotPrefs.objects.get(pk=1)
+    except BotPrefs.DoesNotExist:
+        prefs = BotPrefs()
+        prefs.save()
+
+    if instance is None:
+        process = BotThread(Telescope, prefs.to_options(), daemon=True)
+        process.start()
+
+    return prefs
