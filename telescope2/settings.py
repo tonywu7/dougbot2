@@ -22,6 +22,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'telescope2.www.apps.WWWConfig',
+    'telescope2.bot.apps.BotConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -112,3 +114,13 @@ if DEBUG:
 STATIC_URL = '/static/'
 
 LOGGING_CONFIG = None
+
+instance_settings = []
+instance_secrets = [
+    'DISCORD_SECRET',
+]
+
+for k in instance_settings:
+    globals()[k] = instance_conf(k)
+for k in instance_secrets:
+    globals()[k] = secrets_conf(k)
