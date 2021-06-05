@@ -19,11 +19,13 @@ from __future__ import annotations
 from django.db import models
 
 
-class BotPrefs(models.Model):
-    prefix: str = models.CharField(max_length=16, default='t;', blank=False)
+class GuildPreference(models.Model):
+    guild_id: int = models.IntegerField()
+
+    prefix: str = models.CharField(max_length=16, default='t;')
 
     class Meta:
-        verbose_name = 'bot preference'
+        verbose_name = 'guild preference'
 
     def to_options(self):
         return {

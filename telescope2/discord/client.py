@@ -49,12 +49,12 @@ class BotThread(threading.Thread):
 
 
 def run():
-    from .models import BotPrefs
+    from .models import GuildPreference
 
     try:
-        prefs = BotPrefs.objects.get(pk=1)
-    except BotPrefs.DoesNotExist:
-        prefs = BotPrefs()
+        prefs = GuildPreference.objects.get(pk=1)
+    except GuildPreference.DoesNotExist:
+        prefs = GuildPreference()
         prefs.save()
 
     global thread
