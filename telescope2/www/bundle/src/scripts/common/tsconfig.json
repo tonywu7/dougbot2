@@ -3,5 +3,6 @@
     "compilerOptions": {
         "lib": ["ES2017", "DOM", "DOM.Iterable"],
     },
-    "include": ["../common/**/*.ts", "./**/*.ts", "../common/**/*.js", "./**/*.js"]
+    "references": [],
+    "include": ["./**/*.ts", "./**/*.js"]
 }

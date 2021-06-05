@@ -23,6 +23,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'channels',
+    'admin2017',
     'telescope2.www.apps.WWWConfig',
     'telescope2.discord.apps.DiscordBotConfig',
     'django.contrib.admin.apps.SimpleAdminConfig',

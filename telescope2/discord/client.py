@@ -20,8 +20,9 @@ import asyncio
 import threading
 from typing import Dict, Type
 
-from discord import Client
 from django.conf import settings
+
+from discord import Client
 
 from .bot import Telescope
 
@@ -49,6 +50,7 @@ class BotThread(threading.Thread):
 
 
 def run():
+    return
     from .models import GuildPreference
 
     try:
