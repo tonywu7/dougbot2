@@ -16,8 +16,9 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
-from discord.ext import commands
+from discord import Message
 from discord.ext.commands import Bot, Context
 
 from .utils.messages import trimmed_msg
@@ -29,16 +30,43 @@ class Telescope(Bot):
         self.log = logging.getLogger('telescope')
 
         self.event(self.on_ready)
-        self.add_command(self.cmd_echo)
+        register_all(self)
 
     async def on_ready(self):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
 
-    @commands.command('echo')
+
+def register_all(bot: Bot):
+
+    @bot.command('echo')
     async def cmd_echo(ctx: Context, *args):
         trimmed = trimmed_msg(ctx)
         if not trimmed:
             await ctx.send(ctx.message.content)
         else:
             await ctx.send(trimmed)
+
+    @bot.command('ping')
+    async def cmd_ping(ctx: Context, *args):
+        await ctx.send(f':PONG {datetime.now(timezone.utc).timestamp():.6f}')
+
+    @bot.listen('on_message')
+    async def on_ping(msg: Message):
+        gateway_dst = datetime.now(timezone.utc).timestamp()
+
+        if not bot.user:
+            return
+        if bot.user.id != msg.author.id:
+            return
+        if msg.content[:6] != ':PONG ':
+            return
+
+        msg_created = msg.created_at.replace(tzinfo=timezone.utc).timestamp()
+
+        gateway_latency = 1000 * (gateway_dst - msg_created)
+        edit_start = datetime.now(timezone.utc)
+        await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
+        edit_latency = (datetime.now(timezone.utc) - edit_start).total_seconds()
+
+        await msg.edit(content=f'Gateway: `{gateway_latency:.3f}ms`\nHTTP API (Edit): `{edit_latency:.3f}ms`')
