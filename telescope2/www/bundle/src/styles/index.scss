@@ -1,10 +1,33 @@
 @use 'styles';
+@use 'colors';
 
 #bot-name {
-    font-weight: 750;
+    position: relative;
+    left: -1.06rem;
+
     padding: 0 0 0 .6rem;
+    margin-bottom: 1rem;
+
+    font-weight: 750;
     border-left: .45rem solid;
     letter-spacing: -2px;
     line-height: 1;
-    margin-bottom: 1rem;
+}
+
+#socket-status {
+    &.socket-on {
+        color: colors.$bs-teal;
+    }
+
+    &.socket-off {
+        color: colors.$bs-red;
+    }
+
+    .bi::before {
+        font-size: 0.8em;
+        vertical-align: middle;
+        position: relative;
+        top: -1px;
+        margin: 0 3pt 0 0;
+    }
 }

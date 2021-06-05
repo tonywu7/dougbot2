@@ -22,6 +22,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'telescope2.www.apps.WWWConfig',
     'telescope2.bot.apps.BotConfig',
     'django.contrib.admin',
@@ -124,3 +125,5 @@ for k in instance_settings:
     globals()[k] = instance_conf(k)
 for k in instance_secrets:
     globals()[k] = secrets_conf(k)
+
+ASGI_APPLICATION = 'telescope2.asgi.application'

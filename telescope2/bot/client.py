@@ -26,6 +26,7 @@ from django.conf import settings
 from .bot import Telescope
 
 instance = None
+thread: threading.Thread = None
 
 
 class BotThread(threading.Thread):
@@ -56,8 +57,16 @@ def run():
         prefs = BotPrefs()
         prefs.save()
 
-    if instance is None:
-        process = BotThread(Telescope, prefs.to_options(), daemon=True)
-        process.start()
+    global thread
+    thread = BotThread(Telescope, prefs.to_options(), daemon=True)
+    thread.start()
 
     return prefs
+
+
+def get_thread():
+    return thread
+
+
+def is_alive() -> bool:
+    return thread and thread.is_alive()

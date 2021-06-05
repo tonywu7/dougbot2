@@ -1,4 +1,4 @@
-# views.py
+# consumers.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,13 +14,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+import simplejson as json
+from channels.generic.websocket import WebsocketConsumer
 
 from .client import is_alive, run
 
 
-def index(req: HttpRequest) -> HttpResponse:
-    if not is_alive():
-        run()
-    return render(req, 'bot/index.html')
+class ClientConsumer(WebsocketConsumer):
+    def connect(self):
+        if not is_alive():
+            run()
+        self.accept()
+
+    def disconnect(self, close_code):
+        pass
+
+    def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json['message']
+
+        self.send(text_data=json.dumps({
+            'message': message,
+        }))
