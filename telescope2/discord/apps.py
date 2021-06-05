@@ -3,9 +3,9 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
 
 
-class BotConfig(AppConfig):
+class DiscordBotConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'telescope2.bot'
+    name = 'telescope2.discord'
 
     def sqlite_pragma(self, *, sender, connection: BaseDatabaseWrapper, **kwargs):
         if connection.vendor == 'sqlite':

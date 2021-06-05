@@ -22,6 +22,9 @@ from django.db import models
 class BotPrefs(models.Model):
     prefix: str = models.CharField(max_length=16, default='t;', blank=False)
 
+    class Meta:
+        verbose_name = 'bot preference'
+
     def to_options(self):
         return {
             'command_prefix': self.prefix,

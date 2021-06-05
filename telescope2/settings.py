@@ -24,8 +24,8 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'channels',
     'telescope2.www.apps.WWWConfig',
-    'telescope2.bot.apps.BotConfig',
-    'django.contrib.admin',
+    'telescope2.discord.apps.DiscordBotConfig',
+    'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
