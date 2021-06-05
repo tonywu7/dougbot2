@@ -615,8 +615,8 @@ select.custom-select {
     border-radius: .25rem;
 }
 
-.t-timecode {
-    color: var(--accent-color-text, --accent-color);
+.ui-text-no-select {
+    user-select: none;
 }
 
 .masthead-container,

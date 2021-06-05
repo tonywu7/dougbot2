@@ -30,7 +30,26 @@ def load_object(qualname: str):
     return func
 
 
-def iter_module_tree(pkg: str, parts: List[str] = None, depth: int = 1) -> Generator[List[str], None, None]:
+def iter_module_tree(pkg: str, depth: int = 1, parts: List[str] = None) -> Generator[List[str], None, None]:
+    """Recursively iterate over an import path yielding subpackages.
+
+    Parameters
+    ----------
+    pkg : str
+        Filesystem path of the module to iterate, e.g. `str(Path(__file__).with_name('views'))`
+    depth : int, optional
+        Search depth, 1 will find all immediate subpackages of a module, by default 1
+
+    Yields
+    -------
+    Generator[List[str], None, None]
+        Lists of qualified name components not including the root module that is searched
+
+    Examples
+    --------
+    >>> for parts in iter_module_tree(str(Path(__file__).with_name('views')), 2):
+    ...     import_module(f'.views.{".".join(path)}', __package__)
+    """
     if not depth:
         return
     parts = parts or []
@@ -38,4 +57,4 @@ def iter_module_tree(pkg: str, parts: List[str] = None, depth: int = 1) -> Gener
         path = [*parts, modinfo.name]
         yield path
         if modinfo.ispkg:
-            yield from iter_module_tree(f'{pkg}/{modinfo.name}', path, depth=depth - 1)
+            yield from iter_module_tree(f'{pkg}/{modinfo.name}', depth - 1, path)
