@@ -17,7 +17,7 @@
 import simplejson as json
 from channels.generic.websocket import WebsocketConsumer
 
-from .bot import Telescope
+from telescope2.discord.bot import Telescope
 
 
 class ClientConsumer(WebsocketConsumer):

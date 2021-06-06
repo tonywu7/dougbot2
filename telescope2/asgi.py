@@ -13,11 +13,11 @@ from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 
-import telescope2.discord.routing
+import telescope2.web.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telescope2.settings')
 
 application = ProtocolTypeRouter({
     'http': get_asgi_application(),
-    'websocket': AuthMiddlewareStack(URLRouter(telescope2.discord.routing.websocket_urlpatterns)),
+    'websocket': AuthMiddlewareStack(URLRouter(telescope2.web.routing.websocket_urlpatterns)),
 })

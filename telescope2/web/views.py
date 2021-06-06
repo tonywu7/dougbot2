@@ -18,7 +18,7 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.decorators.csrf import requires_csrf_token
 
-from .bot import Telescope
+from telescope2.discord.bot import Telescope
 
 
 def authorized(req: HttpRequest) -> HttpResponse:
@@ -36,4 +36,4 @@ def invite(req: HttpRequest) -> HttpResponse:
 def index(req: HttpRequest) -> HttpResponse:
     if not Telescope.is_alive:
         Telescope.run()
-    return render(req, 'bot/index.html')
+    return render(req, 'web/index.html')

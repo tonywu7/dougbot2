@@ -33,9 +33,8 @@ from django.utils.functional import classproperty
 
 from discord import Client, Message, Permissions
 from discord.ext.commands import Bot
-
-from ..utils.importutil import iter_module_tree
-from ..utils.jwt import gen_token
+from telescope2.utils.importutil import iter_module_tree
+from telescope2.utils.jwt import gen_token
 
 instance: Telescope = None
 thread: threading.Thread = None
