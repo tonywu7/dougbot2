@@ -21,20 +21,15 @@ import logging
 import threading
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Tuple, Type
-from urllib.parse import urlencode, urlunsplit
+from typing import Dict, Type
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.contrib.sites.shortcuts import get_current_site
-from django.http import HttpRequest
-from django.urls import reverse
 from django.utils.functional import classproperty
 
 from discord import Client, Message, Permissions
 from discord.ext.commands import Bot
 from telescope2.utils.importutil import iter_module_tree
-from telescope2.utils.jwt import gen_token
 
 instance: Telescope = None
 thread: threading.Thread = None
@@ -106,27 +101,6 @@ class Telescope(Bot):
                 pass
             else:
                 self.log.info(f'Loaded commands from {module_path}')
-
-    @classmethod
-    def build_oauth2_url(cls, req: HttpRequest, valid_duration: float = 300.0) -> Tuple[str, str]:
-        protocol = 'http'
-        domain = 'discord.com'
-        path = '/oauth2/authorize'
-
-        bot = cls.get_instance()
-        site = get_current_site(req)
-        redirect = urlunsplit((req.scheme, site.domain, reverse('bot.authorized'), '', ''))
-        token = gen_token(req, valid_duration)
-        params = {
-            'client_id': bot.user.id,
-            'permissions': bot.DEFAULT_PERMS.value,
-            'scope': 'bot',
-            'response_type': 'code',
-            'redirect_uri': redirect,
-            'state': token,
-        }
-        query = urlencode(params)
-        return urlunsplit((protocol, domain, path, query, '')), token
 
     @classmethod
     @sync_to_async

@@ -14,26 +14,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.views.decorators.csrf import requires_csrf_token
 
+from telescope2.discord import oauth2
 from telescope2.discord.bot import Telescope
-
-
-def authorized(req: HttpRequest) -> HttpResponse:
-    return HttpResponse(content=req.body.decode('utf8'))
-
-
-@requires_csrf_token
-def invite(req: HttpRequest) -> HttpResponse:
-    redirect, token = Telescope.build_oauth2_url(req, 300)
-    res = HttpResponseRedirect(redirect, status=307)
-    res.set_cookie('state', token, 300, secure=True, httponly=True, samesite='Lax')
-    return res
 
 
 def index(req: HttpRequest) -> HttpResponse:
     if not Telescope.is_alive:
         Telescope.run()
     return render(req, 'web/index.html')
+
+
+def login(req: HttpRequest) -> HttpResponse:
+    redirect, token = oauth2.app_auth_url(req)
+    res = HttpResponseRedirect(redirect, status=307)
+    res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
+    return res
+
+
+def logged_in(req: HttpRequest) -> HttpResponse:
+    return HttpResponse(content=repr(dict(req.GET)))
+
+
+def invite(req: HttpRequest) -> HttpResponse:
+    redirect, token = oauth2.bot_invite_url(req)
+    res = HttpResponseRedirect(redirect, status=307)
+    res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
+    return res
+
+
+def authorized(req: HttpRequest) -> HttpResponse:
+    return HttpResponse(content=repr(dict(req.GET)))

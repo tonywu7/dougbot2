@@ -133,3 +133,5 @@ ASGI_APPLICATION = 'telescope2.asgi.application'
 
 BRANDING_FULL = 'telescope2'
 BRANDING_SHORT = 'ts2'
+
+JWT_DEFAULT_EXP = 300
