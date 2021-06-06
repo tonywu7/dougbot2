@@ -45,5 +45,6 @@ function initWebSocket(): Promise<boolean> {
 }
 
 export function init() {
+    setSocketStatus(false)
     initWebSocket()
 }

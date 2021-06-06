@@ -17,13 +17,13 @@
 import simplejson as json
 from channels.generic.websocket import WebsocketConsumer
 
-from .client import is_alive, run
+from .bot import Telescope
 
 
 class ClientConsumer(WebsocketConsumer):
     def connect(self):
-        if not is_alive():
-            run()
+        if not Telescope.is_alive:
+            Telescope.run()
         self.accept()
 
     def disconnect(self, close_code):

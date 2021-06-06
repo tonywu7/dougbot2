@@ -15,14 +15,11 @@
     --footer-height: calc(100vh - 4rem);
     --sidebar-width: 288px;
 
-    --box-shadow-1: 0 4px 4px rgba(0, 0, 0, .12),
-    0 4px 8px rgba(0, 0, 0, .09);
-    --box-shadow-2: 0 0 4px 4px rgba(0, 0, 0, .12),
-    0 0 8px 8px rgba(0, 0, 0, .09);
-    --box-shadow-3: 0 0 2px 2px rgba(0, 0, 0, .15),
-    0 0 4px 4px rgba(0, 0, 0, .12);
-    --box-shadow-focus: 0 0 0 0.2rem rgba(0, 123, 255, .25);
-    --box-shadow-focus-inset: inset 0 0 0 0.2rem rgba(0, 123, 255, .25);
+    --box-shadow-1: 0 4px 4px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.09);
+    --box-shadow-2: 0 0 4px 4px rgba(0, 0, 0, 0.12), 0 0 8px 8px rgba(0, 0, 0, 0.09);
+    --box-shadow-3: 0 0 2px 2px rgba(0, 0, 0, 0.15), 0 0 4px 4px rgba(0, 0, 0, 0.12);
+    --box-shadow-focus: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    --box-shadow-focus-inset: inset 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 
     --color-bg: #{colors.$color-bg};
     --color-anchor: #{colors.$chat-muted-sky};
@@ -87,8 +84,8 @@ input {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr;
-    column-gap: .5rem;
-    row-gap: .5rem;
+    column-gap: 0.5rem;
+    row-gap: 0.5rem;
 
     .span-2 {
         grid-column-end: span 2;
@@ -131,7 +128,7 @@ input {
     background-color: var(--frame-bg);
 
     width: 100%;
-    padding: 5px 0 7px .6rem;
+    padding: 5px 0 7px 0.6rem;
     margin: 0;
 
     position: sticky;
@@ -161,7 +158,7 @@ input {
     }
 
     .subtitle {
-        font-size: .8rem;
+        font-size: 0.8rem;
         font-weight: 400;
         color: var(--item-fg-2);
     }
@@ -183,11 +180,11 @@ input {
 
     align-items: center;
 
-    >* {
-        padding: 0 .6rem;
+    > * {
+        padding: 0 0.6rem;
     }
 
-    >*:not(:last-child) {
+    > *:not(:last-child) {
         border-inline-start: 1px solid colors.$grey-6;
     }
 
@@ -256,7 +253,7 @@ input {
         display: flex;
     }
 
-    .list-item-content>* {
+    .list-item-content > * {
         position: relative;
         z-index: 10;
     }
@@ -277,13 +274,13 @@ input {
 
     .list-item-text-major {
         font-weight: 600;
-        font-size: .9rem;
+        font-size: 0.9rem;
     }
 
     .list-item-text-minor {
         margin-top: 2px;
         font-weight: 400;
-        font-size: .8rem;
+        font-size: 0.8rem;
         color: var(--item-fg-2);
 
         display: flex;
@@ -303,9 +300,8 @@ input {
         }
     }
 
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12),
-    0 1px 2px rgba(0, 0, 0, 0.24);
-    transition: box-shadow 0.2s cubic-bezier(.25, .8, .25, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    transition: box-shadow 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 
     &:hover,
     &:focus {
@@ -324,7 +320,6 @@ input {
     }
 }
 
-
 .token-list {
     @include utility.flex-token-list(row, wrap);
 
@@ -334,7 +329,6 @@ input {
 
     &.tk-horizontal {
         flex-direction: row;
-
     }
 
     &.tk-vertical {
@@ -365,7 +359,7 @@ input {
 
 .btn {
     @include buttons.button();
-    padding: .3rem .6rem;
+    padding: 0.3rem 0.6rem;
 }
 
 .btn-primary {
@@ -394,15 +388,15 @@ a.btn {
         color: colors.$color-text-muted;
     }
 
-    >p,
-    >a {
-        padding: .2rem 1.5rem;
+    > p,
+    > a {
+        padding: 0.2rem 1.5rem;
         margin: 0;
     }
 
-    >p,
-    >a,
-    >span,
+    > p,
+    > a,
+    > span,
     input {
         width: 100%;
         color: colors.$color-text;
@@ -416,7 +410,7 @@ a.dropdown-toggle:focus {
 .dropdown-item {
     color: colors.$color-text;
 
-    padding: .25rem 1rem;
+    padding: 0.25rem 1rem;
 
     &:hover {
         text-decoration: none;
@@ -438,7 +432,6 @@ a.dropdown-toggle:focus {
 }
 
 @media screen and (hover: none) {
-
     a,
     span,
     p {
@@ -450,12 +443,12 @@ a.dropdown-toggle:focus {
 
 .dropdown-header {
     text-transform: uppercase;
-    letter-spacing: .5px;
+    letter-spacing: 0.5px;
     font-weight: 600;
-    font-size: .8rem;
+    font-size: 0.8rem;
 
     &:not(:first-child) {
-        padding-top: .7rem;
+        padding-top: 0.7rem;
     }
 }
 
@@ -523,14 +516,14 @@ select.custom-select {
 .sort-button {
     position: relative;
 
-    >span {
+    > span {
         position: absolute;
         display: none;
     }
 
     @for $i from 1 through 6 {
         &.sort-type-#{$i} {
-            >span:nth-child(#{$i}) {
+            > span:nth-child(#{$i}) {
                 display: block;
                 margin: 0;
             }
@@ -551,7 +544,7 @@ select.custom-select {
     }
 
     &::placeholder {
-        font-size: .9rem;
+        font-size: 0.9rem;
         font-weight: 500;
         font-family: typefaces.$ui-fonts;
     }
@@ -570,7 +563,7 @@ select.custom-select {
     position: absolute;
     z-index: 1000;
 
-    padding: .5rem;
+    padding: 0.5rem;
 
     background-color: colors.$grey-2;
     border-radius: 3px;
@@ -612,7 +605,7 @@ select.custom-select {
     }
 
     overflow: hidden;
-    border-radius: .25rem;
+    border-radius: 0.25rem;
 }
 
 .ui-text-no-select {
@@ -623,4 +616,14 @@ select.custom-select {
 .footer-container {
     background-color: colors.$grey-2;
     box-shadow: var(--box-shadow-1);
+}
+
+.section-content {
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+
+    a {
+        font-weight: 600;
+    }
 }

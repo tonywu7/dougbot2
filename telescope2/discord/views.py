@@ -14,13 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.http import HttpRequest, HttpResponse
+from django.contrib.auth.decorators import login_required, permission_required
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 
-from .client import is_alive, run
+from .bot import Telescope
+
+
+@login_required
+@permission_required(['discord.manage_servers'])
+def authorized(req: HttpRequest) -> HttpResponse:
+    return HttpResponse(content=req.body.decode('utf8'))
+
+
+def invite(req: HttpRequest) -> HttpResponse:
+    return HttpResponseRedirect(Telescope.build_oauth2_url(req), status=307)
 
 
 def index(req: HttpRequest) -> HttpResponse:
-    if not is_alive():
-        run()
+    if not Telescope.is_alive:
+        Telescope.run()
     return render(req, 'bot/index.html')

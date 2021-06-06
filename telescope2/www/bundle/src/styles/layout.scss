@@ -12,7 +12,7 @@
     justify-content: space-between;
 }
 
-.masthead-container+section {
+.masthead-container + section {
     margin-top: var(--masthead-height);
 }
 
@@ -59,4 +59,16 @@
 
 .main-container {
     margin-left: var(--sidebar-width);
+}
+
+.section-container {
+    columns: 480px 2;
+    column-gap: 0;
+
+    section {
+        border-top: 2px solid;
+        margin: 0 2rem 1rem 0;
+        padding: 0.5rem 0 0 0;
+        break-inside: avoid;
+    }
 }

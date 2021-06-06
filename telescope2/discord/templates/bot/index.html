@@ -6,10 +6,20 @@
 </aside>
 <main id="control-panel" class="main-content">
     <h1 id="bot-name" class="ui-text-no-select">telescope2</h1>
-    <section>
-        <header>
-            <h3 class="ui-text-no-select">socket status <span id="socket-status"></span></h3>
-        </header>
+    <section class="section-container">
+        <section class="bot-status">
+            <header>
+                <h3 class="ui-text-no-select">socket status <span id="socket-status"></span></h3>
+            </header>
+        </section>
+        <section>
+            <header>
+                <h3 class="ui-text-no-select">general</h3>
+            </header>
+            <div class="section-content">
+                <p><a href="{% url 'bot.invite' %}" target="_blank">authorize</a></p>
+            </div>
+        </section>
     </section>
 </main>
 {% endblock %}

@@ -1,7 +1,9 @@
-from django.urls import path
+from django.urls import re_path
 
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='bot.index'),
+    re_path(r'^oauth2/$', views.invite, name='bot.invite'),
+    re_path(r'^authorized/$', views.authorized, name='bot.authorized'),
+    re_path(r'^$', views.index, name='bot.index'),
 ]

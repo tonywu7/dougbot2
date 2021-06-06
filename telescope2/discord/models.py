@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from django.db import models
 
+from discord import Guild
+
 
 class GuildPreference(models.Model):
     guild_id: int = models.IntegerField()
@@ -26,8 +28,10 @@ class GuildPreference(models.Model):
 
     class Meta:
         verbose_name = 'guild preference'
+        permissions = [
+            ('manage_servers', 'Can invite the bot to servers'),
+        ]
 
-    def to_options(self):
-        return {
-            'command_prefix': self.prefix,
-        }
+    @classmethod
+    def prefs_by_guild(cls, guild: Guild) -> GuildPreference:
+        return cls.objects.get(guild_id=guild.id)
