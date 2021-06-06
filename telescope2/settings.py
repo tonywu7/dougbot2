@@ -57,6 +57,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'telescope2.discord.contexts.application_info',
             ],
         },
     },
@@ -128,3 +129,6 @@ for k in instance_secrets:
     globals()[k] = secrets_conf(k)
 
 ASGI_APPLICATION = 'telescope2.asgi.application'
+
+BRANDING_FULL = 'telescope2'
+BRANDING_SHORT = 'ts2'
