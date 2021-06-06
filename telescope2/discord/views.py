@@ -14,21 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django.views.decorators.csrf import requires_csrf_token
 
 from .bot import Telescope
 
 
-@login_required
-@permission_required(['discord.manage_servers'])
 def authorized(req: HttpRequest) -> HttpResponse:
     return HttpResponse(content=req.body.decode('utf8'))
 
 
+@requires_csrf_token
 def invite(req: HttpRequest) -> HttpResponse:
-    return HttpResponseRedirect(Telescope.build_oauth2_url(req), status=307)
+    redirect, token = Telescope.build_oauth2_url(req, 300)
+    res = HttpResponseRedirect(redirect, status=307)
+    res.set_cookie('state', token, 300, secure=True, httponly=True, samesite='Lax')
+    return res
 
 
 def index(req: HttpRequest) -> HttpResponse:
