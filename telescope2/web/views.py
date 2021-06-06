@@ -20,6 +20,18 @@ from django.shortcuts import render
 
 from telescope2.discord import oauth2
 from telescope2.discord.bot import Telescope
+from telescope2.utils.jwt import validate_token
+
+
+def verify_state(req: HttpRequest):
+    cookie_token = req.COOKIES.get('state')
+    params_token = req.GET.get('state')
+    state = validate_token(req, params_token)
+    if state == 'valid':
+        if cookie_token == params_token:
+            return 'valid'
+        return 'invalid'
+    return state
 
 
 def index(req: HttpRequest) -> HttpResponse:
@@ -36,6 +48,11 @@ def login(req: HttpRequest) -> HttpResponse:
 
 
 def logged_in(req: HttpRequest) -> HttpResponse:
+    state = verify_state(req)
+    if state != 'valid':
+        return render(req, 'web/invalid_login.html', context={
+            'token_state': state,
+        })
     return HttpResponse(content=repr(dict(req.GET)))
 
 

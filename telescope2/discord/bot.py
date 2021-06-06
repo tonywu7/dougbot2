@@ -47,7 +47,7 @@ class BotThread(threading.Thread):
         client = self._client_cls(loop=loop, **self._client_options)
         global instance
         instance = client
-        loop.create_task(client.start(settings.DISCORD_SECRET))
+        loop.create_task(client.start(settings.DISCORD_BOT_TOKEN))
         loop.run_forever()
 
     def run(self) -> None:

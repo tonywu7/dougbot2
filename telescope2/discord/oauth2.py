@@ -34,12 +34,11 @@ OAUTH2_PATH = '/api/oauth2/authorize'
 
 
 def oauth_url(req: HttpRequest, scope: str, redirect: str, token=None, **queries):
-    bot = Telescope.get_instance()
     site = get_current_site(req)
     redirect = urlunsplit((req.scheme, site.domain, redirect, '', ''))
     token = token or gen_token(req, settings.JWT_DEFAULT_EXP)
     params = {
-        'client_id': bot.user.id,
+        'client_id': settings.DISCORD_CLIENT_ID,
         'scope': scope,
         'response_type': 'code',
         'redirect_uri': redirect,

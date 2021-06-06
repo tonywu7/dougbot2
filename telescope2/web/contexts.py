@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
 
@@ -22,4 +23,11 @@ def application_info(req: HttpRequest):
     return {
         'branding_full': settings.BRANDING_FULL,
         'branding_short': settings.BRANDING_SHORT,
+    }
+
+
+def site_info(req: HttpRequest):
+    site = get_current_site(req)
+    return {
+        'current_domain': site.domain,
     }

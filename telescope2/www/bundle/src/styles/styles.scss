@@ -72,10 +72,22 @@ a {
     }
 }
 
+h1,
+h2,
 h3 {
-    font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: -1px;
+}
+
+h4,
+h5,
+h6 {
+    font-weight: 600;
+    letter-spacing: -1px;
+}
+
+h3 {
+    font-size: 1.5rem;
 }
 
 input {
@@ -84,246 +96,6 @@ input {
 
 .flex-select {
     @include utility.flex-select();
-}
-
-.object-board {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr;
-    column-gap: 0.5rem;
-    row-gap: 0.5rem;
-
-    .span-2 {
-        grid-column-end: span 2;
-    }
-
-    @media screen and (max-width: 768px) {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
-
-        .span-2 {
-            grid-column-end: unset;
-        }
-    }
-
-    .flex-column {
-        display: flex;
-        flex-flow: column nowrap;
-        justify-content: flex-start;
-    }
-}
-
-.object-list-frame {
-    --frame-bg: #{$bw-grey-2};
-
-    --item-bg: #{$bw-grey-4};
-    --item-bg-hover: #{$bw-grey-6};
-
-    --item-fg: #{$color-text};
-    --item-fg-2: #{$color-text-muted};
-    --item-fg-hover: #{$bw-grey-14};
-
-    background-color: var(--frame-bg);
-    border: 3px solid var(--frame-bg);
-    border-radius: 6px;
-
-    padding: 6px 6px 4px;
-}
-
-.object-list-header {
-    background-color: var(--frame-bg);
-
-    width: 100%;
-    padding: 5px 0 7px 0.6rem;
-    margin: 0;
-
-    position: sticky;
-    z-index: 550;
-    top: calc(var(--masthead-height) + 48px);
-
-    display: inline-flex;
-    flex-flow: row nowrap;
-    justify-content: space-between;
-
-    @media screen and (max-width: 768px) {
-        padding: 8px 0 12px 0.6rem;
-        top: calc(var(--masthead-height) + 45px);
-    }
-}
-
-.object-list-header-titles {
-    // flex: 0 1;
-
-    display: inline-flex;
-    flex-flow: column nowrap;
-    justify-content: center;
-
-    .title {
-        font-size: 1.2rem;
-        font-weight: 700;
-    }
-
-    .subtitle {
-        font-size: 0.8rem;
-        font-weight: 400;
-        color: var(--item-fg-2);
-    }
-
-    .title {
-        margin: 0;
-    }
-
-    .subtitle {
-        margin: 2px 0 0;
-    }
-}
-
-.object-list-header-controls {
-    // flex: 0 0;
-
-    display: inline-flex;
-    flex-flow: row-reverse nowrap;
-
-    align-items: center;
-
-    > * {
-        padding: 0 0.6rem;
-    }
-
-    > *:not(:last-child) {
-        border-inline-start: 1px solid $bw-grey-6;
-    }
-
-    .control {
-        --_button-color: var(--frame-bg);
-
-        width: 24px;
-        height: 24px;
-        padding: 0;
-
-        display: flex;
-        justify-content: center;
-
-        svg {
-            width: 20px;
-            vertical-align: text-bottom;
-        }
-    }
-}
-
-.object-list-controls {
-    @include utility.flex-token-list(row, nowrap);
-}
-
-.object-list-container {
-    position: relative;
-
-    margin: 0 0;
-
-    overflow-x: hidden;
-    overflow-y: hidden;
-
-    border-radius: 4px;
-}
-
-.object-list-item {
-    margin: 6px 0;
-    width: 100%;
-
-    a {
-        display: block;
-        color: inherit;
-    }
-}
-
-.list-item-frame {
-    position: relative;
-
-    background-color: var(--item-bg);
-    border-radius: 4px;
-
-    color: var(--item-fg);
-
-    padding: 8px 10px;
-
-    width: 100%;
-    height: 100%;
-
-    display: flex;
-    flex-flow: row nowrap;
-
-    justify-content: space-between;
-    align-items: stretch;
-
-    .list-item-content {
-        display: flex;
-    }
-
-    .list-item-content > * {
-        position: relative;
-        z-index: 10;
-    }
-
-    .list-item-left {
-        flex: 0 0 auto;
-    }
-
-    .list-item-main {
-        align-items: flex-start;
-        flex: 1 1 auto;
-        flex-flow: column nowrap;
-    }
-
-    .list-item-right {
-        flex: 0 1 auto;
-    }
-
-    .list-item-text-major {
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .list-item-text-minor {
-        margin-top: 2px;
-        font-weight: 400;
-        font-size: 0.8rem;
-        color: var(--item-fg-2);
-
-        display: flex;
-        flex-flow: column nowrap;
-    }
-
-    .object-anchor {
-        position: absolute;
-        z-index: 5;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-
-        @media screen and (pointer: coarse) {
-            z-index: 12;
-        }
-    }
-
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    transition: box-shadow 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-    &:hover,
-    &:focus {
-        background-color: var(--item-bg-hover);
-
-        .list-item-text-major,
-        .list-item-text-minor {
-            color: var(--item-fg-hover);
-        }
-    }
-
-    @media screen and (pointer: coarse) {
-        .list-item-text-minor {
-            pointer-events: none;
-        }
-    }
 }
 
 .token-list {
@@ -352,15 +124,6 @@ input {
     &.tk-nowrap {
         flex-wrap: nowrap;
     }
-}
-
-.list-item-count {
-    font-size: 1.5rem;
-    line-height: 1rem;
-    font-weight: 300;
-    font-family: $heading-fonts;
-    position: relative;
-    bottom: 2px;
 }
 
 .btn {
@@ -462,15 +225,16 @@ a.dropdown-toggle:focus {
     flex-wrap: nowrap;
 }
 
-.btn-dual {
-    @include buttons.button-dual();
-}
-
 code,
 kbd,
 pre,
 samp {
     font-family: $monospace-fonts;
+}
+
+code {
+    font-size: 1.05em;
+    color: $pink-400;
 }
 
 select.custom-select {
@@ -498,43 +262,6 @@ select.custom-select {
     visibility: hidden;
     width: 0;
     height: 0;
-}
-
-.managed-layout {
-    .object-list-item {
-        display: none;
-    }
-}
-
-.muuri {
-    position: relative;
-
-    .muuri-item {
-        position: absolute;
-    }
-
-    .object-list-item {
-        display: unset;
-        margin: 3px 0;
-    }
-}
-
-.sort-button {
-    position: relative;
-
-    > span {
-        position: absolute;
-        display: none;
-    }
-
-    @for $i from 1 through 6 {
-        &.sort-type-#{$i} {
-            > span:nth-child(#{$i}) {
-                display: block;
-                margin: 0;
-            }
-        }
-    }
 }
 
 .input-style-underline {
@@ -628,4 +355,8 @@ select.custom-select {
     font-size: 1rem;
     font-weight: 600;
     letter-spacing: -0.5px;
+}
+
+.text-error {
+    color: $red;
 }

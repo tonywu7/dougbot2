@@ -1,0 +1,12 @@
+{% extends 'web/article.html' %}
+
+{% block article %}
+<h1><span class="text-error">Invalid login attempt</span></h1>
+{% if token_state == 'expired' %}
+<p>Your login credentials is expired because you spent too much time logging in through Discord.
+    You can <a href="{% url 'web.index' %}">return to homepage and try again</a>.</p>
+{% else %}
+<p>If you did not intend to visit <code>{{ current_domain }}</code>, an attacker may be attempting
+    to gain information about your Discord account (likely through a link you clicked before logging in on Discord).</p>
+{% endif %}
+{% endblock %}

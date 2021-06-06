@@ -45,3 +45,16 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
     payload['nbf'] = nbf.timestamp()
     payload['jti'] = str(uuid.uuid4())
     return jwt.encode(payload, settings.SECRET_KEY, 'HS256')
+
+
+def validate_token(req: HttpRequest, token: str, aud=None) -> bool:
+    iss = get_current_site(req).domain
+    aud = aud or iss
+    try:
+        jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'],
+                   issuer=iss, audience=aud)
+    except jwt.ExpiredSignatureError:
+        return 'expired'
+    except jwt.InvalidTokenError:
+        return 'invalid'
+    return 'valid'

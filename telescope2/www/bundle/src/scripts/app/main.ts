@@ -34,9 +34,7 @@ function initWebSocket(): Promise<boolean> {
             setSocketStatus(true)
             return resolve(true)
         })
-        socket.addEventListener('message', (ev) => {
-            console.log(ev.data)
-        })
+        socket.addEventListener('message', (ev) => {})
         socket.addEventListener('close', () => {
             setSocketStatus(false)
             setTimeout(initWebSocket, 1000)

@@ -5,6 +5,7 @@ from django.views.generic.base import RedirectView
 
 admin_site = create_admin_site('telescope2 console', [
     'telescope2.discord.admin',
+    'telescope2.web.admin',
 ])
 
 urlpatterns = [

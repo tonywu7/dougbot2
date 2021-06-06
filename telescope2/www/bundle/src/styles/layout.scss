@@ -69,7 +69,11 @@
 }
 
 .main-container {
-    margin: 0 var(--masthead-space-horizontal) 0 var(--sidebar-width);
+    margin: 0 var(--masthead-space-horizontal);
+}
+
+.main-content {
+    margin-left: calc(var(--sidebar-width) - var(--masthead-space-horizontal));
 }
 
 .section-container {
@@ -101,4 +105,8 @@
         border-right: none;
         padding-right: 0;
     }
+}
+
+article {
+    margin: 0 15vw 0;
 }

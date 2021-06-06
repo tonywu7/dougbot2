@@ -59,6 +59,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'telescope2.web.contexts.application_info',
+                'telescope2.web.contexts.site_info',
             ],
         },
     },
@@ -80,6 +81,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
+
+AUTH_USER_MODEL = 'web.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -121,7 +124,9 @@ LOGGING_CONFIG = None
 
 instance_settings = []
 instance_secrets = [
-    'DISCORD_SECRET',
+    'DISCORD_CLIENT_ID',
+    'DISCORD_CLIENT_SECRET',
+    'DISCORD_BOT_TOKEN',
 ]
 
 for k in instance_settings:
