@@ -5,7 +5,7 @@
 
 </aside>
 <main id="control-panel" class="main-content">
-    <h1 id="bot-name" class="ui-text-no-select">{{ branding_full }}</h1>
+    <h1 class="bot-name" class="ui-text-no-select">{{ branding_full }}</h1>
     <section class="section-container">
         <section class="bot-status">
             <header>
@@ -16,8 +16,8 @@
             <header>
                 <h3 class="ui-text-no-select">general</h3>
             </header>
-            <div class="section-content">
-                <p><a href="{% url 'web.invite' %}">authorize</a></p>
+            <div>
+                <p class="interactive-text"><a href="{% url 'web.invite' %}">authorize</a></p>
             </div>
         </section>
     </section>

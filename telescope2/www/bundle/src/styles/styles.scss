@@ -1,17 +1,23 @@
-@use 'colors';
-@use 'layout';
-@use 'buttons';
-@use 'typefaces';
-@use 'utility';
+@use "utility";
+@use "buttons";
+
+@import "typefaces";
+@import "colors";
 
 :root {
+    --accent: #{$blue-400};
+    --primary: #{adjust-color($blue-800, $saturation: -50%)};
+    --secondary: #{$gray-850};
+
     --page-margin-horizontal: 8vw;
 
     @media screen and (max-width: 768px) {
         --page-margin-horizontal: 3vw;
     }
 
-    --masthead-height: 3rem;
+    --masthead-height: 3.6rem;
+    --masthead-space-vertical: 10px;
+    --masthead-space-horizontal: 40px;
     --footer-height: calc(100vh - 4rem);
     --sidebar-width: 288px;
 
@@ -21,9 +27,9 @@
     --box-shadow-focus: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     --box-shadow-focus-inset: inset 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 
-    --color-bg: #{colors.$color-bg};
-    --color-anchor: #{colors.$chat-muted-sky};
-    --color-text: #{colors.$color-text};
+    --color-bg: #{$color-bg};
+    --color-anchor: #{$chat-muted-sky};
+    --color-text: #{$color-text};
 }
 
 * {
@@ -47,7 +53,7 @@ body {
     background-color: var(--color-bg);
     color: var(--color-text);
 
-    font-family: typefaces.$ui-fonts;
+    font-family: $ui-fonts;
     font-size: 14px;
 
     margin: 0;
@@ -108,14 +114,14 @@ input {
 }
 
 .object-list-frame {
-    --frame-bg: #{colors.$grey-2};
+    --frame-bg: #{$bw-grey-2};
 
-    --item-bg: #{colors.$grey-4};
-    --item-bg-hover: #{colors.$grey-6};
+    --item-bg: #{$bw-grey-4};
+    --item-bg-hover: #{$bw-grey-6};
 
-    --item-fg: #{colors.$color-text};
-    --item-fg-2: #{colors.$color-text-muted};
-    --item-fg-hover: #{colors.$grey-14};
+    --item-fg: #{$color-text};
+    --item-fg-2: #{$color-text-muted};
+    --item-fg-hover: #{$bw-grey-14};
 
     background-color: var(--frame-bg);
     border: 3px solid var(--frame-bg);
@@ -185,7 +191,7 @@ input {
     }
 
     > *:not(:last-child) {
-        border-inline-start: 1px solid colors.$grey-6;
+        border-inline-start: 1px solid $bw-grey-6;
     }
 
     .control {
@@ -352,7 +358,7 @@ input {
     font-size: 1.5rem;
     line-height: 1rem;
     font-weight: 300;
-    font-family: typefaces.$heading-fonts;
+    font-family: $heading-fonts;
     position: relative;
     bottom: 2px;
 }
@@ -382,10 +388,10 @@ a.btn {
     max-width: 100vw;
     overflow: hidden;
 
-    background-color: colors.$grey-3;
+    background-color: $bw-grey-3;
 
     h6 {
-        color: colors.$color-text-muted;
+        color: $color-text-muted;
     }
 
     > p,
@@ -399,7 +405,7 @@ a.btn {
     > span,
     input {
         width: 100%;
-        color: colors.$color-text;
+        color: $color-text;
     }
 }
 
@@ -408,7 +414,7 @@ a.dropdown-toggle:focus {
 }
 
 .dropdown-item {
-    color: colors.$color-text;
+    color: $color-text;
 
     padding: 0.25rem 1rem;
 
@@ -464,14 +470,14 @@ code,
 kbd,
 pre,
 samp {
-    font-family: typefaces.$monospace-fonts;
+    font-family: $monospace-fonts;
 }
 
 select.custom-select {
     appearance: none;
     border: none;
     background-color: transparent;
-    color: colors.$color-text;
+    color: $color-text;
     font-family: inherit;
     font-size: 1rem;
     min-width: 100%;
@@ -535,7 +541,7 @@ select.custom-select {
     background-color: inherit;
     color: var(--color-text);
     border: none;
-    border-bottom: 2px solid colors.$grey-13;
+    border-bottom: 2px solid $bw-grey-13;
 
     &:focus,
     &:active {
@@ -546,7 +552,7 @@ select.custom-select {
     &::placeholder {
         font-size: 0.9rem;
         font-weight: 500;
-        font-family: typefaces.$ui-fonts;
+        font-family: $ui-fonts;
     }
 }
 
@@ -565,7 +571,7 @@ select.custom-select {
 
     padding: 0.5rem;
 
-    background-color: colors.$grey-2;
+    background-color: $bw-grey-2;
     border-radius: 3px;
     box-shadow: var(--box-shadow-3);
 
@@ -614,16 +620,12 @@ select.custom-select {
 
 .masthead-container,
 .footer-container {
-    background-color: colors.$grey-2;
+    background-color: $bw-grey-2;
     box-shadow: var(--box-shadow-1);
 }
 
-.section-content {
+.interactive-text {
     font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: -0.1px;
-
-    a {
-        font-weight: 600;
-    }
+    font-weight: 600;
+    letter-spacing: -0.5px;
 }

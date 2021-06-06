@@ -1,7 +1,17 @@
 <nav id="masthead">
     <section id="branding">
-        <h1 id="site-name">
-            <a href="{% url 'web.index' %}">{{ branding_full }}</a>
-        </h1>
+        <header>
+            <h1 id="site-name" class="bot-name">
+                <a href="{% url 'web.index' %}">{{ branding_short }}</a>
+            </h1>
+        </header>
+    </section>
+    <section id="auth-control" class="masthead-opt-group">
+        <div id="server-select" class="nav-control interactive-text">
+            <span>Select server</span>
+        </div>
+        <div id="discord-login" class="nav-control interactive-text">
+            <a href=""><i class="bi bi-discord"></i> Login via Discord</a>
+        </div>
     </section>
 </nav>

@@ -1,26 +1,44 @@
 @use 'styles';
-@use 'colors';
 
-#bot-name {
-    position: relative;
+@import "colors";
+@import "layout";
+
+#branding h1 {
+    font-size: 1.6rem;
+    margin: 0;
+
     left: -1.06rem;
+
+    font-weight: 700;
+    border-left: 0.45rem solid var(--accent);
+    letter-spacing: -1px;
+
+    a {
+        color: $color-text;
+    }
+}
+
+.bot-name {
+    position: relative;
+    left: -1.3rem;
 
     padding: 0 0 0 0.6rem;
     margin-bottom: 1rem;
 
+    font-size: 3rem;
     font-weight: 750;
-    border-left: 0.5rem solid;
+    border-left: 0.6rem solid;
     letter-spacing: -2px;
     line-height: 1;
 }
 
 #socket-status {
     &.socket-on {
-        color: colors.$bs-teal;
+        color: $teal;
     }
 
     &.socket-off {
-        color: colors.$bs-red;
+        color: $red;
     }
 
     .bi::before {

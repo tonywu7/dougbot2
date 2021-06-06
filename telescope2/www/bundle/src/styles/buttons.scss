@@ -1,10 +1,10 @@
-@use './colors';
+@import "./colors";
 
 @mixin button {
-    --_button-color: #{colors.$grey-5};
-    --_button-color-text: #{colors.$grey-13};
-    --_button-color-highlight: #{colors.$grey-6};
-    --_button-color-text-highlight: #{colors.$grey-13};
+    --_button-color: #{$bw-grey-5};
+    --_button-color-text: #{$bw-grey-13};
+    --_button-color-highlight: #{$bw-grey-6};
+    --_button-color-text-highlight: #{$bw-grey-13};
 
     background-color: var(--_button-color);
     border-color: var(--_button-color);
@@ -24,21 +24,21 @@
         color: var(--_button-color-text-highlight);
     }
 
-    >span {
+    > span {
         display: inline-block;
         white-space: nowrap;
-        margin: 0 .25rem;
+        margin: 0 0.25rem;
 
         &:first-child {
-            margin-left: .1rem;
+            margin-left: 0.1rem;
         }
 
         &:last-child {
-            margin-right: .1rem;
+            margin-right: 0.1rem;
         }
     }
 
-    >span {
+    > span {
         font-weight: 600;
     }
 
@@ -51,8 +51,8 @@
 @mixin button-primary() {
     @include button();
 
-    --_button-color: var(--button-color, var(--accent-color, #{colors.$grey-5}));
-    --_button-color-text: var(--button-color-text, #{colors.$grey-11});
+    --_button-color: var(--button-color, var(--accent-color, #{$bw-grey-5}));
+    --_button-color-text: var(--button-color-text, #{$bw-grey-11});
     --_button-color-highlight: var(--button-color-highlight, var(--_button-color));
     --_button-color-text-highlight: var(--button-color-text-highlight, var(--_button-color-text));
 }
@@ -60,15 +60,15 @@
 @mixin button-text() {
     @include button();
 
-    --_button-color: #{colors.$color-text};
-    --_button-color-text: #{colors.$color-bg};
+    --_button-color: #{$color-text};
+    --_button-color-text: #{$color-bg};
 }
 
 @mixin button-secondary-1() {
     @include button();
 
-    --_button-color: #{colors.$grey-4};
-    --_button-color-highlight: #{colors.$grey-8};
+    --_button-color: #{$bw-grey-4};
+    --_button-color-highlight: #{$bw-grey-8};
 }
 
 @mixin button-inverse($color) {
@@ -94,16 +94,16 @@
 
     &:hover,
     &:focus {
-        >._initial {
+        > ._initial {
             display: none;
         }
 
-        >._revealed {
+        > ._revealed {
             display: initial;
         }
     }
 
-    >._revealed {
+    > ._revealed {
         display: none;
     }
 }
