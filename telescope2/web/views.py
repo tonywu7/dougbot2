@@ -43,9 +43,6 @@ def verify_state(req: HttpRequest):
 
 
 async def index(req: HttpRequest) -> HttpResponse:
-    # if not Telescope.is_alive:
-    #     Telescope.run()
-
     user: User = req.user
 
     @sync_to_async

@@ -14,6 +14,7 @@ dependencies:
   - cffi=1.14.5=py38ha97d567_0
   - chardet=4.0.0=py38h50d1736_1
   - click=8.0.1=py38h50d1736_0
+  - discord.py=1.7.2=pyhd8ed1ab_0
   - django=3.2.4=pyhd8ed1ab_0
   - libcxx=11.1.0=habf9029_0
   - libffi=3.3=h046ec9c_2
@@ -25,13 +26,17 @@ dependencies:
   - ptyprocess=0.7.0=pyhd3deb0d_0
   - pycares=4.0.0=py38h96a0964_0
   - pycparser=2.20=pyh9f0ad1d_2
+  - pyjwt=2.1.0=pyhd8ed1ab_0
   - python=3.8.6=h624753d_5_cpython
+  - python-decouple=3.4=pyhd3deb0d_0
   - python_abi=3.8=1_cp38
   - pytz=2021.1=pyhd8ed1ab_0
   - readline=8.1=h05e3726_0
   - setuptools=49.6.0=py38h50d1736_3
+  - simplejson=3.17.2=py38h5406a74_2
   - sqlite=3.35.5=h44b9ce1_0
   - sqlparse=0.4.1=pyh9f0ad1d_0
+  - termcolor=1.1.0=py_2
   - tk=8.6.10=h0419947_1
   - typing-extensions=3.10.0.0=hd8ed1ab_0
   - typing_extensions=3.10.0.0=pyha770c72_0
@@ -42,18 +47,36 @@ dependencies:
   - zlib=1.2.11=h7795811_1010
   - pip:
     - aiojobs==0.3.0
+    - autobahn==21.3.1
+    - automat==20.2.0
+    - channels==3.0.3
+    - colorama==0.3.7
+    - constantly==15.1.0
+    - cryptography==3.4.7
+    - daphne==3.0.2
+    - django-polymorphic==3.0.0
+    - hyperlink==21.0.0
     - idna==2.10
+    - incremental==21.3.0
     - iso-639==0.4.5
     - iso3166==1.0.1
     - iso8601==0.1.14
     - isodate==0.6.0
     - logging-tree==1.9
     - m3u8==0.9.0
+    - pyasn1==0.4.8
+    - pyasn1-modules==0.2.8
     - pycryptodome==3.10.1
+    - pyopenssl==20.0.1
     - pysocks==1.7.1
+    - pywatchman==1.4.1
     - requests==2.25.1
+    - service-identity==21.1.0
     - six==1.16.0
     - streamlink==2.1.2
+    - twisted==21.2.0
+    - txaio==21.2.1
     - urllib3==1.26.5
     - websocket-client==1.0.1
+    - zope-interface==5.4.0
 prefix: /usr/local/var/pyenv/versions/anaconda3-2020.11/envs/telescope2

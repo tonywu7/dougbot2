@@ -17,13 +17,9 @@
 import simplejson as json
 from channels.generic.websocket import WebsocketConsumer
 
-# from telescope2.discord.bot import Telescope
-
 
 class ClientConsumer(WebsocketConsumer):
     def connect(self):
-        # if not Telescope.is_alive:
-        #     Telescope.run()
         self.accept()
 
     def disconnect(self, close_code):
