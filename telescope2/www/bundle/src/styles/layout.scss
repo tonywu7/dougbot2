@@ -91,13 +91,17 @@
 .masthead-opt-group {
     display: flex;
     flex-flow: row nowrap;
-    align-items: center;
+
+    height: 100%;
 }
 
 .nav-control {
     height: 100%;
+
     padding: 0 1.5rem;
-    vertical-align: middle;
+
+    display: flex;
+    flex-flow: row nowrap;
 
     border-right: 1px solid $color-text;
 

@@ -14,19 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from asgiref.sync import sync_to_async
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.db import models
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
+from telescope2.discord.oauth2 import refresh_tokens
+
 
 @deconstructible
 class DiscordUsernameValidator(validators.RegexValidator):
     regex = r'^[^@#:`]+#\d{4}\Z'
-    message = (
-        'Enter a valid Discord tag, such as "Clyde#0001".'
-    )
+    message = 'Enter a valid Discord tag, such as "Clyde#0001".'
     flags = 0
 
 
@@ -45,6 +49,32 @@ class User(AbstractUser):
     )
 
     discord_id: int = models.IntegerField(editable=False, verbose_name='Discord ID')
-    oauth2_refresh: str = models.CharField(max_length=512, blank=True)
+
+    access_token: str = models.CharField(max_length=512, blank=True)
+    refresh_token: str = models.CharField(max_length=512, blank=True)
+    expires_at: float = models.FloatField(null=True)
 
     REQUIRED_FIELDS = ['discord_id']
+
+    @property
+    def token_expired(self) -> bool:
+        if not self.expires_at:
+            return None
+        return datetime.fromtimestamp(self.expires_at, tz=timezone.utc) <= datetime.now(tz=timezone.utc)
+
+    async def fresh_token(self) -> Optional[str]:
+        expired = self.token_expired
+        if expired is None:
+            return None
+        if expired is False:
+            return self.access_token
+        if not self.refresh_token:
+            return None
+        data = await refresh_tokens(self.refresh_token)
+        if not data:
+            return None
+        self.access_token = data['access_token']
+        self.refresh_token = data['refresh_token']
+        self.expires_at = (datetime.now(timezone.utc) + timedelta(seconds=int(data['expires_in']))).timestamp()
+        await sync_to_async(self.save)()
+        return self.access_token

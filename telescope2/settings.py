@@ -4,6 +4,8 @@ from decouple import Config, RepositoryIni
 
 from telescope2.utils.logger import config_logging, make_logging_config
 
+__version__ = '0.0.1'
+
 config_logging(make_logging_config('telescope2'))
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -99,6 +101,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Strict'
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'America/Los_Angeles'
@@ -140,3 +145,5 @@ BRANDING_FULL = 'telescope2'
 BRANDING_SHORT = 'ts2'
 
 JWT_DEFAULT_EXP = 300
+
+USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonywu7/telescope2)'

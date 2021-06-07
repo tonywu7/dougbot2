@@ -117,3 +117,11 @@ export function fisherYatesShuffle<T>(items: T[]): void {
         items[r] = t
     }
 }
+
+export function serializeFormData(data: FormData): Record<string, string> {
+    let obj: Record<string, string> = {}
+    for (let k of data.keys()) {
+        obj[k] = data.get(k)!.toString()
+    }
+    return obj
+}

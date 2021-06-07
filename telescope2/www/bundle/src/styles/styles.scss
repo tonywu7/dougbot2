@@ -98,6 +98,11 @@ input {
     @include utility.flex-select();
 }
 
+.align-middle {
+    display: flex;
+    align-items: center;
+}
+
 .token-list {
     @include utility.flex-token-list(row, wrap);
 
@@ -357,6 +362,44 @@ select.custom-select {
     letter-spacing: -0.5px;
 }
 
-.text-error {
-    color: $red;
+.nav-control {
+    a {
+        color: var(--color-text);
+    }
+
+    i.bi {
+        &:first-child {
+            margin-inline-end: 0.2rem;
+        }
+
+        &:last-child {
+            margin-inline-start: 0.2rem;
+        }
+
+        &.bi-chevron-down::before {
+            position: relative;
+            top: -2px;
+            font-weight: bold !important;
+        }
+    }
+}
+
+.login-control {
+    display: flex;
+    flex-flow: row nowrap;
+
+    figure.profile-picture {
+        width: 32px;
+        height: 32px;
+
+        position: relative;
+        top: 1px;
+
+        margin: 0 0.5rem 0 0;
+
+        img {
+            height: 32px;
+            object-fit: contain;
+        }
+    }
 }

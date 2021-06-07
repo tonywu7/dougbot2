@@ -1,0 +1,13 @@
+{% extends 'web/article.html' %}
+
+{% block article %}
+
+<h1><span class="text-info">Logging you in ...</span></h1>
+<div class="d-none" id="discord-oauth2">
+    <form action="POST" data-on-forbidden="{% url 'web.login_invalid' reason='csrf' %}">
+        {{ form }}
+        {% csrf_token %}
+    </form>
+</div>
+
+{% endblock %}

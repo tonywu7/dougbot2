@@ -6,12 +6,27 @@
             </h1>
         </header>
     </section>
-    <section id="auth-control" class="masthead-opt-group">
-        <div id="server-select" class="nav-control interactive-text">
+    <section id="auth-control" class="masthead-opt-group align-middle">
+        <div id="server-select" class="nav-control interactive-text align-middle">
             <span>Select server</span>
         </div>
-        <div id="discord-login" class="nav-control interactive-text">
-            <a href="{% url 'web.login' %}"><i class="bi bi-discord"></i> Login via Discord</a>
+        <div id="discord-login" class="nav-control interactive-text align-middle">
+            {% if authenticated %}
+            <div class="dropdown">
+                <a class="login-control" href="#" data-bs-toggle="dropdown">
+                    <figure class="profile-picture">
+                    </figure>
+                    <div id="user-info" data-access-token="{{ access_token }}" class="align-middle">
+                        <span>{{ username }}</span> <i class="bi bi-chevron-down"></i>
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a href="{% url 'web.logout' %}" class="dropdown-item">Logout</a></li>
+                </ul>
+            </div>
+            {% else %}
+            <a href="{% url 'web.login' %}"><i class="bi bi-discord"></i> <span>Login via Discord</span></a>
+            {% endif %}
         </div>
     </section>
 </nav>
