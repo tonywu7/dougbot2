@@ -24,7 +24,7 @@ from django.urls import reverse
 from django.views.generic import View
 
 from telescope2.discord import oauth2
-from telescope2.discord.bot import Telescope
+# from telescope2.discord.bot import Telescope
 from telescope2.utils.jwt import validate_token
 
 from .forms import UserCreateForm
@@ -43,8 +43,8 @@ def verify_state(req: HttpRequest):
 
 
 async def index(req: HttpRequest) -> HttpResponse:
-    if not Telescope.is_alive:
-        Telescope.run()
+    # if not Telescope.is_alive:
+    #     Telescope.run()
 
     user: User = req.user
 

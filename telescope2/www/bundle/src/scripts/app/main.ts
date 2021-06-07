@@ -100,8 +100,8 @@ async function initDiscord() {
 export function init() {
     discordOAuth2()
         .then(() => {
-            setSocketStatus(false)
-            initWebSocket()
+            // setSocketStatus(false)
+            // initWebSocket()
             return initDiscord()
         })
         .then(() => {})

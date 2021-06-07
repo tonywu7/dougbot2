@@ -3,18 +3,15 @@
 {% block main %}
 <h1 class="bot-name" class="ui-text-no-select">{{ branding_full }}</h1>
 <section class="section-container">
-    <section class="bot-status">
+    <!-- <section class="bot-status">
         <header>
             <h3 class="ui-text-no-select">socket status <span id="socket-status"></span></h3>
         </header>
-    </section>
+    </section> -->
     <section>
         <header>
             <h3 class="ui-text-no-select">general</h3>
         </header>
-        <div>
-            <p class="interactive-text"><a href="{% url 'web.invite' %}">authorize</a></p>
-        </div>
     </section>
 </section>
 {% endblock %}
