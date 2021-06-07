@@ -25,17 +25,13 @@ from typing import Dict, Type
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.utils.functional import classproperty
 
 from discord import Client, Message, Permissions
 from discord.ext.commands import Bot
 from telescope2.utils.importutil import iter_module_tree
 
-instance: Telescope = None
-thread: threading.Thread = None
 
-
-class BotThread(threading.Thread):
+class BotRunner(threading.Thread):
     def __init__(self, client_cls: Type[Client], client_opts: Dict, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._client_cls = client_cls
@@ -55,32 +51,12 @@ class BotThread(threading.Thread):
 
 
 class Telescope(Bot):
+
     DEFAULT_PREFIX = 't;'
     DEFAULT_PERMS = Permissions(805825782)
 
-    @classmethod
-    def get_thread(cls) -> threading.Thread:
-        return thread
-
-    @classmethod
-    def get_instance(cls) -> Telescope:
-        return instance
-
-    @classproperty
-    def is_alive(cls) -> bool:
-        return thread and thread.is_alive()
-
-    @classmethod
-    def run(cls):
-        options = {
-            'command_prefix': Telescope.which_prefix,
-        }
-        global thread
-        thread = BotThread(Telescope, options, daemon=True)
-        thread.start()
-
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        super().__init__(loop=loop, **options)
+        super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
         self.log = logging.getLogger('telescope')
         self.register_events()
         self.register_commands()
