@@ -368,18 +368,20 @@ select.custom-select {
     }
 
     i.bi {
+        &::before {
+            vertical-align: middle;
+        }
+
         &:first-child {
-            margin-inline-end: 0.2rem;
+            margin-inline-end: 0.4rem;
         }
 
         &:last-child {
-            margin-inline-start: 0.2rem;
+            margin-inline-start: 0.4rem;
         }
 
         &.bi-chevron-down::before {
-            position: relative;
-            top: -2px;
-            font-weight: bold !important;
+            font-weight: 700 !important;
         }
     }
 }

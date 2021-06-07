@@ -7,9 +7,19 @@
         </header>
     </section>
     <section id="auth-control" class="masthead-opt-group align-middle">
+        {% if authenticated %}
         <div id="server-select" class="nav-control interactive-text align-middle">
-            <span>Select server</span>
+            <div class="dropdown">
+                <a href="#" data-bs-toggle="dropdown">
+                    <div id="server-select" class="align-middle">
+                        <span>Select server</span> <i class="bi bi-chevron-down"></i>
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-start">
+                </ul>
+            </div>
         </div>
+        {% endif %}
         <div id="discord-login" class="nav-control interactive-text align-middle">
             {% if authenticated %}
             <div class="dropdown">

@@ -38,7 +38,7 @@
     bottom: 0;
     width: var(--sidebar-width);
 
-    padding-bottom: var(--footer-height);
+    margin: 0 0 calc(100vh - var(--footer-height)) 0;
     overflow-x: hidden;
     overflow-y: scroll;
 }
@@ -73,7 +73,7 @@
 }
 
 .main-content {
-    margin-left: calc(var(--sidebar-width) - var(--masthead-space-horizontal));
+    margin-left: var(--sidebar-width);
 }
 
 .section-container {
