@@ -15,9 +15,24 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 const API_ENDPOINT = 'https://discord.com/api/v9'
+const CDN_PREFIX = 'https://cdn.discordapp.com'
 
-export class DiscordUser {
+interface DiscordIdentity {
     readonly id: string
+    readonly type: string
+}
+
+interface HasName {
+    readonly name: string
+}
+
+interface HasIcon {
+    readonly iconURL: string | null
+}
+
+export class User implements DiscordIdentity, HasIcon, HasName {
+    readonly id: string
+    readonly type: string = 'users'
     readonly username: string
     readonly discriminator: string
     readonly avatar: string | null
@@ -29,20 +44,68 @@ export class DiscordUser {
         this.avatar = data.avatar
     }
 
-    get tag(): string {
+    get name(): string {
         return `${this.username}#${this.discriminator}`
     }
 
-    get avatarURL(): string | null {
+    get iconURL(): string | null {
         if (this.avatar === null) return null
-        return `https://cdn.discordapp.com/avatars/${this.id}/${this.avatar}.png`
+        return `${CDN_PREFIX}/avatars/${this.id}/${this.avatar}.png`
     }
+}
+
+export class Guild implements DiscordIdentity, HasIcon, HasName {
+    readonly id: string
+    readonly type: string = 'users'
+
+    readonly name: string
+    readonly icon: string | null
+
+    readonly permissions: Permission | null
+
+    constructor(data: Record<string, any>) {
+        this.id = data.id
+        this.name = data.name
+        this.icon = data.icon
+        this.permissions = data.permissions && new Permission(data.permissions)
+    }
+
+    get iconURL(): string {
+        return `${CDN_PREFIX}/icons/${this.id}/${this.icon}.png`
+    }
+}
+
+export class Permission {
+    private readonly perm: number
+
+    constructor(permLiteral: string | number) {
+        this.perm = Number(permLiteral)
+    }
+
+    hasPerms(other: Permission): boolean {
+        return Boolean(this.perm & other.perm)
+    }
+
+    intersect(other: Permission): Permission {
+        return new Permission(this.perm & other.perm)
+    }
+
+    union(other: Permission): Permission {
+        return new Permission(this.perm | other.perm)
+    }
+}
+
+export class Perms {
+    static readonly ADMINISTRATOR = new Permission(1 << 3)
+    static readonly MANAGE_GUILD = new Permission(1 << 5)
 }
 
 export class DiscordClient {
     _token: string
 
-    user: DiscordUser | null = null
+    user: User | null = null
+
+    _guilds: Guild[] = []
 
     constructor(accessToken: string) {
         this._token = accessToken
@@ -52,7 +115,7 @@ export class DiscordClient {
         return `${API_ENDPOINT}${endpoint}`
     }
 
-    async get(endpoint: string): Promise<Record<string, any> | null> {
+    async get(endpoint: string): Promise<Record<string, any> | Promise<Record<string, any>[]> | null> {
         let res: Response
         try {
             res = await fetch(this.url(endpoint), {
@@ -63,6 +126,10 @@ export class DiscordClient {
             })
         } catch (e) {
             console.error(e)
+            return null
+        }
+        if (res.status === 401) {
+            window.location.href = '/web/logout'
             return null
         }
         let data: Record<string, any> = await res.json()
@@ -78,7 +145,7 @@ export class DiscordClient {
         if (data === null) {
             throw new Error('Error fetching current user id')
         }
-        this.user = new DiscordUser(data)
+        this.user = new User(data)
     }
 
     async userId(): Promise<string> {
@@ -90,11 +157,11 @@ export class DiscordClient {
     async userTag(): Promise<string> {
         if (this.user) return this.user.id
         await this.fetchUser()
-        return this.user!.tag
+        return this.user!.name
     }
 
     async setAvatar(): Promise<void> {
-        let avatarURL = this.user?.avatarURL
+        let avatarURL = this.user?.iconURL
         if (avatarURL === null || avatarURL === undefined) return
         document.querySelectorAll('.profile-picture').forEach((elem) => {
             let figure = elem as HTMLElement
@@ -103,5 +170,18 @@ export class DiscordClient {
             img.src = avatarURL!
             figure.appendChild(img)
         })
+    }
+
+    async fetchGuilds(): Promise<Guild[]> {
+        if (this._guilds.length) return [...this._guilds]
+        let data: Record<string, any>[] = (await this.get('/users/@me/guilds')) as Record<string, any>[]
+        if (data === null) return []
+        this._guilds = data.map((d) => new Guild(d))
+        return [...this._guilds]
+    }
+
+    async managedGuilds(): Promise<Guild[]> {
+        let guilds = await this.fetchGuilds()
+        return guilds.filter((g) => g.permissions?.hasPerms(Perms.MANAGE_GUILD))
     }
 }

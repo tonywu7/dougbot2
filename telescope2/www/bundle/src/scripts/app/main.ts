@@ -95,13 +95,12 @@ async function initDiscord() {
 
     await discord.fetchUser()
     await discord.setAvatar()
+    await discord.managedGuilds()
 }
 
 export function init() {
     discordOAuth2()
         .then(() => {
-            // setSocketStatus(false)
-            // initWebSocket()
             return initDiscord()
         })
         .then(() => {})
