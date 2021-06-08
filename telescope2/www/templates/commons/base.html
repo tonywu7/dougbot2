@@ -1,4 +1,4 @@
-{% load inspect static %}
+{% load inspect pathfinding %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,14 +11,15 @@
     {% endblock %}
 
     {% block meta_security %}
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com">
+    <!-- <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com"> -->
     <meta name="referrer" content="strict-origin-when-cross-origin">
     {% endblock %}
 
     <title>{% block title %}{% basefilename %}{% endblock %} | {{ branding_full }}</title>
 
     {% block styles %}
+    <link rel="icon" href="{% static 'favicon.ico' %}">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://code.jquery.com">
@@ -38,7 +39,7 @@
     <script src="{% static '/bundle/scripts/app/preamble.js' %}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
         integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
-    <script src="{% static '/bundle/scripts/app/index.js' %}"></script>
+    <script src="{% static '/bundle/scripts/app/index.js' %}" id="script-entry" data-server="{% staticserver %}"></script>
     {% endblock %}
 </head>
 

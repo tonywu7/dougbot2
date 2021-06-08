@@ -1,0 +1,9 @@
+{% extends 'commons/article.html' %}
+{% load errors %}
+
+{% block article %}
+
+<h1>{% httpstatus %}</h1>
+<p class="text-danger">You are not allowed to access this resource.</p>
+
+{% endblock %}
