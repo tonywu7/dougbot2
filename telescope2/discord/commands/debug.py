@@ -38,8 +38,11 @@ def register_all(bot: Bot):
 
     @bot.command('prefix')
     async def cmd_prefix(ctx: Context, *args, **kwargs):
-        prefixes = [f'"{p}"' for p in await bot.command_prefix(bot, ctx.message)]
-        await ctx.send(f'{lang.plural_clause(len(prefixes), "Prefix", "is")} {lang.coord_conj(*prefixes)}')
+        prefixes = [*await bot.command_prefix(bot, ctx.message)]
+        example = f'Example: **{prefixes[0]}echo**'
+        await ctx.send(f'{lang.plural_clause(len(prefixes), "Prefix", "is")} '
+                       f'{lang.coord_conj(*[f"**{p}**" for p in prefixes])}\n'
+                       f'{example}')
 
     @bot.listen('on_message')
     async def on_ping(msg: Message):
