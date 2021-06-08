@@ -4,7 +4,7 @@
 
 <h1><span class="text-info">Joining server ...</span></h1>
 <div class="d-none" id="discord-join-server">
-    <form action="POST" data-on-forbidden="{% url 'web.login_invalid' reason='csrf' %}">
+    <form method="POST" data-on-forbidden="{% url 'web.login_invalid' reason='csrf' %}">
         {{ form }}
         {% csrf_token %}
     </form>
