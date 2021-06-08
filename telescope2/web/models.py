@@ -24,7 +24,8 @@ from django.db import models
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
-from telescope2.discord.oauth2 import refresh_tokens
+from telescope2.discord.fetch import DiscordFetch, create_session
+from telescope2.utils.datetime import utcnow
 
 
 @deconstructible
@@ -56,11 +57,16 @@ class User(AbstractUser):
 
     REQUIRED_FIELDS = ['discord_id']
 
+    class Meta:
+        permissions = [
+            ('manage_servers', 'Can invite the bot to servers'),
+        ]
+
     @property
     def token_expired(self) -> bool:
         if not self.expires_at:
             return None
-        return datetime.fromtimestamp(self.expires_at, tz=timezone.utc) <= datetime.now(tz=timezone.utc)
+        return datetime.fromtimestamp(self.expires_at, tz=timezone.utc) <= utcnow()
 
     async def fresh_token(self) -> Optional[str]:
         expired = self.token_expired
@@ -70,11 +76,13 @@ class User(AbstractUser):
             return self.access_token
         if not self.refresh_token:
             return None
-        data = await refresh_tokens(self.refresh_token)
+        fetch = DiscordFetch(create_session())
+        data = await fetch.refresh_tokens(self.refresh_token)
+        await fetch.close()
         if not data:
             return None
         self.access_token = data['access_token']
         self.refresh_token = data['refresh_token']
-        self.expires_at = (datetime.now(timezone.utc) + timedelta(seconds=int(data['expires_in']))).timestamp()
+        self.expires_at = (utcnow() + timedelta(seconds=int(data['expires_in']))).timestamp()
         await sync_to_async(self.save)()
         return self.access_token

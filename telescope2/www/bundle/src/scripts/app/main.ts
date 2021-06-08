@@ -84,6 +84,19 @@ async function discordOAuth2() {
     }
 }
 
+async function setAvatar(discord: DiscordClient): Promise<void> {
+    let avatarURL = (await discord.user())?.iconURL
+    if (avatarURL === null || avatarURL === undefined) return
+    document.querySelectorAll('.user-profile').forEach((elem) => {
+        let figure = elem as HTMLElement
+        figure.appendChild(createAvatarElement(avatarURL!))
+    })
+}
+
+async function setGuilds(discord: DiscordClient): Promise<void> {
+    let managedGuilds = await discord.managedGuilds()
+}
+
 async function initDiscord() {
     let userInfoElem = document.querySelector('#user-info') as HTMLElement
     if (userInfoElem === null) return
@@ -94,8 +107,21 @@ async function initDiscord() {
     discord = new DiscordClient(accessToken!)
 
     await discord.fetchUser()
-    await discord.setAvatar()
-    await discord.managedGuilds()
+    await setAvatar(discord)
+}
+
+function discordJoinServer() {
+    let form = document.querySelector('#discord-join-server') as HTMLFormElement
+    if (form === null) return
+    form.submit()
+}
+
+export function createAvatarElement(src: string): HTMLElement {
+    let img = document.createElement('img')
+    img.classList.add('rounded-circle')
+    img.src = src
+    img.alt = `profile picture`
+    return img
 }
 
 export function init() {
@@ -103,5 +129,7 @@ export function init() {
         .then(() => {
             return initDiscord()
         })
-        .then(() => {})
+        .then(() => {
+            discordJoinServer()
+        })
 }

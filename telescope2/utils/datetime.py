@@ -1,4 +1,4 @@
-# models.py
+# datetime.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,21 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
+from datetime import datetime
 
-from django.db import models
-
-from discord import Guild
+import udatetime
 
 
-class Server(models.Model):
-    gid: int = models.IntegerField()
+def utcnow() -> datetime:
+    return udatetime.utcnow()
 
-    prefix: str = models.CharField(max_length=16, default='t;')
 
-    class Meta:
-        verbose_name = 'guild preference'
-
-    @classmethod
-    def get_server(cls, guild: Guild) -> Server:
-        return cls.objects.get(gid=guild.id)
+def utctimestamp() -> float:
+    return udatetime.utcnow().timestamp()

@@ -306,10 +306,10 @@ def set_datefmt(logger, fmt):
             f.stylesheet['prefix'].datefmt = fmt
 
 
-def config_logging(*args, **kwargs):
+def config_logging(config):
     from logging.config import dictConfig
 
-    dictConfig(make_logging_config('telescope2', *args, **kwargs))
+    dictConfig(config)
 
     # import logging
 

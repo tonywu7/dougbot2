@@ -81,7 +81,7 @@ class Telescope(Bot):
     @classmethod
     @sync_to_async
     def which_prefix(cls, bot: Bot, msg: Message):
-        from .models import GuildPreference
+        from .models import Server
 
         user_id = bot.user.id
         prefixes = [f'<@!{user_id}> ', f'<@{user_id}> ']
@@ -90,8 +90,8 @@ class Telescope(Bot):
             return prefixes
 
         try:
-            prefs = GuildPreference.prefs_by_guild(msg.guild)
-        except GuildPreference.DoesNotExist:
+            prefs = Server.get_server(msg.guild)
+        except Server.DoesNotExist:
             prefixes.append(cls.DEFAULT_PREFIX)
         else:
             prefixes.append(prefs.prefix)

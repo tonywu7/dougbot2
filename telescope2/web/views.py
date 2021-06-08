@@ -14,20 +14,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import List
+
 import simplejson as json
 from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
 from django.contrib.auth import login, logout
-from django.http import HttpRequest, HttpResponse
+from django.contrib.auth.decorators import login_required, permission_required
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import View
+from more_itertools import partition
 
-from telescope2.discord import oauth2
-# from telescope2.discord.bot import Telescope
+from telescope2.discord.fetch import (DiscordFetch, DiscordUnauthorized,
+                                      PartialGuild, app_auth_url,
+                                      bot_invite_url, create_session)
+from telescope2.discord.models import Server
+from telescope2.utils.http import HTTPNoContent
 from telescope2.utils.jwt import validate_token
 
-from .forms import UserCreateForm
+from .forms import ServerCreateForm, UserCreateForm
 from .models import User
 
 
@@ -42,7 +49,7 @@ def verify_state(req: HttpRequest):
     return state
 
 
-async def index(req: HttpRequest) -> HttpResponse:
+async def authenticate(req: HttpRequest):
     user: User = req.user
 
     @sync_to_async
@@ -50,22 +57,79 @@ async def index(req: HttpRequest) -> HttpResponse:
         return user.is_authenticated
 
     if not await is_authenticated():
-        return render(req, 'web/index.html', {'authenticated': False})
+        raise Logout
 
     token = await user.fresh_token()
     if not token:
-        await sync_to_async(logout)(req)
-        return render(req, 'web/index.html', {'authenticated': False})
+        raise Logout
 
-    return render(req, 'web/index.html', {
+    fetch = DiscordFetch(user_id=user.discord_id)
+    await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
+
+    try:
+        guilds = await fetch.fetch_user_guilds()
+    except DiscordUnauthorized:
+        raise Logout
+    finally:
+        await fetch.close()
+
+    if guilds is None:
+        raise Logout
+
+    return token, guilds
+
+
+async def logout_current_user(req: HttpResponse) -> HttpResponse:
+    await sync_to_async(logout)(req)
+    return render(req, 'web/index.html', {'authenticated': False})
+
+
+async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
+    managed_guilds = {g.id: g for g in guilds if g.perms.manage_guild is True}
+
+    @sync_to_async
+    def get_servers():
+        return [*Server.objects.filter(gid__in=managed_guilds)]
+
+    servers: List[Server] = await get_servers()
+    server_ids = {s.gid for s in servers}
+
+    return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
+
+
+async def index(req: HttpRequest, guild_id: str = None) -> HttpResponse:
+    try:
+        token, guilds = await authenticate(req)
+    except Logout:
+        return await logout_current_user(req)
+
+    available, joined = await load_servers(req, guilds)
+    available = dict(available)
+    joined = dict(joined)
+    guilds = {**available, **joined}
+
+    info = {
         'authenticated': True,
         'access_token': token,
-        'username': user.username,
-    })
+        'username': req.user.username,
+        'available_guilds': available,
+        'joined_guilds': joined,
+    }
+
+    if guild_id is None:
+        return render(req, 'web/index.html', info)
+    guild_id = int(guild_id)
+    if guild_id not in guilds:
+        return redirect(reverse('web.index'))
+
+    info['current_guild'] = guilds[guild_id]
+    info['joined'] = guild_id in joined
+
+    return render(req, 'web/manage.html', info)
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
-    redirect_uri, token = oauth2.app_auth_url(req)
+    redirect_uri, token = app_auth_url(req)
     res = redirect(redirect_uri)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res
@@ -89,7 +153,9 @@ class CreateUserView(View):
         if state != 'valid' or not code:
             return render(req, 'web/invalid-login.html', {'login_state': state})
 
-        tokens = await oauth2.exchange_tokens(req, code)
+        fetch = DiscordFetch(create_session())
+        tokens = await fetch.exchange_tokens(req, code)
+        await fetch.close()
         if tokens is None:
             return render(req, 'web/invalid-login.html', {'login_state': 'incorrect_credentials'})
 
@@ -115,6 +181,7 @@ class CreateUserView(View):
             user.username = username
         except User.DoesNotExist:
             user = User(username=username, discord_id=discord_id)
+            user.user_permissions.add('manage_servers')
 
         if not user.password:
             user.set_unusable_password()
@@ -125,15 +192,46 @@ class CreateUserView(View):
         user.save()
 
         login(req, user)
+        return HTTPNoContent()
         return redirect(reverse('web.index'))
 
 
-def invite(req: HttpRequest) -> HttpResponse:
-    redirect, token = oauth2.bot_invite_url(req)
-    res = redirect(redirect, status=307)
+@login_required
+@permission_required(['manage_servers'])
+def join(req: HttpRequest, guild_id: str) -> HttpResponse:
+    redirect_uri, token = bot_invite_url(req, guild_id)
+    res = redirect(redirect_uri, status=307)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res
 
 
-def authorized(req: HttpRequest) -> HttpResponse:
-    return HttpResponse(content=repr(dict(req.GET)))
+@login_required
+@permission_required(['manage_servers'])
+def leave(req: HttpRequest, guild_id: str) -> HttpResponse:
+    return
+
+
+class CreateServerProfileView(View):
+    @staticmethod
+    @login_required
+    @permission_required(['manage_servers'])
+    def get(req: HttpRequest) -> HttpResponse:
+        state = verify_state(req)
+        guild_id = req.GET.get('guild_id')
+        if state != 'valid' or not guild_id:
+            return HttpResponseBadRequest('Bad credentials')
+        return render(req, 'web/joined.html', {
+            'form': ServerCreateForm(data={'gid': int(guild_id)}),
+        })
+
+    @staticmethod
+    @login_required
+    @permission_required(['manage_servers'])
+    def post(req: HttpRequest) -> HttpResponse:
+        form = ServerCreateForm(data=req.POST)
+        print(form)
+        return HttpResponse('created')
+
+
+class Logout(Exception):
+    pass

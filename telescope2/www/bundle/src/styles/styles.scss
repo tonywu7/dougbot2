@@ -184,6 +184,8 @@ a.dropdown-toggle:focus {
 .dropdown-item {
     color: $color-text;
 
+    font-size: 11pt;
+
     padding: 0.25rem 1rem;
 
     &:hover {
@@ -192,6 +194,12 @@ a.dropdown-toggle:focus {
 
     &:focus {
         outline: none;
+    }
+
+    &:focus,
+    &:hover {
+        background-color: $blue;
+        color: $color-text;
     }
 
     &:active,
@@ -238,8 +246,14 @@ samp {
 }
 
 code {
-    font-size: 1.05em;
-    color: $pink-400;
+    font-size: 0.9em;
+    border-radius: 3px;
+    padding: 0px 3px;
+    font-weight: 700;
+    color: $gray-300;
+    unicode-bidi: plaintext;
+    background: rgba(137, 157, 229, 0.15);
+    position: relative;
 }
 
 select.custom-select {
@@ -386,7 +400,7 @@ select.custom-select {
     }
 }
 
-.login-control {
+.identity-control {
     display: flex;
     flex-flow: row nowrap;
 
@@ -394,14 +408,21 @@ select.custom-select {
         width: 32px;
         height: 32px;
 
-        position: relative;
-        top: 1px;
-
         margin: 0 0.5rem 0 0;
 
         img {
             height: 32px;
             object-fit: contain;
         }
+    }
+}
+
+.sentence-topic {
+    color: $pink-400;
+}
+
+.section-container {
+    section header {
+        user-select: none;
     }
 }

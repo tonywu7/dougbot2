@@ -15,8 +15,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django import template
+from django.utils.safestring import mark_safe
+
+from ... import settings
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=False)
+def pkg_version():
+    """Return package version string."""
+    return settings.__version__
+
+
+@register.simple_tag(takes_context=False)
+def pkg_version_string():
+    """Return package and module version string."""
+    from aiohttp import __version__ as aiohttp_version
+    from discord import __version__ as discord_version
+    from django import __version__ as django_version
+    return mark_safe(f'<code>{settings.APP_NAME}/{settings.__version__}</code> '
+                     f'<code>aiohttp/{aiohttp_version}</code> '
+                     f'<code>discord.py/{discord_version}</code> '
+                     f'<code>django/{django_version}</code>')
 
 
 @register.simple_tag(takes_context=True)

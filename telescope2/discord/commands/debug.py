@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timezone
-
 from discord import Message
 from discord.ext.commands import Bot, Context
+
+from telescope2.utils.datetime import utcnow, utctimestamp
 
 from ..utils.messages import trimmed_msg
 
@@ -33,11 +33,11 @@ def register_all(bot: Bot):
 
     @bot.command('ping')
     async def cmd_ping(ctx: Context, *args):
-        await ctx.send(f':PONG {datetime.now(timezone.utc).timestamp()}')
+        await ctx.send(f':PONG {utctimestamp()}')
 
     @bot.listen('on_message')
     async def on_ping(msg: Message):
-        gateway_dst = datetime.now(timezone.utc).timestamp()
+        gateway_dst = utctimestamp()
 
         if not bot.user:
             return
@@ -52,8 +52,8 @@ def register_all(bot: Bot):
             return
 
         gateway_latency = 1000 * (gateway_dst - msg_created)
-        edit_start = datetime.now(timezone.utc)
+        edit_start = utcnow()
         await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
-        edit_latency = (datetime.now(timezone.utc) - edit_start).total_seconds() * 1000
+        edit_latency = (utcnow() - edit_start).total_seconds() * 1000
 
         await msg.edit(content=f'Gateway: `{gateway_latency:.3f}ms`\nHTTP API (Edit): `{edit_latency:.3f}ms`')

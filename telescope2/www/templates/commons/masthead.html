@@ -10,12 +10,30 @@
         {% if authenticated %}
         <div id="server-select" class="nav-control interactive-text align-middle">
             <div class="dropdown">
-                <a href="#" data-bs-toggle="dropdown">
+                <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown">
+                    {% if current_guild %}
+                    <figure class="profile-picture guild-profile">
+                        <img src="{{ current_guild.icon_url }}" class="rounded-circle" alt="icon for server {{ current_guild.name }}">
+                    </figure>
+                    {% endif %}
                     <div id="server-select" class="align-middle">
-                        <span>Select server</span> <i class="bi bi-chevron-down"></i>
+                        {% if current_guild %}<span>{{ current_guild.name }}</span>{% else %}<span>Select server</span>{% endif %} <i class="bi bi-chevron-down"></i>
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-start">
+                    {% for guild in joined_guilds.values %}
+                    <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
+                    {% empty %}
+                    <li><a href="#" class="dropdown-item disabled">(no guild joined)</a></li>
+                    {% endfor %}
+                    <li>
+                        <h6 class="dropdown-header">Available guilds</h6>
+                    </li>
+                    {% for guild in available_guilds.values %}
+                    <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
+                    {% empty %}
+                    <li><a href="#" class="dropdown-item disabled">(no guild available)</a></li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
@@ -23,8 +41,8 @@
         <div id="discord-login" class="nav-control interactive-text align-middle">
             {% if authenticated %}
             <div class="dropdown">
-                <a class="login-control" href="#" data-bs-toggle="dropdown">
-                    <figure class="profile-picture">
+                <a class="login-control identity-control" href="#" data-bs-toggle="dropdown">
+                    <figure class="profile-picture user-profile">
                     </figure>
                     <div id="user-info" data-access-token="{{ access_token }}" class="align-middle">
                         <span>{{ username }}</span> <i class="bi bi-chevron-down"></i>

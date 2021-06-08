@@ -18,6 +18,8 @@ from operator import itemgetter
 
 from django import forms
 
+from telescope2.discord.models import Server
+
 
 class UserCreateForm(forms.Form):
     username = forms.CharField()
@@ -33,3 +35,9 @@ class UserCreateForm(forms.Form):
 
     def to_tuple(self):
         return self.itemgetter(self.cleaned_data)
+
+
+class ServerCreateForm(forms.ModelForm):
+    class Meta:
+        model = Server
+        fields = ['gid']

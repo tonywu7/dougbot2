@@ -6,15 +6,19 @@
 <section class="section-container">
     <!-- <section class="bot-status">
         <header>
-            <h3>socket status <span id="socket-status"></span></h3>
+            <h3 class="ui-text-no-select">socket status <span id="socket-status"></span></h3>
         </header>
     </section> -->
     <section>
         <header>
-            <h3>general</h3>
+            <h3>access</h3>
         </header>
         <div class="interactive-text">
-            <p><span class="sentence-topic">version</span> {% pkg_version_string %}</p>
+            {% if not joined %}
+            <p><a href="{% url 'web.join' guild_id=current_guild.id %}">join server</a></p>
+            {% else %}
+            <p><a href="{% url 'web.leave' guild_id=current_guild.id %}">leave server</a></p>
+            {% endif %}
         </div>
     </section>
 </section>

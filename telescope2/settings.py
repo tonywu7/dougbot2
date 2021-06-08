@@ -4,9 +4,11 @@ from decouple import Config, RepositoryIni
 
 from telescope2.utils.logger import config_logging, make_logging_config
 
+APP_NAME = 'telescope2'
+
 __version__ = '0.0.1'
 
-config_logging(make_logging_config('telescope2'))
+config_logging(make_logging_config(APP_NAME))
 
 PROJECT_DIR = Path(__file__).resolve().parent
 BASE_DIR = PROJECT_DIR.with_name('instance') / 'app'
@@ -35,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -100,6 +103,19 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+    },
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = True

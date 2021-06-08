@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { createAvatarElement } from './main'
+
 const API_ENDPOINT = 'https://discord.com/api/v9'
 const CDN_PREFIX = 'https://cdn.discordapp.com'
 
@@ -101,11 +103,11 @@ export class Perms {
 }
 
 export class DiscordClient {
-    _token: string
+    private _token: string
 
-    user: User | null = null
-
-    _guilds: Guild[] = []
+    private _user: User | null = null
+    private _guilds: Guild[] = []
+    private _currentGuild: Guild | null = null
 
     constructor(accessToken: string) {
         this._token = accessToken
@@ -145,31 +147,21 @@ export class DiscordClient {
         if (data === null) {
             throw new Error('Error fetching current user id')
         }
-        this.user = new User(data)
+        this._user = new User(data)
+    }
+
+    async user(): Promise<User> {
+        if (this._user) return this._user
+        await this.fetchUser()
+        return this._user!
     }
 
     async userId(): Promise<string> {
-        if (this.user) return this.user.id
-        await this.fetchUser()
-        return this.user!.id
+        return (await this.user()).id
     }
 
     async userTag(): Promise<string> {
-        if (this.user) return this.user.id
-        await this.fetchUser()
-        return this.user!.name
-    }
-
-    async setAvatar(): Promise<void> {
-        let avatarURL = this.user?.iconURL
-        if (avatarURL === null || avatarURL === undefined) return
-        document.querySelectorAll('.profile-picture').forEach((elem) => {
-            let figure = elem as HTMLElement
-            let img = document.createElement('img')
-            img.classList.add('rounded-circle')
-            img.src = avatarURL!
-            figure.appendChild(img)
-        })
+        return (await this.user()).name
     }
 
     async fetchGuilds(): Promise<Guild[]> {
