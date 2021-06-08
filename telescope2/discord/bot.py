@@ -84,7 +84,7 @@ class Telescope(Bot):
         from .models import Server
 
         user_id = bot.user.id
-        prefixes = [f'<@!{user_id}> ', f'<@{user_id}> ']
+        prefixes = [f'<@{user_id}> ']
         if msg.guild is None:
             prefixes.append(cls.DEFAULT_PREFIX)
             return prefixes
@@ -95,4 +95,4 @@ class Telescope(Bot):
             prefixes.append(cls.DEFAULT_PREFIX)
         else:
             prefixes.append(prefs.prefix)
-        return prefixes
+        return reversed(prefixes)

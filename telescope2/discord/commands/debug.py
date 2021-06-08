@@ -17,6 +17,7 @@
 from discord import Message
 from discord.ext.commands import Bot, Context
 
+from telescope2.utils import lang
 from telescope2.utils.datetime import utcnow, utctimestamp
 
 from ..utils.messages import trimmed_msg
@@ -24,7 +25,7 @@ from ..utils.messages import trimmed_msg
 
 def register_all(bot: Bot):
     @bot.command('echo')
-    async def cmd_echo(ctx: Context, *args):
+    async def cmd_echo(ctx: Context, *args, **kwargs):
         trimmed = trimmed_msg(ctx)
         if not trimmed:
             await ctx.send(ctx.message.content)
@@ -32,8 +33,13 @@ def register_all(bot: Bot):
             await ctx.send(trimmed)
 
     @bot.command('ping')
-    async def cmd_ping(ctx: Context, *args):
+    async def cmd_ping(ctx: Context, *args, **kwargs):
         await ctx.send(f':PONG {utctimestamp()}')
+
+    @bot.command('prefix')
+    async def cmd_prefix(ctx: Context, *args, **kwargs):
+        prefixes = [f'"{p}"' for p in await bot.command_prefix(bot, ctx.message)]
+        await ctx.send(f'{lang.plural_clause(len(prefixes), "Prefix", "is")} {lang.coord_conj(*prefixes)}')
 
     @bot.listen('on_message')
     async def on_ping(msg: Message):
