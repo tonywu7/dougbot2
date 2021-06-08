@@ -4,21 +4,17 @@
 {% block main %}
 <h1 class="bot-name" class="ui-text-no-select">{{ branding_full }}</h1>
 <section class="section-container">
-    <!-- <section class="bot-status">
-        <header>
-            <h3 class="ui-text-no-select">socket status <span id="socket-status"></span></h3>
-        </header>
-    </section> -->
     <section>
         <header>
             <h3>access</h3>
         </header>
         <div class="interactive-text">
-            {% if not joined %}
-            <p><a href="{% url 'web.join' guild_id=current_guild.id %}">join server</a></p>
-            {% else %}
-            <p><a href="{% url 'web.leave' guild_id=current_guild.id %}">leave server</a></p>
-            {% endif %}
+            <form action="{% if not joined %}{% url 'web.join' %}{% else %}{% url 'web.leave' %}{% endif %}" method="POST">
+                <input type="hidden" name="guild_id" id="guild-id" value="current_guild.id">
+                <button class="btn {{ joined|yesno:'btn-outline-danger,btn-info' }}" type="submit">
+                    {{ joined|yesno:'leave,join' }} server
+                </button>
+            </form>
         </div>
     </section>
 </section>

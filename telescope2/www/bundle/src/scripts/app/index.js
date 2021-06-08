@@ -16,24 +16,25 @@
 
 const MODULES = ['./main']
 
-requirejs.config({
-    baseUrl: '/static/bundle/scripts/app',
-    paths: {
-        lodash: 'https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min',
-    },
-    deps: ['lodash'],
-    onNodeCreated: (node, config, module, path) => {
-        const SRI = {
-            lodash: 'sha256-ur/YlHMU96MxHEsy3fHGszZHas7NzH4RQlD4tDVvFhw=',
-        }
-        if (SRI[module]) {
-            node.setAttribute('integrity', SRI[module])
-            node.setAttribute('crossorigin', 'anonymous')
-        }
-    },
-})
-
 window.addEventListener('DOMContentLoaded', () => {
+    let mainScript = document.getElementById('script-entry')
+    let staticServer = mainScript.dataset.server
+    requirejs.config({
+        baseUrl: `${staticServer}/static/bundle/scripts/app`,
+        paths: {
+            lodash: 'https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min',
+        },
+        deps: ['lodash'],
+        onNodeCreated: (node, config, module, path) => {
+            const SRI = {
+                lodash: 'sha256-ur/YlHMU96MxHEsy3fHGszZHas7NzH4RQlD4tDVvFhw=',
+            }
+            if (SRI[module]) {
+                node.setAttribute('integrity', SRI[module])
+                node.setAttribute('crossorigin', 'anonymous')
+            }
+        },
+    })
     require(MODULES, (...module) => {
         for (let i = 0, l = module.length; i < l; i++) {
             module[i].init()

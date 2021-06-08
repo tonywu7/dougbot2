@@ -19,9 +19,9 @@ secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
 
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost']
 
 # Application definition
 
@@ -127,6 +127,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+LOGIN_URL = '/web/index'
 
 STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_DIRS = [
@@ -163,3 +164,6 @@ BRANDING_SHORT = 'ts2'
 JWT_DEFAULT_EXP = 300
 
 USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonywu7/telescope2)'
+
+STATIC_SERVER_PORT = 8001
+STATIC_SERVER = f'http://localhost:{STATIC_SERVER_PORT}'
