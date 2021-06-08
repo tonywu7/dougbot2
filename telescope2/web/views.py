@@ -193,7 +193,6 @@ class CreateUserView(View):
 
         login(req, user)
         return HTTPNoContent()
-        return redirect(reverse('web.index'))
 
 
 @login_required
@@ -229,8 +228,10 @@ class CreateServerProfileView(View):
     @permission_required(['manage_servers'])
     def post(req: HttpRequest) -> HttpResponse:
         form = ServerCreateForm(data=req.POST)
-        print(form)
-        return HttpResponse('created')
+        if not form.is_valid():
+            return redirect(reverse('web.index'))
+        preference = form.save()
+        return redirect(reverse('web.manage', kwargs={'guild_id': preference.gid}))
 
 
 class Logout(Exception):

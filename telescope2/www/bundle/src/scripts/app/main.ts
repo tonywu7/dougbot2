@@ -93,10 +93,6 @@ async function setAvatar(discord: DiscordClient): Promise<void> {
     })
 }
 
-async function setGuilds(discord: DiscordClient): Promise<void> {
-    let managedGuilds = await discord.managedGuilds()
-}
-
 async function initDiscord() {
     let userInfoElem = document.querySelector('#user-info') as HTMLElement
     if (userInfoElem === null) return
@@ -111,7 +107,7 @@ async function initDiscord() {
 }
 
 function discordJoinServer() {
-    let form = document.querySelector('#discord-join-server') as HTMLFormElement
+    let form = document.querySelector('#discord-join-server form') as HTMLFormElement
     if (form === null) return
     form.submit()
 }

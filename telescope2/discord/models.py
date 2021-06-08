@@ -22,7 +22,7 @@ from discord import Guild
 
 
 class Server(models.Model):
-    gid: int = models.IntegerField()
+    gid: int = models.IntegerField(verbose_name='guild id')
 
     prefix: str = models.CharField(max_length=16, default='t;')
 
