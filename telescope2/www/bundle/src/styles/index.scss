@@ -3,6 +3,20 @@
 @import "colors";
 @import "layout";
 
+.bot-name {
+    position: relative;
+    left: -1.3rem;
+
+    padding: 0 0 0 0.6rem;
+    margin-bottom: 1rem;
+
+    font-size: 3rem;
+    font-weight: 750;
+    border-left: 0.6rem solid;
+    letter-spacing: -2px;
+    line-height: 1;
+}
+
 #branding h1 {
     font-size: 1.6rem;
     margin: 0;
@@ -16,20 +30,11 @@
     a {
         color: $color-text;
     }
-}
 
-.bot-name {
-    position: relative;
-    left: -1.3rem;
-
-    padding: 0 0 0 0.6rem;
-    margin-bottom: 1rem;
-
-    font-size: 3rem;
-    font-weight: 750;
-    border-left: 0.6rem solid;
-    letter-spacing: -2px;
-    line-height: 1;
+    @media screen and (max-width: 1024px) {
+        left: -1.3rem;
+        padding: 0 0 0 0.9rem;
+    }
 }
 
 #socket-status {
