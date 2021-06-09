@@ -1,0 +1,147 @@
+# middleware.py
+# Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+from asgiref.sync import sync_to_async
+from django.contrib.auth import logout
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from more_itertools import partition
+
+from telescope2.discord.fetch import (DiscordFetch, DiscordUnauthorized,
+                                      PartialGuild)
+from telescope2.discord.models import Server
+
+from .models import User
+
+
+async def fetch_discord_info(req: HttpRequest):
+    user: User = req.user
+
+    @sync_to_async
+    def is_authenticated():
+        return user.is_authenticated
+
+    if not await is_authenticated():
+        return None, None
+
+    token = await user.fresh_token()
+    if not token:
+        raise Logout
+
+    fetch = DiscordFetch(user_id=user.discord_id)
+    await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
+
+    try:
+        guilds = await fetch.fetch_user_guilds()
+    except DiscordUnauthorized:
+        raise Logout
+    finally:
+        await fetch.close()
+
+    if guilds is None:
+        raise Logout
+
+    return token, guilds
+
+
+async def logout_current_user(req: HttpResponse) -> HttpResponse:
+    await sync_to_async(logout)(req)
+    return render(req, 'web/index.html')
+
+
+async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
+    managed_guilds = {g.id: g for g in guilds if g.perms.manage_guild is True}
+
+    @sync_to_async
+    def get_servers():
+        return [*Server.objects.filter(gid__in=managed_guilds)]
+
+    servers: List[Server] = await get_servers()
+    server_ids = {s.gid for s in servers}
+
+    return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
+
+
+@dataclass
+class DiscordContext:
+    access_token: str
+
+    user_id: int
+    username: str
+
+    server_id: Optional[int]
+
+    available: Dict[int, PartialGuild]
+    joined: Dict[int, PartialGuild]
+
+    def __post_init__(self):
+        try:
+            self.server_id = int(self.server_id)
+        except (TypeError, ValueError):
+            self.server_id = None
+
+    @property
+    def servers(self) -> Dict[int, PartialGuild]:
+        return {**self.available, **self.joined}
+
+    @property
+    def bot_in_server(self) -> bool:
+        return self.server.id in self.joined
+
+    @property
+    def server(self) -> Optional[PartialGuild]:
+        return self.servers.get(self.server_id)
+
+
+class DiscordContextMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest):
+        return self.get_response(request)
+
+    async def process_view(self, request: HttpRequest, view_func,
+                           view_args: Tuple, view_kwargs: Dict):
+        try:
+            token, guilds = await fetch_discord_info(request)
+        except Logout:
+            return await logout_current_user(request)
+
+        if token is None:
+            return
+
+        guild_id: str = view_kwargs.get('guild_id')
+
+        available, joined = await load_servers(request, guilds)
+        available = dict(available)
+        joined = dict(joined)
+
+        context = DiscordContext(
+            token, request.user.discord_id, request.user.username,
+            guild_id, available, joined,
+        )
+        if context.server_id and context.server is None:
+            return redirect(reverse('web.index'))
+
+        request.discord_ctx = context
+
+
+class Logout(Exception):
+    pass

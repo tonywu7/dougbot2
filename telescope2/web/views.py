@@ -14,21 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List
-
 import simplejson as json
 from asgiref.sync import async_to_sync, sync_to_async
+from discord import Forbidden, Guild, Member
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required, permission_required
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.core.exceptions import SuspiciousOperation
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 from django.views.generic import View
-from more_itertools import partition
 
-from telescope2.discord.fetch import (DiscordFetch, DiscordUnauthorized,
-                                      PartialGuild, app_auth_url,
+from telescope2.discord.fetch import (DiscordFetch, app_auth_url,
                                       bot_invite_url, create_session)
 from telescope2.discord.models import Server
 from telescope2.utils.http import HTTPNoContent
@@ -49,83 +48,10 @@ def verify_state(req: HttpRequest):
     return state
 
 
-async def authenticate(req: HttpRequest):
-    user: User = req.user
-
-    @sync_to_async
-    def is_authenticated():
-        return user.is_authenticated
-
-    if not await is_authenticated():
-        raise Logout
-
-    token = await user.fresh_token()
-    if not token:
-        raise Logout
-
-    fetch = DiscordFetch(user_id=user.discord_id)
-    await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
-
-    try:
-        guilds = await fetch.fetch_user_guilds()
-    except DiscordUnauthorized:
-        raise Logout
-    finally:
-        await fetch.close()
-
-    if guilds is None:
-        raise Logout
-
-    return token, guilds
-
-
-async def logout_current_user(req: HttpResponse) -> HttpResponse:
-    await sync_to_async(logout)(req)
-    return render(req, 'web/index.html', {'authenticated': False})
-
-
-async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
-    managed_guilds = {g.id: g for g in guilds if g.perms.manage_guild is True}
-
-    @sync_to_async
-    def get_servers():
-        return [*Server.objects.filter(gid__in=managed_guilds)]
-
-    servers: List[Server] = await get_servers()
-    server_ids = {s.gid for s in servers}
-
-    return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
-
-
 async def index(req: HttpRequest, guild_id: str = None) -> HttpResponse:
-    try:
-        token, guilds = await authenticate(req)
-    except Logout:
-        return await logout_current_user(req)
-
-    available, joined = await load_servers(req, guilds)
-    available = dict(available)
-    joined = dict(joined)
-    guilds = {**available, **joined}
-
-    info = {
-        'authenticated': True,
-        'access_token': token,
-        'username': req.user.username,
-        'available_guilds': available,
-        'joined_guilds': joined,
-    }
-
     if guild_id is None:
-        return render(req, 'web/index.html', info)
-    guild_id = int(guild_id)
-    if guild_id not in guilds:
-        return redirect(reverse('web.index'))
-
-    info['current_guild'] = guilds[guild_id]
-    info['joined'] = guild_id in joined
-
-    return render(req, 'web/manage.html', info)
+        return render(req, 'web/index.html')
+    return render(req, 'web/manage.html')
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
@@ -195,19 +121,17 @@ class CreateUserView(View):
         return HTTPNoContent()
 
 
+@require_POST
 @login_required
 @permission_required(['manage_servers'])
-def join(req: HttpRequest, guild_id: str) -> HttpResponse:
+def join(req: HttpRequest) -> HttpResponse:
+    guild_id = req.POST.get('guild_id')
+    if not guild_id:
+        raise SuspiciousOperation('Invalid parameters.')
     redirect_uri, token = bot_invite_url(req, guild_id)
     res = redirect(redirect_uri, status=307)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res
-
-
-@login_required
-@permission_required(['manage_servers'])
-def leave(req: HttpRequest, guild_id: str) -> HttpResponse:
-    return
 
 
 class CreateServerProfileView(View):
@@ -218,7 +142,7 @@ class CreateServerProfileView(View):
         state = verify_state(req)
         guild_id = req.GET.get('guild_id')
         if state != 'valid' or not guild_id:
-            return HttpResponseBadRequest('Bad credentials')
+            raise SuspiciousOperation('Bad credentials.')
         return render(req, 'web/joined.html', {
             'form': ServerCreateForm(data={'gid': int(guild_id)}),
         })
@@ -234,5 +158,49 @@ class CreateServerProfileView(View):
         return redirect(reverse('web.manage', kwargs={'guild_id': preference.gid}))
 
 
-class Logout(Exception):
-    pass
+class DeleteServerProfileView(View):
+    @staticmethod
+    @login_required
+    @permission_required(['manage_servers'])
+    def get(req: HttpRequest, guild_id: str) -> HttpResponse:
+        return render(req, 'web/leave.html')
+
+    @staticmethod
+    @login_required
+    @permission_required(['manage_servers'])
+    @async_to_sync
+    async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
+        guild_id = req.POST.get('guild_id')
+        try:
+            guild_id = int(guild_id)
+        except ValueError:
+            guild_id = None
+        if not guild_id:
+            raise SuspiciousOperation('Invalid parameters.')
+
+        fetch = DiscordFetch()
+        await fetch.init_bot()
+
+        try:
+            guild: Guild = await fetch.bot.fetch_guild(guild_id)
+            member: Member = await guild.fetch_member(req.user.discord_id)
+        except Forbidden:
+            raise SuspiciousOperation('Insufficient permission.')
+        if not member:
+            raise SuspiciousOperation('Invalid parameters.')
+        if not member.guild_permissions.manage_guild:
+            raise SuspiciousOperation('Insufficient permission.')
+
+        @sync_to_async
+        def delete_server():
+            try:
+                server: Server = Server.objects.get(gid=guild_id)
+            except Server.DoesNotExist:
+                return
+            server.delete()
+
+        await guild.leave()
+        await delete_server()
+        await fetch.close()
+
+        return redirect(reverse('web.manage', kwargs={'guild_id': guild_id}))

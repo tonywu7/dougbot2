@@ -19,6 +19,18 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
 
+def user_info(req: HttpRequest):
+    return {
+        'user_authenticated': req.user.is_authenticated,
+    }
+
+
+def discord_info(req: HttpRequest):
+    return {
+        'discord_ctx': getattr(req, 'discord_ctx', None),
+    }
+
+
 def application_info(req: HttpRequest):
     return {
         'branding_full': settings.BRANDING_FULL,

@@ -7,45 +7,45 @@
         </header>
     </section>
     <section id="auth-control" class="masthead-opt-group align-middle">
-        {% if authenticated %}
+        {% if user_authenticated %}
         <div id="server-select" class="nav-control interactive-text align-middle">
             <div class="dropdown">
                 <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown">
-                    {% if current_guild %}
+                    {% if discord_ctx.server %}
                     <figure class="profile-picture guild-profile">
-                        <img src="{{ current_guild.icon_url }}" class="rounded-circle" alt="icon for server {{ current_guild.name }}">
+                        <img src="{{ discord_ctx.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord_ctx.server.name }}">
                     </figure>
                     {% endif %}
                     <div id="server-select" class="align-middle">
-                        {% if current_guild %}<span>{{ current_guild.name }}</span>{% else %}<span>Select server</span>{% endif %} <i class="bi bi-chevron-down"></i>
+                        {% if discord_ctx.server %}<span>{{ discord_ctx.server.name }}</span>{% else %}<span>Select server</span>{% endif %} <i class="bi bi-chevron-down"></i>
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-start">
-                    {% for guild in joined_guilds.values %}
+                    {% for guild in discord_ctx.joined.values %}
                     <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
                     {% empty %}
-                    <li><a href="#" class="dropdown-item disabled">(no guild joined)</a></li>
+                    <li><a href="#" class="dropdown-item disabled">(no server joined)</a></li>
                     {% endfor %}
                     <li>
-                        <h6 class="dropdown-header">Available guilds</h6>
+                        <h6 class="dropdown-header">Available servers</h6>
                     </li>
-                    {% for guild in available_guilds.values %}
+                    {% for guild in discord_ctx.available.values %}
                     <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
                     {% empty %}
-                    <li><a href="#" class="dropdown-item disabled">(no guild available)</a></li>
+                    <li><a href="#" class="dropdown-item disabled">(no server available)</a></li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
         {% endif %}
         <div id="discord-login" class="nav-control interactive-text align-middle">
-            {% if authenticated %}
+            {% if user_authenticated %}
             <div class="dropdown">
                 <a class="login-control identity-control" href="#" data-bs-toggle="dropdown">
                     <figure class="profile-picture user-profile">
                     </figure>
-                    <div id="user-info" data-access-token="{{ access_token }}" class="align-middle">
-                        <span>{{ username }}</span> <i class="bi bi-chevron-down"></i>
+                    <div id="user-info" data-access-token="{{ discord_ctx.access_token }}" class="align-middle">
+                        <span>{{ discord_ctx.username }}</span> <i class="bi bi-chevron-down"></i>
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">

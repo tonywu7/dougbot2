@@ -9,12 +9,15 @@
             <h3>access</h3>
         </header>
         <div class="interactive-text">
-            <form action="{% if not joined %}{% url 'web.join' %}{% else %}{% url 'web.leave' %}{% endif %}" method="POST">
-                <input type="hidden" name="guild_id" id="guild-id" value="current_guild.id">
-                <button class="btn {{ joined|yesno:'btn-outline-danger,btn-info' }}" type="submit">
-                    {{ joined|yesno:'leave,join' }} server
-                </button>
+            {% if not discord_ctx.bot_in_server %}
+            <form action="{% url 'web.join' %}" method="POST">
+                <input type="hidden" name="guild_id" id="guild-id" value="{{ discord_ctx.server.id }}">
+                {% csrf_token %}
+                <button class="btn btn-info" type="submit">join server</button>
             </form>
+            {% else %}
+            <a href="{% url 'web.leave' guild_id=discord_ctx.server.id %}" class="btn btn-outline-danger">leave server</a>
+            {% endif %}
         </div>
     </section>
 </section>

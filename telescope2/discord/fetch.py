@@ -148,6 +148,10 @@ class DiscordFetch:
         self._throttle_route = DiscordRateLimiter()
         self._cache = DiscordCache(user_id)
 
+    @property
+    def bot(self) -> Telescope:
+        return self._bot
+
     async def init_session(self, access_token: Optional[str] = None,
                            refresh_token: Optional[str] = None):
         self._access = access_token
@@ -259,7 +263,7 @@ class DiscordFetch:
         return [PartialGuild.from_dict(g) for g in guilds]
 
     async def close(self):
-        if hasattr(self, '_session'):
+        if self._session:
             await self._session.close()
         if hasattr(self, '_bot'):
             await self._bot.logout()

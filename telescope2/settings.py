@@ -19,7 +19,7 @@ secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
 
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost']
 
@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'telescope2.web.middleware.DiscordContextMiddleware',
 ]
 
 ROOT_URLCONF = 'telescope2.urls'
@@ -65,6 +66,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'telescope2.web.contexts.application_info',
                 'telescope2.web.contexts.site_info',
+                'telescope2.web.contexts.user_info',
+                'telescope2.web.contexts.discord_info',
             ],
         },
     },
