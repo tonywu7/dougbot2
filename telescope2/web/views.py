@@ -48,9 +48,13 @@ def verify_state(req: HttpRequest):
     return state
 
 
-async def index(req: HttpRequest, guild_id: str = None) -> HttpResponse:
-    if guild_id is None:
-        return render(req, 'web/index.html')
+async def index(req: HttpRequest) -> HttpResponse:
+    return render(req, 'web/index.html')
+
+
+@login_required
+@async_to_sync
+async def manage(req: HttpRequest, guild_id: str) -> HttpResponse:
     return render(req, 'web/manage.html')
 
 

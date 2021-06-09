@@ -133,3 +133,5 @@ dmypy.json
 .temp/
 
 node_modules
+
+.watchmanconfig

@@ -21,6 +21,6 @@ urlpatterns = [
     re_path(r'^guild/?$', IndexRedirectView.as_view()),
     re_path(r'^guild/join$', views.join, name='web.join'),
     re_path(r'^guild/joined$', views.CreateServerProfileView.as_view(), name='web.authorized'),
-    re_path(r'^guild/(?P<guild_id>[0-9]+)/manage$', views.index, name='web.manage'),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/manage$', views.manage, name='web.manage'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/leave$', views.DeleteServerProfileView.as_view(), name='web.leave'),
 ]
