@@ -112,6 +112,16 @@ function discordJoinServer() {
     form.submit()
 }
 
+function initTopMenu() {
+    let listener = (e: Event) => {
+        e.stopPropagation()
+        e.preventDefault()
+        document.querySelector('.main-sidebar')!.classList.toggle('sidebar-visible')
+    }
+    let menu = document.querySelector('#top-menu-toggle')!
+    menu.addEventListener('click', listener)
+}
+
 export function createAvatarElement(src: string): HTMLElement {
     let img = document.createElement('img')
     img.classList.add('rounded-circle')
@@ -121,6 +131,7 @@ export function createAvatarElement(src: string): HTMLElement {
 }
 
 export function init() {
+    initTopMenu()
     discordOAuth2()
         .then(() => {
             return initDiscord()
