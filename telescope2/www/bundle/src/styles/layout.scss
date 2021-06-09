@@ -57,7 +57,6 @@
 .footer-container {
     width: 100vw;
     height: 4rem;
-    margin-top: 4rem;
 
     position: sticky;
     top: var(--footer-height);
@@ -69,7 +68,7 @@
 }
 
 .main-container {
-    margin: 0 var(--masthead-space-horizontal);
+    margin: 0 var(--masthead-space-horizontal) 4rem;
 }
 
 .main-content {
