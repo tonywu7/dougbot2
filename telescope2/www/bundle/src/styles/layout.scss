@@ -86,14 +86,14 @@
     overflow-x: hidden;
     overflow-y: scroll;
 
-    padding: 0 6pt;
-
     .auth-control {
         display: none;
 
-        @media screen and (max-width: 640px) {
+        @media screen and (max-width: 1024px) {
             display: flex;
         }
+
+        margin: 0 1rem 1rem 1rem;
 
         flex-flow: column nowrap;
 
@@ -107,7 +107,7 @@
         }
     }
 
-    @media screen and (max-width: 640px) {
+    @media screen and (max-width: 1024px) {
         position: fixed;
         z-index: 1000;
 
@@ -122,8 +122,8 @@
 
         transition: bottom 0.35s cubic-bezier(0.09, 1.07, 0.26, 1);
 
-        padding: 1rem;
-        background-color: #18181b;
+        padding: 1rem 0;
+        background-color: $bw-grey-1;
     }
 }
 
@@ -161,7 +161,7 @@
         grid-column: 1 / 4;
     }
 
-    @media screen and (max-width: 640px) {
+    @media screen and (max-width: 1024px) {
         display: flex;
         flex-flow: column nowrap;
 
@@ -188,17 +188,10 @@
 
     display: flex;
     flex-flow: row nowrap;
-
-    border-right: 1px solid $color-text;
-
-    &:last-of-type {
-        border-right: none;
-        padding-right: 0;
-    }
 }
 
 #auth-control {
-    @media screen and (max-width: 640px) {
+    @media screen and (max-width: 1024px) {
         display: none;
     }
 }
@@ -206,7 +199,7 @@
 #top-menu-toggle {
     display: none;
 
-    @media screen and (max-width: 640px) {
+    @media screen and (max-width: 1024px) {
         display: flex;
     }
 
@@ -223,5 +216,54 @@
     .identity-control {
         position: relative;
         top: 1px;
+    }
+}
+
+.main-sidebar {
+    details {
+        --item-distance: 1rem;
+
+        @media screen and (max-width: 1024px) {
+            --item-distance: 1.2rem;
+        }
+
+        summary,
+        li {
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+
+            letter-spacing: -0.5px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1rem;
+
+            user-select: none;
+
+            i.bi::before {
+                font-size: 1.2rem;
+                margin: 0 6pt 0 0;
+                vertical-align: middle;
+            }
+        }
+
+        summary {
+            cursor: pointer;
+            padding: var(--item-distance) 0.5rem var(--item-distance) 1.3rem;
+            background-color: $bw-grey-2;
+            box-shadow: var(--box-shadow-1);
+        }
+
+        li {
+            padding: 0 0.5rem 0 1rem;
+            margin: var(--item-distance) 0;
+        }
+
+        ul {
+            margin: 0 0 0 1.86rem;
+            padding: 0;
+
+            border-left: 1px solid $color-text;
+        }
     }
 }

@@ -228,14 +228,10 @@ code {
     border-radius: 3px;
     padding: 0px 3px;
     font-weight: 700;
-    color: $gray-300;
+    color: inherit;
     unicode-bidi: plaintext;
     background: rgba(137, 157, 229, 0.15);
     position: relative;
-
-    a {
-        color: inherit;
-    }
 }
 
 select.custom-select {
@@ -416,6 +412,15 @@ h1 .http-status code {
 
 #top-menu-toggle {
     cursor: pointer;
+}
+
+.nav-control {
+    border-right: 1px solid $color-text;
+
+    &:last-of-type {
+        border-right: none;
+        padding-right: 0;
+    }
 }
 
 .key-value-pair {

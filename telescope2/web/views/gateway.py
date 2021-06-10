@@ -153,7 +153,7 @@ class CreateServerProfileView(View):
         if not form.is_valid():
             return redirect(reverse('web.index'))
         preference = form.save()
-        return redirect(reverse('web.manage', kwargs={'guild_id': preference.gid}))
+        return redirect(reverse('web.manage.index', kwargs={'guild_id': preference.gid}))
 
 
 class DeleteServerProfileView(View):
@@ -201,4 +201,4 @@ class DeleteServerProfileView(View):
         await delete_server()
         await fetch.close()
 
-        return redirect(reverse('web.manage', kwargs={'guild_id': guild_id}))
+        return redirect(reverse('web.manage.index', kwargs={'guild_id': guild_id}))

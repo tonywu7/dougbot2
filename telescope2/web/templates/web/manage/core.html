@@ -1,0 +1,20 @@
+{% extends 'web/manage/base.html' %}
+{% load inspect element %}
+
+{% block main_title %}Core settings{% endblock %}
+
+{% block sections %}
+
+{% section id='server-access' title='access' %}
+{% if not discord.bot_in_server %}
+<form action="{% url 'web.join' %}" method="POST">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
+    {% csrf_token %}
+    <button class="btn btn-info" type="submit">join server</button>
+</form>
+{% else %}
+<a href="{% url 'web.leave' guild_id=discord.server.id %}" class="btn btn-outline-danger">leave server</a>
+{% endif %}
+{% endsection %}
+
+{% endblock %}

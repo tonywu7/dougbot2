@@ -3,17 +3,25 @@
 @import "colors";
 @import "layout";
 
+.main-title {
+    margin-bottom: 2rem;
+    letter-spacing: -2px;
+
+    .bot-name {
+        border: none;
+        padding: 0 0 0 1.2rem;
+    }
+}
+
 .bot-name {
     position: relative;
     left: -1.3rem;
 
     padding: 0 0 0 0.6rem;
-    margin-bottom: 1rem;
 
     font-size: 3rem;
     font-weight: 750;
     border-left: 0.6rem solid;
-    letter-spacing: -2px;
     line-height: 1;
 }
 

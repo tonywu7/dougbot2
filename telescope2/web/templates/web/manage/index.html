@@ -1,32 +1,21 @@
-{% extends 'web/base.html' %}
+{% extends 'web/manage/base.html' %}
 {% load inspect element %}
 
-{% block main %}
-<h1 class="bot-name ui-text-no-select">{{ branding_full }}</h1>
-<section class="section-container">
-    {% if discord.prefs %}
-    {% with server=discord.prefs %}
+{% block main_title %}
+<span class="bot-name">{{ branding_full }}</span>
+{% endblock %}
 
-    {% section id='general' title='general' %}
-    <div class="key-value-pair kvp-justify">
-        <span>server id</span><span><code>{{ server.gid }}</code></span>
-        <span>command prefix</span><span><code>{{ server.prefix }}</code></span>
-    </div>
-    {% endsection %}
+{% block sections %}
+{% if discord.prefs %}
+{% with server=discord.prefs %}
 
-    {% endwith %}
-    {% endif %}
+{% section id='general' title='general' %}
+<div class="key-value-pair kvp-justify">
+    <span>server id</span><span class="text-info"><code>{{ server.gid }}</code></span>
+    <span>command prefix</span><span class="text-info"><code>{{ server.prefix }}</code></span>
+</div>
+{% endsection %}
 
-    {% section id='server-access' title='access' %}
-    {% if not discord.bot_in_server %}
-    <form action="{% url 'web.join' %}" method="POST">
-        <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
-        {% csrf_token %}
-        <button class="btn btn-info" type="submit">join server</button>
-    </form>
-    {% else %}
-    <a href="{% url 'web.leave' guild_id=discord.server.id %}" class="btn btn-outline-danger">leave server</a>
-    {% endif %}
-    {% endsection %}
-</section>
+{% endwith %}
+{% endif %}
 {% endblock %}

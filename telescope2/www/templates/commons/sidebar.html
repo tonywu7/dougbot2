@@ -1,3 +1,14 @@
 <section class="auth-control">
     {% include 'elements/identities.html' %}
 </section>
+
+{% if user_authenticated and discord.server %}
+
+<details>
+    <summary><i class="bi bi-gear-wide-connected"></i><span>Core</span></summary>
+    <ul>
+        <li><i class="bi bi-gear-fill"></i><span>Core settings</span></li>
+    </ul>
+</details>
+
+{% endif %}

@@ -1,0 +1,10 @@
+{% extends 'web/base.html' %}
+{% load inspect element %}
+
+{% block main %}
+<h1 class="main-title ui-text-no-select">{% block main_title %}{% endblock %}</h1>
+<section class="section-container">
+    {% block sections %}
+    {% endblock %}
+</section>
+{% endblock %}

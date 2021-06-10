@@ -14,16 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from asgiref.sync import async_to_sync
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-can_manage_server = permission_required(['manage_servers'])
+
+def can_manage_server(func):
+    return login_required(permission_required(['manage_servers'])(func))
 
 
-@login_required
 @can_manage_server
-@async_to_sync
-async def index(req: HttpRequest, guild_id: str) -> HttpResponse:
+def index(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'web/manage/index.html')
+
+
+@can_manage_server
+def core(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'web/manage/core.html')
