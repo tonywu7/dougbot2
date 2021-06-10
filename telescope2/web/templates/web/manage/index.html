@@ -6,6 +6,17 @@
 {% endblock %}
 
 {% block sections %}
+
+{% if not discord.bot_in_server %}
+{% section id='server-access' title='access' %}
+<form action="{% url 'web.join' %}" method="POST">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
+    {% csrf_token %}
+    <button class="btn btn-info" type="submit">join server</button>
+</form>
+{% endsection %}
+{% endif %}
+
 {% if discord.prefs %}
 {% with server=discord.prefs %}
 
