@@ -261,25 +261,6 @@ select.custom-select {
     height: 0;
 }
 
-.input-style-underline {
-    background-color: inherit;
-    color: var(--color-text);
-    border: none;
-    border-bottom: 2px solid $bw-grey-13;
-
-    &:focus,
-    &:active {
-        outline: none;
-        border-color: var(--accent-color);
-    }
-
-    &::placeholder {
-        font-size: 0.9rem;
-        font-weight: 500;
-        font-family: $ui-fonts;
-    }
-}
-
 .search-button-group {
     position: relative;
 
@@ -491,4 +472,28 @@ h1 .http-status code {
 .bi::before {
     position: relative;
     top: -1px;
+}
+
+input.form-control {
+    &[type="text"],
+    &[type="number"] {
+        background-color: #00000000;
+        color: inherit;
+
+        border-radius: 0;
+        border: none;
+        border-bottom: 2px solid $bw-grey-13;
+
+        &:focus,
+        &:active {
+            box-shadow: none;
+            border-color: var(--accent);
+        }
+
+        &::placeholder {
+            font-size: 0.9rem;
+            font-weight: 500;
+            font-family: $ui-fonts;
+        }
+    }
 }
