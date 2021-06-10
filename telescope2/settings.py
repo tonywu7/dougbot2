@@ -172,3 +172,17 @@ USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://githu
 
 STATIC_SERVER_PORT = 8001
 STATIC_SERVER = f'http://localhost:{STATIC_SERVER_PORT}'
+
+
+CACHEOPS_REDIS = 'redis://localhost:6379/2'
+
+CACHEOPS_DEFAULTS = {
+    'timeout': 60 * 60,
+}
+
+CACHEOPS = {
+    'auth.user': {'ops': 'get', 'timeout': 60 * 15},
+    'auth.*': {'ops': ('fetch', 'get')},
+    'auth.permission': {'ops': 'all'},
+    'discord.*': {},
+}
