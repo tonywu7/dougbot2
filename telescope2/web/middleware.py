@@ -86,10 +86,12 @@ class DiscordContext:
     user_id: int
     username: str
 
-    server_id: Optional[int]
-
     available: Dict[int, PartialGuild]
     joined: Dict[int, PartialGuild]
+
+    server_id: Optional[int] = None
+
+    prefs: Optional[Server] = None
 
     def __post_init__(self):
         try:
@@ -135,12 +137,23 @@ class DiscordContextMiddleware:
 
         context = DiscordContext(
             token, request.user.discord_id, request.user.username,
-            guild_id, available, joined,
+            available, joined, server_id=guild_id,
         )
         if context.server_id and context.server is None:
             return redirect(reverse('web.index'))
 
-        request.discord_ctx = context
+        @sync_to_async
+        def get_preferences():
+            if context.server_id is None:
+                return None
+            try:
+                return Server.objects.get(gid=context.server.id)
+            except Server.DoesNotExist:
+                return None
+
+        context.prefs = await get_preferences()
+
+        request.discord = context
 
 
 class Logout(Exception):
