@@ -13,9 +13,9 @@
         <span class="interactive-text align-middle">
             {% if user_authenticated %}
             <span class="identity-control">
-                {% if discord_ctx.server %}
+                {% if discord.server %}
                 <figure class="profile-picture guild-profile">
-                    <img src="{{ discord_ctx.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord_ctx.server.name }}">
+                    <img src="{{ discord.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord.server.name }}">
                 </figure>
                 {% endif %}
                 <figure class="profile-picture user-profile">

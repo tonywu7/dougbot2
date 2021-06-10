@@ -1,18 +1,18 @@
 {% extends 'commons/article.html' %}
 
 {% block article %}
-<h1><span class="text-warning">Leaving <em>{{ discord_ctx.server.name }}</em></span></h1>
+<h1><span class="text-warning">Leaving <em>{{ discord.server.name }}</em></span></h1>
 
-<p>You are about to remove the bot from {{ discord_ctx.server.name }}</p>
+<p>You are about to remove the bot from {{ discord.server.name }}</p>
 
 <p class="text-danger">All settings for this server will be permanently deleted.</p>
 
 <form method="POST">
-    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord_ctx.server.id }}">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
     {% csrf_token %}
     <span class="token-list">
         <button class="btn btn-outline-danger" type="submit">confirm</button>
-        <a href="{% url 'web.manage' guild_id=discord_ctx.server.id %}" class="btn btn-outline-light">cancel</a>
+        <a href="{% url 'web.manage' guild_id=discord.server.id %}" class="btn btn-outline-light">cancel</a>
     </span>
 </form>
 

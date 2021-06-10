@@ -1,24 +1,19 @@
 {% extends 'web/base.html' %}
-{% load inspect %}
+{% load inspect element %}
 
 {% block main %}
 <h1 class="bot-name ui-text-no-select">{{ branding_full }}</h1>
 <section class="section-container">
-    <section>
-        <header>
-            <h3>access</h3>
-        </header>
-        <div class="interactive-text">
-            {% if not discord_ctx.bot_in_server %}
-            <form action="{% url 'web.join' %}" method="POST">
-                <input type="hidden" name="guild_id" id="guild-id" value="{{ discord_ctx.server.id }}">
-                {% csrf_token %}
-                <button class="btn btn-info" type="submit">join server</button>
-            </form>
-            {% else %}
-            <a href="{% url 'web.leave' guild_id=discord_ctx.server.id %}" class="btn btn-outline-danger">leave server</a>
-            {% endif %}
-        </div>
-    </section>
+    {% section id='server-access' title='access' %}
+    {% if not discord.bot_in_server %}
+    <form action="{% url 'web.join' %}" method="POST">
+        <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
+        {% csrf_token %}
+        <button class="btn btn-info" type="submit">join server</button>
+    </form>
+    {% else %}
+    <a href="{% url 'web.leave' guild_id=discord.server.id %}" class="btn btn-outline-danger">leave server</a>
+    {% endif %}
+    {% endsection %}
 </section>
 {% endblock %}

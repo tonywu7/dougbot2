@@ -1,16 +1,11 @@
 {% extends 'web/base.html' %}
-{% load inspect %}
+{% load inspect element %}
 
 {% block main %}
 <h1 class="bot-name ui-text-no-select">{{ branding_full }}</h1>
 <section class="section-container">
-    <section>
-        <header>
-            <h3>general</h3>
-        </header>
-        <div class="interactive-text">
-            <p><span class="sentence-topic">version</span> {% pkg_version_string %}</p>
-        </div>
-    </section>
+    {% section id='general-info' title='general' %}
+    <p><span class="sentence-topic">version</span> {% pkg_version_string %}</p>
+    {% endsection %}
 </section>
 {% endblock %}

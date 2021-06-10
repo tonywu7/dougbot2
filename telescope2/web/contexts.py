@@ -27,7 +27,7 @@ def user_info(req: HttpRequest):
 
 def discord_info(req: HttpRequest):
     return {
-        'discord_ctx': getattr(req, 'discord_ctx', None),
+        'discord': getattr(req, 'discord', None),
     }
 
 

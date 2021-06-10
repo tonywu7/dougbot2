@@ -2,17 +2,17 @@
 <div id="server-select" class="nav-control interactive-text align-middle">
     <div class="dropdown">
         <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown">
-            {% if discord_ctx.server %}
+            {% if discord.server %}
             <figure class="profile-picture guild-profile">
-                <img src="{{ discord_ctx.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord_ctx.server.name }}">
+                <img src="{{ discord.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord.server.name }}">
             </figure>
             {% endif %}
             <div id="server-select" class="align-middle">
-                {% if discord_ctx.server %}<span>{{ discord_ctx.server.name }}</span>{% else %}<span>Select server</span>{% endif %} <i class="bi bi-chevron-down"></i>
+                {% if discord.server %}<span>{{ discord.server.name }}</span>{% else %}<span>Select server</span>{% endif %} <i class="bi bi-chevron-down"></i>
             </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
-            {% for guild in discord_ctx.joined.values %}
+            {% for guild in discord.joined.values %}
             <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server joined)</a></li>
@@ -20,7 +20,7 @@
             <li>
                 <h6 class="dropdown-header">Available servers</h6>
             </li>
-            {% for guild in discord_ctx.available.values %}
+            {% for guild in discord.available.values %}
             <li><a href="{% url 'web.manage' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server available)</a></li>
@@ -35,8 +35,8 @@
         <a class="login-control identity-control" href="#" data-bs-toggle="dropdown">
             <figure class="profile-picture user-profile">
             </figure>
-            <div id="user-info" data-access-token="{{ discord_ctx.access_token }}" class="align-middle">
-                <span>{{ discord_ctx.username }}</span> <i class="bi bi-chevron-down"></i>
+            <div id="user-info" data-access-token="{{ discord.access_token }}" class="align-middle">
+                <span>{{ discord.username }}</span> <i class="bi bi-chevron-down"></i>
             </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
