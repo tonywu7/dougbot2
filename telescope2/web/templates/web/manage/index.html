@@ -11,9 +11,18 @@
 
 {% section id='general' title='general' %}
 <div class="key-value-pair kvp-justify">
+    <span>server name</span><span class="text-info">{{ discord.server.name }}</span>
     <span>server id</span><span class="text-info"><code>{{ server.gid }}</code></span>
+</div>
+{% endsection %}
+
+{% section id='commands' title='commands' %}
+<div class="key-value-pair kvp-justify">
     <span>command prefix</span><span class="text-info"><code>{{ server.prefix }}</code></span>
 </div>
+{% endsection %}
+
+{% section id='modules' title='modules' %}
 {% endsection %}
 
 {% endwith %}

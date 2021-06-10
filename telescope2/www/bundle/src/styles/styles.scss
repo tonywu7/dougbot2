@@ -346,8 +346,12 @@ select.custom-select {
 .btn,
 .interactive-text {
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: -0.5px;
+}
+
+.masthead-opt-group .interactive-text {
+    font-weight: 600;
 }
 
 .btn {

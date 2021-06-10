@@ -130,8 +130,8 @@
 .section-container {
     display: grid;
 
-    row-gap: 1rem;
-    column-gap: 1rem;
+    row-gap: 1.6rem;
+    column-gap: 1.6rem;
 
     section {
         border-top: 2px solid;
@@ -170,6 +170,7 @@
 
         section {
             flex: 1 0 auto;
+            margin-bottom: 2rem;
         }
     }
 }
