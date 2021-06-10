@@ -1,4 +1,4 @@
-# views.py
+# gateway.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,8 +33,8 @@ from telescope2.discord.models import Server
 from telescope2.utils.http import HTTPNoContent
 from telescope2.utils.jwt import validate_token
 
-from .forms import ServerCreateForm, UserCreateForm
-from .models import User
+from ..forms import ServerCreateForm, UserCreateForm
+from ..models import User
 
 
 def verify_state(req: HttpRequest):
@@ -50,12 +50,6 @@ def verify_state(req: HttpRequest):
 
 async def index(req: HttpRequest) -> HttpResponse:
     return render(req, 'web/index.html')
-
-
-@login_required
-@async_to_sync
-async def manage(req: HttpRequest, guild_id: str) -> HttpResponse:
-    return render(req, 'web/manage.html')
 
 
 def user_login(req: HttpRequest) -> HttpResponse:

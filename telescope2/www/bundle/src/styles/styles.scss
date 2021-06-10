@@ -417,3 +417,64 @@ h1 .http-status code {
 #top-menu-toggle {
     cursor: pointer;
 }
+
+.key-value-pair {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+    column-gap: 6pt;
+
+    &.kvp-left {
+        > * {
+            justify-self: left;
+        }
+    }
+
+    &.kvp-right {
+        > * {
+            justify-self: right;
+        }
+    }
+
+    &.kvp-center {
+        > * {
+            justify-self: center;
+        }
+    }
+
+    &.kvp-justify {
+        > *:nth-child(odd) {
+            justify-self: left;
+        }
+        > *:nth-child(even) {
+            justify-self: right;
+        }
+    }
+
+    &.kvp-axial {
+        > *:nth-child(odd) {
+            justify-self: right;
+        }
+        > *:nth-child(even) {
+            justify-self: left;
+        }
+    }
+
+    &.kvp-top {
+        > * {
+            align-self: start;
+        }
+    }
+
+    &.kvp-middle {
+        > * {
+            align-self: center;
+        }
+    }
+
+    &.kvp-bottom {
+        > * {
+            align-self: end;
+        }
+    }
+}

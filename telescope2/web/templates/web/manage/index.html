@@ -4,6 +4,19 @@
 {% block main %}
 <h1 class="bot-name ui-text-no-select">{{ branding_full }}</h1>
 <section class="section-container">
+    {% if discord.prefs %}
+    {% with server=discord.prefs %}
+
+    {% section id='general' title='general' %}
+    <div class="key-value-pair kvp-justify">
+        <span>server id</span><span><code>{{ server.gid }}</code></span>
+        <span>command prefix</span><span><code>{{ server.prefix }}</code></span>
+    </div>
+    {% endsection %}
+
+    {% endwith %}
+    {% endif %}
+
     {% section id='server-access' title='access' %}
     {% if not discord.bot_in_server %}
     <form action="{% url 'web.join' %}" method="POST">
