@@ -261,10 +261,20 @@
         }
 
         ul {
-            margin: 0 0 0 1.86rem;
+            margin: 0 0 0 1.9rem;
             padding: 0;
+        }
 
-            border-left: 1px solid $color-text;
+        a {
+            color: $color-text;
+        }
+
+        .sidebar-active {
+            color: var(--accent);
+
+            a {
+                color: var(--accent);
+            }
         }
     }
 }

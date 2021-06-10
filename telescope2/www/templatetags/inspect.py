@@ -50,3 +50,9 @@ def basefilename(context):
 def fullfilename(context):
     """Return full filename with the extension."""
     return context.template_name
+
+
+@register.simple_tag(takes_context=True)
+def viewname(context: template.Context):
+    req = context['request']
+    return req.resolver_match.view_name

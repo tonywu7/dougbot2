@@ -487,3 +487,8 @@ h1 .http-status code {
         }
     }
 }
+
+.bi::before {
+    position: relative;
+    top: -1px;
+}

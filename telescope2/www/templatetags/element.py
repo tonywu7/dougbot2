@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from django.template import Context, Library, Node, NodeList, Variable
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from telescope2.utils.templates import register_autotag
@@ -60,3 +61,14 @@ class SectionNode(Node):
             f'<header><h3>{mark_safe(title)}</h3></header>'
             f'<div class="interactive-text">{content}</div></section>',
         )
+
+
+@register.simple_tag(takes_context=True)
+def sidebarlink(context, icon, view, name):
+    gid = context['discord'].server.id
+    url = reverse(view, kwargs={'guild_id': gid})
+    if view == context['request'].resolver_match.view_name:
+        classes = ' class="sidebar-active"'
+    else:
+        classes = ''
+    return mark_safe(f'<span{classes}><i class="bi bi-{icon}"></i><a href="{url}">{name}</a></span>')

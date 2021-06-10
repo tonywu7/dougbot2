@@ -1,14 +1,29 @@
+{% load element %}
+
 <section class="auth-control">
     {% include 'elements/identities.html' %}
 </section>
 
 {% if user_authenticated and discord.server %}
+{% with gid=discord.server.id %}
 
-<details>
+<details open>
+    <summary>
+        {% sidebarlink 'house-fill' 'web.manage.index' 'Home' %}
+    </summary>
+</details>
+
+{% if discord.bot_in_server %}
+
+<details open>
     <summary><i class="bi bi-gear-wide-connected"></i><span>Core</span></summary>
     <ul>
-        <li><i class="bi bi-gear-fill"></i><span>Core settings</span></li>
+        <li>
+            {% sidebarlink 'gear-fill' 'web.manage.core' 'Core settings' %}
+        </li>
     </ul>
 </details>
 
+{% endif %}
+{% endwith %}
 {% endif %}
