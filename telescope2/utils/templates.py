@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import ast
 import itertools
 import re
 from inspect import Parameter, signature
@@ -79,7 +80,34 @@ def _may_be_keyword(p: Parameter):
     return p.kind in (Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY)
 
 
-def register_autotag(library: template.Library, start: str, end: Optional[str] = None) -> Callable[[Parser, Token], N]:
+def assert_valid_identifier(s: str):
+    if not s:
+        raise ValueError('Identifier cannot be empty')
+    try:
+        expr: ast.Expression = ast.parse(s).body[0]
+    except SyntaxError as e:
+        raise ValueError(f'Malformed identifier {repr(s)}') from e
+    if not isinstance(expr.value, ast.Name):
+        raise ValueError(f'{repr(s)} is not a valid identifier')
+
+
+def unpack_attributes(node: ast.Attribute):
+    if isinstance(node.value, ast.Attribute):
+        return f'{unpack_attributes(node.value)}.{node.attr}'
+    elif isinstance(node.value, ast.Name):
+        return f'{node.value.id}.{node.attr}'
+    else:
+        raise ValueError(node.value)
+
+
+def create_tag_parser(library: template.Library, start: str, end: Optional[str] = None) -> Callable[[Parser, Token], N]:
+    if not start:
+        raise ValueError('Tag cannot be empty')
+
+    assert_valid_identifier(start)
+    if end:
+        assert_valid_identifier(end)
+
     def wrap(func: NodeFactory):
         sig = signature(func)
 
@@ -103,8 +131,6 @@ def register_autotag(library: template.Library, start: str, end: Optional[str] =
         @library.tag(start)
         def parse(parser: Parser, token: Token) -> N:
 
-            has_keywords = False
-
             values = {p.name: p.default for p in paramlist}
             if accepts_args:
                 values['args'] = []
@@ -119,50 +145,68 @@ def register_autotag(library: template.Library, start: str, end: Optional[str] =
                 pos = 0
 
             tag_name, *parts = token.split_contents()
+            expr = f'{tag_name}({", ".join(parts)})'
+            try:
+                func_call: ast.Call = ast.parse(expr).body[0].value
+                assert isinstance(func_call, ast.Call)
+            except (SyntaxError, AssertionError) as e:
+                raise template.TemplateSyntaxError(
+                    f'Malformed function call expression `{expr}` '
+                    f'generated from {token}',
+                ) from e
 
-            for part in parts:
-                keyword, value = parse_token(part)
+            def raise_unsupported(node: ast.AST):
+                raise template.TemplateSyntaxError(
+                    f'Unsupported {type(node).__name__} expression '
+                    f'{expr[node.col_offset:node.end_col_offset]}',
+                )
 
-                if keyword in ('args', 'kwargs'):
-                    raise template.TemplateSyntaxError(
-                        f'Forbidden keyword argument name "{keyword}"',
-                    )
-
-                if keyword:
-                    has_keywords = True
-                    par = paramdict.get(keyword)
-                    if not par:
-                        if not accepts_kwargs:
-                            raise template.TemplateSyntaxError(
-                                f'{func} does not accept **kwargs',
-                            )
-                        values['kwargs'][keyword] = value
-                        continue
-                    if par.kind is Parameter.POSITIONAL_ONLY:
-                        raise template.TemplateSyntaxError(
-                            f'{keyword} is a positional-only '
-                            'argument and cannot be assigned '
-                            f'with {repr(part)}',
-                        )
-                    values[keyword] = value
-                    continue
-
-                if has_keywords:
-                    raise template.TemplateSyntaxError(
-                        'Positional argument found after keyword arguments',
-                    )
-                par = paramlist[pos]
-                if _keyword_only(par):
-                    raise template.TemplateSyntaxError(
-                        f'{keyword} is a keyword-only '
-                        'argument and cannot be assigned '
-                        f'with {repr(part)}',
-                    )
-                if _is_vararg(par):
-                    values['args'].append(value)
+            def convert_expr(node: ast.AST):
+                if isinstance(node, ast.Constant):
+                    val = node.value
+                elif isinstance(node, ast.Name):
+                    val = template.Variable(node.id)
+                elif isinstance(node, ast.Attribute):
+                    val = template.Variable(unpack_attributes(node))
                 else:
-                    values[par.name] = value
-                    pos += 1
+                    raise_unsupported(node)
+                return val
+
+            for param, arg in zip(paramlist[pos:], func_call.args):
+                if param.name not in values and accepts_args:
+                    raise template.TemplateSyntaxError(
+                        f'{func} does not accept additional arguments',
+                    )
+                val = convert_expr(arg)
+                if param.name not in values:
+                    values['args'].append(val)
+                elif _keyword_only(param):
+                    raise template.TemplateSyntaxError(
+                        f'{param.name} is a keyword-only argument',
+                    )
+                else:
+                    values[param.name] = val
+
+            for kwarg in func_call.keywords:
+                k = kwarg.arg
+                if k in ('args', 'kwargs'):
+                    raise template.TemplateSyntaxError(
+                        f'Forbidden keyword argument name "{k}"',
+                    )
+                if k not in values and accepts_kwargs:
+                    raise template.TemplateSyntaxError(
+                        f'{func} does not accept additional keyword arguments',
+                    )
+                val = convert_expr(kwarg.value)
+                param = paramdict.get(k)
+                if param:
+                    if _positional_only(param):
+                        raise template.TemplateSyntaxError(
+                            f'{param.name} is a keyword-only argument',
+                        )
+                    values[k] = val
+                else:
+                    values['kwargs'][k] = val
 
             for k, v in values.items():
                 if isinstance(v, Parameter.empty):

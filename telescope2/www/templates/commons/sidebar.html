@@ -8,14 +8,14 @@
 
 <div class="accordion-item">
     <h2 class="accordion-header" id="view-home">
-        {% sidebarlink 'house-fill' 'web:manage.index' 'Home' %}
+        {% sidebarlink 'web:manage.index' 'Home' 'house-fill' %}
     </h2>
 </div>
 
 {% if discord.server_joined %}
 
-{% chapter 'view-core' 'Core' 'gear-wide-connected' using mark_active %}
-<li>{% sidebarlink 'gear-fill' 'web:manage.core' 'Core settings' %}</li>
+{% chapter 'view-core' name='Core' icon='gear-wide-connected' %}
+<li>{% sidebarlink 'web:manage.core' 'Core settings' 'gear-fill' %}</li>
 {% endchapter %}
 
 {% endif %}

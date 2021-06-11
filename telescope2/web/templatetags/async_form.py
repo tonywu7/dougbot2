@@ -18,14 +18,14 @@ from django.template import Context, Library, Node, NodeList, Variable
 from django.utils.safestring import mark_safe
 
 from telescope2.utils.templates import (domtokenlist, optional_attr,
-                                        register_autotag, unwrap)
+                                        create_tag_parser, unwrap)
 
 from ..utils.forms import AsyncModelForm
 
 register = Library()
 
 
-@register_autotag(register, 'asyncform', 'endform')
+@create_tag_parser(register, 'asyncform', 'endform')
 class AsyncFormNode(Node):
     def __init__(self, nodelist: NodeList, form: Variable, id: Variable = None, classes: Variable = None):
         self.nodelist = nodelist

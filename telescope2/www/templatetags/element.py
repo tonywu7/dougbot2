@@ -23,13 +23,13 @@ from django.template import Context, Library, Node, NodeList, Variable
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import optional_attr, register_autotag, unwrap
+from telescope2.utils.templates import create_tag_parser, optional_attr, unwrap
 
 register = Library()
 
 
 
-@register_autotag(register, 'set', 'endset')
+@create_tag_parser(register, 'set', 'endset')
 class BlockAssignmentNode(Node):
     def __init__(self, nodelist: NodeList, var_name: Variable) -> None:
         self.nodelist = nodelist
@@ -40,7 +40,7 @@ class BlockAssignmentNode(Node):
         return ''
 
 
-@register_autotag(register, 'section', 'endsection')
+@create_tag_parser(register, 'section', 'endsection')
 class SectionNode(Node):
     def __init__(self, nodelist: NodeList, id: Variable,
                  title: Variable, classes: Variable = ''):
@@ -63,7 +63,7 @@ class SectionNode(Node):
 
 
 @register.simple_tag(takes_context=True)
-def sidebarlink(context: Context, icon, view, name):
+def sidebarlink(context: Context, view, name, icon):
     snowflake = context['discord'].current.id
     mark_active: Optional[Callable] = context.get('mark_active')
     url = reverse(view, kwargs={'guild_id': snowflake})
@@ -76,15 +76,14 @@ def sidebarlink(context: Context, icon, view, name):
     return mark_safe(f'<span{classes}><i class="bi bi-{icon}"></i><a href="{url}">{name}</a></span>')
 
 
-@register_autotag(register, 'chapter', 'endchapter')
+@create_tag_parser(register, 'chapter', 'endchapter')
 @dataclass
 class SidebarSectionNode(Node):
     nodelist: NodeList
-    chapter_id: Variable
+    id: Variable
     name: Variable
     icon: Variable
-    using_: str
-    mark_active: Variable
+    parent_id: str | Variable = 'sidebar'
 
     def render(self, context: Context) -> str:
         active_route = None
@@ -93,12 +92,12 @@ class SidebarSectionNode(Node):
             nonlocal active_route
             active_route = url
 
-        cb_name = self.mark_active.var
         with context.push():
-            context[cb_name] = mark_active_cb
+            context['mark_active'] = mark_active_cb
             content = self.nodelist.render(context)
 
-        chapter_id = unwrap(context, self.chapter_id)
+        parent_id = unwrap(context, self.parent_id)
+        chapter_id = unwrap(context, self.id)
         body_id = f'{chapter_id}-routes'
         name = unwrap(context, self.name)
         icon = unwrap(context, self.icon)
@@ -114,7 +113,7 @@ class SidebarSectionNode(Node):
             '<div class="accordion-item">'
             f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse" data-bs-target="#{body_id}">'
             f'        <i class="bi bi-{icon}"></i><span>{name}</span></h2>'
-            f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#sidebar">'
+            f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#{parent_id}">'
             f'        <div class="accordion-body"><ul>{content}</ul>'
             '</div></div></div>',
         )
