@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'telescope2.discord.contrib.utility.apps.BotUtilityConfig',
 ]
 
 MIDDLEWARE = [
