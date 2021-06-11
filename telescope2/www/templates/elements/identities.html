@@ -16,7 +16,7 @@
                 <h6 class="dropdown-header">Joined servers</h6>
             </li>
             {% for guild in discord.joined_servers.values %}
-            <li><a href="{% url 'web.manage.index' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
+            <li><a href="{% url 'web:manage.index' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server joined)</a></li>
             {% endfor %}
@@ -24,7 +24,7 @@
                 <h6 class="dropdown-header">Available servers</h6>
             </li>
             {% for guild in discord.available_servers.values %}
-            <li><a href="{% url 'web.manage.index' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
+            <li><a href="{% url 'web:manage.index' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server available)</a></li>
             {% endfor %}
@@ -43,10 +43,10 @@
             </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
-            <li><a href="{% url 'web.logout' %}" class="dropdown-item">Logout</a></li>
+            <li><a href="{% url 'web:logout' %}" class="dropdown-item">Logout</a></li>
         </ul>
     </div>
     {% else %}
-    <a href="{% url 'web.login' %}"><i class="bi bi-discord"></i> <span>Login via Discord</span></a>
+    <a href="{% url 'web:login' %}"><i class="bi bi-discord"></i> <span>Login via Discord</span></a>
     {% endif %}
 </div>

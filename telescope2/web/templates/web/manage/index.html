@@ -9,7 +9,7 @@
 
 {% if not discord.server_joined %}
 {% section id='server-access' title='access' %}
-<form action="{% url 'web.join' %}" method="POST">
+<form action="{% url 'web:join' %}" method="POST">
     <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.current.id }}">
     {% csrf_token %}
     <button class="btn btn-info" type="submit">Join server</button>

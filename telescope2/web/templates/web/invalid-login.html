@@ -6,11 +6,11 @@
 {% if login_state == 'expired' %}
 
 <p>Your login credentials is expired because you spent too much time logging in through Discord.
-    You can <a href="{% url 'web.index' %}">return to homepage and try again</a>.</p>
+    You can <a href="{% url 'web:index' %}">return to homepage and try again</a>.</p>
 
 {% elif login_state == 'incorrect_credentials' %}
 
-<p>Could not authenticate with Discord. You can <a href="{% url 'web.index' %}">return to homepage and try again</a>.</p>
+<p>Could not authenticate with Discord. You can <a href="{% url 'web:index' %}">return to homepage and try again</a>.</p>
 
 {% else %}
 

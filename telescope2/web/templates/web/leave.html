@@ -12,7 +12,7 @@
     {% csrf_token %}
     <span class="token-list">
         <button class="btn btn-outline-danger" type="submit">confirm</button>
-        <a href="{% url 'web.manage.index' guild_id=discord.current.id %}" class="btn btn-outline-light">cancel</a>
+        <a href="{% url 'web:manage.index' guild_id=discord.current.id %}" class="btn btn-outline-light">cancel</a>
     </span>
 </form>
 

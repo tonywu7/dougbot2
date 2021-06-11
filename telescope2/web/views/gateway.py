@@ -62,7 +62,7 @@ def user_login(req: HttpRequest) -> HttpResponse:
 
 def user_logout(req: HttpRequest) -> HttpResponse:
     logout(req)
-    return redirect(reverse('web.index'))
+    return redirect(reverse('web:index'))
 
 
 def invalid_login(req: HttpRequest, reason: str) -> HttpResponse:
@@ -98,7 +98,7 @@ class CreateUserView(View):
         return render(req, 'web/postlogin.html', {'form': UserCreationForm(data=tokens)})
 
     def post(self, req: HttpRequest) -> HttpResponse:
-        invalid_data = redirect(reverse('web.login_invalid', kwargs={'reason': 'invalid_payload'}))
+        invalid_data = redirect(reverse('web:login_invalid', kwargs={'reason': 'invalid_payload'}))
 
         try:
             user_info = json.loads(req.body.decode('utf8'))
@@ -162,9 +162,9 @@ class CreateServerProfileView(View):
     def post(req: HttpRequest) -> HttpResponse:
         form = ServerCreationForm(data=req.POST)
         if not form.is_valid():
-            return redirect(reverse('web.index'))
+            return redirect(reverse('web:index'))
         preference = form.save()
-        return redirect(reverse('web.manage.index', kwargs={'guild_id': preference.snowflake}))
+        return redirect(reverse('web:manage.index', kwargs={'guild_id': preference.snowflake}))
 
 
 class DeleteServerProfileView(View):
@@ -212,4 +212,4 @@ class DeleteServerProfileView(View):
         await delete_server()
         await fetch.close()
 
-        return redirect(reverse('web.manage.index', kwargs={'guild_id': guild_id}))
+        return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))

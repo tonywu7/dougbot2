@@ -107,7 +107,7 @@ class DiscordContextMiddleware:
             available, joined, server_id=guild_id,
         )
         if context.server_id and context.current is None:
-            return redirect(reverse('web.index'))
+            return redirect(reverse('web:index'))
 
         @sync_to_async
         def get_preferences():

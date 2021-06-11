@@ -16,7 +16,7 @@
 {% endsection %}
 
 {% section id='server-access' title='access' %}
-<a href="{% url 'web.leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave server</a>
+<a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave server</a>
 {% endsection %}
 
 {% endblock %}

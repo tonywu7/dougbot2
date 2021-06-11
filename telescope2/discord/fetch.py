@@ -79,11 +79,11 @@ def api_endpoint(endpoint: str) -> str:
 
 
 def app_auth_url(req: HttpRequest) -> Tuple[str, str]:
-    return oauth_url(req, 'identify guilds', reverse('web.create_user'))
+    return oauth_url(req, 'identify guilds', reverse('web:create_user'))
 
 
 def bot_invite_url(req: HttpRequest, guild_id: str | int) -> Tuple[str, str]:
-    return oauth_url(req, 'bot', reverse('web.authorized'), guild_id=guild_id,
+    return oauth_url(req, 'bot', reverse('web:authorized'), guild_id=guild_id,
                      permissions=Telescope.DEFAULT_PERMS.value, disable_guild_select='true')
 
 
@@ -177,7 +177,7 @@ class DiscordFetch:
         form.add_field('client_secret', settings.DISCORD_CLIENT_SECRET)
         form.add_field('code', code)
         form.add_field('grant_type', 'authorization_code')
-        form.add_field('redirect_uri', complete_endpoint(req, reverse('web.create_user')))
+        form.add_field('redirect_uri', complete_endpoint(req, reverse('web:create_user')))
         return await self.request_token(form)
 
     async def refresh_tokens(self, refresh_token: str) -> Optional[Dict]:

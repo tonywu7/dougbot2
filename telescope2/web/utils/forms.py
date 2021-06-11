@@ -75,7 +75,7 @@ class TextInput(AttributeInject, widgets.TextInput, WidgetSubstitute):
 class AsyncModelForm(ModelForm):
     @property
     def mutation_endpoint(self):
-        return reverse('web.api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
+        return reverse('web:api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
 
 
 def find_widgets(model: Type[models.Model]) -> Dict[str, WidgetType]:

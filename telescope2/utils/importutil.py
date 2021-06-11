@@ -48,7 +48,7 @@ def iter_module_tree(pkg: str, depth: int = 1, parts: List[str] = None) -> Gener
     Examples
     --------
     >>> for parts in iter_module_tree(str(Path(__file__).with_name('views')), 2):
-    ...     import_module(f'.views.{".".join(path)}', __package__)
+    ...     import_module(f'.views.{".".join(parts)}', __package__)
     """
     if not depth:
         return
