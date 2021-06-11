@@ -256,11 +256,15 @@ class DiscordFetch:
             self._refresh = tokens['refresh_token']
             return await self.autorefresh(coro_func)
 
-    async def fetch_user_guilds(self) -> Optional[List[PartialGuild]]:
+    async def fetch_user_guilds(self) -> List[PartialGuild]:
         guilds = await self.autorefresh(lambda: self.get('/users/@me/guilds'))
         if guilds is None:
             return None
         return [PartialGuild.from_dict(g) for g in guilds]
+
+    async def fetch_user(self) -> Optional[PartialUser]:
+        data = await self.autorefresh(lambda: self.get('/users/@me'))
+        return data and PartialUser.from_dict(data)
 
     async def close(self):
         if self._session:
@@ -271,6 +275,24 @@ class DiscordFetch:
 
 class DiscordUnauthorized(Exception):
     pass
+
+
+@dataclass
+class PartialUser:
+    id: int
+    name: str
+    icon: str
+
+    @classmethod
+    def from_dict(cls, data: Dict):
+        return cls(id=data['id'], name=data['username'], icon=data['avatar'])
+
+    @property
+    def icon_url(self) -> str:
+        return f'{CDN_PREFIX}/avatars/{self.id}/{self.icon}.png'
+
+    def __post_init__(self):
+        self.id = int(self.id)
 
 
 @dataclass

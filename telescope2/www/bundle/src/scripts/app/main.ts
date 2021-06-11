@@ -105,9 +105,6 @@ async function initDiscord() {
     if (accessToken === undefined || accessToken === 'None') window.location.href = '/web/logout'
 
     discord = new DiscordClient(accessToken!)
-
-    await discord.fetchUser()
-    await setAvatar(discord)
 }
 
 function discordJoinServer() {

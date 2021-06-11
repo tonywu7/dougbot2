@@ -21,7 +21,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
-from telescope2.discord.fetch import PartialGuild
+from telescope2.discord.fetch import PartialGuild, PartialUser
 from telescope2.discord.models import Server
 
 from .forms import PreferenceForms
@@ -59,6 +59,8 @@ class DiscordContext:
 
     user_id: int
     username: str
+
+    user_profile: PartialUser
 
     available_servers: Dict[int, PartialGuild]
     joined_servers: Dict[int, PartialGuild]

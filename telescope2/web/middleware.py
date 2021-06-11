@@ -39,7 +39,7 @@ async def fetch_discord_info(req: HttpRequest):
         return user.is_authenticated
 
     if not await is_authenticated():
-        return None, None
+        return None, None, None
 
     token = await user.fresh_token()
     if not token:
@@ -50,6 +50,7 @@ async def fetch_discord_info(req: HttpRequest):
 
     try:
         guilds = await fetch.fetch_user_guilds()
+        profile = await fetch.fetch_user()
     except DiscordUnauthorized:
         raise Logout
     finally:
@@ -58,7 +59,7 @@ async def fetch_discord_info(req: HttpRequest):
     if guilds is None:
         raise Logout
 
-    return token, guilds
+    return token, profile, guilds
 
 
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
@@ -89,7 +90,7 @@ class DiscordContextMiddleware:
     async def process_view(self, request: HttpRequest, view_func,
                            view_args: Tuple, view_kwargs: Dict):
         try:
-            token, guilds = await fetch_discord_info(request)
+            token, profile, guilds = await fetch_discord_info(request)
         except Logout:
             return await logout_current_user(request)
 
@@ -104,7 +105,7 @@ class DiscordContextMiddleware:
 
         context = DiscordContext(
             token, request.user.snowflake, request.user.username,
-            available, joined, server_id=guild_id,
+            profile, available, joined, server_id=guild_id,
         )
         if context.server_id and context.current is None:
             return redirect(reverse('web:index'))
