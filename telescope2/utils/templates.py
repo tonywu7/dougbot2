@@ -30,7 +30,7 @@ N = TypeVar('N', bound=Node)
 NodeFactory = Callable[..., N]
 
 # Match valid alphanumeric python identifiers
-IDENTIFIER = r'(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*'
+IDENTIFIER = r'(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*'
 
 # Match int and float
 NUMBERS = r'-?[0-9]*.?[0-9]+'
