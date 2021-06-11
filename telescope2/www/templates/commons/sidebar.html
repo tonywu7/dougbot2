@@ -6,22 +6,17 @@
 
 {% if user_authenticated and discord.current %}
 
-<details open>
-    <summary>
+<div class="accordion-item">
+    <h2 class="accordion-header" id="view-home">
         {% sidebarlink 'house-fill' 'web:manage.index' 'Home' %}
-    </summary>
-</details>
+    </h2>
+</div>
 
 {% if discord.server_joined %}
 
-<details open>
-    <summary><i class="bi bi-gear-wide-connected"></i><span>Core</span></summary>
-    <ul>
-        <li>
-            {% sidebarlink 'gear-fill' 'web:manage.core' 'Core settings' %}
-        </li>
-    </ul>
-</details>
+{% chapter 'view-core' 'Core' 'gear-wide-connected' using mark_active %}
+<li>{% sidebarlink 'gear-fill' 'web:manage.core' 'Core settings' %}</li>
+{% endchapter %}
 
 {% endif %}
 {% endif %}

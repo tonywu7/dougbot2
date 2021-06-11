@@ -16,6 +16,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Callable, Optional
+
 from django.template import Context, Library, Node, NodeList, Variable
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -60,11 +63,58 @@ class SectionNode(Node):
 
 
 @register.simple_tag(takes_context=True)
-def sidebarlink(context, icon, view, name):
+def sidebarlink(context: Context, icon, view, name):
     snowflake = context['discord'].current.id
+    mark_active: Optional[Callable] = context.get('mark_active')
     url = reverse(view, kwargs={'guild_id': snowflake})
     if view == context['request'].resolver_match.view_name:
         classes = ' class="sidebar-active"'
+        if mark_active:
+            mark_active(url)
     else:
         classes = ''
     return mark_safe(f'<span{classes}><i class="bi bi-{icon}"></i><a href="{url}">{name}</a></span>')
+
+
+@register_autotag(register, 'chapter', 'endchapter')
+@dataclass
+class SidebarSectionNode(Node):
+    nodelist: NodeList
+    chapter_id: Variable
+    name: Variable
+    icon: Variable
+    using_: str
+    mark_active: Variable
+
+    def render(self, context: Context) -> str:
+        active_route = None
+
+        def mark_active_cb(url):
+            nonlocal active_route
+            active_route = url
+
+        cb_name = self.mark_active.var
+        with context.push():
+            context[cb_name] = mark_active_cb
+            content = self.nodelist.render(context)
+
+        chapter_id = unwrap(context, self.chapter_id)
+        body_id = f'{chapter_id}-routes'
+        name = unwrap(context, self.name)
+        icon = unwrap(context, self.icon)
+
+        if active_route:
+            header_cls = 'accordion-button'
+            body_cls = 'collapse show'
+        else:
+            header_cls = 'accordion-button collapsed'
+            body_cls = 'collapse'
+
+        return mark_safe(
+            '<div class="accordion-item">'
+            f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse" data-bs-target="#{body_id}">'
+            f'        <i class="bi bi-{icon}"></i><span>{name}</span></h2>'
+            f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#sidebar">'
+            f'        <div class="accordion-body"><ul>{content}</ul>'
+            '</div></div></div>',
+        )
