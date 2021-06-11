@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from asgiref.sync import sync_to_async
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.db import models
@@ -49,18 +50,13 @@ class User(AbstractUser):
         },
     )
 
-    discord_id: int = models.IntegerField(editable=False, verbose_name='Discord ID')
+    snowflake: int = models.IntegerField(editable=False, verbose_name='Discord ID', primary_key=True)
 
     access_token: str = models.CharField(max_length=512, blank=True)
     refresh_token: str = models.CharField(max_length=512, blank=True)
     expires_at: float = models.FloatField(null=True)
 
-    REQUIRED_FIELDS = ['discord_id']
-
-    class Meta:
-        permissions = [
-            ('manage_servers', 'Can invite the bot to servers'),
-        ]
+    REQUIRED_FIELDS = ['snowflake']
 
     @property
     def token_expired(self) -> bool:
@@ -86,3 +82,15 @@ class User(AbstractUser):
         self.expires_at = (utcnow() + timedelta(seconds=int(data['expires_in']))).timestamp()
         await sync_to_async(self.save)()
         return self.access_token
+
+
+def read_access_required(f):
+    return permission_required(['discord.view_server'])(f)
+
+
+def write_access_required(f):
+    return permission_required([
+        'discord.add_server',
+        'discord.change_server',
+        'discord.delete_server',
+    ])(f)

@@ -61,8 +61,8 @@ class SectionNode(Node):
 
 @register.simple_tag(takes_context=True)
 def sidebarlink(context, icon, view, name):
-    gid = context['discord'].current.id
-    url = reverse(view, kwargs={'guild_id': gid})
+    snowflake = context['discord'].current.id
+    url = reverse(view, kwargs={'guild_id': snowflake})
     if view == context['request'].resolver_match.view_name:
         classes = ' class="sidebar-active"'
     else:

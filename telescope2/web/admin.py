@@ -6,14 +6,14 @@ from .models import User
 
 
 class DiscordUserAdmin(UserAdmin):
-    list_display = ('username', 'discord_id', 'is_staff')
-    search_fields = ('username', 'discord_id')
+    list_display = ('username', 'snowflake', 'is_staff')
+    search_fields = ('username', 'snowflake')
 
-    readonly_fields = ('discord_id',)
+    readonly_fields = ('snowflake',)
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        (_('info'), {'fields': ('discord_id', 'email')}),
+        (_('info'), {'fields': ('snowflake', 'email')}),
         (_('permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),

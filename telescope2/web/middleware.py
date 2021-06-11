@@ -45,7 +45,7 @@ async def fetch_discord_info(req: HttpRequest):
     if not token:
         raise Logout
 
-    fetch = DiscordFetch(user_id=user.discord_id)
+    fetch = DiscordFetch(user_id=user.snowflake)
     await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
 
     try:
@@ -71,10 +71,10 @@ async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
 
     @sync_to_async
     def get_servers():
-        return [*Server.objects.filter(gid__in=managed_guilds)]
+        return [*Server.objects.filter(snowflake__in=managed_guilds)]
 
     servers: List[Server] = await get_servers()
-    server_ids = {s.gid for s in servers}
+    server_ids = {s.snowflake for s in servers}
 
     return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
 
@@ -103,7 +103,7 @@ class DiscordContextMiddleware:
         joined = dict(joined)
 
         context = DiscordContext(
-            token, request.user.discord_id, request.user.username,
+            token, request.user.snowflake, request.user.username,
             available, joined, server_id=guild_id,
         )
         if context.server_id and context.current is None:
@@ -114,7 +114,7 @@ class DiscordContextMiddleware:
             if context.server_id is None:
                 return None
             try:
-                return Server.objects.get(gid=context.current.id)
+                return Server.objects.get(snowflake=context.current.id)
             except Server.DoesNotExist:
                 return None
 

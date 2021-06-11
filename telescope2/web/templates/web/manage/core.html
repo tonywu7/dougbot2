@@ -5,12 +5,12 @@
 
 {% block sections %}
 
-{% section id='global' title='global settings' %}
+{% section id='global' title='global' %}
 
 {% asyncform discord.forms.prefix id='global-settings' %}
 <ul>{{ discord.forms.prefix.as_ul }}</ul>
 {% csrf_token %}
-{% asyncsubmit 'Save settings' 'primary' 'mt-3 mb-1 w-100' %}
+{% asyncsubmit 'Save' 'primary' 'mt-3 mb-1 w-100' %}
 {% endform %}
 
 {% endsection %}

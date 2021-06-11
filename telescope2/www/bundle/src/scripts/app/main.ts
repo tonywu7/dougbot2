@@ -72,7 +72,7 @@ async function discordOAuth2() {
     discord = new DiscordClient(accessToken)
     let userCreateInfo = util.serializeFormData(loginForm)
     userCreateInfo.username = await discord.userTag()
-    userCreateInfo.discord_id = await discord.userId()
+    userCreateInfo.snowflake = await discord.userId()
 
     let csrfToken = loginForm.get('csrfmiddlewaretoken')?.toString()!
     let res = await fetch(window.location.pathname, {

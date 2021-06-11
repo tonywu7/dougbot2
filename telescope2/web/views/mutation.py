@@ -45,7 +45,7 @@ def async_form_save(req: HttpRequest, schema: str, item_id: str) -> HttpResponse
     except ImportError:
         raise SuspiciousOperation(f'Unknown form schema {schema}')
 
-    item = get_object_or_404(model_form._meta.model, id=item_id)
+    item = get_object_or_404(model_form._meta.model, pk=item_id)
 
     form = model_form(data=req.POST, instance=item)
     if not form.is_valid():

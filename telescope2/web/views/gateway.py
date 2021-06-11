@@ -19,7 +19,8 @@ from asgiref.sync import async_to_sync, sync_to_async
 from discord import Forbidden, Guild, Member
 from django.conf import settings
 from django.contrib.auth import login, logout
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Permission
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -34,7 +35,7 @@ from telescope2.utils.http import HTTPNoContent
 from telescope2.utils.jwt import validate_token
 
 from ..forms import ServerCreationForm, UserCreationForm
-from ..models import User
+from ..models import User, write_access_required
 
 
 def verify_state(req: HttpRequest):
@@ -69,6 +70,17 @@ def invalid_login(req: HttpRequest, reason: str) -> HttpResponse:
 
 
 class CreateUserView(View):
+    def create_user(self, username, snowflake) -> User:
+        user = User(username=username, snowflake=snowflake)
+        perms = Permission.objects.filter(
+            content_type__app_label=Server._meta.app_label,
+            content_type__model=Server._meta.model_name,
+        )
+        user.save()
+        user.user_permissions.add(*perms)
+        user.save()
+        return user
+
     @async_to_sync
     async def get(self, req: HttpRequest) -> HttpResponse:
         state = verify_state(req)
@@ -97,15 +109,14 @@ class CreateUserView(View):
         if not form.is_valid():
             return invalid_data
 
-        (username, discord_id, access_token,
+        (username, snowflake, access_token,
          refresh_token, expires_at) = form.to_tuple()
 
         try:
-            user = User.objects.get(discord_id=discord_id)
+            user = User.objects.get(snowflake=snowflake)
             user.username = username
         except User.DoesNotExist:
-            user = User(username=username, discord_id=discord_id)
-            user.user_permissions.add('manage_servers')
+            user = self.create_user(username, snowflake)
 
         if not user.password:
             user.set_unusable_password()
@@ -121,7 +132,7 @@ class CreateUserView(View):
 
 @require_POST
 @login_required
-@permission_required(['manage_servers'])
+@write_access_required
 def join(req: HttpRequest) -> HttpResponse:
     guild_id = req.POST.get('guild_id')
     if not guild_id:
@@ -135,37 +146,37 @@ def join(req: HttpRequest) -> HttpResponse:
 class CreateServerProfileView(View):
     @staticmethod
     @login_required
-    @permission_required(['manage_servers'])
+    @write_access_required
     def get(req: HttpRequest) -> HttpResponse:
         state = verify_state(req)
         guild_id = req.GET.get('guild_id')
         if state != 'valid' or not guild_id:
             raise SuspiciousOperation('Bad credentials.')
         return render(req, 'web/joined.html', {
-            'form': ServerCreationForm(data={'gid': int(guild_id)}),
+            'form': ServerCreationForm(data={'snowflake': int(guild_id)}),
         })
 
     @staticmethod
     @login_required
-    @permission_required(['manage_servers'])
+    @write_access_required
     def post(req: HttpRequest) -> HttpResponse:
         form = ServerCreationForm(data=req.POST)
         if not form.is_valid():
             return redirect(reverse('web.index'))
         preference = form.save()
-        return redirect(reverse('web.manage.index', kwargs={'guild_id': preference.gid}))
+        return redirect(reverse('web.manage.index', kwargs={'guild_id': preference.snowflake}))
 
 
 class DeleteServerProfileView(View):
     @staticmethod
     @login_required
-    @permission_required(['manage_servers'])
+    @write_access_required
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
         return render(req, 'web/leave.html')
 
     @staticmethod
     @login_required
-    @permission_required(['manage_servers'])
+    @write_access_required
     @async_to_sync
     async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
         guild_id = req.POST.get('guild_id')
@@ -181,7 +192,7 @@ class DeleteServerProfileView(View):
 
         try:
             guild: Guild = await fetch.bot.fetch_guild(guild_id)
-            member: Member = await guild.fetch_member(req.user.discord_id)
+            member: Member = await guild.fetch_member(req.user.snowflake)
         except Forbidden:
             raise SuspiciousOperation('Insufficient permission.')
         if not member:
@@ -192,7 +203,7 @@ class DeleteServerProfileView(View):
         @sync_to_async
         def delete_server():
             try:
-                server: Server = Server.objects.get(gid=guild_id)
+                server: Server = Server.objects.get(snowflake=guild_id)
             except Server.DoesNotExist:
                 return
             server.delete()

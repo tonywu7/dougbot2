@@ -14,20 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-
-def can_manage_server(func):
-    return login_required(permission_required(['manage_servers'])(func))
+from ..models import write_access_required
 
 
-@can_manage_server
+@login_required
+@write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'web/manage/index.html')
 
 
-@can_manage_server
+@login_required
+@write_access_required
 def core(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'web/manage/core.html')

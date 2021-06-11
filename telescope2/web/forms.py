@@ -29,7 +29,7 @@ from .utils.forms import (AsyncModelForm, FormConstants, find_widgets,
 
 class UserCreationForm(forms.Form):
     username = forms.CharField()
-    discord_id = forms.IntegerField()
+    snowflake = forms.IntegerField()
 
     access_token = forms.CharField()
     refresh_token = forms.CharField()
@@ -46,7 +46,7 @@ class UserCreationForm(forms.Form):
 class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
-        fields = ['gid']
+        fields = ['snowflake']
 
 
 class CommandPrefixForm(FormConstants, AsyncModelForm):

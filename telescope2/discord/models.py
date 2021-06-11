@@ -17,12 +17,21 @@
 from __future__ import annotations
 
 from django.db import models
+from django.db.models import CASCADE
 
 from discord import Guild
 
 
+class User(models.Model):
+    snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
+    name: str = models.CharField(max_length=120, verbose_name='username')
+    discriminator: int = models.IntegerField()
+
+    timezone: str = models.CharField(max_length=64, blank=True)
+
+
 class Server(models.Model):
-    gid: int = models.IntegerField(verbose_name='guild id', unique=True)
+    snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
 
     prefix: str = models.CharField(max_length=16, default='t;')
 
@@ -31,4 +40,29 @@ class Server(models.Model):
 
     @classmethod
     def get_server(cls, guild: Guild) -> Server:
-        return cls.objects.get(gid=guild.id)
+        return cls.objects.get(snowflake=guild.id)
+
+
+class Channel(models.Model):
+    snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
+    name: str = models.CharField(max_length=120)
+
+    server: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='channels')
+
+
+class Member(models.Model):
+    snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
+    nickname: str = models.CharField(max_length=64, blank=True)
+
+    server: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='members')
+    user: User = models.ForeignKey(User, on_delete=CASCADE, related_name='memberships')
+
+
+class Role(models.Model):
+    snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
+    name: str = models.CharField(max_length=120)
+    color: int = models.IntegerField()
+
+    server: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='roles')
+
+    timezone: str = models.CharField(max_length=64, blank=True)

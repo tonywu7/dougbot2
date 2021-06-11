@@ -332,8 +332,11 @@ select.custom-select {
     letter-spacing: -0.5px;
 }
 
-.masthead-opt-group .interactive-text {
-    font-weight: 600;
+.main-sidebar,
+.masthead-opt-group {
+    .nav-control {
+        font-weight: 600;
+    }
 }
 
 .btn {
@@ -505,6 +508,12 @@ input.form-control {
 label.input-changed {
     font-weight: 600;
     color: $yellow-300;
+}
+
+.toast {
+    @media screen and (max-width: 768px) {
+        background-color: $gray-200;
+    }
 }
 
 .toast-header {
