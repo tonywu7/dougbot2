@@ -14,9 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
+from typing import Dict, Optional
+
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
+
+from telescope2.discord.fetch import PartialGuild
+from telescope2.discord.models import Server
+
+from .forms import PreferenceForms
 
 
 def user_info(req: HttpRequest):
@@ -43,3 +51,39 @@ def site_info(req: HttpRequest):
     return {
         'current_domain': site.domain,
     }
+
+
+@dataclass
+class DiscordContext:
+    access_token: str
+
+    user_id: int
+    username: str
+
+    available_servers: Dict[int, PartialGuild]
+    joined_servers: Dict[int, PartialGuild]
+
+    server_id: Optional[int] = None
+
+    prefs: Optional[Server] = None
+
+    forms: PreferenceForms = None
+
+    def __post_init__(self):
+        try:
+            self.server_id = int(self.server_id)
+        except (TypeError, ValueError):
+            self.server_id = None
+        self.forms = PreferenceForms(self)
+
+    @property
+    def servers(self) -> Dict[int, PartialGuild]:
+        return {**self.available_servers, **self.joined_servers}
+
+    @property
+    def server_joined(self) -> bool:
+        return self.current.id in self.joined_servers
+
+    @property
+    def current(self) -> Optional[PartialGuild]:
+        return self.servers.get(self.server_id)

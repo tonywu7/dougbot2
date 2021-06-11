@@ -1,14 +1,22 @@
 {% extends 'web/manage/base.html' %}
-{% load inspect element %}
+{% load inspect element async_form %}
 
 {% block main_title %}Core settings{% endblock %}
 
 {% block sections %}
 
+{% section id='global' title='global settings' %}
+
+{% asyncform discord.forms.prefix id='global-settings' %}
+<ul>{{ discord.forms.prefix.as_ul }}</ul>
+{% csrf_token %}
+{% asyncsubmit 'Save settings' 'primary' 'mt-3 mb-1 w-100' %}
+{% endform %}
+
+{% endsection %}
+
 {% section id='server-access' title='access' %}
-{% if discord.bot_in_server %}
-<a href="{% url 'web.leave' guild_id=discord.server.id %}" class="btn btn-outline-danger">leave server</a>
-{% endif %}
+<a href="{% url 'web.leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave server</a>
 {% endsection %}
 
 {% endblock %}

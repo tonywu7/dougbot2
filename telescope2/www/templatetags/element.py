@@ -20,9 +20,10 @@ from django.template import Context, Library, Node, NodeList, Variable
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import register_autotag
+from telescope2.utils.templates import optional_attr, register_autotag, unwrap
 
 register = Library()
+
 
 
 @register_autotag(register, 'set', 'endset')
@@ -46,26 +47,21 @@ class SectionNode(Node):
         self.title = title
         self.classes = classes
 
-    def unwrap(self, context: Context, maybe_var):
-        if isinstance(maybe_var, Variable):
-            return maybe_var.resolve(context)
-        return maybe_var
-
     def render(self, context: Context) -> str:
         content = self.nodelist.render(context)
-        section_id = self.unwrap(context, self.id)
-        title = self.unwrap(context, self.title)
-        classes = self.unwrap(context, self.classes)
+        title = unwrap(context, self.title)
+        section_id = optional_attr('id', unwrap(context, self.id))
+        classes = optional_attr('class', unwrap(context, self.classes))
         return mark_safe(
-            f'<section id="{section_id}" class="{classes}">'
+            f'<section {section_id} {classes}>'
             f'<header><h3>{mark_safe(title)}</h3></header>'
-            f'<div class="interactive-text">{content}</div></section>',
+            f'<div class="interactive-text section-content">{content}</div></section>',
         )
 
 
 @register.simple_tag(takes_context=True)
 def sidebarlink(context, icon, view, name):
-    gid = context['discord'].server.id
+    gid = context['discord'].current.id
     url = reverse(view, kwargs={'guild_id': gid})
     if view == context['request'].resolver_match.view_name:
         classes = ' class="sidebar-active"'

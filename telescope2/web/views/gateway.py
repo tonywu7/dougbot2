@@ -33,7 +33,7 @@ from telescope2.discord.models import Server
 from telescope2.utils.http import HTTPNoContent
 from telescope2.utils.jwt import validate_token
 
-from ..forms import ServerCreateForm, UserCreateForm
+from ..forms import ServerCreationForm, UserCreationForm
 from ..models import User
 
 
@@ -83,7 +83,7 @@ class CreateUserView(View):
         if tokens is None:
             return render(req, 'web/invalid-login.html', {'login_state': 'incorrect_credentials'})
 
-        return render(req, 'web/postlogin.html', {'form': UserCreateForm(data=tokens)})
+        return render(req, 'web/postlogin.html', {'form': UserCreationForm(data=tokens)})
 
     def post(self, req: HttpRequest) -> HttpResponse:
         invalid_data = redirect(reverse('web.login_invalid', kwargs={'reason': 'invalid_payload'}))
@@ -93,7 +93,7 @@ class CreateUserView(View):
         except json.JSONDecodeError:
             return invalid_data
 
-        form = UserCreateForm(data=user_info)
+        form = UserCreationForm(data=user_info)
         if not form.is_valid():
             return invalid_data
 
@@ -142,14 +142,14 @@ class CreateServerProfileView(View):
         if state != 'valid' or not guild_id:
             raise SuspiciousOperation('Bad credentials.')
         return render(req, 'web/joined.html', {
-            'form': ServerCreateForm(data={'gid': int(guild_id)}),
+            'form': ServerCreationForm(data={'gid': int(guild_id)}),
         })
 
     @staticmethod
     @login_required
     @permission_required(['manage_servers'])
     def post(req: HttpRequest) -> HttpResponse:
-        form = ServerCreateForm(data=req.POST)
+        form = ServerCreationForm(data=req.POST)
         if not form.is_valid():
             return redirect(reverse('web.index'))
         preference = form.save()

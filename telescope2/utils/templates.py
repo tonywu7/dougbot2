@@ -16,19 +16,21 @@
 
 from __future__ import annotations
 
+import itertools
 import re
 from inspect import Parameter, signature
 from operator import itemgetter
-from typing import Callable, Optional, Tuple, TypeVar
+from typing import Any, Callable, Optional, Tuple, TypeVar
 
 from django import template
 from django.template.base import Node, Parser, Token
+from django.utils.html import escape
 
 N = TypeVar('N', bound=Node)
 NodeFactory = Callable[..., N]
 
 # Match valid alphanumeric python identifiers
-IDENTIFIER = r'[A-Za-z_][A-Za-z0-9]*'
+IDENTIFIER = r'(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*'
 
 # Match int and float
 NUMBERS = r'-?[0-9]*.?[0-9]+'
@@ -172,3 +174,23 @@ def register_autotag(library: template.Library, start: str, end: Optional[str] =
             return func(*args, **kwargs)
         return func
     return wrap
+
+
+def domtokenlist(*tokens: str):
+    return ' '.join(itertools.chain.from_iterable(t.split(' ') for t in filter(None, tokens) if t))
+
+
+def domtokenstr(tokens: str):
+    return ' '.join([t for t in tokens.split(' ') if t])
+
+
+def unwrap(context: template.Context, maybe_var):
+    if isinstance(maybe_var, template.Variable):
+        return maybe_var.resolve(context)
+    return maybe_var
+
+
+def optional_attr(attr: str, value: Optional[Any]):
+    if value:
+        return f'{attr}="{escape(value)}"'
+    return ''

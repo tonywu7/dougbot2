@@ -1,4 +1,5 @@
 @use "utility";
+@use 'sass:color';
 
 @import "typefaces";
 @import "colors";
@@ -386,6 +387,7 @@ select.custom-select {
 
 .section-container {
     section header {
+        margin: 0 0 1rem;
         user-select: none;
     }
 }
@@ -480,6 +482,8 @@ input.form-control {
         background-color: #00000000;
         color: inherit;
 
+        padding: 0.5rem 0 0.5rem;
+
         border-radius: 0;
         border: none;
         border-bottom: 2px solid $bw-grey-13;
@@ -495,5 +499,62 @@ input.form-control {
             font-weight: 500;
             font-family: $ui-fonts;
         }
+    }
+}
+
+label.input-changed {
+    font-weight: 600;
+    color: $yellow-300;
+}
+
+.toast-header {
+    font-size: 1rem;
+}
+
+.toast-body {
+    padding: 0.5rem 0.75rem;
+}
+
+.form {
+    padding: 0.75rem;
+    border-radius: 6pt;
+    border: 1px solid color.scale($color-text, $alpha: -75%);
+
+    display: flex;
+    flex-flow: column nowrap;
+
+    ul {
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        display: block;
+
+        margin-top: 6pt;
+        margin-bottom: 6pt;
+
+        &:first-child {
+            margin-top: 0;
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+    }
+}
+
+#global-settings {
+    input[id="id_prefix"] {
+        font-family: $monospace-fonts;
+        font-weight: 700;
+        font-size: 1.2rem;
     }
 }

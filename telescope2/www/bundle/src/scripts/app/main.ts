@@ -15,9 +15,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordClient } from './discord'
+import { TemplateRenderer } from './responsive'
+import { AsyncForm } from './api'
+
 import * as util from '../common/util'
 
-var discord: DiscordClient
+export var discord: DiscordClient
+export var renderer: TemplateRenderer
 
 function homepage(): string {
     return (document.querySelector('#site-name a') as HTMLAnchorElement).href
@@ -122,6 +126,14 @@ function initTopMenu() {
     menu.addEventListener('click', listener)
 }
 
+function initAsyncForms() {
+    document.querySelectorAll('.async-form').forEach((form) => new AsyncForm(form as HTMLFormElement))
+}
+
+function initTemplates() {
+    renderer = new TemplateRenderer(document.querySelector('#template-container') as HTMLElement)
+}
+
 export function createAvatarElement(src: string): HTMLElement {
     let img = document.createElement('img')
     img.classList.add('rounded-circle')
@@ -132,6 +144,8 @@ export function createAvatarElement(src: string): HTMLElement {
 
 export function init() {
     initTopMenu()
+    initAsyncForms()
+    initTemplates()
     discordOAuth2()
         .then(() => {
             return initDiscord()

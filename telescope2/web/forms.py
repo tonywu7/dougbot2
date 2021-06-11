@@ -14,14 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+import re
 from operator import itemgetter
 
 from django import forms
 
 from telescope2.discord.models import Server
 
+from .utils.forms import (AsyncModelForm, FormConstants, find_widgets,
+                          gen_labels)
 
-class UserCreateForm(forms.Form):
+
+class UserCreationForm(forms.Form):
     username = forms.CharField()
     discord_id = forms.IntegerField()
 
@@ -37,7 +43,38 @@ class UserCreateForm(forms.Form):
         return self.itemgetter(self.cleaned_data)
 
 
-class ServerCreateForm(forms.ModelForm):
+class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
         fields = ['gid']
+
+
+class CommandPrefixForm(FormConstants, AsyncModelForm):
+    FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
+
+    class Meta:
+        model = Server
+        fields = ['prefix']
+        labels = gen_labels(Server)
+        widgets = {**find_widgets(Server)}
+
+    def clean_prefix(self):
+        data = self.cleaned_data['prefix']
+        if self.FORBIDDEN_PREFIXES.match(data):
+            raise forms.ValidationError(
+                '* _ | ~ ` > are markdown characters. '
+                '%(prefix)s as a prefix will cause messages with markdowns '
+                'to trigger bot commands.',
+                params={'prefix': data},
+                code='forbidden_chars',
+            )
+        return data
+
+
+class PreferenceForms:
+    def __init__(self, context):
+        from .contexts import DiscordContext
+        self.context: DiscordContext = context
+
+    def prefix(self):
+        return CommandPrefixForm(instance=self.context.prefs)

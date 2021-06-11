@@ -46,12 +46,17 @@
 .fixed-overlay {
     position: fixed;
     top: var(--masthead-height);
-    left: 0;
-    width: 0;
+    right: 0;
     bottom: 0;
     overflow-x: visible;
     overflow-y: visible;
     z-index: 5000;
+
+    padding: 1.5rem var(--masthead-space-horizontal) 0 0;
+
+    @media screen and (max-width: 1024px) {
+        padding: 1rem var(--masthead-space-horizontal);
+    }
 }
 
 .footer-container {
@@ -130,7 +135,7 @@
 .section-container {
     display: grid;
 
-    row-gap: 1.6rem;
+    row-gap: 2rem;
     column-gap: 1.6rem;
 
     section {

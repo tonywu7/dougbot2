@@ -14,8 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth import logout
@@ -28,6 +27,7 @@ from telescope2.discord.fetch import (DiscordFetch, DiscordUnauthorized,
                                       PartialGuild)
 from telescope2.discord.models import Server
 
+from .contexts import DiscordContext
 from .models import User
 
 
@@ -79,39 +79,6 @@ async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
     return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
 
 
-@dataclass
-class DiscordContext:
-    access_token: str
-
-    user_id: int
-    username: str
-
-    available: Dict[int, PartialGuild]
-    joined: Dict[int, PartialGuild]
-
-    server_id: Optional[int] = None
-
-    prefs: Optional[Server] = None
-
-    def __post_init__(self):
-        try:
-            self.server_id = int(self.server_id)
-        except (TypeError, ValueError):
-            self.server_id = None
-
-    @property
-    def servers(self) -> Dict[int, PartialGuild]:
-        return {**self.available, **self.joined}
-
-    @property
-    def bot_in_server(self) -> bool:
-        return self.server.id in self.joined
-
-    @property
-    def server(self) -> Optional[PartialGuild]:
-        return self.servers.get(self.server_id)
-
-
 class DiscordContextMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -139,7 +106,7 @@ class DiscordContextMiddleware:
             token, request.user.discord_id, request.user.username,
             available, joined, server_id=guild_id,
         )
-        if context.server_id and context.server is None:
+        if context.server_id and context.current is None:
             return redirect(reverse('web.index'))
 
         @sync_to_async
@@ -147,7 +114,7 @@ class DiscordContextMiddleware:
             if context.server_id is None:
                 return None
             try:
-                return Server.objects.get(gid=context.server.id)
+                return Server.objects.get(gid=context.current.id)
             except Server.DoesNotExist:
                 return None
 

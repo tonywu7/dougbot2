@@ -1,3 +1,3 @@
-from . import gateway, manage
+from . import gateway, manage, mutation
 
-__all__ = ['gateway', 'manage']
+__all__ = ['gateway', 'manage', 'mutation']

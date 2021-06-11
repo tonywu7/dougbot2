@@ -22,16 +22,21 @@ window.addEventListener('DOMContentLoaded', () => {
     requirejs.config({
         baseUrl: `${staticServer}/static/bundle/scripts/app`,
         paths: {
+            bootstrap: 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min',
             lodash: 'https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min',
+            mustache: 'https://cdn.jsdelivr.net/npm/mustache@4.2.0/mustache.min',
         },
-        deps: ['lodash'],
+        deps: ['bootstrap', 'lodash', 'mustache'],
         onNodeCreated: (node, config, module, path) => {
             const SRI = {
+                bootstrap: 'sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4',
                 lodash: 'sha256-ur/YlHMU96MxHEsy3fHGszZHas7NzH4RQlD4tDVvFhw=',
+                mustache: 'sha256-1/0GA1EkYejtvYFoa+rSq4LfM4m5zKI13Z1bQIhI4Co=',
             }
             if (SRI[module]) {
                 node.setAttribute('integrity', SRI[module])
                 node.setAttribute('crossorigin', 'anonymous')
+                node.setAttribute('referrerpolicy', 'no-referrer')
             }
         },
     })

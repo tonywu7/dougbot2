@@ -25,4 +25,7 @@ urlpatterns = [
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/index$', views.manage.index, name='web.manage.index'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='web.manage.core'),
+
+    re_path(r'^api/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
+            views.mutation.async_form_save, name='web.api.mutation'),
 ]

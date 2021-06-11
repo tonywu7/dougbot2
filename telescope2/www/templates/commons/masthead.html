@@ -13,9 +13,9 @@
         <span class="interactive-text align-middle">
             {% if user_authenticated %}
             <span class="identity-control">
-                {% if discord.server %}
+                {% if discord.current %}
                 <figure class="profile-picture guild-profile">
-                    <img src="{{ discord.server.icon_url }}" class="rounded-circle" alt="icon for server {{ discord.server.name }}">
+                    <img src="{{ discord.current.icon_url }}" class="rounded-circle" alt="icon for server {{ discord.current.name }}">
                 </figure>
                 {% endif %}
                 <figure class="profile-picture user-profile">

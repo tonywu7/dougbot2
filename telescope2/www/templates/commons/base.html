@@ -12,7 +12,7 @@
 
     {% block meta_security %}
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com">
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com data:">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     {% endblock %}
 
@@ -36,12 +36,12 @@
     {% endblock %}
 
     {% block scripts %}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
-        crossorigin="anonymous"></script>
     <script src="{% static '/bundle/scripts/app/preamble.js' %}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
-        integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
-    <script src="{% static '/bundle/scripts/app/index.js' %}" id="script-entry" data-server="{% staticserver %}"></script>
+        integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg=="
+        crossorigin="anonymous"></script>
+    <script src="{% static '/bundle/scripts/app/index.js' %}" id="script-entry" data-server="{% staticserver %}">
+    </script>
     {% endblock %}
 </head>
 
@@ -63,7 +63,11 @@
     <section class="footer-container">
         {% include 'commons/footer.html' %}
     </section>
-    <div class="fixed-overlay"></div>
+    <div id="template-container">
+        {% include 'commons/templates.html' %}
+    </div>
+    <div id="toast-container" class="fixed-overlay toast-container" aria-live="polite" aria-atomic="true">
+    </div>
 </body>
 
 </html>

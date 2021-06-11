@@ -7,12 +7,12 @@
 
 {% block sections %}
 
-{% if not discord.bot_in_server %}
+{% if not discord.server_joined %}
 {% section id='server-access' title='access' %}
 <form action="{% url 'web.join' %}" method="POST">
-    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server.id }}">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.current.id }}">
     {% csrf_token %}
-    <button class="btn btn-info" type="submit">join server</button>
+    <button class="btn btn-info" type="submit">Join server</button>
 </form>
 {% endsection %}
 {% endif %}
@@ -22,7 +22,7 @@
 
 {% section id='general' title='general' %}
 <div class="key-value-pair kvp-justify">
-    <span>server name</span><span class="text-info">{{ discord.server.name }}</span>
+    <span>server name</span><span class="text-info">{{ discord.current.name }}</span>
     <span>server id</span><span class="text-info"><code>{{ server.gid }}</code></span>
 </div>
 {% endsection %}
