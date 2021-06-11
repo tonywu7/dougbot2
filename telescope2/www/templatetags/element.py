@@ -62,18 +62,27 @@ class SectionNode(Node):
         )
 
 
-@register.simple_tag(takes_context=True)
-def sidebarlink(context: Context, view, name, icon):
-    snowflake = context['discord'].current.id
-    mark_active: Optional[Callable] = context.get('mark_active')
-    url = reverse(view, kwargs={'guild_id': snowflake})
-    if view == context['request'].resolver_match.view_name:
-        classes = ' class="sidebar-active"'
-        if mark_active:
-            mark_active(url)
-    else:
-        classes = ''
-    return mark_safe(f'<span{classes}><i class="bi bi-{icon}"></i><a href="{url}">{name}</a></span>')
+@create_tag_parser(register, 'sidebarlink')
+@dataclass
+class SidebarLinkNode(Node):
+    view: Variable
+    name: Variable
+    icon: Variable
+
+    def render(self, context: Context) -> str:
+        snowflake = context['discord'].current.id
+        mark_active: Optional[Callable] = context.get('mark_active')
+        view = unwrap(context, self.view)
+        icon = unwrap(context, self.icon)
+        name = unwrap(context, self.name)
+        url = reverse(view, kwargs={'guild_id': snowflake})
+        if view == context['request'].resolver_match.view_name:
+            classes = ' class="sidebar-active"'
+            if mark_active:
+                mark_active(url)
+        else:
+            classes = ''
+        return mark_safe(f'<li><span{classes}>{icon}</i><a href="{url}">{name}</a></span></li>')
 
 
 @create_tag_parser(register, 'chapter', 'endchapter')
@@ -112,7 +121,7 @@ class SidebarSectionNode(Node):
         return mark_safe(
             '<div class="accordion-item">'
             f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse" data-bs-target="#{body_id}">'
-            f'        <i class="bi bi-{icon}"></i><span>{name}</span></h2>'
+            f'        {icon}<span>{name}</span></h2>'
             f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#{parent_id}">'
             f'        <div class="accordion-body"><ul>{content}</ul>'
             '</div></div></div>',

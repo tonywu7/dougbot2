@@ -17,7 +17,6 @@
 from functools import partial
 from typing import Callable, Optional
 
-from django.urls import reverse
 from django.urls.resolvers import RegexPattern, RoutePattern, URLPattern
 
 
@@ -29,9 +28,6 @@ class AnnotatedPattern:
         self.title = title
         self.color = color
         self.icon = icon
-
-    def reverse(self, **kwargs) -> str:
-        return reverse(self.name, kwargs=kwargs)
 
 
 class AnnotatedRoutePattern(AnnotatedPattern, RoutePattern):

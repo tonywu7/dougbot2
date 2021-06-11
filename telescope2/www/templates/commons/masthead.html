@@ -15,10 +15,13 @@
             <span class="identity-control">
                 {% if discord.current %}
                 <figure class="profile-picture guild-profile">
-                    <img src="{{ discord.current.icon_url }}" class="rounded-circle" alt="icon for server {{ discord.current.name }}">
+                    <img src="{{ discord.current.icon_url }}" class="rounded-circle"
+                        alt="icon for server {{ discord.current.name }}">
                 </figure>
                 {% endif %}
                 <figure class="profile-picture user-profile">
+                    <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
+                        alt="icon for user {{ discord.username }}">
                 </figure>
             </span>
             {% endif %}

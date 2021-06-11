@@ -18,6 +18,7 @@ from typing import Iterable, List
 
 from django.apps import AppConfig
 from django.urls.resolvers import URLPattern
+from django.utils.functional import classproperty
 from django.utils.module_loading import import_string
 from django.utils.safestring import SafeString
 
@@ -25,9 +26,15 @@ from telescope2.web.utils.urls import AnnotatedPattern
 
 
 class CommandAppConfig(AppConfig):
+    @classproperty
+    def title(cls) -> str:
+        raise NotImplementedError
+
+    @classproperty
+    def icon(cls) -> SafeString:
+        raise NotImplementedError
+
     label: str
-    display_name: str
-    icon: SafeString
 
     def public_views(cls) -> List[AnnotatedPattern]:
         routes: Iterable[URLPattern] = import_string(f'{cls.name}.urls.public_views')

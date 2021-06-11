@@ -109,6 +109,7 @@ class DiscordRateLimiter:
 class DiscordCache:
     ENDPOINT_TTL = {
         ('GET', api_endpoint('/users/@me/guilds')): 60 * 5,
+        ('GET', api_endpoint('/users/@me')): 60 * 5,
     }
 
     def __init__(self, user_id: int):
