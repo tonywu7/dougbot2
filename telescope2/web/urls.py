@@ -10,6 +10,12 @@ class IndexRedirectView(RedirectView):
     pattern_name = 'web:index'
 
 
+class ManageRedirectView(RedirectView):
+    permanent = False
+    query_string = True
+    pattern_name = 'web:manage.index'
+
+
 app_name = 'web'
 
 urlpatterns = [
@@ -32,4 +38,5 @@ urlpatterns = [
             views.mutation.async_form_save, name='api.mutation'),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('telescope2.discord.urls')),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
 ]
