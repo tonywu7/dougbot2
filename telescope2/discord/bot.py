@@ -65,7 +65,6 @@ class Telescope(Bot):
         self._register_events()
         self._register_commands()
         self._init_ipc()
-        self._refresh()
 
     def _init_ipc(self):
         thread = ipc.CachePollingThread('discord')
@@ -75,6 +74,7 @@ class Telescope(Bot):
     def _register_events(self):
         @self.event
         async def on_ready():
+            await self._refresh()
             self.log.info('Bot ready')
             self.log.info(f'User {self.user}')
 

@@ -15,8 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
@@ -24,6 +25,7 @@ from django.http import HttpRequest
 from telescope2.discord.fetch import PartialGuild, PartialUser
 from telescope2.discord.models import Server
 
+from .config import CommandAppConfig, Extensions
 from .forms import PreferenceForms
 
 
@@ -89,3 +91,11 @@ class DiscordContext:
     @property
     def current(self) -> Optional[PartialGuild]:
         return self.servers.get(self.server_id)
+
+    @property
+    def extension_state(self) -> Dict[str, Tuple[bool, CommandAppConfig]]:
+        extensions: Extensions = apps.get_app_config('discord').extensions
+        if not self.prefs:
+            return {label: (False, conf) for label, conf in extensions.items()}
+        enabled = self.prefs.extensions
+        return {label: (label in enabled, conf) for label, conf in extensions.items()}

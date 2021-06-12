@@ -16,10 +16,15 @@
 
 from __future__ import annotations
 
+from typing import Dict, Iterable
+
 import inflect
+from django.apps import apps
 from django.db import models
 from django.db.models import CASCADE
 from polymorphic.models import PolymorphicModel
+
+from telescope2.web.config import CommandAppConfig
 
 inflection = inflect.engine()
 
@@ -68,6 +73,18 @@ class User(Entity):
 
 class Server(Entity):
     prefix: str = models.CharField(max_length=16, default='t;')
+    _extensions: str = models.TextField(blank=True)
+
+    @property
+    def extensions(self) -> Dict[str, CommandAppConfig]:
+        if not self._extensions:
+            return {}
+        exts = self._extensions.split(',')
+        return {label: apps.get_app_config(label) for label in exts}
+
+    @extensions.setter
+    def extensions(self, configs: Iterable[CommandAppConfig]):
+        self._extensions = ','.join([conf.label for conf in configs])
 
 
 class Channel(Entity):

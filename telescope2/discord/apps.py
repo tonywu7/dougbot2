@@ -4,7 +4,7 @@ from django.apps import AppConfig, apps
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
 
-from telescope2.web.utils.config import CommandAppConfig
+from telescope2.web.config import CommandAppConfig
 from telescope2.web.utils.urls import AnnotatedPattern
 
 
@@ -27,3 +27,7 @@ class DiscordBotConfig(AppConfig):
             if isinstance(v, CommandAppConfig):
                 self.ext_map[k] = v
                 self.url_map[k] = v.public_views()
+
+    @property
+    def extensions(self) -> Dict[str, CommandAppConfig]:
+        return {**self.ext_map}
