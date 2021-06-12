@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-const MODULES = ['./main']
+const MODULES = ['./main', './apps/core']
 
 window.addEventListener('DOMContentLoaded', () => {
     let mainScript = document.getElementById('script-entry')

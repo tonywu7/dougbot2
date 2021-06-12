@@ -19,8 +19,6 @@ from __future__ import annotations
 from django.db import models
 from django.db.models import CASCADE
 
-from discord import Guild
-
 
 class User(models.Model):
     snowflake: int = models.IntegerField(verbose_name='id', primary_key=True, db_index=True)
@@ -37,10 +35,6 @@ class Server(models.Model):
 
     class Meta:
         verbose_name = 'guild preference'
-
-    @classmethod
-    def get_server(cls, guild: Guild) -> Server:
-        return cls.objects.get(snowflake=guild.id)
 
 
 class Channel(models.Model):

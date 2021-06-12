@@ -10,6 +10,7 @@
 {% asyncform discord.forms.prefix id='global-settings' %}
 <ul>{{ discord.forms.prefix.as_ul }}</ul>
 {% csrf_token %}
+<p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
 {% asyncsubmit 'Save' 'primary' 'mt-3 mb-1 w-100' %}
 {% endform %}
 

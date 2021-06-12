@@ -1,8 +1,8 @@
 @use "utility";
 @use 'sass:color';
 
-@import "typefaces";
-@import "colors";
+@import 'typefaces';
+@import 'colors';
 
 :root {
     --accent: #{$blue-400};
@@ -480,8 +480,8 @@ h1 .http-status code {
 }
 
 input.form-control {
-    &[type="text"],
-    &[type="number"] {
+    &[type='text'],
+    &[type='number'] {
         background-color: #00000000;
         color: inherit;
 
@@ -532,6 +532,12 @@ label.input-changed {
     display: flex;
     flex-flow: column nowrap;
 
+    p {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
     ul {
         padding: 0;
         margin: 0;
@@ -561,7 +567,7 @@ label.input-changed {
 }
 
 #global-settings {
-    input[id="id_prefix"] {
+    input[id='id_prefix'] {
         font-family: $monospace-fonts;
         font-weight: 700;
         font-size: 1.2rem;

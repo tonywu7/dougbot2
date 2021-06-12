@@ -24,11 +24,11 @@ from pathlib import Path
 from typing import Dict, Type
 
 from asgiref.sync import sync_to_async
+from discord import Client, Message, Permissions
+from discord.ext.commands import Bot
 from django.conf import settings
 from django.core.cache import caches
 
-from discord import Client, Message, Permissions
-from discord.ext.commands import Bot
 from telescope2.utils.importutil import iter_module_tree
 
 from . import ipc

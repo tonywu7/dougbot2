@@ -26,13 +26,13 @@ from urllib.parse import urlencode, urlunsplit
 
 import aiohttp
 from aiohttp import ClientSession
+from discord import Permissions
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.urls import reverse
 
-from discord import Permissions
 from telescope2.utils.datetime import utcnow, utctimestamp
 from telescope2.utils.jwt import gen_token
 

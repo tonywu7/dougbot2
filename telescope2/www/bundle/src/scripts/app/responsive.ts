@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import * as bootstrap from 'bootstrap'
-import * as utils from '../common/util'
 import * as Mustache from 'mustache'
 
 export class ResponsiveForm {
