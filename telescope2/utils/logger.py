@@ -232,7 +232,7 @@ logging_config_template = {
 
 
 def make_logging_config(
-    app_name, *overrides, level=logging.INFO,
+    app_name, *overrides, level=logging.DEBUG,
     style='colored', logfile=None, **kwargs,
 ):
     if style in formatter_styles:
@@ -253,6 +253,36 @@ def make_logging_config(
         'loggers': {
             f'{app_name}': {
                 'level': logging.NOTSET,
+            },
+            'asyncio': {
+                'level': logging.INFO,
+            },
+            'django.utils': {
+                'level': logging.INFO,
+            },
+            'discord.client': {
+                'level': logging.INFO,
+            },
+            'discord.fetch': {
+                'level': logging.INFO,
+            },
+            'discord.gateway': {
+                'level': logging.INFO,
+            },
+            'discord.http': {
+                'level': logging.INFO,
+            },
+            'django.db.backends': {
+                'level': logging.INFO,
+            },
+            'django.channels.server': {
+                'level': logging.INFO,
+            },
+            'django.request': {
+                'level': logging.INFO,
+            },
+            'daphne.http_protocol': {
+                'level': logging.INFO,
             },
         },
         'root': {

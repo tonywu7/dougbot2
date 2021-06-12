@@ -28,7 +28,10 @@ from django.conf import settings
 
 from discord import Client, Message, Permissions
 from discord.ext.commands import Bot
+from telescope2.utils.functional import acached, evict
 from telescope2.utils.importutil import iter_module_tree
+
+from .models import Server
 
 
 class BotRunner(threading.Thread):
@@ -79,20 +82,23 @@ class Telescope(Bot):
                 self.log.info(f'Loaded commands from {module_path}')
 
     @classmethod
-    @sync_to_async
-    def which_prefix(cls, bot: Bot, msg: Message):
-        from .models import Server
-
-        user_id = bot.user.id
-        prefixes = [f'<@{user_id}> ']
-        if msg.guild is None:
-            prefixes.append(cls.DEFAULT_PREFIX)
-            return prefixes
-
+    @acached('discord', ttl=None)
+    async def _get_prefix(cls, *, bot_id: int, guild_id: int):
+        @sync_to_async
+        def get():
+            return Server.objects.get(pk=guild_id).prefix
         try:
-            prefs = Server.get_server(msg.guild)
+            return [await get(), f'<@{bot_id}> ']
         except Server.DoesNotExist:
-            prefixes.append(cls.DEFAULT_PREFIX)
-        else:
-            prefixes.append(prefs.prefix)
-        return reversed(prefixes)
+            return [cls.DEFAULT_PREFIX, f'<@{bot_id}> ']
+
+    @classmethod
+    async def which_prefix(cls, bot: Bot, msg: Message):
+        bot_id = bot.user.id
+        if msg.guild is None:
+            return [cls.DEFAULT_PREFIX, f'<@{bot_id}> ']
+        return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
+
+    @classmethod
+    def invalidate_prefix(cls, bot_id: int, guild_id: int):
+        evict('discord', cls._get_prefix, bot_id=bot_id, guild_id=guild_id)

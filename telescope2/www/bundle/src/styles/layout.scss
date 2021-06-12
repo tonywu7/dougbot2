@@ -1,4 +1,4 @@
-@import "./colors";
+@import './colors';
 
 :root {
     --masthead-height: 3.6rem;
@@ -79,7 +79,7 @@
 
     display: grid;
     grid-template-columns: var(--sidebar-width) auto;
-    column-gap: 1.3rem;
+    column-gap: 2.4rem;
 
     @media screen and (max-width: 1024px) {
         margin: 0 var(--masthead-space-horizontal) 4rem;

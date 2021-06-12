@@ -226,9 +226,9 @@ class DiscordFetch:
 
             async with self._throttle_route((method, url)):
 
-                self.log.info(f'{method} {url}')
+                self.log.debug(f'{method} {url}')
                 async with self._session.request(method, url, **options) as res:
-                    self.log.info(f'Received {url}')
+                    self.log.debug(f'Received {url}')
 
                     if res.status == 401:
                         raise DiscordUnauthorized()

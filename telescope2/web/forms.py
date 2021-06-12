@@ -20,7 +20,9 @@ import re
 from operator import itemgetter
 
 from django import forms
+from django.conf import settings
 
+from telescope2.discord.bot import Telescope
 from telescope2.discord.models import Server
 
 from .utils.forms import (AsyncModelForm, FormConstants, find_widgets,
@@ -69,6 +71,10 @@ class CommandPrefixForm(FormConstants, AsyncModelForm):
                 code='forbidden_chars',
             )
         return data
+
+    def save(self, commit: bool = True):
+        Telescope.invalidate_prefix(int(settings.DISCORD_CLIENT_ID), int(self.instance.pk))
+        return super().save(commit=commit)
 
 
 class PreferenceForms:
