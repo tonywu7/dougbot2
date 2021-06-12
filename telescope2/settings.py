@@ -28,6 +28,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Application definition
 
 INSTALLED_APPS = [
+    'polymorphic',
     'channels',
     'admin2017',
     'telescope2.discord.apps.DiscordBotConfig',

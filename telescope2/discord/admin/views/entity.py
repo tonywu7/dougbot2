@@ -1,4 +1,4 @@
-# models.py
+# entity.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.db import models
-from django.db.models import CASCADE
+from polymorphic.admin import (PolymorphicChildModelFilter,
+                               PolymorphicParentModelAdmin)
+
+from admin2017.models import AdminController
+from admin2017.utils.inspect import polymorphic_subclasses
 
 from ...models import Entity
 
 
-class Timezone(models.Model):
-    tz: str = models.CharField(max_length=128)
-    entity: Entity = models.ForeignKey(Entity, on_delete=CASCADE, related_name='+')
+class EntityRootAdmin(AdminController, PolymorphicParentModelAdmin):
+    base_model = Entity
+    child_models = tuple(polymorphic_subclasses(Entity))
+    list_filter = [PolymorphicChildModelFilter]
