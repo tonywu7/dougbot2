@@ -14,17 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+from typing import Dict
+
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from ..config import CommandAppConfig
+from ..contexts import DiscordContext
 from ..models import write_access_required
+
+Extensions = Dict[str, CommandAppConfig]
 
 
 @login_required
 @write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'web/manage/index.html')
+    ctx: DiscordContext = req.discord
+    if not ctx.prefs:
+        return render(req, 'web/manage/core.html')
+    extensions = ctx.extension_state
+    return render(req, 'web/manage/index.html', context={
+        'extensions': extensions,
+    })
 
 
 @login_required

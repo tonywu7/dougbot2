@@ -1,5 +1,5 @@
 {% extends 'web/manage/base.html' %}
-{% load inspect element %}
+{% load inspect element builtins %}
 
 {% block main_title %}
 <span class="bot-name">{{ branding_full }}</span>
@@ -34,6 +34,16 @@
 {% endsection %}
 
 {% section id='modules' title='modules' %}
+<div class="key-value-pair kvp-justify interactive-text">
+    {% for ext_label, ext_state in extensions.items %}
+    {% with ext_name=ext_state|item:1|attr:'title' ext_state=ext_state|item:0 %}
+    <span>{{ ext_name }}</span><span
+        class="{{ ext_state|yesno:'text-on,text-off' }}"><b>{{ ext_state|yesno:'Enabled,Disabled' }}</b></span>
+    {% endwith %}
+    {% empty %}
+    <span>(No extensions found. Hmmmm...)</span>
+    {% endfor %}
+</div>
 {% endsection %}
 
 {% endwith %}
