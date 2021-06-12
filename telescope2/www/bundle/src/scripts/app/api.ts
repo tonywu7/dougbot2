@@ -55,14 +55,21 @@ export class AsyncForm extends ResponsiveForm {
         if (!this.checkValid()) return
 
         let formdata = new FormData(this.form)
-        let res = await fetch(this.endpoint, {
-            method: 'POST',
-            mode: 'same-origin',
-            body: formdata,
-            headers: {
-                'X-CSRFToken': this.csrf,
-            },
-        })
+        let res: Response
+        try {
+            res = await fetch(this.endpoint, {
+                method: 'POST',
+                mode: 'same-origin',
+                body: formdata,
+                headers: {
+                    'X-CSRFToken': this.csrf,
+                },
+            })
+        } catch (e) {
+            let notif = renderer.render('async-form-update-error', { error: 'Cannot connect to server' })
+            displayNotification(notif, { autohide: false, delay: 20 })
+            return
+        }
 
         if (res.status === 204) {
             this.updateDefaults()
