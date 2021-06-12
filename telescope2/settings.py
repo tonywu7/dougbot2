@@ -194,7 +194,7 @@ CACHEOPS = {
     'auth.user': {'ops': 'get', 'timeout': 60 * 15},
     'auth.*': {'ops': ('fetch', 'get')},
     'auth.permission': {'ops': 'all'},
-    'discord.*': {},
+    'discord.*': {'ops': {'fetch', 'get'}},
 }
 
 CACHE_MIDDLEWARE_ALIAS = 'default'

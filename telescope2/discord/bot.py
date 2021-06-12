@@ -25,12 +25,13 @@ from typing import Dict, Type
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.core.cache import caches
 
 from discord import Client, Message, Permissions
 from discord.ext.commands import Bot
-from telescope2.utils.functional import acached, evict
 from telescope2.utils.importutil import iter_module_tree
 
+from . import ipc
 from .models import Server
 
 
@@ -61,16 +62,23 @@ class Telescope(Bot):
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
         super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
         self.log = logging.getLogger('telescope')
-        self.register_events()
-        self.register_commands()
+        self._register_events()
+        self._register_commands()
+        self._init_ipc()
+        self._refresh()
 
-    def register_events(self):
+    def _init_ipc(self):
+        thread = ipc.CachePollingThread('discord')
+        thread.add_event_listener('telescope2.discord.bot.refresh', self._refresh)
+        thread.start()
+
+    def _register_events(self):
         @self.event
         async def on_ready():
             self.log.info('Bot ready')
             self.log.info(f'User {self.user}')
 
-    def register_commands(self):
+    def _register_commands(self):
         for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
             module_path = f'.commands.{".".join(parts)}'
             command_module = import_module(module_path, __package__)
@@ -82,7 +90,6 @@ class Telescope(Bot):
                 self.log.info(f'Loaded commands from {module_path}')
 
     @classmethod
-    @acached('discord', ttl=None)
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
         @sync_to_async
         def get():
@@ -100,5 +107,8 @@ class Telescope(Bot):
         return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
 
     @classmethod
-    def invalidate_prefix(cls, bot_id: int, guild_id: int):
-        evict('discord', cls._get_prefix, bot_id=bot_id, guild_id=guild_id)
+    def schedule_refresh(cls):
+        caches['discord'].set('telescope2.discord.bot.refresh', True)
+
+    async def _refresh(self, *args, **kwargs):
+        self.log.info('Refreshing extensions')
