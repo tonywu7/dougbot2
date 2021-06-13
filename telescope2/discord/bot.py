@@ -26,7 +26,8 @@ from typing import (ContextManager, Dict, Generator, Generic, Iterable,
                     Optional, Protocol, Tuple, Type, TypeVar)
 
 from asgiref.sync import sync_to_async
-from discord import Client, Message, Permissions
+from discord import AllowedMentions, Client, Guild, Message, Permissions
+from discord.abc import GuildChannel
 from discord.ext.commands import Bot, Command, Group
 from django.conf import settings
 from django.core.cache import caches
@@ -40,54 +41,6 @@ from .models import Server
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
-
-
-class BotRunner(threading.Thread, Generic[T]):
-    def __init__(self, client_cls: Type[T], client_opts: Dict, run_forever=True, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._client_cls = client_cls
-        self._client_options = client_opts
-        self._run_forever = run_forever
-
-        self.bot_init = threading.Condition()
-        self.loop: asyncio.AbstractEventLoop
-        self.client: T
-
-    def run_client(self):
-        with self.bot_init:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            client = self._client_cls(loop=loop, **self._client_options)
-            self.loop = loop
-            self.client = client
-            self.bot_init.notify_all()
-        if self._run_forever:
-            loop.create_task(client.start(settings.DISCORD_BOT_TOKEN))
-            loop.run_forever()
-
-    def bot_initialized(self) -> bool:
-        return hasattr(self, 'client')
-
-    def run(self) -> None:
-        return self.run_client()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        if hasattr(self, 'client'):
-            self.loop.run_until_complete(self.client.close())
-            self.loop.close()
-        return super().join(timeout=timeout)
-
-    @classmethod
-    @contextmanager
-    def instanstiate(cls, client_cls: Type[U], *args, run_forever=False, daemon=True, **kwargs) -> ContextManager[U]:
-        thread = cls(client_cls, *args, run_forever=False, daemon=True, **kwargs)
-        thread.start()
-        with thread.bot_init:
-            thread.bot_init.wait_for(thread.bot_initialized)
-        try:
-            yield thread.client
-        finally:
-            thread.join()
 
 
 class CommandIterator(Protocol):
@@ -110,6 +63,13 @@ class Robot(Bot):
             if isinstance(cmd, Group):
                 yield from self.iter_commands(cmd, identifier)
 
+    @classmethod
+    def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
+        for cat, channels in guild.by_category():
+            yield cat
+            for c in channels:
+                yield c
+
 
 class Telescope(Robot):
 
@@ -117,7 +77,9 @@ class Telescope(Robot):
     DEFAULT_PERMS = Permissions(805825782)
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
+        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
         super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
+
         self.log = logging.getLogger('telescope')
         self._register_events()
         self._register_commands()
@@ -175,3 +137,51 @@ class Telescope(Robot):
         ctx: Circumstances = await super().get_context(message, cls=cls)
         await ctx.init()
         return ctx
+
+
+class BotRunner(threading.Thread, Generic[T]):
+    def __init__(self, client_cls: Type[T], client_opts: Dict, run_forever=True, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._client_cls = client_cls
+        self._client_options = client_opts
+        self._run_forever = run_forever
+
+        self.bot_init = threading.Condition()
+        self.loop: asyncio.AbstractEventLoop
+        self.client: T
+
+    def run_client(self):
+        with self.bot_init:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            client = self._client_cls(loop=loop, **self._client_options)
+            self.loop = loop
+            self.client = client
+            self.bot_init.notify_all()
+        if self._run_forever:
+            loop.create_task(client.start(settings.DISCORD_BOT_TOKEN))
+            loop.run_forever()
+
+    def bot_initialized(self) -> bool:
+        return hasattr(self, 'client')
+
+    def run(self) -> None:
+        return self.run_client()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        if hasattr(self, 'client'):
+            self.loop.run_until_complete(self.client.close())
+            self.loop.close()
+        return super().join(timeout=timeout)
+
+    @classmethod
+    @contextmanager
+    def instanstiate(cls, client_cls: Type[U], *args, run_forever=False, daemon=True, **kwargs) -> ContextManager[U]:
+        thread = cls(client_cls, *args, run_forever=False, daemon=True, **kwargs)
+        thread.start()
+        with thread.bot_init:
+            thread.bot_init.wait_for(thread.bot_initialized)
+        try:
+            yield thread.client
+        finally:
+            thread.join()
