@@ -23,7 +23,7 @@ from django.apps import AppConfig
 from django.urls.resolvers import URLPattern
 from django.utils.functional import classproperty
 from django.utils.module_loading import import_string
-from django.utils.safestring import SafeString
+from django.utils.safestring import SafeString, mark_safe
 
 from telescope2.web.utils.urls import AnnotatedPattern
 
@@ -42,6 +42,10 @@ class CommandAppConfig(AppConfig):
     @classproperty
     def target(cls) -> Cog:
         raise NotImplementedError
+
+    @classproperty
+    def icon_and_title(cls) -> SafeString:
+        return mark_safe(f'{cls.icon} {cls.title}')
 
     label: str
 

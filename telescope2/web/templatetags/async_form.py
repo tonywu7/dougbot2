@@ -17,10 +17,10 @@
 from django.template import Context, Library, Node, NodeList, Variable
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import (domtokenlist, optional_attr,
-                                        create_tag_parser, unwrap)
+from telescope2.utils.templates import (create_tag_parser, domtokenlist,
+                                        optional_attr, unwrap)
 
-from ..utils.forms import AsyncModelForm
+from ..utils.forms import AsyncFormMixin
 
 register = Library()
 
@@ -35,8 +35,8 @@ class AsyncFormNode(Node):
 
     def render(self, context: Context) -> str:
         form = self.form.resolve(context)
-        if not isinstance(form, AsyncModelForm):
-            raise TypeError(f'{repr(form)} must be a subclass of {AsyncModelForm}')
+        if not isinstance(form, AsyncFormMixin):
+            raise TypeError(f'{repr(form)} must be a subclass of {AsyncFormMixin}')
         endpoint = form.mutation_endpoint
         form_html = self.nodelist.render(context)
         section_id = optional_attr('id', unwrap(context, self.id))

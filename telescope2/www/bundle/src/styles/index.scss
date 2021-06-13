@@ -159,3 +159,25 @@ $chevron-down-svg-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org
         }
     }
 }
+
+form#extension-toggles {
+    .form-fields {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+        padding: 1rem;
+
+        row-gap: 6pt;
+    }
+
+    label {
+        user-select: none;
+    }
+
+    i.bi::before {
+        position: relative;
+        top: 0px;
+        font-size: 0.9em;
+        margin-right: 4px;
+    }
+}

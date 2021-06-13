@@ -29,9 +29,10 @@ from discord.ext.commands import Bot
 from django.conf import settings
 from django.core.cache import caches
 
-from telescope2.utils.importutil import iter_module_tree
+from telescope2.utils.importutil import iter_module_tree, objpath
 
 from . import ipc
+from .apps import DiscordBotConfig
 from .models import Server
 
 
@@ -111,4 +112,8 @@ class Telescope(Bot):
         caches['discord'].set('telescope2.discord.bot.refresh', True)
 
     async def _refresh(self, *args, **kwargs):
-        self.log.info('Refreshing extensions')
+        app = DiscordBotConfig.get()
+        for label, ext in app.ext_map.items():
+            cog_cls = ext.target
+            self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
+            self.add_cog(cog_cls(self))

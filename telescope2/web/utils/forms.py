@@ -17,16 +17,17 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict, Type, TypeVar
+from typing import Callable, Dict, Generic, Type, TypeVar
 
 from django.db import models
-from django.forms import ModelForm, fields, widgets
+from django.forms import fields, widgets
 from django.urls import reverse
 
 from telescope2.utils.collection import merge_collections
 from telescope2.utils.importutil import objpath
 
 WidgetType = TypeVar('WidgetType', bound=widgets.Widget)
+T = TypeVar('T', bound=models.Model)
 
 
 class WidgetSubstitute:
@@ -72,10 +73,18 @@ class TextInput(AttributeInject, widgets.TextInput, WidgetSubstitute):
     base_attrs = {'class': 'form-control'}
 
 
-class AsyncModelForm(ModelForm):
+class SwitchInput(AttributeInject, widgets.CheckboxInput):
+    base_attrs = {'class': 'form-check-input'}
+
+
+class AsyncFormMixin(Generic[T]):
+    instance: T
+
     @property
     def mutation_endpoint(self):
         return reverse('web:api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
+
+    save: Callable[[bool], T]
 
 
 def find_widgets(model: Type[models.Model]) -> Dict[str, WidgetType]:

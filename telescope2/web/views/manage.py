@@ -23,7 +23,6 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from ..config import CommandAppConfig
-from ..contexts import DiscordContext
 from ..models import write_access_required
 
 Extensions = Dict[str, CommandAppConfig]
@@ -32,13 +31,7 @@ Extensions = Dict[str, CommandAppConfig]
 @login_required
 @write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
-    ctx: DiscordContext = req.discord
-    if not ctx.prefs:
-        return render(req, 'web/manage/core.html')
-    extensions = ctx.extension_state
-    return render(req, 'web/manage/index.html', context={
-        'extensions': extensions,
-    })
+    return render(req, 'web/manage/core.html')
 
 
 @login_required

@@ -33,9 +33,15 @@ export class ResponsiveForm {
 
     protected createInputListener(input: HTMLInputElement): (ev: Event) => void {
         let labels = input.labels
+        let changed: () => boolean
+        if (input.type === 'checkbox') {
+            changed = () => input.defaultChecked != input.checked
+        } else {
+            changed = () => input.defaultValue != input.value
+        }
         return (ev) => {
             input.setCustomValidity('')
-            if (input.defaultValue != input.value) {
+            if (changed()) {
                 labels?.forEach((label) => label.classList.add('input-changed'))
                 input.classList.add('input-changed')
             } else {

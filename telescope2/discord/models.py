@@ -83,8 +83,9 @@ class Server(Entity):
         return {label: apps.get_app_config(label) for label in exts}
 
     @extensions.setter
-    def extensions(self, configs: Iterable[CommandAppConfig]):
-        self._extensions = ','.join([conf.label for conf in configs])
+    def extensions(self, configs: Iterable[str | CommandAppConfig]):
+        self._extensions = ','.join([conf.label if isinstance(conf, CommandAppConfig) else conf
+                                     for conf in configs])
 
 
 class Channel(Entity):

@@ -123,8 +123,10 @@ function initTopMenu() {
     menu.addEventListener('click', listener)
 }
 
-function initAsyncForms() {
-    document.querySelectorAll('.async-form').forEach((form) => new AsyncForm(form as HTMLFormElement))
+function initWidgets() {
+    document.querySelectorAll('.async-form').forEach((form) => {
+        new AsyncForm(form as HTMLFormElement)
+    })
 }
 
 function initTemplates() {
@@ -141,7 +143,7 @@ export function createAvatarElement(src: string): HTMLElement {
 
 export function init() {
     initTopMenu()
-    initAsyncForms()
+    initWidgets()
     initTemplates()
     discordOAuth2()
         .then(() => {

@@ -8,10 +8,26 @@
 {% section id='global' title='global' %}
 
 {% asyncform discord.forms.prefix id='global-settings' %}
-<ul>{{ discord.forms.prefix.as_ul }}</ul>
+<ul class="form-fields">{{ discord.forms.prefix.as_ul }}</ul>
 {% csrf_token %}
 <p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
 {% asyncsubmit 'Save' 'primary' 'mt-3 mb-1 w-100' %}
+{% endform %}
+
+{% endsection %}
+
+{% section id='extensions' title='modules' classes='grid-span-2' %}
+
+{% asyncform discord.forms.extensions id='extension-toggles' %}
+{% with discord.forms.extensions as form %}
+<div class="form-fields key-value-pair kvp-left form-switch-theme-red-green">
+    {% for input in form %}
+    {% bs5switch input %}
+    {% endfor %}
+</div>
+{% endwith %}
+{% csrf_token %}
+{% asyncsubmit 'Update settings' 'primary' 'mt-3 mb-1 w-100' %}
 {% endform %}
 
 {% endsection %}

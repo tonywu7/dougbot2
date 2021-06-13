@@ -45,6 +45,7 @@ export class AsyncForm extends ResponsiveForm {
 
     public updateDefaults() {
         this.form.querySelectorAll('input').forEach((input) => {
+            input.defaultChecked = input.checked
             input.defaultValue = input.value
             input.dispatchEvent(new Event('input'))
         })

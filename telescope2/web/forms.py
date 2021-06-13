@@ -20,11 +20,25 @@ import re
 from operator import itemgetter
 
 from django import forms
+from django.forms.fields import BooleanField
 
+from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.models import Server
 
-from .utils.forms import (AsyncModelForm, FormConstants, find_widgets,
-                          gen_labels)
+from .utils.forms import (AsyncFormMixin, FormConstants, SwitchInput,
+                          find_widgets, gen_labels)
+
+
+class PreferenceForms:
+    def __init__(self, context):
+        from .contexts import DiscordContext
+        self.context: DiscordContext = context
+
+    def prefix(self):
+        return CommandPrefixForm(instance=self.context.prefs)
+
+    def extensions(self):
+        return ExtensionToggleForm(instance=self.context.prefs)
 
 
 class UserCreationForm(forms.Form):
@@ -49,7 +63,7 @@ class ServerCreationForm(forms.ModelForm):
         fields = ['snowflake']
 
 
-class CommandPrefixForm(FormConstants, AsyncModelForm):
+class CommandPrefixForm(FormConstants, AsyncFormMixin, forms.ModelForm):
     FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
 
     class Meta:
@@ -71,10 +85,25 @@ class CommandPrefixForm(FormConstants, AsyncModelForm):
         return data
 
 
-class PreferenceForms:
-    def __init__(self, context):
-        from .contexts import DiscordContext
-        self.context: DiscordContext = context
+class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+    class Meta:
+        model = Server
+        fields = []
 
-    def prefix(self):
-        return CommandPrefixForm(instance=self.context.prefs)
+    def __init__(self, instance: Server, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.instance = instance
+        conf = DiscordBotConfig.get()
+        options = {}
+        enabled = instance.extensions
+        for label, ext in conf.extensions.items():
+            options[label] = BooleanField(
+                required=False, label=ext.icon_and_title,
+                initial=label in enabled, widget=SwitchInput,
+            )
+        self.fields.update(options)
+
+    def save(self, commit=True):
+        enabled = [k for k, v in self.cleaned_data.items() if v]
+        self.instance.extensions = enabled
+        super().save(commit=commit)

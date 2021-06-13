@@ -343,16 +343,16 @@ select.custom-select {
     padding: 0.2rem 0.6rem;
 }
 
+i.bi::before {
+    vertical-align: middle;
+}
+
 .nav-control {
     a {
         color: var(--color-text);
     }
 
     i.bi {
-        &::before {
-            vertical-align: middle;
-        }
-
         &:first-child {
             margin-inline-end: 0.4rem;
         }
@@ -506,7 +506,6 @@ input.form-control {
 }
 
 label.input-changed {
-    font-weight: 600;
     color: $yellow-300;
 }
 
@@ -531,6 +530,14 @@ label.input-changed {
 
     display: flex;
     flex-flow: column nowrap;
+
+    &.form-text-large {
+        label,
+        li,
+        p {
+            font-size: 1.2rem;
+        }
+    }
 
     p {
         margin-top: 0.5rem;
@@ -576,8 +583,46 @@ label.input-changed {
 
 .text-on {
     color: $green-400;
+    font-weight: 600;
 }
 
 .text-off {
     color: $red-500;
+    font-weight: 600;
+}
+
+.columnized-form {
+    label {
+        font-weight: 600;
+    }
+}
+
+.checkbox-text-toggle {
+    cursor: pointer;
+
+    input[type='checkbox'] {
+        display: none;
+    }
+}
+
+.form-switch-theme-red-green {
+    .form-switch {
+        .form-check-input {
+            background-color: $red;
+            border-color: $red;
+
+            &:focus {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e");
+            }
+
+            &:checked {
+                background-color: $green-400;
+                border-color: $green-400;
+            }
+
+            &:focus:checked {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+            }
+        }
+    }
 }

@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from django.template import Context, Library, Node, NodeList, Variable
+from django.template import Context, Library, Node, NodeList, Variable, loader
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
@@ -126,3 +126,9 @@ class SidebarSectionNode(Node):
             f'        <div class="accordion-body"><ul>{content}</ul>'
             '</div></div></div>',
         )
+
+
+@register.simple_tag(name='bs5switch')
+def bootstrap5switch(field):
+    template = loader.get_template('telescope2/elements/switch.html')
+    return template.render({'field': field})
