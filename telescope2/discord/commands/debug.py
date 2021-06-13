@@ -14,18 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from discord import Message
-from discord.ext.commands import Bot, Context
+from typing import Optional
 
-from telescope2.utils import lang
+from discord import Message
+from discord.ext.commands import Bot
+from discord.utils import escape_markdown
+
 from telescope2.utils.datetime import utcnow, utctimestamp
 
+from ..bot import Circumstances
 from ..utils.messages import trimmed_msg
 
 
 def register_all(bot: Bot):
     @bot.command('echo')
-    async def cmd_echo(ctx: Context, *args, **kwargs):
+    async def cmd_echo(ctx: Circumstances, *args):
         trimmed = trimmed_msg(ctx)
         if not trimmed:
             await ctx.send(ctx.message.content)
@@ -33,16 +36,19 @@ def register_all(bot: Bot):
             await ctx.send(trimmed)
 
     @bot.command('ping')
-    async def cmd_ping(ctx: Context, *args, **kwargs):
+    async def cmd_ping(ctx: Circumstances, *args):
         await ctx.send(f':PONG {utctimestamp()}')
 
     @bot.command('prefix')
-    async def cmd_prefix(ctx: Context, *args, **kwargs):
-        prefixes = [*await bot.command_prefix(bot, ctx.message)]
-        example = f'Example: **{prefixes[0]}echo**'
-        await ctx.send(f'{lang.plural_clause(len(prefixes), "Prefix", "is")} '
-                       f'{lang.coord_conj(*[f"**{p}**" for p in prefixes])}\n'
-                       f'{example}')
+    async def cmd_prefix(ctx: Circumstances, new_prefix: Optional[str] = None, *args):
+        if new_prefix:
+            try:
+                await ctx.set_prefix(new_prefix)
+            except ValueError as e:
+                return await ctx.send(f'**Error:** {e}')
+        prefix = escape_markdown(ctx.server.prefix)
+        example = f'Example: **{prefix}echo**'
+        await ctx.send(f'Prefix is **{prefix}**\n{example}')
 
     @bot.listen('on_message')
     async def on_ping(msg: Message):
