@@ -183,7 +183,7 @@ BRANDING_SHORT = 'ts2'
 
 JWT_DEFAULT_EXP = 300
 
-USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonywu7/telescope2)'
+USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonyzbf/telescope2)'
 
 STATIC_SERVER_PORT = 8001
 STATIC_SERVER = f'http://localhost:{STATIC_SERVER_PORT}'
