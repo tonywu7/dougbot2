@@ -24,6 +24,8 @@ from django.db import Error, transaction
 from telescope2.utils.logger import colored as _
 from telescope2.utils.repl import Form, Question
 
+log = logging.getLogger('manage.syncccommands')
+
 
 class Command(BaseCommand):
     help = ('Synchronize bot commands defined in the program '
@@ -31,39 +33,42 @@ class Command(BaseCommand):
 
     requires_system_checks = [Tags.models, Tags.database]
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.log = logging.getLogger('manage.syncccommands')
-
     def add_arguments(self, parser) -> None:
         parser.add_argument(
             '--dry-run', action='store_true', dest='dry_run',
             help='Do not write changes to the database.',
         )
 
-    def insert_cmds(self, cmds):
+    def handle(self, *args, dry_run, **options):
+        self.sync_commands(dry_run)
+
+    @classmethod
+    def insert_cmds(cls, cmds):
         from ...models import BotCommand
         BotCommand.objects.bulk_create([
             BotCommand(identifier=name) for name in cmds
         ])
-        self.log.info('The following commands are synchronized to the database:')
-        self.log.info(_(' '.join(cmds), 'cyan', attrs=['bold']))
+        log.info('The following commands are synchronized to the database:')
+        log.info(_(' '.join(cmds), 'cyan', attrs=['bold']))
 
-    def remove_cmds(self, cmds):
+    @classmethod
+    def remove_cmds(cls, cmds):
         from ...models import BotCommand
         BotCommand.objects.filter(identifier__in=cmds).delete()
-        self.log.info('The following commands are deleted from the database:')
-        self.log.info(_(' '.join(cmds), 'red', attrs=['bold']))
+        log.info('The following commands are deleted from the database:')
+        log.info(_(' '.join(cmds), 'red', attrs=['bold']))
 
-    def update_cmds(self, cmds: Dict[str, str]):
+    @classmethod
+    def update_cmds(cls, cmds: Dict[str, str]):
         from ...models import BotCommand
         commands: Dict[str, BotCommand] = {cmd.identifier: cmd for cmd in BotCommand.objects.filter(identifier__in=cmds)}
         for k, v in commands.items():
             v.identifier = cmds[k]
             v.save()
-            self.log.info(_(f'Updated {k} -> {cmds[k]}', 'yellow', attrs=['bold']))
+            log.info(_(f'Updated {k} -> {cmds[k]}', 'yellow', attrs=['bold']))
 
-    def handle(self, *args, dry_run, **options):
+    @classmethod
+    def sync_commands(cls, dry_run):
         from ...bot import BotRunner, Telescope
         from ...models import BotCommand
 
@@ -79,14 +84,14 @@ class Command(BaseCommand):
             with transaction.atomic():
 
                 if not missing and not deleted:
-                    self.log.info(_('All commands synchronized.', 'green', attrs=['bold']))
+                    log.info(_('All commands synchronized.', 'green', attrs=['bold']))
                     return
 
                 elif not deleted:
-                    self.insert_cmds(missing)
+                    cls.insert_cmds(missing)
 
                 elif not missing:
-                    self.remove_cmds(deleted)
+                    cls.remove_cmds(deleted)
 
                 else:
                     form = CommandForm([
@@ -100,21 +105,21 @@ class Command(BaseCommand):
                         'Use Tab to see a list of candidate commands.'
                     ))
                     if not form.filled:
-                        self.log.warning('Form cancelled. Operation aborted.')
+                        log.warning('Form cancelled. Operation aborted.')
                         return
 
                     selected = form.formdata_filled
                     if len(set(selected.values())) != len(selected.values()):
-                        self.log.error('Duplicate entries found. Operation aborted.')
+                        log.error('Duplicate entries found. Operation aborted.')
                         return
 
                     to_insert = missing - set(selected.values())
                     to_delete = form.formdata_missing.keys()
                     to_update = selected
 
-                    self.remove_cmds(to_delete)
-                    self.update_cmds(to_update)
-                    self.insert_cmds(to_insert)
+                    cls.remove_cmds(to_delete)
+                    cls.update_cmds(to_update)
+                    cls.insert_cmds(to_insert)
 
                 if dry_run:
                     raise NoCommit()

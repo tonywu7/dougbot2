@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import List
 
 from asgiref.sync import sync_to_async
-from discord import Message
+from discord import Guild, Message
 from discord.ext.commands import Bot, Command, Context
 from django.db import transaction
 
@@ -36,6 +36,8 @@ class Circumstances(Context):
         self.invoked_with: str
         self.invoked_parents: List[str]
         self.invoked_subcommand: Command | None
+
+        self.guild: Guild
 
     @property
     def server(self) -> Server:

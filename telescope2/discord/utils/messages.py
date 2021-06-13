@@ -14,8 +14,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+from discord import Color
+from discord.abc import GuildChannel, Role, User
 from discord.ext.commands import Context
 
 
 def trimmed_msg(ctx: Context) -> str:
     return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]
+
+
+def tag(obj) -> str:
+    if isinstance(obj, User):
+        return f'<@{obj.id}>'
+    if isinstance(obj, GuildChannel):
+        return f'<#{obj.id}>'
+    if isinstance(obj, Role):
+        if obj.is_default():
+            return '@everyone'
+        return f'<@&{obj.id}>'
+
+
+def traffic_light(val: bool | None, strict=False):
+    if val:
+        return '🟢'
+    elif strict and val is None:
+        return '🟡'
+    else:
+        return '⛔'
+
+
+def rgba8int(c: Color) -> int:
+    return (c.r << 16) + (c.g << 8) + c.b

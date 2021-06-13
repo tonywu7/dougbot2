@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Type
+from typing import Dict, List, Type
 
 import inflect
 from django.db.models import Model
@@ -58,3 +58,7 @@ def pluralize_model(count: int, model: Type[Model]) -> str:
         return f'{count} {model._meta.verbose_name}'
     else:
         return f'{count} {model._meta.verbose_name_plural}'
+
+
+def pl_cat(category: str, terms: List[str], sep=' ', conj='and') -> str:
+    return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'

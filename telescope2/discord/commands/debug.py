@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 from typing import Optional
 
 from discord import Message
@@ -23,24 +25,22 @@ from discord.utils import escape_markdown
 from telescope2.utils.datetime import utcnow, utctimestamp
 
 from ..bot import Circumstances
-from ..utils.messages import trimmed_msg
 
 
 def register_all(bot: Bot):
     @bot.command('echo')
-    async def cmd_echo(ctx: Circumstances, *args):
-        trimmed = trimmed_msg(ctx)
+    async def echo(ctx: Circumstances, *, trimmed=None):
         if not trimmed:
             await ctx.send(ctx.message.content)
         else:
             await ctx.send(trimmed)
 
     @bot.command('ping')
-    async def cmd_ping(ctx: Circumstances, *args):
+    async def ping(ctx: Circumstances, *args):
         await ctx.send(f':PONG {utctimestamp()}')
 
     @bot.command('prefix')
-    async def cmd_prefix(ctx: Circumstances, new_prefix: Optional[str] = None, *args):
+    async def prefix(ctx: Circumstances, new_prefix: Optional[str] = None, *args):
         if new_prefix:
             try:
                 await ctx.set_prefix(new_prefix)
