@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Union, overload
+from typing import Callable, List, Optional, Union, overload
 
 from discord import (CategoryChannel, Member, Permissions, Role, StageChannel,
                      TextChannel, VoiceChannel)
@@ -27,7 +27,7 @@ from more_itertools import split_before
 
 from ..bot import Circumstances, Robot
 from ..utils.constructs import HypotheticalMember, HypotheticalRole
-from ..utils.messages import rgba8int, tag, traffic_light
+from ..utils.messages import rgb8, tag, traffic_light
 
 
 class PermissionTest(Converter):
@@ -81,7 +81,7 @@ def register_all(bot: Bot):
     async def roles(ctx: Circumstances, *args):
         lines = []
         for r in reversed(ctx.guild.roles):
-            lines.append(f'{tag(r)} `#{rgba8int(r.color):06x}`')
+            lines.append(f'{tag(r)} `#{rgb8(r.color):06x}`')
         await ctx.send('\n'.join(lines))
 
     @bot.command('perms')
@@ -89,13 +89,24 @@ def register_all(bot: Bot):
                     channel: Optional[Union[TextChannel, VoiceChannel, StageChannel]] = None):
         lines = []
         subjects = roles or reversed(ctx.guild.roles)
+
+        def unioned(subjects: List[Union[Role, Member]], cls):
+            s = cls(*subjects)
+            union = ' | '.join([tag(s) for s in subjects])
+            return f'{traffic_light(permtest(s, channel))} {union}'
+
         if channel:
             lines.append(f'Permission: **{permtest.perm_name}** in {tag(channel)}')
             for r in subjects:
                 s = HypotheticalMember(r)
                 lines.append(f'{traffic_light(permtest(s, channel))} {tag(r)}')
+            if len(roles) > 1:
+                lines.append(unioned(subjects, HypotheticalMember))
         else:
             lines.append(f'Permission: **{permtest.perm_name}**')
             for r in subjects:
                 lines.append(f'{traffic_light(permtest(r))} {tag(r)}')
+            if len(roles) > 1:
+                lines.append(unioned(subjects, HypotheticalRole))
+
         await ctx.send('\n'.join(lines))

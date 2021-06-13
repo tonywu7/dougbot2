@@ -17,24 +17,30 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import Optional
+from typing import Any, Callable, Dict, Optional, Type
 
 from discord import Member, Permissions, Role
 from discord.utils import SnowflakeList
 from more_itertools import flatten
 
+PERM_GETTER: Dict[Type, Callable[[Any], Permissions]] = {
+    Permissions: lambda x: x,
+    Role: lambda x: x.permissions,
+    Member: lambda x: x.guild_permissions,
+}
+
 
 class HypotheticalRole:
-    def __init__(self, *subjects: Permissions | Role, snowflake: Optional[int] = None, **kwargs) -> None:
+    def __init__(self, *subjects: Permissions | Role | Member, snowflake: Optional[int] = None, **kwargs) -> None:
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.id = snowflake or -1
-        perms = [s if isinstance(s, Permissions) else s.permissions for s in subjects]
+        perms = [PERM_GETTER[type(s)](s) for s in subjects]
         self.permissions = perm_union(*perms)
 
 
 class HypotheticalMember:
-    def __init__(self, *subjects: Member | Role, snowflake: Optional[int] = None, **kwargs):
+    def __init__(self, *subjects: Role | Member, snowflake: Optional[int] = None, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.id = snowflake or -1
@@ -46,15 +52,11 @@ class HypotheticalMember:
 
 
 def perm_union(*perms: Permissions) -> Permissions:
-    return Permissions(reduce(lambda x, y: x.value | y.value, perms))
+    return Permissions(reduce(lambda x, y: x.value | y.value, perms, Permissions.none()))
 
 
 def perm_intersection(*perms: Permissions) -> Permissions:
-    return Permissions(reduce(lambda x, y: x.value & y.value, perms))
-
-
-def perm_difference(*perms: Permissions) -> Permissions:
-    return Permissions(reduce(lambda x, y: x.value & y.value, perms))
+    return Permissions(reduce(lambda x, y: x.value & y.value, perms, Permissions.all()))
 
 
 def perm_complement(perm: Permissions) -> Permissions:
