@@ -47,7 +47,7 @@
 
 <body data-viewname="{% viewname %}">
     <section class="masthead-container">
-        {% include 'commons/masthead.html' %}
+        {% include 'telescope2/commons/masthead.html' %}
     </section>
     <section class="top-container">
         {% block top %}
@@ -55,16 +55,16 @@
     </section>
     <section class="main-container">
         <aside class="main-sidebar accordion accordion-flush" id="sidebar">
-            {% include 'commons/sidebar.html' %}
+            {% include 'telescope2/commons/sidebar.html' %}
         </aside>
         {% block body %}
         {% endblock %}
     </section>
     <section class="footer-container">
-        {% include 'commons/footer.html' %}
+        {% include 'telescope2/commons/footer.html' %}
     </section>
     <div id="template-container">
-        {% include 'commons/templates.html' %}
+        {% include 'telescope2/commons/templates.html' %}
     </div>
     <div id="toast-container" class="fixed-overlay toast-container" aria-live="polite" aria-atomic="true">
     </div>
