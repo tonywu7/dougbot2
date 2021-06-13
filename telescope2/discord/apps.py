@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from django.apps import AppConfig, apps
+from django.core.checks import CheckMessage, Error, Warning, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
 
@@ -53,3 +54,45 @@ class DiscordBotConfig(AppConfig):
     @property
     def extensions(self) -> Dict[str, CommandAppConfig]:
         return {**self.ext_map}
+
+
+@register('discord')
+def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMessage]:
+    from .bot import BotRunner, Robot, Telescope
+    from .models import BotCommand
+
+    errors = []
+
+    with BotRunner.instanstiate(Telescope, {}) as bot:
+
+        bot: Robot
+        cmds = {identifier for identifier, cmd in bot.iter_commands()}
+
+        try:
+            registered = {v['identifier'] for v in BotCommand.objects.values('identifier')}
+        except Exception as e:
+            return [Warning(
+                ('Cannot fetch command registry from the database, '
+                 f'check cannot continue. Reason: {e}'),
+                id='discord.E100',
+            )]
+
+        missing = cmds - registered
+        deleted = registered - cmds
+
+        if missing:
+            errors.append(Error(
+                ('The following commands are registered in the bot but '
+                 f'not in the database: {" ".join(missing)}'),
+                hint='Run the synccommands command to synchronize.',
+                id='discord.E001',
+            ))
+        if deleted:
+            errors.append(Error(
+                ('The following commands are found in the database but '
+                 f'are no longer available in the bot: {" ".join(deleted)}'),
+                hint='Run the synccommands command to synchronize.',
+                id='discord.E002',
+            ))
+
+    return errors

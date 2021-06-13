@@ -1,4 +1,4 @@
-# bot.py
+# extension.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,18 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import time
-
-from discord.ext.commands import Bot, command
-
-from ...context import Circumstances
-from ...extension import Gear
+from discord.ext.commands import Bot, Cog
 
 
-class Utilities(Gear):
+class Gear(Cog):
     def __init__(self, bot: Bot):
+        super().__init__()
         self.bot = bot
-
-    @command('time')
-    async def echo(self, ctx: Circumstances, *args, **kwargs):
-        await ctx.send(time.time())

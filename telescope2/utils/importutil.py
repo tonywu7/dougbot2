@@ -20,7 +20,7 @@ from typing import Generator, List
 
 
 def objpath(obj):
-    return f'{obj.__module__}.{obj.__name__}'
+    return f'{obj.__module__}.{obj.__qualname__}'
 
 
 def load_object(qualname: str):

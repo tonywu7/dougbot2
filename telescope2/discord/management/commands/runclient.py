@@ -27,6 +27,8 @@ from ...bot import BotRunner, Telescope
 class Command(BaseCommand):
     help = 'Run the Discord bot'
 
+    requires_system_checks = []
+
     def add_arguments(self, parser):
         parser.add_argument(
             '--noreload', action='store_false', dest='use_reloader',
@@ -71,4 +73,4 @@ class Command(BaseCommand):
             runner = BotRunner(Telescope, {})
             runner.run()
         except KeyboardInterrupt:
-            sys.exit(0)
+            return
