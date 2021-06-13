@@ -9,7 +9,7 @@ class BotUtilityConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'telescope2.discord.contrib.utility'
 
-    title = 'Utiltities'
+    title = 'Utilities'
     icon = mark_safe('<i class="bi bi-tools"></i>')
 
     target = Utilities
