@@ -31,7 +31,7 @@ Extensions = Dict[str, CommandAppConfig]
 @login_required
 @write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'web/manage/core.html')
+    return render(req, 'web/manage/index.html')
 
 
 @login_required

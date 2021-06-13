@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Dict, Iterable
 
 import inflect
@@ -72,6 +73,8 @@ class User(Entity):
 
 
 class Server(Entity):
+    FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
+
     prefix: str = models.CharField(max_length=16, default='t;')
     _extensions: str = models.TextField(blank=True)
 
@@ -86,6 +89,15 @@ class Server(Entity):
     def extensions(self, configs: Iterable[str | CommandAppConfig]):
         self._extensions = ','.join([conf.label if isinstance(conf, CommandAppConfig) else conf
                                      for conf in configs])
+
+    @classmethod
+    def validate_prefix(cls, prefix: str):
+        if cls.FORBIDDEN_PREFIXES.match(prefix):
+            raise ValueError(
+                '* _ | ~ ` > are markdown characters. '
+                '%(prefix)s as a prefix will cause messages with markdowns '
+                'to trigger bot commands.' % {'prefix': prefix},
+            )
 
 
 class Channel(Entity):
@@ -103,3 +115,7 @@ class Role(Entity):
     name: str = models.CharField(max_length=120)
     color: int = models.IntegerField()
     guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='roles')
+
+
+class BotCommand(models.Model):
+    identifier: str = models.CharField(max_length=120, unique=True)

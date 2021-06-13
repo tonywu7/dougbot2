@@ -38,7 +38,7 @@
     {% for ext_label, ext_state in discord.extension_state.items %}
     {% with ext_name=ext_state|item:1|attr:'title' ext_state=ext_state|item:0 %}
     <span>{{ ext_name }}</span><span
-        class="{{ ext_state|yesno:'text-on,text-off' }}"><b>{{ ext_state|yesno:'Enabled,Disabled' }}</b></span>
+        class="{{ ext_state|yesno:'text-on,text-off' }}">{{ ext_state|yesno:'Enabled,Disabled' }}</span>
     {% endwith %}
     {% empty %}
     <span>(No extensions found. Hmmmm...)</span>

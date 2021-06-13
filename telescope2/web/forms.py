@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import re
 from operator import itemgetter
 
 from django import forms
@@ -64,8 +63,6 @@ class ServerCreationForm(forms.ModelForm):
 
 
 class CommandPrefixForm(FormConstants, AsyncFormMixin, forms.ModelForm):
-    FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
-
     class Meta:
         model = Server
         fields = ['prefix']
@@ -74,14 +71,10 @@ class CommandPrefixForm(FormConstants, AsyncFormMixin, forms.ModelForm):
 
     def clean_prefix(self):
         data = self.cleaned_data['prefix']
-        if self.FORBIDDEN_PREFIXES.match(data):
-            raise forms.ValidationError(
-                '* _ | ~ ` > are markdown characters. '
-                '%(prefix)s as a prefix will cause messages with markdowns '
-                'to trigger bot commands.',
-                params={'prefix': data},
-                code='forbidden_chars',
-            )
+        try:
+            Server.validate_prefix(data)
+        except ValueError as e:
+            raise forms.ValidationError(str(e), code='forbidden_chars')
         return data
 
 
