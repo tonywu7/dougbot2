@@ -158,6 +158,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     roles: QuerySet[Role]
     members: QuerySet[Member]
 
+    name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
 
     @property
