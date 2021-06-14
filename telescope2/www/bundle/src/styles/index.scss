@@ -2,6 +2,7 @@
 
 @import 'colors';
 @import 'layout';
+@import 'typefaces';
 
 $chevron-down-svg-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23d3d3d9'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
 
@@ -70,7 +71,10 @@ $chevron-down-svg-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org
         --item-distance: 0.5rem;
 
         @media screen and (max-width: 1024px) {
-            --item-distance: 1.2rem;
+            span {
+                font-size: 1.1rem;
+            }
+            --item-distance: 0.6rem;
         }
 
         border: none;
@@ -179,5 +183,13 @@ form#extension-toggles {
         top: 0px;
         font-size: 0.9em;
         margin-right: 4px;
+    }
+}
+
+#global-settings {
+    input[id='id_prefix'] {
+        font-family: $monospace-fonts;
+        font-weight: 700;
+        font-size: 1.2rem;
     }
 }

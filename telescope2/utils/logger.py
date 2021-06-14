@@ -284,6 +284,9 @@ def make_logging_config(
             'daphne.http_protocol': {
                 'level': logging.INFO,
             },
+            'django.template': {
+                'level': logging.INFO,
+            }
         },
         'root': {
             'level': level,

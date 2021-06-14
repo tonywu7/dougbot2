@@ -93,3 +93,95 @@ export function displayNotification(notif: HTMLElement, options?: Partial<bootst
     center.appendChild(notif)
     toast.show()
 }
+
+export class D3ItemList {
+    container: HTMLElement
+
+    input: HTMLInputElement
+    field: HTMLElement
+
+    userEntry: HTMLInputElement
+
+    dropdownToggle: HTMLElement
+    dropdownMenu: HTMLElement
+    dropdown: bootstrap.Dropdown
+
+    itemList: HTMLUListElement
+
+    constructor(container: HTMLElement) {
+        this.container = container
+
+        this.input = container.querySelector('input[data-target]') as HTMLInputElement
+        this.field = container.querySelector('.form-control') as HTMLElement
+
+        this.userEntry = this.field.querySelector('input[type="text"]') as HTMLInputElement
+
+        this.dropdownToggle = container.querySelector('[data-bs-toggle="dropdown"]') as HTMLElement
+        this.dropdownMenu = container.querySelector('.dropdown') as HTMLElement
+        this.dropdown = new bootstrap.Dropdown(this.dropdownToggle)
+
+        this.itemList = this.dropdownMenu.querySelector('ul') as HTMLUListElement
+
+        this.addListeners()
+    }
+
+    private addListeners() {
+        this.container.addEventListener('focusout', () => this.dropdown.hide())
+        this.userEntry.addEventListener('focus', () => this.dropdown.show())
+        this.userEntry.addEventListener('focus', () => this.resetHighlight.bind(this))
+        this.container.addEventListener('keydown', this.keyboardListener.bind(this))
+    }
+
+    public get expanded(): boolean {
+        return this.itemList.classList.contains('show')
+    }
+
+    protected keyboardListener(ev: KeyboardEvent): void {
+        if (!this.expanded) return
+        if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+            return this.moveItemHighlight(ev.key)
+        } else if (ev.key === 'Enter') {
+            return this.selectItem()
+        } else if (ev.key === 'Escape') {
+            return this.blur()
+        }
+    }
+
+    protected resetHighlight(key: string) {
+        this.itemList.querySelectorAll('.item-selected').forEach((elem) => {
+            elem.classList.remove('item-selected')
+        })
+    }
+
+    protected moveItemHighlight(key: string) {
+        let focused = this.itemList.querySelector('.item-selected')
+        let terminalElem: keyof HTMLUListElement
+        let nextElem: keyof HTMLElement
+        if (key === 'ArrowDown') {
+            terminalElem = 'firstElementChild'
+            nextElem = 'nextElementSibling'
+        } else if (key === 'ArrowUp') {
+            terminalElem = 'lastElementChild'
+            nextElem = 'previousElementSibling'
+        } else {
+            return
+        }
+        if (focused === null) {
+            this.itemList[terminalElem]?.classList.add('item-selected')
+        } else {
+            let nextItem = focused[nextElem]
+            if (nextItem !== null) {
+                nextItem.classList.add('item-selected')
+                focused.classList.remove('item-selected')
+            }
+        }
+    }
+
+    protected selectItem() {
+        this.itemList.querySelector('.item-selected')?.dispatchEvent(new Event('click', { bubbles: true }))
+    }
+
+    protected blur() {
+        this.userEntry.blur()
+    }
+}

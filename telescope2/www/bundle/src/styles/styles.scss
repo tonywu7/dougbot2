@@ -50,6 +50,10 @@ body {
     min-height: calc(100vh - var(--masthead-height));
 }
 
+p {
+    margin-bottom: 4pt;
+}
+
 a {
     color: var(--color-anchor);
     text-decoration: none;
@@ -76,6 +80,14 @@ h6 {
 
 h3 {
     font-size: 1.5rem;
+}
+
+h4 {
+    font-size: 1.2rem;
+}
+
+h5 {
+    font-size: 1rem;
 }
 
 input {
@@ -211,10 +223,6 @@ a.dropdown-toggle:focus {
     &:not(:first-child) {
         padding-top: 0.7rem;
     }
-}
-
-.input-group {
-    flex-wrap: nowrap;
 }
 
 code,
@@ -551,7 +559,8 @@ label.input-changed {
     }
 
     li {
-        display: block;
+        display: flex;
+        flex-flow: column nowrap;
 
         margin-top: 6pt;
         margin-bottom: 6pt;
@@ -574,14 +583,6 @@ label.input-changed {
 
     .btn {
         margin: 0.5rem 0.25rem;
-    }
-}
-
-#global-settings {
-    input[id='id_prefix'] {
-        font-family: $monospace-fonts;
-        font-weight: 700;
-        font-size: 1.2rem;
     }
 }
 
@@ -627,6 +628,68 @@ label.input-changed {
             &:focus:checked {
                 background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
             }
+        }
+    }
+}
+
+.input-group {
+    border-radius: 0.5rem;
+
+    .form-control {
+        background-color: $bw-grey-2;
+        border-width: 1px;
+    }
+
+    .input-group-text,
+    .form-control {
+        border: 1px solid;
+    }
+
+    .input-group-text,
+    .form-control {
+        border-color: color.scale($color-text, $alpha: -50%);
+    }
+
+    &
+        > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+        border-left-color: #00000000;
+    }
+
+    .input-group-text {
+        font-weight: 700;
+        color: $bw-grey-15;
+        background-color: $bw-grey-4;
+    }
+}
+
+.d3-item-list {
+    position: relative;
+    display: inline-block;
+
+    margin: 6px 0;
+
+    .form-control {
+        input[type='text'] {
+            background-color: transparent;
+            border: none;
+
+            color: $color-text;
+        }
+    }
+
+    .dropdown {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+
+        [data-bs-toggle='dropdown'] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
         }
     }
 }

@@ -38,3 +38,9 @@ def index(req: HttpRequest, **kwargs) -> HttpResponse:
 @write_access_required
 def core(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'web/manage/core.html')
+
+
+@login_required
+@write_access_required
+def constraints(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'web/manage/constraints.html')

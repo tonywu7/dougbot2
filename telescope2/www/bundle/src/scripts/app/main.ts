@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordClient } from './discord'
-import { TemplateRenderer } from './responsive'
+import { TemplateRenderer, D3ItemList } from './responsive'
 import { AsyncForm } from './api'
 
 import * as util from '../common/util'
@@ -126,6 +126,9 @@ function initTopMenu() {
 function initWidgets() {
     document.querySelectorAll('.async-form').forEach((form) => {
         new AsyncForm(form as HTMLFormElement)
+    })
+    document.querySelectorAll('.d3-item-list').forEach((elem) => {
+        new D3ItemList(elem as HTMLElement)
     })
 }
 
