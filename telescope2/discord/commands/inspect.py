@@ -88,6 +88,8 @@ def register_all(bot: Bot):
     async def perms(ctx: Circumstances, permtest: PermissionTest, roles: Greedy[Union[Role, Member]],
                     channel: Optional[Union[TextChannel, VoiceChannel, StageChannel]] = None):
         lines = []
+        if roles:
+            roles = {r: None for r in roles}.keys()
         subjects = roles or reversed(ctx.guild.roles)
 
         def unioned(subjects: List[Union[Role, Member]], cls):
