@@ -28,8 +28,10 @@ from discord import AllowedMentions, Client, Guild, Message, Permissions
 from discord.abc import GuildChannel
 from discord.ext.commands import Bot, Command, Group
 from django.core.cache import caches
+from django.db import IntegrityError
 from django.db.models.query import QuerySet
 
+from telescope2.utils.db import async_atomic
 from telescope2.utils.importutil import iter_module_tree, objpath
 
 from . import ipc, models
@@ -55,6 +57,19 @@ class Robot(Bot):
     async def on_ready(self):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
+
+    async def on_guild_join(self, guild: Guild):
+        self.log.info(f'Joined {guild}')
+        try:
+            async with async_atomic():
+                await self.create_server(guild)
+        except IntegrityError:
+            pass
+        try:
+            async with async_atomic():
+                await self.sync_server(guild)
+        except IntegrityError:
+            pass
 
     def iter_commands(
         self, root: Optional[CommandIterator] = None, prefix: str = '',
@@ -101,6 +116,11 @@ class Robot(Bot):
 
     @classmethod
     @sync_to_async(thread_sensitive=False)
+    def create_server(cls, guild: Guild):
+        Server(snowflake=guild.id).save()
+
+    @classmethod
+    @sync_to_async(thread_sensitive=False)
     def sync_server(cls, guild: Guild):
         server: Server = (
             Server.objects
@@ -135,7 +155,7 @@ class Telescope(Robot):
         thread.start()
 
     def _register_events(self):
-        return
+        self.listen('on_guild_join')(self.on_guild_join)
 
     def _register_commands(self):
         for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):

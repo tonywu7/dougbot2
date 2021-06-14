@@ -163,9 +163,18 @@ class CreateServerProfileView(View):
     def post(req: HttpRequest) -> HttpResponse:
         form = ServerCreationForm(data=req.POST)
         if not form.is_valid():
-            return redirect(reverse('web:index'))
-        preference = form.save()
-        return redirect(reverse('web:manage.index', kwargs={'guild_id': preference.snowflake}))
+            try:
+                is_race_condition = form.errors['snowflake'].data[0].code == 'unique'
+                if not is_race_condition:
+                    return redirect(reverse('web:index'))
+            except (KeyError, IndexError):
+                return redirect(reverse('web:index'))
+        try:
+            preference = form.save()
+            snowflake = preference.snowflake
+        except ValueError:
+            snowflake = req.POST['snowflake']
+        return redirect(reverse('web:manage.index', kwargs={'guild_id': snowflake}))
 
 
 class DeleteServerProfileView(View):
