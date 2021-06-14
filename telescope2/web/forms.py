@@ -123,11 +123,4 @@ class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], form
             guild._roles = {r.id: r for r in await guild.fetch_roles()}
             await bot.sync_server(guild)
 
-        with thread.data_requested:
-            thread.set_request(task(thread.client))
-            thread.data_requested.notify_all()
-        with thread.data_ready:
-            thread.data_ready.wait_for(thread.has_result)
-            result = thread.get_result()
-            if isinstance(result, Exception):
-                raise result
+        thread.run_coroutine(task(thread.client))

@@ -91,7 +91,7 @@ class Robot(Bot):
     @classmethod
     def _sync_layouts(cls, server: Server, guild: Guild):
         role_order = {r.id: idx for idx, r in enumerate(guild.roles)}
-        channel_order = {c.id: idx for idx, c in enumerate(cls.channels_ordered_1d(guild))}
+        channel_order = {c.id: idx for idx, c in enumerate(cls.channels_ordered_1d(guild)) if c is not None}
         server.roles.bulk_update([
             models.Role(snowflake=k, order=v) for k, v in role_order.items()
         ], ['order'])
@@ -107,6 +107,8 @@ class Robot(Bot):
             .prefetch_related('channels', 'roles')
             .get(pk=guild.id)
         )
+        server.name = guild.name
+        server.save()
         cls._sync_models(models.Role, guild.roles, server.roles)
         cls._sync_models(models.Channel, guild.channels, server.channels)
         cls._sync_layouts(server, guild)

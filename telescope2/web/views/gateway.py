@@ -16,7 +16,7 @@
 
 import simplejson as json
 from asgiref.sync import async_to_sync, sync_to_async
-from discord import Forbidden, Guild, Member
+from discord import Forbidden, Guild
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -28,6 +28,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import View
 
+from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.fetch import (DiscordFetch, app_auth_url,
                                       bot_invite_url, create_session)
 from telescope2.discord.models import Server
@@ -187,20 +188,24 @@ class DeleteServerProfileView(View):
         if not guild_id:
             raise SuspiciousOperation('Invalid parameters.')
 
-        fetch = DiscordFetch()
-        await fetch.init_bot()
+        thread = DiscordBotConfig.get().bot_thread
+
+        async def get(bot):
+            guild: Guild = await bot.fetch_guild(guild_id)
+            return guild, await guild.fetch_member(req.user.snowflake)
 
         try:
-            guild: Guild = await fetch.bot.fetch_guild(guild_id)
-            member: Member = await guild.fetch_member(req.user.snowflake)
+            result = thread.run_coroutine(get(thread.client))
         except Forbidden:
             raise SuspiciousOperation('Insufficient permission.')
+
+        guild, member = result
         if not member:
             raise SuspiciousOperation('Invalid parameters.')
         if not member.guild_permissions.manage_guild:
             raise SuspiciousOperation('Insufficient permission.')
 
-        @sync_to_async
+        @sync_to_async(thread_sensitive=False)
         def delete_server():
             try:
                 server: Server = Server.objects.get(snowflake=guild_id)
@@ -208,8 +213,34 @@ class DeleteServerProfileView(View):
                 return
             server.delete()
 
-        await guild.leave()
-        await delete_server()
-        await fetch.close()
+        async def leave():
+            await guild.leave()
+            await delete_server()
+        thread.run_coroutine(leave())
+
+        return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))
+
+
+class ResetServerDataView(View):
+    @staticmethod
+    @login_required
+    @write_access_required
+    def get(req: HttpRequest, guild_id: str) -> HttpResponse:
+        return render(req, 'web/reset.html')
+
+    @staticmethod
+    @login_required
+    @write_access_required
+    def post(req: HttpRequest, guild_id: str) -> HttpResponse:
+        guild_id = req.POST.get('guild_id')
+        try:
+            guild_id = int(guild_id)
+        except ValueError:
+            guild_id = None
+        if not guild_id:
+            raise SuspiciousOperation('Invalid parameters.')
+
+        ctx = req.discord
+        ctx.prefs.delete()
 
         return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))

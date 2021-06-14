@@ -41,6 +41,9 @@
 {% csrf_token %}
 
 {% asyncsubmit 'Synchronize models' 'outline-warning' %}
+
+<a href="{% url 'web:reset' guild_id=discord.current.id %}" class="btn btn-outline-danger">Reset
+    server settings</a>
 <a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave
     server</a>
 

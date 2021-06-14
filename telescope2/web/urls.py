@@ -30,6 +30,7 @@ urlpatterns = [
     re_path(r'^guild/join$', views.gateway.join, name='join'),
     re_path(r'^guild/joined$', views.gateway.CreateServerProfileView.as_view(), name='authorized'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/leave$', views.gateway.DeleteServerProfileView.as_view(), name='leave'),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/reset$', views.gateway.ResetServerDataView.as_view(), name='reset'),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/index$', views.manage.index, name='manage.index'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='manage.core'),

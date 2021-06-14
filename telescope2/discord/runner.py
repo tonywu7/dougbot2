@@ -97,6 +97,17 @@ class BotRunner(threading.Thread, Generic[T]):
         del self._data
         return data
 
+    def run_coroutine(self, coro):
+        with self.data_requested:
+            self.set_request(coro)
+            self.data_requested.notify_all()
+        with self.data_ready:
+            self.data_ready.wait_for(self.has_result)
+            result = self.get_result()
+        if isinstance(result, Exception):
+            raise result
+        return result
+
     def bot_initialized(self) -> bool:
         return hasattr(self, 'client')
 
