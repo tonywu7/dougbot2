@@ -65,7 +65,9 @@ class ServerCreationForm(forms.ModelForm):
         fields = ['snowflake']
 
 
-class CommandPrefixForm(FormConstants, AsyncFormMixin, forms.ModelForm):
+class CommandPrefixForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+    async_writable = True
+
     class Meta:
         model = Server
         fields = ['prefix']
@@ -82,6 +84,8 @@ class CommandPrefixForm(FormConstants, AsyncFormMixin, forms.ModelForm):
 
 
 class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+    async_writable = True
+
     class Meta:
         model = Server
         fields = []
@@ -106,6 +110,8 @@ class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm
 
 
 class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+    async_writable = True
+
     class Meta:
         model = Server
         fields = ['snowflake']

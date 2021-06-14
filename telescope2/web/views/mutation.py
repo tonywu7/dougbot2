@@ -18,13 +18,14 @@ from __future__ import annotations
 
 from typing import Dict, Type
 
-from django import forms
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.module_loading import import_string
 from django.views.decorators.http import require_POST
+
+from ..utils.forms import AsyncFormMixin
 
 
 def error_response(reason: str | Dict, status: int = 400):
@@ -41,8 +42,10 @@ def error_response(reason: str | Dict, status: int = 400):
 @login_required
 def async_form_save(req: HttpRequest, schema: str, item_id: str) -> HttpResponse:
     try:
-        model_form: Type[forms.ModelForm] = import_string(schema)
-    except ImportError:
+        model_form: Type[AsyncFormMixin] = import_string(schema)
+        assert issubclass(model_form, AsyncFormMixin)
+        assert model_form.async_writable
+    except (ImportError, AssertionError):
         raise SuspiciousOperation(f'Unknown form schema {schema}')
 
     item = get_object_or_404(model_form._meta.model, pk=item_id)

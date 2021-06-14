@@ -80,6 +80,8 @@ class SwitchInput(AttributeInject, widgets.CheckboxInput):
 class AsyncFormMixin(Generic[T]):
     instance: T
 
+    async_writable: bool = False
+
     @property
     def mutation_endpoint(self):
         return reverse('web:api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
