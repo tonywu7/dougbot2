@@ -1,4 +1,4 @@
-# constructs.py
+# discord.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,9 @@ from __future__ import annotations
 from functools import reduce
 from typing import Any, Callable, Dict, Optional, Type
 
-from discord import Member, Permissions, Role
+from discord import Color, Member, Permissions, Role
+from discord.abc import GuildChannel, User
+from discord.ext.commands import Context
 from discord.utils import SnowflakeList
 from more_itertools import flatten
 
@@ -61,3 +63,31 @@ def perm_intersection(*perms: Permissions) -> Permissions:
 
 def perm_complement(perm: Permissions) -> Permissions:
     return Permissions(~perm.value)
+
+
+def trimmed_msg(ctx: Context) -> str:
+    return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]
+
+
+def tag(obj) -> str:
+    if isinstance(obj, User):
+        return f'<@{obj.id}>'
+    if isinstance(obj, GuildChannel):
+        return f'<#{obj.id}>'
+    if isinstance(obj, Role):
+        if obj.is_default():
+            return '@everyone'
+        return f'<@&{obj.id}>'
+
+
+def traffic_light(val: bool | None, strict=False):
+    if val:
+        return '🟢'
+    elif strict and val is None:
+        return '🟡'
+    else:
+        return '⛔'
+
+
+def color_to_rgb8(c: Color) -> int:
+    return c.value

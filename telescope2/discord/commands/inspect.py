@@ -25,9 +25,10 @@ from discord.ext.commands import BadArgument, Bot, Converter, Greedy
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
+from telescope2.utils.discord import (HypotheticalMember, HypotheticalRole,
+                                      color_to_rgb8, tag, traffic_light)
+
 from ..bot import Circumstances, Robot
-from ..utils.constructs import HypotheticalMember, HypotheticalRole
-from ..utils.messages import color_to_rgb8, tag, traffic_light
 
 
 class PermissionTest(Converter):

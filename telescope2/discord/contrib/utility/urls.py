@@ -1,4 +1,4 @@
-from telescope2.web.utils.urls import annotated_re_path
+from telescope2.utils.urls import annotated_re_path
 
 from . import views
 

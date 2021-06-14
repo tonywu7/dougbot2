@@ -23,8 +23,8 @@ from django.core.checks import CheckMessage, Error, Warning, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
 
+from telescope2.utils.urls import AnnotatedPattern
 from telescope2.web.config import CommandAppConfig
-from telescope2.web.utils.urls import AnnotatedPattern
 
 from .runner import BotRunner
 

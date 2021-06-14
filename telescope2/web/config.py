@@ -25,7 +25,7 @@ from django.utils.functional import classproperty
 from django.utils.module_loading import import_string
 from django.utils.safestring import SafeString, mark_safe
 
-from telescope2.web.utils.urls import AnnotatedPattern
+from telescope2.utils.urls import AnnotatedPattern
 
 Extensions = Dict[str, 'CommandAppConfig']
 
