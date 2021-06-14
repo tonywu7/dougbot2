@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'polymorphic',
     'channels',
     'admin2017',
+    'rest_framework',
     'telescope2.discord.apps.DiscordBotConfig',
     'telescope2.web.apps.WebConfig',
     'telescope2.www.apps.WWWConfig',

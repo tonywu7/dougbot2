@@ -36,8 +36,31 @@ urlpatterns = [
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='manage.core'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/constraints$', views.manage.constraints, name='manage.constraints'),
 
-    re_path(r'^api/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
+    re_path(r'^api/v1/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
             views.mutation.async_form_save, name='api.mutation'),
+
+    re_path(r'^api/v1/bot-commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),
+
+    re_path(
+        r'^api/v1/guild/(?P<guild_id>[0-9]+)/channels$',
+        views.data.ChannelListView.as_view(),
+        name='api.guild.channels',
+    ),
+    re_path(
+        r'^api/v1/guild/(?P<guild_id>[0-9]+)/roles$',
+        views.data.RoleListView.as_view(),
+        name='api.guild.roles',
+    ),
+    re_path(
+        r'^api/v1/guild/(?P<guild_id>[0-9]+)/core/constraints$',
+        views.data.CommandConstraintListView.as_view(),
+        name='api.guild.core.constraints',
+    ),
+    re_path(
+        r'^api/v1/guild/(?P<guild_id>[0-9]+)/core/constraints/(?P<pk>[0-9]+)$',
+        views.data.CommandConstraintDetailsView.as_view(),
+        name='api.guild.core.constraints.details',
+    ),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('telescope2.discord.urls')),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
