@@ -1,4 +1,4 @@
-{% extends 'web/manage/base.html' %}
+{% extends 'telescope2/web/manage/base.html' %}
 {% load inspect element async_form %}
 
 {% block main_title %}Command constraints{% endblock %}
@@ -18,10 +18,10 @@
 <h4>Test out command constraints</h4>
 <div class="form">
     <ul>
-        <li><label>Channel</label> {% include 'web/elements/item-list.html' with prefix='#' %}</li>
+        <li><label>Channel</label> {% include 'telescope2/web/elements/item-list.html' with prefix='#' %}</li>
         <li><label>Command</label>
-            {% include 'web/elements/item-list.html' with prefix='t;' %}</li>
-        <li><label>Roles </label> {% include 'web/elements/item-list.html' with prefix='@' %}</li>
+            {% include 'telescope2/web/elements/item-list.html' with prefix='t;' %}</li>
+        <li><label>Roles </label> {% include 'telescope2/web/elements/item-list.html' with prefix='@' %}</li>
         <li><label>Result</label></span></span></li>
     </ul>
 </div>

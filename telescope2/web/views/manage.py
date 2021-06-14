@@ -31,16 +31,16 @@ Extensions = Dict[str, CommandAppConfig]
 @login_required
 @write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'web/manage/index.html')
+    return render(req, 'telescope2/web/manage/index.html')
 
 
 @login_required
 @write_access_required
 def core(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'web/manage/core.html')
+    return render(req, 'telescope2/web/manage/core.html')
 
 
 @login_required
 @write_access_required
 def constraints(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'web/manage/constraints.html')
+    return render(req, 'telescope2/web/manage/constraints.html')

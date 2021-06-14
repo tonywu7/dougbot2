@@ -51,7 +51,7 @@ def verify_state(req: HttpRequest):
 
 
 async def index(req: HttpRequest) -> HttpResponse:
-    return render(req, 'web/index.html')
+    return render(req, 'telescope2/web/index.html')
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
@@ -67,7 +67,7 @@ def user_logout(req: HttpRequest) -> HttpResponse:
 
 
 def invalid_login(req: HttpRequest, reason: str) -> HttpResponse:
-    return render(req, 'web/invalid-login.html', {'login_state': reason}, status=400)
+    return render(req, 'telescope2/web/invalid-login.html', {'login_state': reason}, status=400)
 
 
 class CreateUserView(View):
@@ -88,15 +88,15 @@ class CreateUserView(View):
         code = req.GET.get('code')
 
         if state != 'valid' or not code:
-            return render(req, 'web/invalid-login.html', {'login_state': state})
+            return render(req, 'telescope2/web/invalid-login.html', {'login_state': state})
 
         fetch = DiscordFetch(create_session())
         tokens = await fetch.exchange_tokens(req, code)
         await fetch.close()
         if tokens is None:
-            return render(req, 'web/invalid-login.html', {'login_state': 'incorrect_credentials'})
+            return render(req, 'telescope2/web/invalid-login.html', {'login_state': 'incorrect_credentials'})
 
-        return render(req, 'web/postlogin.html', {'form': UserCreationForm(data=tokens)})
+        return render(req, 'telescope2/web/postlogin.html', {'form': UserCreationForm(data=tokens)})
 
     def post(self, req: HttpRequest) -> HttpResponse:
         invalid_data = redirect(reverse('web:login_invalid', kwargs={'reason': 'invalid_payload'}))
@@ -153,7 +153,7 @@ class CreateServerProfileView(View):
         guild_id = req.GET.get('guild_id')
         if state != 'valid' or not guild_id:
             raise SuspiciousOperation('Bad credentials.')
-        return render(req, 'web/joined.html', {
+        return render(req, 'telescope2/web/joined.html', {
             'form': ServerCreationForm(data={'snowflake': int(guild_id)}),
         })
 
@@ -182,7 +182,7 @@ class DeleteServerProfileView(View):
     @login_required
     @write_access_required
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
-        return render(req, 'web/leave.html')
+        return render(req, 'telescope2/web/leave.html')
 
     @staticmethod
     @login_required
@@ -235,7 +235,7 @@ class ResetServerDataView(View):
     @login_required
     @write_access_required
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
-        return render(req, 'web/reset.html')
+        return render(req, 'telescope2/web/reset.html')
 
     @staticmethod
     @login_required

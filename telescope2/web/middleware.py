@@ -64,7 +64,7 @@ async def fetch_discord_info(req: HttpRequest):
 
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
     await sync_to_async(logout)(req)
-    return render(req, 'web/index.html')
+    return render(req, 'telescope2/web/index.html')
 
 
 async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):

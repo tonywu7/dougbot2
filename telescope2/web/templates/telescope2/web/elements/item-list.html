@@ -1,4 +1,4 @@
-<span class="d3-item-list" data-src="{{ data_src }}">
+<span {{ classes }} data-src="{{ endpoint }}" data-identity="{{ identity }}">
     <input type="hidden" value="{{ initial }}">
     <span class="dropdown">
         <span data-bs-toggle="dropdown" data-bs-auto-close="false"></span>
@@ -11,4 +11,5 @@
             <input type="text" placeholder="{{ placeholder }}">
         </span>
     </span>
+    <template>{{ template }}</template>
 </span>
