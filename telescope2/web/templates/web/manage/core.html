@@ -11,7 +11,7 @@
 <ul class="form-fields">{{ discord.forms.prefix.as_ul }}</ul>
 {% csrf_token %}
 <p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
-{% asyncsubmit 'Save' 'primary' 'mt-3 mb-1 w-100' %}
+{% asyncsubmit 'Save' 'primary' %}
 {% endform %}
 
 {% endsection %}
@@ -27,13 +27,25 @@
 </div>
 {% endwith %}
 {% csrf_token %}
-{% asyncsubmit 'Update settings' 'primary' 'mt-3 mb-1 w-100' %}
+{% asyncsubmit 'Update settings' 'primary' %}
 {% endform %}
 
 {% endsection %}
 
-{% section id='server-access' title='access' %}
-<a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave server</a>
+{% section id='server-debug' title='debug' %}
+
+{% asyncform discord.forms.sync_models id='sync-models' %}
+{% with discord.forms.sync_models as form %}
+<ul class="form-fields">{{ discord.forms.sync_models.as_ul }}</ul>
+{% endwith %}
+{% csrf_token %}
+
+{% asyncsubmit 'Synchronize models' 'outline-warning' %}
+<a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Leave
+    server</a>
+
+{% endform %}
+
 {% endsection %}
 
 {% endblock %}

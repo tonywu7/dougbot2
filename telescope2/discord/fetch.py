@@ -138,7 +138,6 @@ class DiscordFetch:
     def __init__(self, session: Optional[ClientSession] = None, user_id: int = -1):
         self.log = logging.getLogger('discord.fetch')
         self._session: ClientSession = session
-        self._bot: Telescope
 
         self._access: Optional[str]
         self._refresh: Optional[str]
@@ -149,20 +148,11 @@ class DiscordFetch:
         self._throttle_route = DiscordRateLimiter()
         self._cache = DiscordCache(user_id)
 
-    @property
-    def bot(self) -> Telescope:
-        return self._bot
-
     async def init_session(self, access_token: Optional[str] = None,
                            refresh_token: Optional[str] = None):
         self._access = access_token
         self._refresh = refresh_token
         self._session = self._session or create_session()
-
-    async def init_bot(self):
-        loop = asyncio.get_event_loop()
-        self._bot = Telescope(loop=loop)
-        await self._bot.login(settings.DISCORD_BOT_TOKEN)
 
     async def request_token(self, form: aiohttp.FormData) -> Optional[Dict]:
         async with self._session.post('https://discordapp.com/api/oauth2/token', data=form) as res:
@@ -270,8 +260,6 @@ class DiscordFetch:
     async def close(self):
         if self._session:
             await self._session.close()
-        if hasattr(self, '_bot'):
-            await self._bot.logout()
 
 
 class DiscordUnauthorized(Exception):

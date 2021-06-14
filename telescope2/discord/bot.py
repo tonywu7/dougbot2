@@ -18,29 +18,33 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
-from contextlib import contextmanager
 from importlib import import_module
 from pathlib import Path
-from typing import (ContextManager, Dict, Generator, Generic, Iterable,
-                    Optional, Protocol, Tuple, Type, TypeVar)
+from typing import (Generator, Iterable, List, Optional, Protocol, Set, Tuple,
+                    TypeVar)
 
 from asgiref.sync import sync_to_async
 from discord import AllowedMentions, Client, Guild, Message, Permissions
 from discord.abc import GuildChannel
 from discord.ext.commands import Bot, Command, Group
-from django.conf import settings
 from django.core.cache import caches
+from django.db.models.query import QuerySet
 
 from telescope2.utils.importutil import iter_module_tree, objpath
 
-from . import ipc
+from . import ipc, models
 from .apps import DiscordBotConfig
 from .context import Circumstances
 from .models import Server
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
+
+AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
+
+
+class DiscordModel(Protocol):
+    id: int
 
 
 class CommandIterator(Protocol):
@@ -69,6 +73,43 @@ class Robot(Bot):
             yield cat
             for c in channels:
                 yield c
+
+    @classmethod
+    def _sync_models(cls, model: AdaptableModel, designated: List[DiscordModel],
+                     registered: QuerySet[AdaptableModel]):
+        designated = {r.id: r for r in designated}
+        registered_ids: Set[int] = {d['snowflake'] for d in registered.values('snowflake')}
+        to_delete = registered.exclude(snowflake__in=designated.keys())
+        to_insert = (model.from_discord(r) for k, r in designated.items()
+                     if k not in registered_ids)
+        to_update = (model.from_discord(r) for k, r in designated.items()
+                     if k in registered_ids)
+        to_delete.delete()
+        model.objects.bulk_create(to_insert)
+        model.objects.bulk_update(to_update, model.updatable_fields())
+
+    @classmethod
+    def _sync_layouts(cls, server: Server, guild: Guild):
+        role_order = {r.id: idx for idx, r in enumerate(guild.roles)}
+        channel_order = {c.id: idx for idx, c in enumerate(cls.channels_ordered_1d(guild))}
+        server.roles.bulk_update([
+            models.Role(snowflake=k, order=v) for k, v in role_order.items()
+        ], ['order'])
+        server.channels.bulk_update([
+            models.Channel(snowflake=k, order=v) for k, v in channel_order.items()
+        ], ['order'])
+
+    @classmethod
+    @sync_to_async(thread_sensitive=False)
+    def sync_server(cls, guild: Guild):
+        server: Server = (
+            Server.objects
+            .prefetch_related('channels', 'roles')
+            .get(pk=guild.id)
+        )
+        cls._sync_models(models.Role, guild.roles, server.roles)
+        cls._sync_models(models.Channel, guild.channels, server.channels)
+        cls._sync_layouts(server, guild)
 
 
 class Telescope(Robot):
@@ -137,51 +178,3 @@ class Telescope(Robot):
         ctx: Circumstances = await super().get_context(message, cls=cls)
         await ctx.init()
         return ctx
-
-
-class BotRunner(threading.Thread, Generic[T]):
-    def __init__(self, client_cls: Type[T], client_opts: Dict, run_forever=True, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._client_cls = client_cls
-        self._client_options = client_opts
-        self._run_forever = run_forever
-
-        self.bot_init = threading.Condition()
-        self.loop: asyncio.AbstractEventLoop
-        self.client: T
-
-    def run_client(self):
-        with self.bot_init:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            client = self._client_cls(loop=loop, **self._client_options)
-            self.loop = loop
-            self.client = client
-            self.bot_init.notify_all()
-        if self._run_forever:
-            loop.create_task(client.start(settings.DISCORD_BOT_TOKEN))
-            loop.run_forever()
-
-    def bot_initialized(self) -> bool:
-        return hasattr(self, 'client')
-
-    def run(self) -> None:
-        return self.run_client()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        if hasattr(self, 'client'):
-            self.loop.run_until_complete(self.client.close())
-            self.loop.close()
-        return super().join(timeout=timeout)
-
-    @classmethod
-    @contextmanager
-    def instanstiate(cls, client_cls: Type[U], *args, run_forever=False, daemon=True, **kwargs) -> ContextManager[U]:
-        thread = cls(client_cls, *args, run_forever=False, daemon=True, **kwargs)
-        thread.start()
-        with thread.bot_init:
-            thread.bot_init.wait_for(thread.bot_initialized)
-        try:
-            yield thread.client
-        finally:
-            thread.join()

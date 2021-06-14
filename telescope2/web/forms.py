@@ -18,8 +18,8 @@ from __future__ import annotations
 
 from operator import itemgetter
 
+from asgiref.sync import async_to_sync
 from django import forms
-from django.forms.fields import BooleanField
 
 from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.models import Server
@@ -38,6 +38,9 @@ class PreferenceForms:
 
     def extensions(self):
         return ExtensionToggleForm(instance=self.context.prefs)
+
+    def sync_models(self):
+        return ModelSynchronizationActionForm(instance=self.context.prefs)
 
 
 class UserCreationForm(forms.Form):
@@ -90,7 +93,7 @@ class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm
         options = {}
         enabled = instance.extensions
         for label, ext in conf.extensions.items():
-            options[label] = BooleanField(
+            options[label] = forms.BooleanField(
                 required=False, label=ext.icon_and_title,
                 initial=label in enabled, widget=SwitchInput,
             )
@@ -100,3 +103,31 @@ class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm
         enabled = [k for k, v in self.cleaned_data.items() if v]
         self.instance.extensions = enabled
         super().save(commit=commit)
+
+
+class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+    class Meta:
+        model = Server
+        fields = ['snowflake']
+
+    snowflake = forms.IntegerField(required=True, widget=forms.HiddenInput)
+
+    @async_to_sync
+    async def save(self, commit=True):
+        app = DiscordBotConfig.get()
+        thread = app.bot_thread
+
+        async def task(bot):
+            guild = await bot.fetch_guild(self.cleaned_data['snowflake'])
+            guild._channels = {c.id: c for c in await guild.fetch_channels()}
+            guild._roles = {r.id: r for r in await guild.fetch_roles()}
+            await bot.sync_server(guild)
+
+        with thread.data_requested:
+            thread.set_request(task(thread.client))
+            thread.data_requested.notify_all()
+        with thread.data_ready:
+            thread.data_ready.wait_for(thread.has_result)
+            result = thread.get_result()
+            if isinstance(result, Exception):
+                raise result

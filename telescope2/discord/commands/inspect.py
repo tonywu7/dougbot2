@@ -27,7 +27,7 @@ from more_itertools import split_before
 
 from ..bot import Circumstances, Robot
 from ..utils.constructs import HypotheticalMember, HypotheticalRole
-from ..utils.messages import rgb8, tag, traffic_light
+from ..utils.messages import color_to_rgb8, tag, traffic_light
 
 
 class PermissionTest(Converter):
@@ -81,7 +81,7 @@ def register_all(bot: Bot):
     async def roles(ctx: Circumstances, *args):
         lines = []
         for r in reversed(ctx.guild.roles):
-            lines.append(f'{tag(r)} `#{rgb8(r.color):06x}`')
+            lines.append(f'{tag(r)} `#{color_to_rgb8(r.color):06x}`')
         await ctx.send('\n'.join(lines))
 
     @bot.command('perms')

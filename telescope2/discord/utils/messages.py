@@ -45,5 +45,5 @@ def traffic_light(val: bool | None, strict=False):
         return '⛔'
 
 
-def rgb8(c: Color) -> int:
-    return (c.r << 16) + (c.g << 8) + c.b
+def color_to_rgb8(c: Color) -> int:
+    return c.value

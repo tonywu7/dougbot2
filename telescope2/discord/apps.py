@@ -26,6 +26,8 @@ from django.db.backends.signals import connection_created
 from telescope2.web.config import CommandAppConfig
 from telescope2.web.utils.urls import AnnotatedPattern
 
+from .runner import BotRunner
+
 
 class DiscordBotConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -34,6 +36,8 @@ class DiscordBotConfig(AppConfig):
     ext_map: Dict[str, CommandAppConfig] = {}
     url_map: Dict[str, List[AnnotatedPattern]] = {}
 
+    bot_thread: BotRunner
+
     def sqlite_pragma(self, *, sender, connection: BaseDatabaseWrapper, **kwargs):
         if connection.vendor == 'sqlite':
             with connection.cursor() as cursor:
@@ -41,11 +45,16 @@ class DiscordBotConfig(AppConfig):
                 cursor.execute('PRAGMA journal_mode=WAL;')
 
     def ready(self) -> None:
+        from .bot import Telescope
+
         connection_created.connect(self.sqlite_pragma)
         for k, v in apps.app_configs.items():
             if isinstance(v, CommandAppConfig):
                 self.ext_map[k] = v
                 self.url_map[k] = v.public_views()
+
+        self.bot_thread = BotRunner(Telescope, {}, run_forever=False, standby=True, daemon=True)
+        self.bot_thread.start()
 
     @classmethod
     def get(cls) -> DiscordBotConfig:
@@ -58,8 +67,9 @@ class DiscordBotConfig(AppConfig):
 
 @register('discord')
 def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMessage]:
-    from .bot import BotRunner, Robot, Telescope
+    from .bot import Robot, Telescope
     from .models import BotCommand
+    from .runner import BotRunner
 
     errors = []
 
