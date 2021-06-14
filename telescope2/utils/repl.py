@@ -166,7 +166,7 @@ class Form(TemplateQuestionMixin, Cmd):
             return True
 
     def do_help(self, arg):
-        pass
+        return self.default('help')
 
     def cmdloop(self, intro=None):
         while True:
