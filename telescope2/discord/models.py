@@ -256,5 +256,19 @@ class Role(Entity, ModelTranslator[discord.Role, 'Role']):
         return ['name', 'color', 'perms']
 
 
-class BotCommand(models.Model):
+class BotCommand(NamingMixin, SubclassMetaMixin, models.Model):
     identifier: str = models.CharField(max_length=120, unique=True)
+
+    class Meta:
+        verbose_name = 'bot command'
+
+
+class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
+    commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
+    channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
+    roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
+
+    name: str = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = 'command constraint'
