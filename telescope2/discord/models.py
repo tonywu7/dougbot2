@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, Generic, Iterable, List, TypeVar, Union
+from typing import Dict, Generic, Iterable, List, Protocol, TypeVar, Union
 
 import discord
 import inflect
@@ -25,6 +25,7 @@ from discord.abc import ChannelType
 from django.apps import apps
 from django.db import models
 from django.db.models import CASCADE
+from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 
 from telescope2.web.config import CommandAppConfig
@@ -122,6 +123,14 @@ class ModelTranslator(Generic[T, U]):
     @classmethod
     def updatable_fields(cls) -> List[str]:
         raise NotImplementedError
+
+
+class ORMAccess(Protocol):
+    objects: BaseManager
+
+
+class ServerScoped(ORMAccess):
+    guild: Server
 
 
 class Entity(NamingMixin, SubclassMetaMixin, models.Model):
@@ -263,12 +272,21 @@ class BotCommand(NamingMixin, SubclassMetaMixin, models.Model):
         verbose_name = 'bot command'
 
 
+class ConstraintType(models.IntegerChoices):
+    NONE = 0
+    ANY = 1
+    ALL = 2
+
+
 class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
+    guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='command_constraints')
+
     commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
     channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
     roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
 
     name: str = models.TextField(blank=True)
+    type: str = models.IntegerField(choices=ConstraintType.choices)
 
     class Meta:
         verbose_name = 'command constraint'
