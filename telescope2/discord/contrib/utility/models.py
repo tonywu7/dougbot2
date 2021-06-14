@@ -17,9 +17,19 @@
 from django.db import models
 from django.db.models import CASCADE
 
-from ...models import Entity
+from ...models import Role, User
 
 
 class Timezone(models.Model):
     tz: str = models.CharField(max_length=128)
-    entity: Entity = models.ForeignKey(Entity, on_delete=CASCADE, related_name='+')
+
+    class Meta:
+        abstract = True
+
+
+class UserTimezone(Timezone):
+    user: User = models.ForeignKey(User, on_delete=CASCADE, related_name='+')
+
+
+class RoleTimezone(Timezone):
+    role: Role = models.ForeignKey(Role, on_delete=CASCADE, related_name='+')

@@ -69,8 +69,9 @@ class Command(BaseCommand):
 
     @classmethod
     def sync_commands(cls, dry_run):
-        from ...bot import BotRunner, Telescope
+        from ...bot import Telescope
         from ...models import BotCommand
+        from ...runner import BotRunner
 
         with BotRunner.instanstiate(Telescope, {}) as bot:
             bot: Telescope

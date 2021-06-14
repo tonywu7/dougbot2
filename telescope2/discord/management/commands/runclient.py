@@ -21,7 +21,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import autoreload
 
-from ...bot import BotRunner, Telescope
+from ...bot import Telescope
+from ...runner import BotRunner
 
 
 class Command(BaseCommand):
