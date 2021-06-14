@@ -77,7 +77,7 @@ class Robot(Bot):
 
         root = root or self
         for cmd in root.commands:
-            identifier = f'{prefix}.{cmd.name}'
+            identifier = f'{prefix} {cmd.name}'.strip()
             yield (identifier, cmd)
             if isinstance(cmd, Group):
                 yield from self.iter_commands(cmd, identifier)
