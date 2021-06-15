@@ -29,7 +29,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'polymorphic',
-    'channels',
     'admin2017',
     'rest_framework',
     'telescope2.discord.apps.DiscordBotConfig',
@@ -43,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions',
     'telescope2.discord.contrib.utility.apps.BotUtilityConfig',
+    'channels',
 ]
 
 MIDDLEWARE = [

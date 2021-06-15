@@ -9,15 +9,25 @@ https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 
 import os
 
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
-from django.core.asgi import get_asgi_application
+import django
 
 import telescope2.web.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telescope2.settings')
 
-application = ProtocolTypeRouter({
-    'http': get_asgi_application(),
-    'websocket': AuthMiddlewareStack(URLRouter(telescope2.web.routing.websocket_urlpatterns)),
-})
+django.setup()
+
+
+def create_app():
+
+    from channels.auth import AuthMiddlewareStack
+    from channels.routing import ProtocolTypeRouter, URLRouter
+    from django.core.asgi import get_asgi_application
+
+    return ProtocolTypeRouter({
+        'http': get_asgi_application(),
+        'websocket': AuthMiddlewareStack(URLRouter(telescope2.web.routing.websocket_urlpatterns)),
+    })
+
+
+application = create_app()
