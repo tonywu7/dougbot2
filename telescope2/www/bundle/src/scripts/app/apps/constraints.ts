@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { getTemplate, randomIdentifier } from '../../common/util'
+import { getTemplate, killAllChildren, randomIdentifier } from '../../common/util'
 import {
     D3ItemList,
     createFlexSelect,
@@ -28,6 +28,7 @@ import { ModelState } from '../constants'
 
 interface CCRecord {
     id: number | string
+    tempId?: any
     guild: string
     name: string
     type: number
@@ -69,10 +70,8 @@ export class CommandConstraintForm {
 
         this.title = this.form.querySelector('.constraint-title input') as HTMLInputElement
         this.title.value = data.name
-        this.title.id = `ccform-${this.id}-title`
 
         this.type = this.form.querySelector('.command-constraint-type') as HTMLSelectElement
-        this.type.id = `ccform-${this.id}-types`
         this.type.value = data.type.toString()
         createFlexSelect(this.type.parentElement as HTMLElement)
 
@@ -80,17 +79,11 @@ export class CommandConstraintForm {
         this.commands = new D3ItemList(this.form.querySelector('.command-list') as HTMLElement)
         this.roles = new D3ItemList(this.form.querySelector('.role-list') as HTMLElement)
 
-        this.channels.setInputId(`ccform-${this.id}-channels`)
-        this.commands.setInputId(`ccform-${this.id}-commands`)
-        this.roles.setInputId(`ccform-${this.id}-roles`)
-
         this.deleteButton = this.container.querySelector('.btn-delete') as HTMLButtonElement
         this.deleteButton.addEventListener('click', this.deleteListener.bind(this))
 
         initTooltips(this.container)
-
-        let fields = this.form.querySelector('.form-fields') as HTMLElement
-        fields.id = `ccform-${this.id}--formfields`
+        this.setElementIds()
 
         Promise.all([this.channels.populated(), this.commands.populated(), this.roles.populated()]).then(() => {
             this.channels.fromJSON(data.channels)
@@ -131,10 +124,6 @@ export class CommandConstraintForm {
         }
     }
 
-    private get isCreated() {
-        return typeof this.id === 'string'
-    }
-
     public toJSON(): [Partial<CCRecord>, ModelState] | [null, null] {
         let record: Partial<CCRecord> = {
             guild: this.guildId,
@@ -170,8 +159,27 @@ export class CommandConstraintForm {
         this.container.parentElement?.removeChild(this.container)
     }
 
+    public get isCreated() {
+        return typeof this.id === 'string'
+    }
+
     public get isDeleted() {
         return this.deleted
+    }
+
+    public setId(id: number) {
+        this.id = id
+        this.setElementIds()
+    }
+
+    protected setElementIds() {
+        this.title.id = `ccform-${this.id}-title`
+        this.type.id = `ccform-${this.id}-types`
+        this.channels.setInputId(`ccform-${this.id}-channels`)
+        this.commands.setInputId(`ccform-${this.id}-commands`)
+        this.roles.setInputId(`ccform-${this.id}-roles`)
+        let fields = this.form.querySelector('.form-fields') as HTMLElement
+        fields.id = `ccform-${this.id}--formfields`
     }
 }
 
@@ -193,11 +201,14 @@ class CommandConstraintList {
 
     protected async fetchList() {
         let res = await fetch(this.endpoint)
-
         if (res.status === 404) return await this.createList()
-
         let data: CCRecordList = await res.json()
+        this.parseData(data)
+    }
+
+    protected parseData(data: CCRecordList) {
         this.guild = data.guild
+        this.clear()
         for (let d of data.constraints) {
             let form = new CommandConstraintForm(d)
             this.forms.push(form)
@@ -206,6 +217,13 @@ class CommandConstraintList {
         this.container
             .querySelectorAll('.accordion-item')
             .forEach((e) => createAccordion(this.container, e as HTMLElement))
+    }
+
+    protected clear() {
+        while (this.forms.length) {
+            let form = this.forms.pop()
+            form?.remove()
+        }
     }
 
     protected async createList() {
@@ -241,7 +259,10 @@ class CommandConstraintList {
         for (let [data, state] of this.forms.map((f) => f.toJSON())) {
             if (data === null) continue
             data.guild = this.guild!
-            if (state === ModelState.CREATE) data.id = undefined
+            if (state === ModelState.CREATE) {
+                data.tempId = data.id
+                data.id = undefined
+            }
             aggregated[state!].push(data)
         }
         return aggregated
@@ -265,7 +286,11 @@ class CommandConstraintList {
     }
 
     protected async put(data: { guild: string; constraints: Partial<CCRecord>[] }) {
-        return await this.submit(JSON.stringify(data))
+        let response = await this.submit(JSON.stringify(data))
+        let res = response.clone()
+        let results: CCRecordList = await res.json()
+        this.parseData(results)
+        return response
     }
 
     public getData(): Submissible {

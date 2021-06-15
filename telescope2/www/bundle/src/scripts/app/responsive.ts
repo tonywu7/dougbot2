@@ -418,6 +418,7 @@ export function AsyncPostSubmit<TBase extends AsyncSubmit & FormController>(Base
         async submit(data: Submissible, method: StateChangeMethods): Promise<Response | null> {
             let res = await super.submit(data, method)
             if (res === null) return null
+            let response = res.clone()
             if (res.status < 299) {
                 this.updateDefaults()
                 let msg: string
@@ -449,7 +450,7 @@ export function AsyncPostSubmit<TBase extends AsyncSubmit & FormController>(Base
                 let notif = renderer.render('async-form-update-error', { error: msg })
                 displayNotification(notif, { autohide: false, delay: 20 })
             }
-            return res
+            return response
         }
     }
 }
