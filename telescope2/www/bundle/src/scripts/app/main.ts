@@ -14,104 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { DiscordClient } from './discord'
-import { TemplateRenderer, D3ItemList, initTooltips } from './responsive'
+import { DiscordServer } from './discord'
+import { TemplateRenderer, D3ItemList, initTooltips, D3DataSource } from './responsive'
 import { AsyncResponsiveModelForm } from './api'
 
-import * as util from '../common/util'
-import * as bootstrap from 'bootstrap'
+import { BotData } from './bot'
 
-export var discord: DiscordClient
 export var renderer: TemplateRenderer
 
-function homepage(): string {
+export var datasources: DataSources
+
+export function homepage(): string {
     return (document.querySelector('#site-name a') as HTMLAnchorElement).href
-}
-
-function setSocketStatus(connected: boolean) {
-    let indicator = document.querySelector('#socket-status') as HTMLSpanElement
-    if (indicator === null) return
-    indicator.innerHTML = `<i class="bi bi-circle-fill"></i>${connected ? 'connected' : 'disconnected'}`
-    if (connected) {
-        indicator.classList.add('socket-on')
-        indicator.classList.remove('socket-off')
-    } else {
-        indicator.classList.add('socket-off')
-        indicator.classList.remove('socket-on')
-    }
-}
-
-function initWebSocket(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-        let socket = new WebSocket(`ws://${window.location.host}/bot/ws/index/`)
-        socket.addEventListener('open', () => {
-            setSocketStatus(true)
-            return resolve(true)
-        })
-        socket.addEventListener('message', (ev) => {})
-        socket.addEventListener('close', () => {
-            setSocketStatus(false)
-            setTimeout(initWebSocket, 1000)
-        })
-    })
-}
-
-async function discordOAuth2() {
-    let authInfoContainer = document.querySelector('#discord-oauth2') as HTMLElement
-    if (authInfoContainer === null) return
-    let authInfo = authInfoContainer.querySelector('form') as HTMLFormElement
-    let loginForm: FormData
-    try {
-        loginForm = new FormData(authInfo)
-    } catch (e) {
-        window.location.href = homepage()
-        return
-    }
-    let accessToken = loginForm.get('access_token')?.toString()!
-    if (accessToken === null) return
-
-    discord = new DiscordClient(accessToken)
-    let userCreateInfo = util.serializeFormData(loginForm)
-    userCreateInfo.username = await discord.userTag()
-    userCreateInfo.snowflake = await discord.userId()
-
-    let csrfToken = loginForm.get('csrfmiddlewaretoken')?.toString()!
-    let res = await fetch(window.location.pathname, {
-        method: 'POST',
-        mode: 'same-origin',
-        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify(userCreateInfo),
-    })
-    if (res.status === 403) {
-        window.location.href = authInfo.dataset.onForbidden!
-    } else {
-        window.location.href = homepage()
-    }
-}
-
-async function setAvatar(discord: DiscordClient): Promise<void> {
-    let avatarURL = (await discord.user())?.iconURL
-    if (avatarURL === null || avatarURL === undefined) return
-    document.querySelectorAll('.user-profile').forEach((elem) => {
-        let figure = elem as HTMLElement
-        figure.appendChild(createAvatarElement(avatarURL!))
-    })
-}
-
-async function initDiscord() {
-    let userInfoElem = document.querySelector('#user-info') as HTMLElement
-    if (userInfoElem === null) return
-
-    let accessToken = userInfoElem.dataset.accessToken
-    if (accessToken === undefined || accessToken === 'None') window.location.href = '/web/logout'
-
-    discord = new DiscordClient(accessToken!)
-}
-
-function discordJoinServer() {
-    let form = document.querySelector('#discord-join-server form') as HTMLFormElement
-    if (form === null) return
-    form.submit()
 }
 
 function initTopMenu() {
@@ -152,15 +66,23 @@ export function getGuildId(): string | null {
     return (elem as HTMLElement).dataset.serverId!
 }
 
+class DataSources {
+    src: Record<string, D3DataSource> = {}
+
+    constructor() {
+        this.src['discord'] = new DiscordServer(getGuildId()!)
+        this.src['bot'] = new BotData()
+    }
+
+    async data(uri: string) {
+        let [namespace, dtype, ...args] = uri.split(':')
+        return await this.src[namespace].data(dtype)
+    }
+}
+
 export function init() {
+    datasources = new DataSources()
     initTopMenu()
     initWidgets()
     initTemplates()
-    discordOAuth2()
-        .then(() => {
-            return initDiscord()
-        })
-        .then(() => {
-            discordJoinServer()
-        })
 }

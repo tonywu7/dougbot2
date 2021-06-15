@@ -18,12 +18,21 @@ import * as bootstrap from 'bootstrap'
 import * as Mustache from 'mustache'
 import * as d3 from 'd3'
 import { TextSearch, configureAsPrefixSearch, allKeywords } from './search'
+import { datasources, renderer } from './main'
 
 type JSONValue = string | number | boolean | null
 type JSONArray = Array<JSONValue | JSONType>
 interface JSONType extends Record<string, JSONValue | JSONArray | JSONType> {}
 
-class D3Item {
+export interface D3Datum {
+    id: string
+    type?: string | number
+    name?: string
+    color?: number
+    order?: number
+}
+
+class D3Item implements D3Datum {
     static DEFAULT_COLOR = '#98a9ea'
 
     id: string
@@ -147,9 +156,7 @@ export class D3ItemList {
     dropdown: bootstrap.Dropdown
 
     itemList: HTMLUListElement
-
     dataSource: string
-    initialSrc: string | null
     selectionType: 'single' | 'multiple'
 
     selected: Record<any, D3Item> = {}
@@ -157,7 +164,7 @@ export class D3ItemList {
     candidates: d3.Selection<HTMLLIElement, D3Item, HTMLUListElement, any> | null = null
     index: TextSearch<D3Item> | null = null
 
-    private _populated: Promise<void>
+    private initialFetch: Promise<void>
 
     constructor(container: HTMLElement) {
         this.container = container
@@ -172,11 +179,10 @@ export class D3ItemList {
 
         this.itemList = this.dropdownMenu.querySelector('ul') as HTMLUListElement
         this.dataSource = this.container.dataset.src!
-        this.initialSrc = this.container.dataset.initialData || null
         this.selectionType = this.container.dataset.selectionType as any
 
         this.addListeners()
-        this._populated = this.populate()
+        this.initialFetch = this.populate()
     }
 
     private addListeners() {
@@ -189,14 +195,8 @@ export class D3ItemList {
         })
     }
 
-    public get populated(): Promise<void> {
-        return this._populated
-    }
-
     public async populate() {
-        let data: any[] | undefined = await d3.json(this.dataSource, { method: 'GET', mode: 'same-origin' })
-        if (!data) return
-
+        let data = await datasources.data(this.dataSource)
         let objs: D3Item[] = data.map((d) => new D3Item(d))
 
         this.index = new TextSearch(objs, configureAsPrefixSearch)
@@ -218,13 +218,11 @@ export class D3ItemList {
             .attr('data-item-type', (d) => d.type || 0)
             .text((d) => d.name || d.id)
             .style('color', (d) => d.getColor())
+    }
 
-        if (this.initialSrc === null) return
-
-        let items: any[] = (await d3.json(this.initialSrc, { method: 'GET', mode: 'same-origin' })) || []
-        this.selected = Object.assign({}, ...items.map((d) => ({ [d.id]: new D3Item(d) })))
-        if (!this.selected) return
-        this.updateSelection()
+    public async populated(): Promise<boolean> {
+        await this.initialFetch
+        return true
     }
 
     protected updateSelection() {
@@ -313,7 +311,8 @@ export class D3ItemList {
     }
 
     public toJSON(): string[] {
-        return this.input.value.split('\x00')
+        let data = this.input.value.split('\x00')
+        return data.filter((s) => s.length > 0)
     }
 
     public setInputId(id: string) {
@@ -348,4 +347,109 @@ export function initTooltips(frame: Element) {
     ;[].slice
         .call(frame.querySelectorAll('[data-bs-toggle="tooltip"]'))
         .forEach((tooltipElem) => new bootstrap.Tooltip(tooltipElem))
+}
+
+export interface D3DataSource {
+    data(dtype: string): Promise<D3Datum[]>
+}
+
+export type Constructor = new (...args: any[]) => {}
+export type GConstructor<T = {}> = new (...args: any[]) => T
+
+export type Submissible = FormData | string
+export type StateChangeMethods = 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+
+export interface AsyncPOST {
+    post(): Promise<void>
+}
+
+export interface AsyncPUT {
+    put(): Promise<void>
+}
+
+export interface AsyncDELETE {
+    delete(): Promise<void>
+}
+
+export type AsyncSubmit = GConstructor<{
+    submit(data: Submissible, method: StateChangeMethods): Promise<Response | null>
+}>
+
+export type FormController = GConstructor<{
+    getData(): Submissible
+    checkValid(): boolean
+    updateDefaults(): void
+}>
+
+export function SupportsPOST<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async post() {
+            return await this.submit(this.getData(), 'POST')
+        }
+    }
+}
+
+export function SupportsPUT<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async put() {
+            return await this.submit(this.getData(), 'PUT')
+        }
+    }
+}
+
+export function SupportsPATCH<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async patch() {
+            return await this.submit(this.getData(), 'PATCH')
+        }
+    }
+}
+
+export function SupportsDELETE<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async delete() {
+            return await this.submit(this.getData(), 'DELETE')
+        }
+    }
+}
+
+export function AsyncPostSubmit<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class AsyncSubmit extends Base {
+        async submit(data: Submissible, method: StateChangeMethods): Promise<Response | null> {
+            let res = await super.submit(data, method)
+            if (res === null) return null
+            if (res.status < 299) {
+                this.updateDefaults()
+                let msg: string
+                try {
+                    msg = (await res.json()).message || 'Settings saved.'
+                } catch (e) {
+                    switch (res.status) {
+                        case 204:
+                            msg = 'Settings saved.'
+                            break
+                        case 201:
+                            msg = 'Items created'
+                            break
+                        default:
+                            msg = 'Submission accepted'
+                            break
+                    }
+                }
+                let notif = renderer.render('async-form-update-successful', { message: msg })
+                displayNotification(notif)
+            } else {
+                let msg: string
+                try {
+                    let data = await res.json()
+                    msg = data.error
+                } catch (e) {
+                    msg = `Server error; status ${res.status}`
+                }
+                let notif = renderer.render('async-form-update-error', { error: msg })
+                displayNotification(notif, { autohide: false, delay: 20 })
+            }
+            return res
+        }
+    }
 }

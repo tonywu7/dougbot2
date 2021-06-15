@@ -28,12 +28,10 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Application definition
 
 INSTALLED_APPS = [
+    'cacheops',
     'polymorphic',
     'admin2017',
     'rest_framework',
-    'telescope2.discord.apps.DiscordBotConfig',
-    'telescope2.web.apps.WebConfig',
-    'telescope2.www.apps.WWWConfig',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'telescope2.discord.apps.DiscordBotConfig',
+    'telescope2.web.apps.WebConfig',
+    'telescope2.www.apps.WWWConfig',
     'telescope2.discord.contrib.utility.apps.BotUtilityConfig',
     'channels',
 ]

@@ -1,0 +1,40 @@
+{% load discord_list %}
+<div class="paragraph accordion-item">
+    <form>
+        <div class="form command-constraint command-constraint-form">
+            <h4 class="constraint-title accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target
+                    aria-expanded="false">
+                </button>
+                <input type="text" placeholder="(unnamed constraint)">
+                <button type="button" class="btn btn-outline-danger btn-delete">Delete</button>
+            </h4>
+            <ul class="form-fields accordion-collapse collapse" data-bs-parent>
+                <li><label for="id-constraint-channels-1">In these channels:</label>
+                    {% d3itemlist 'discord:channels' 'multiple' classes='channel-list' placeholder='channel names...' %}
+                    <span class="input-group-text" data-bs-toggle="tooltip" data-bs-placement="right"
+                        title="Leave empty to apply to all channels">#</span>
+                    {% enditemlist %}
+                </li>
+                <li><label for="id-constraint-commands-1">to use these commands:</label>
+                    {% d3itemlist 'bot:commands' 'multiple' classes='command-list' placeholder='commands ...' %}
+                    <span class="input-group-text" data-bs-toggle="tooltip" data-bs-placement="right"
+                        title="Leave empty to apply to all commands">?</span>
+                    {% enditemlist %}
+                </li>
+                <li><label for="id-constraint-roles-1">a member must have these roles:</label>
+                    {% d3itemlist 'discord:roles' 'multiple' classes='role-list constraint-roles' placeholder='role names...' %}
+                    <div class="input-group-text flex-select">
+                        <span class="actionable">type</span>
+                        <select class="command-constraint-type">
+                            <option value="1">any of</option>
+                            <option value="2">all of</option>
+                            <option value="0">none of</option>
+                        </select>
+                    </div>
+                    {% enditemlist %}
+                </li>
+            </ul>
+        </div>
+    </form>
+</div>

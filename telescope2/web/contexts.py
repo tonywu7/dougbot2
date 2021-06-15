@@ -21,7 +21,6 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
-from django.urls import reverse
 
 from telescope2.discord.fetch import PartialGuild, PartialUser
 from telescope2.discord.models import Server
@@ -100,15 +99,3 @@ class DiscordContext:
             return {label: (False, conf) for label, conf in extensions.items()}
         enabled = self.server.extensions
         return {label: (label in enabled, conf) for label, conf in extensions.items()}
-
-    @property
-    def api_channels(self):
-        return reverse('web:api.guild.channels', kwargs={'guild_id': self.server_id})
-
-    @property
-    def api_roles(self):
-        return reverse('web:api.guild.roles', kwargs={'guild_id': self.server_id})
-
-    @property
-    def api_commands(self):
-        return reverse('web:api.bot.commands')

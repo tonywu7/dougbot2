@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { createAvatarElement } from './main'
+import { D3DataSource, D3Datum } from './responsive'
 
 const API_ENDPOINT = 'https://discord.com/api/v9'
 const CDN_PREFIX = 'https://cdn.discordapp.com'
@@ -175,5 +175,88 @@ export class DiscordClient {
     async managedGuilds(): Promise<Guild[]> {
         let guilds = await this.fetchGuilds()
         return guilds.filter((g) => g.permissions?.hasPerms(Perms.MANAGE_GUILD))
+    }
+}
+
+export class Channel implements D3Datum {
+    id: string
+    type?: string | number
+    name?: string
+    order?: number
+
+    constructor(data: any) {
+        Object.assign(this, data)
+        this.id = data.id.toString()
+    }
+}
+
+export class Role implements D3Datum {
+    id: string
+    color?: number
+    name?: string
+    order?: number
+
+    constructor(data: any) {
+        Object.assign(this, data)
+        this.id = data.id.toString()
+    }
+}
+
+export class DiscordServer implements D3DataSource {
+    readonly id: string
+
+    private _name: string = ''
+
+    private readonly channels: Channel[] = []
+    private readonly roles: Role[] = []
+
+    private initialFetch: Promise<void>
+
+    constructor(id: string) {
+        this.id = id
+        this.initialFetch = this.fetchData()
+    }
+
+    get endpoint(): string {
+        return `/web/api/v1/guild/${this.id}`
+    }
+
+    get name() {
+        return this._name
+    }
+
+    async fetchData(): Promise<void> {
+        let res = await fetch(this.endpoint, {
+            method: 'GET',
+            mode: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+        let data = await res.json()
+
+        this._name = data.name
+        for (let c of data.channels) this.channels.push(new Channel(c))
+        for (let r of data.roles) this.roles.push(new Role(r))
+    }
+
+    async getChannels(): Promise<Channel[]> {
+        await this.initialFetch
+        return this.channels
+    }
+
+    async getRoles(): Promise<Role[]> {
+        await this.initialFetch
+        return this.roles
+    }
+
+    async data(dtype: string): Promise<D3Datum[]> {
+        await this.initialFetch
+        switch (dtype) {
+            case 'channels':
+                return this.channels
+            case 'roles':
+                return this.roles
+            default:
+                throw new Error(`No such data ${dtype} available`)
+        }
     }
 }

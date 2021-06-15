@@ -39,8 +39,13 @@ urlpatterns = [
     re_path(r'^api/v1/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
             views.mutation.async_form_save, name='api.mutation'),
 
-    re_path(r'^api/v1/bot-commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),
+    re_path(r'^api/v1/bot/commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),
 
+    re_path(
+        r'^api/v1/guild/(?P<guild_id>[0-9]+)$',
+        views.data.ServerDataView.as_view(),
+        name='api.guild.server',
+    ),
     re_path(
         r'^api/v1/guild/(?P<guild_id>[0-9]+)/channels$',
         views.data.ChannelListView.as_view(),

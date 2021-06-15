@@ -14,30 +14,109 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from rest_framework.serializers import ModelSerializer
+from __future__ import annotations
 
-from telescope2.discord import models
+from typing import Dict, List
+
+from more_itertools import partition
+from rest_framework.relations import PrimaryKeyRelatedField
+from rest_framework.serializers import CharField, ModelSerializer
+
+from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
+                                       CommandConstraintList, Role, Server)
+
+
+class Int64StringRelatedField(PrimaryKeyRelatedField):
+    def to_representation(self, value):
+        return str(super().to_representation(value))
 
 
 class ChannelSerializer(ModelSerializer):
+    id = CharField(source='snowflake')
+
     class Meta:
-        model = models.Channel
-        fields = ['snowflake', 'name', 'type', 'order']
+        model = Channel
+        fields = ['id', 'name', 'type', 'order']
 
 
 class RoleSerializer(ModelSerializer):
+    id = CharField(source='snowflake')
+
     class Meta:
-        model = models.Role
-        fields = ['snowflake', 'name', 'color', 'order']
+        model = Role
+        fields = ['id', 'name', 'color', 'order']
+
+
+class ServerDataSerializer(ModelSerializer):
+    id = CharField(source='snowflake')
+    channels = ChannelSerializer(many=True)
+    roles = RoleSerializer(many=True)
+
+    class Meta:
+        model = Server
+        fields = ['id', 'name', 'channels', 'roles']
 
 
 class BotCommandSerializer(ModelSerializer):
+    name = CharField(source='identifier')
+
     class Meta:
-        model = models.BotCommand
-        fields = ['identifier']
+        model = BotCommand
+        fields = ['id', 'name']
 
 
 class CommandConstraintSerializer(ModelSerializer):
     class Meta:
-        model = models.CommandConstraint
-        fields = ['id', 'guild', 'name', 'type', 'channels', 'commands', 'roles']
+        model = CommandConstraint
+        fields = ['id', 'name', 'type', 'channels', 'commands', 'roles']
+
+    channels = Int64StringRelatedField(queryset=Channel.objects.all(), many=True, required=False)
+    commands = Int64StringRelatedField(queryset=BotCommand.objects.all(), many=True, required=False)
+    roles = Int64StringRelatedField(queryset=Role.objects.all(), many=True, required=False)
+
+    def to_internal_value(self, data: Dict):
+        value = super().to_internal_value(data)
+        value['id'] = data.get('id')
+        return value
+
+    def create(self, validated_data: Dict):
+        instance = CommandConstraint()
+        instance.collection_id = validated_data['collection_id']
+        return self.update(instance, validated_data)
+
+    def update(self, instance: CommandConstraint, validated_data: Dict):
+        instance.name = validated_data['name']
+        instance.type = validated_data['type']
+        instance.save()
+        for k in ('channels', 'commands', 'roles'):
+            getattr(instance, k).set(validated_data[k])
+        return instance
+
+
+class CommandConstraintListSerializer(ModelSerializer):
+    guild = Int64StringRelatedField(queryset=Server.objects.all())
+    constraints = CommandConstraintSerializer(many=True)
+
+    class Meta:
+        model = CommandConstraintList
+        fields = ['guild', 'constraints']
+
+    def create(self, validated_data: Dict[str, str]):
+        cc_list = CommandConstraintList(guild_id=validated_data['guild'])
+        cc_list.save()
+        return cc_list
+
+    def update(self, instance: CommandConstraintList, validated_data: Dict):
+        serializer = CommandConstraintSerializer()
+
+        cc_list: List[Dict] = validated_data['constraints']
+        to_create, to_update = partition(lambda c: c.get('id'), cc_list)
+
+        to_create = [{**d, 'collection_id': instance.guild_id} for d in to_create]
+        for cc in to_create:
+            serializer.create(cc)
+
+        for item in to_update:
+            serializer.update(instance.constraints.get(pk=item['id']), item)
+
+        return instance

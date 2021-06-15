@@ -16,7 +16,6 @@
 
 from typing import Type
 
-from django.core.exceptions import SuspiciousOperation
 from django.http import HttpRequest, HttpResponse
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
@@ -25,11 +24,14 @@ from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
 from rest_framework.serializers import ModelSerializer
 
 from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                       Role, ServerScoped)
+                                       CommandConstraintList, Role, Server,
+                                       ServerScoped)
 
 from ..contexts import DiscordContext
 from ..serializers import (BotCommandSerializer, ChannelSerializer,
-                           CommandConstraintSerializer, RoleSerializer)
+                           CommandConstraintListSerializer,
+                           CommandConstraintSerializer, RoleSerializer,
+                           ServerDataSerializer)
 
 
 class DiscordServerModelListView(ListModelMixin, GenericAPIView):
@@ -38,11 +40,8 @@ class DiscordServerModelListView(ListModelMixin, GenericAPIView):
 
     @property
     def queryset(self):
-        try:
-            ctx: DiscordContext = self.request.discord
-        except AttributeError:
-            raise SuspiciousOperation('Invalid parameters.')
-        return self.model.objects.filter(guild_id__exact=ctx.prefs.snowflake)
+        ctx: DiscordContext = self.request.get_ctx()
+        return self.model.objects.filter(guild_id__exact=ctx.server.snowflake)
 
     def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self.list(req, *args, **kwargs)
@@ -58,29 +57,13 @@ class RoleListView(DiscordServerModelListView):
     serializer_class = RoleSerializer
 
 
-class CommandConstraintListView(CreateModelMixin, DiscordServerModelListView):
-    model = CommandConstraint
-    serializer_class = CommandConstraintSerializer
-
-    def post(self, req, *args, **kwargs):
-        return self.create(req, *args, **kwargs)
-
-
-class CommandConstraintDetailsView(
-    RetrieveModelMixin, UpdateModelMixin,
-    DestroyModelMixin, GenericAPIView,
-):
-    model = CommandConstraint
-    serializer_class = CommandConstraintSerializer
+class ServerDataView(RetrieveModelMixin, GenericAPIView):
+    queryset = Server.objects.all()
+    serializer_class = ServerDataSerializer
+    lookup_url_kwarg = 'guild_id'
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
-
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
 
 
 class BotCommandListView(ListModelMixin, GenericAPIView):
@@ -89,3 +72,34 @@ class BotCommandListView(ListModelMixin, GenericAPIView):
 
     def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self.list(req, *args, **kwargs)
+
+
+class CommandConstraintListView(
+    CreateModelMixin, RetrieveModelMixin,
+    UpdateModelMixin, DiscordServerModelListView,
+):
+    model = CommandConstraintList
+    serializer_class = CommandConstraintListSerializer
+    lookup_url_kwarg = 'guild_id'
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+
+class CommandConstraintDetailsView(
+    RetrieveModelMixin, DestroyModelMixin, GenericAPIView,
+):
+    queryset = CommandConstraint.objects.all()
+    serializer_class = CommandConstraintSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
