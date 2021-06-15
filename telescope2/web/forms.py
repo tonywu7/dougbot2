@@ -33,13 +33,13 @@ class PreferenceForms:
         self.context: DiscordContext = context
 
     def prefix(self):
-        return CommandPrefixForm(instance=self.context.prefs)
+        return CommandPrefixForm(instance=self.context.server)
 
     def extensions(self):
-        return ExtensionToggleForm(instance=self.context.prefs)
+        return ExtensionToggleForm(instance=self.context.server)
 
     def sync_models(self):
-        return ModelSynchronizationActionForm(instance=self.context.prefs)
+        return ModelSynchronizationActionForm(instance=self.context.server)
 
 
 class UserCreationForm(forms.Form):

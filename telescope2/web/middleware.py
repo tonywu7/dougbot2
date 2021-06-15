@@ -18,6 +18,7 @@ from typing import Dict, List, Tuple
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth import logout
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -89,6 +90,13 @@ class DiscordContextMiddleware:
 
     async def process_view(self, request: HttpRequest, view_func,
                            view_args: Tuple, view_kwargs: Dict):
+        def get_ctx():
+            try:
+                return request.discord
+            except AttributeError:
+                raise PermissionDenied('Bad credentials')
+        request.get_ctx = get_ctx
+
         try:
             token, profile, guilds = await fetch_discord_info(request)
         except Logout:
@@ -119,7 +127,7 @@ class DiscordContextMiddleware:
             except Server.DoesNotExist:
                 return None
 
-        context.prefs = await get_preferences()
+        context.server = await get_preferences()
 
         request.discord = context
 

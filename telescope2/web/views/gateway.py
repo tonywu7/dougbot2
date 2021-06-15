@@ -32,7 +32,7 @@ from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.fetch import (DiscordFetch, app_auth_url,
                                       bot_invite_url, create_session)
 from telescope2.discord.models import Server
-from telescope2.utils.http import HTTPNoContent
+from telescope2.utils.http import HTTPCreated
 from telescope2.utils.jwt import validate_token
 
 from ..forms import ServerCreationForm, UserCreationForm
@@ -128,7 +128,7 @@ class CreateUserView(View):
         user.save()
 
         login(req, user)
-        return HTTPNoContent()
+        return HTTPCreated()
 
 
 @require_POST
@@ -250,6 +250,6 @@ class ResetServerDataView(View):
             raise SuspiciousOperation('Invalid parameters.')
 
         ctx = req.discord
-        ctx.prefs.delete()
+        ctx.server.delete()
 
         return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))
