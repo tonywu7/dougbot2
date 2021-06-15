@@ -104,7 +104,9 @@ class PermissionField(models.IntegerField):
         return discord.Permissions(number)
 
     def get_prep_value(self, value: discord.Permissions | None):
-        return super().get_prep_value(value and value.value)
+        if isinstance(value, discord.Permissions):
+            return super().get_prep_value(value.value)
+        return super().get_prep_value(value)
 
 
 class ColorField(models.IntegerField):
@@ -115,7 +117,9 @@ class ColorField(models.IntegerField):
         return discord.Color(number)
 
     def get_prep_value(self, value: discord.Color):
-        return super().get_prep_value(value and value.value)
+        if isinstance(value, discord.Color):
+            return super().get_prep_value(value.value)
+        return super().get_prep_value(value)
 
 
 class ModelTranslator(Generic[T, U]):

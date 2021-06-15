@@ -184,7 +184,7 @@ export class CommandConstraintForm {
 }
 
 class CommandConstraintList {
-    guild: string | null = null
+    guild: string | null
 
     container: HTMLElement
     forms: CommandConstraintForm[] = []
@@ -192,6 +192,7 @@ class CommandConstraintList {
     endpoint: string
 
     constructor(container: HTMLElement) {
+        this.guild = getGuildId()
         this.container = container
         this.endpoint = container.dataset.src!
         document.querySelector('#constraint-form-new')?.addEventListener('click', this.createNewForm.bind(this))
@@ -207,7 +208,6 @@ class CommandConstraintList {
     }
 
     protected parseData(data: CCRecordList) {
-        this.guild = data.guild
         this.clear()
         for (let d of data.constraints) {
             let form = new CommandConstraintForm(d)

@@ -102,7 +102,7 @@ class CommandConstraintListSerializer(ModelSerializer):
         fields = ['guild', 'constraints']
 
     def create(self, validated_data: Dict[str, str]):
-        cc_list = CommandConstraintList(guild_id=validated_data['guild'])
+        cc_list = CommandConstraintList(guild=validated_data['guild'])
         cc_list.save()
         return cc_list
 

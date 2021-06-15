@@ -231,6 +231,7 @@ export class DiscordServer implements D3DataSource {
             mode: 'same-origin',
             headers: { Accept: 'application/json' },
         })
+        if (res.status != 200) return
         let data = await res.json()
 
         this._name = data.name
