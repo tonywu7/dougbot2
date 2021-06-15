@@ -1,9 +1,9 @@
 {% if user_authenticated %}
 <div id="server-select" class="nav-control interactive-text align-middle">
     <div class="dropdown">
-        <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown">
+        <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
             {% if discord.current %}
-            <figure class="profile-picture guild-profile">
+            <figure class="profile-picture guild-profile" data-server-id="{{ discord.server_id }}">
                 <img src="{{ discord.current.icon_url }}" class="rounded-circle"
                     alt="icon for server {{ discord.current.name }}">
             </figure>
@@ -37,7 +37,7 @@
 <div id="discord-login" class="nav-control interactive-text align-middle">
     {% if user_authenticated %}
     <div class="dropdown">
-        <a class="login-control identity-control" href="#" data-bs-toggle="dropdown">
+        <a class="login-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
             <figure class="profile-picture user-profile">
                 <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
                     alt="icon for user {{ discord.username }}">

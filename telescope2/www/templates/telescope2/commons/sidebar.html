@@ -1,25 +1,28 @@
 {% load element contrib %}
+<div class="sidebar-content">
 
-<section class="auth-control">
-    {% include 'telescope2/elements/identities.html' %}
-</section>
+    <section class="auth-control">
+        {% include 'telescope2/elements/identities.html' %}
+    </section>
 
-{% if user_authenticated and discord.current %}
+    {% if user_authenticated and discord.current %}
 
-<div class="accordion-item">
-    <h2 class="accordion-header" id="view-home">
-        {% sidebarlink 'web:manage.index' 'Home' '<i class="bi bi-house-fill"></i>' %}
-    </h2>
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="view-home">
+            {% sidebarlink 'web:manage.index' 'Home' '<i class="bi bi-house-fill"></i>' %}
+        </h2>
+    </div>
+
+    {% if discord.server_joined %}
+
+    {% chapter 'view-core' name='Core' icon='<i class="bi bi-gear-wide-connected"></i>' %}
+    {% sidebarlink 'web:manage.core' 'Core settings' '<i class="bi bi-gear-fill"></i>' %}
+    {% sidebarlink 'web:manage.constraints' 'Command constraints' '<i class="bi bi-person-check-fill"></i>' %}
+    {% endchapter %}
+
+    {% extensions_list %}
+
+    {% endif %}
+    {% endif %}
+
 </div>
-
-{% if discord.server_joined %}
-
-{% chapter 'view-core' name='Core' icon='<i class="bi bi-gear-wide-connected"></i>' %}
-{% sidebarlink 'web:manage.core' 'Core settings' '<i class="bi bi-gear-fill"></i>' %}
-{% sidebarlink 'web:manage.constraints' 'Command constraints' '<i class="bi bi-rulers"></i>' %}
-{% endchapter %}
-
-{% extensions_list %}
-
-{% endif %}
-{% endif %}

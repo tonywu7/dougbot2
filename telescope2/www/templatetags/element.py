@@ -28,7 +28,6 @@ from telescope2.utils.templates import create_tag_parser, optional_attr, unwrap
 register = Library()
 
 
-
 @create_tag_parser(register, 'set', 'endset')
 class BlockAssignmentNode(Node):
     def __init__(self, nodelist: NodeList, var_name: Variable) -> None:
@@ -41,14 +40,12 @@ class BlockAssignmentNode(Node):
 
 
 @create_tag_parser(register, 'section', 'endsection')
+@dataclass
 class SectionNode(Node):
-    def __init__(self, nodelist: NodeList, id: Variable,
-                 title: Variable, classes: Variable = ''):
-
-        self.nodelist = nodelist
-        self.id = id
-        self.title = title
-        self.classes = classes
+    nodelist: NodeList
+    id: str
+    title: str
+    classes: str = ''
 
     def render(self, context: Context) -> str:
         content = self.nodelist.render(context)
@@ -89,10 +86,10 @@ class SidebarLinkNode(Node):
 @dataclass
 class SidebarSectionNode(Node):
     nodelist: NodeList
-    id: Variable
-    name: Variable
-    icon: Variable
-    parent_id: str | Variable = 'sidebar'
+    id: str
+    name: str
+    icon: str
+    parent_id: str = 'sidebar'
 
     def render(self, context: Context) -> str:
         active_route = None
@@ -114,14 +111,17 @@ class SidebarSectionNode(Node):
         if active_route:
             header_cls = 'accordion-button'
             body_cls = 'collapse show'
+            expanded = 'true'
         else:
             header_cls = 'accordion-button collapsed'
             body_cls = 'collapse'
+            expanded = 'false'
 
         return mark_safe(
             '<div class="accordion-item">'
-            f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse" data-bs-target="#{body_id}">'
-            f'        {icon}<span>{name}</span></h2>'
+            f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse"'
+            f'         data-bs-target="#{body_id}" role="button" aria-expanded="{expanded}">'
+            f'        {icon}<span tabindex="0">{name}</span></h2>'
             f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#{parent_id}">'
             f'        <div class="accordion-body"><ul>{content}</ul>'
             '</div></div></div>',

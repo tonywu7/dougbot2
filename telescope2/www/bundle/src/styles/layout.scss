@@ -1,4 +1,4 @@
-@import './colors';
+@import "./colors";
 
 :root {
     --masthead-height: 3.6rem;
@@ -39,10 +39,6 @@
     margin-top: var(--masthead-height);
 }
 
-.top-container {
-    padding: 1rem 0;
-}
-
 .fixed-overlay {
     position: fixed;
     top: var(--masthead-height);
@@ -75,7 +71,8 @@
 .main-container {
     --sidebar-width: 288px;
 
-    margin: 0 var(--masthead-space-horizontal) 4rem 0;
+    margin: 0 var(--masthead-space-horizontal) 0 0;
+    padding: 0 0 2rem 0;
 
     display: grid;
     grid-template-columns: var(--sidebar-width) auto;
@@ -88,8 +85,10 @@
 }
 
 .main-sidebar {
-    overflow-x: hidden;
-    overflow-y: scroll;
+    .sidebar-content {
+        position: sticky;
+        top: var(--masthead-height);
+    }
 
     .auth-control {
         display: none;
@@ -121,6 +120,13 @@
         left: 0;
         bottom: 100vh;
 
+        overflow-x: hidden;
+        overflow-y: scroll;
+
+        .sidebar-content {
+            position: static;
+        }
+
         &.sidebar-visible {
             bottom: 0;
         }
@@ -130,6 +136,10 @@
         padding: 1rem 0;
         background-color: $bw-grey-1;
     }
+}
+
+.main-content {
+    padding-top: 2rem;
 }
 
 .section-container {

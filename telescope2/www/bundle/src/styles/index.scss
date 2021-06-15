@@ -1,10 +1,8 @@
 @use 'styles';
 
-@import 'colors';
-@import 'layout';
-@import 'typefaces';
-
-$chevron-down-svg-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23d3d3d9'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+@import "colors";
+@import "layout";
+@import "typefaces";
 
 .main-title {
     margin-bottom: 2rem;
@@ -79,15 +77,6 @@ $chevron-down-svg-light: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org
 
         border: none;
         background-color: transparent;
-
-        .accordion-button,
-        .accordion-button::after {
-            color: $color-text;
-        }
-
-        .accordion-button::after {
-            background-image: $chevron-down-svg-light;
-        }
 
         .accordion-button.collapsed {
             border-radius: 0;
@@ -187,9 +176,31 @@ form#extension-toggles {
 }
 
 #global-settings {
-    input[id='id_prefix'] {
+    input[id="id_prefix"] {
         font-family: $monospace-fonts;
         font-weight: 700;
         font-size: 1.2rem;
     }
+}
+
+#constraint-editor {
+    .actions {
+        display: flex;
+        justify-content: space-between;
+    }
+}
+
+#constraint-form-list {
+    .accordion-item {
+        background: none;
+    }
+    .accordion-button {
+        background: none;
+        width: auto;
+        padding: 0 0.5rem;
+    }
+}
+
+#view-home {
+    padding-top: 3rem;
 }
