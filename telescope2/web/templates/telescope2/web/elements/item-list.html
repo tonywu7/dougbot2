@@ -1,15 +1,11 @@
-<span {{ classes }} data-src="{{ endpoint }}" data-identity="{{ identity }}">
-    <input type="hidden" value="{{ initial }}">
-    <span class="dropdown">
-        <span data-bs-toggle="dropdown" data-bs-auto-close="false"></span>
-        <ul class="dropdown-menu">
-        </ul>
-    </span>
+<span {{ classes }} data-src="{{ endpoint }}" data-selection-type="{{ type }}" {{ initial }}>
+    <input type="hidden" data-target="true">
     <span class="input-group">
-        <span class="input-group-text">{{ prefix|safe }}</span>
-        <span class="form-control">
-            <input type="text" placeholder="{{ placeholder }}">
+        {{ prefix }}
+        <span class="form-control dropdown token-container">
+            <input class="token" type="text" placeholder="{{ placeholder }}" data-bs-toggle="dropdown"
+                data-bs-auto-close="{{ autoclose }}" data-bs-display="static">
+            <ul class="dropdown-menu"></ul>
         </span>
     </span>
-    <template>{{ template }}</template>
 </span>

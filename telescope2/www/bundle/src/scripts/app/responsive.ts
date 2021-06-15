@@ -16,6 +16,46 @@
 
 import * as bootstrap from 'bootstrap'
 import * as Mustache from 'mustache'
+import * as d3 from 'd3'
+import { TextSearch, configureAsPrefixSearch, allKeywords } from './search'
+
+type JSONValue = string | number | boolean | null
+type JSONArray = Array<JSONValue | JSONType>
+interface JSONType extends Record<string, JSONValue | JSONArray | JSONType> {}
+
+class D3Item {
+    static DEFAULT_COLOR = '#98a9ea'
+
+    id: string
+    type?: string | number
+    name?: string
+    color?: number
+    order?: number
+
+    constructor(data: any) {
+        Object.assign(this, data)
+        this.id = data.id.toString()
+    }
+
+    getIndex() {
+        return {
+            id: this.id,
+            name: this.name || this.id,
+        }
+    }
+
+    getColor(): string {
+        if (!this.color) return D3Item.DEFAULT_COLOR
+        let hex = (this.color as number).toString(16)
+        return `#${hex}`
+    }
+
+    getBackgroundColor(): string {
+        let c = d3.color(this.getColor())!
+        c.opacity = 0.15
+        return c.toString()
+    }
+}
 
 export class ResponsiveForm {
     form: HTMLFormElement
@@ -108,12 +148,22 @@ export class D3ItemList {
 
     itemList: HTMLUListElement
 
+    dataSource: string
+    initialSrc: string | null
+    selectionType: 'single' | 'multiple'
+
+    selected: Record<any, D3Item> = {}
+    selection: d3.Selection<d3.BaseType, D3Item, HTMLElement, unknown> | null = null
+    candidates: d3.Selection<HTMLLIElement, D3Item, HTMLUListElement, any> | null = null
+    index: TextSearch<D3Item> | null = null
+
+    private _populated: Promise<void>
+
     constructor(container: HTMLElement) {
         this.container = container
 
         this.input = container.querySelector('input[data-target]') as HTMLInputElement
         this.field = container.querySelector('.form-control') as HTMLElement
-
         this.userEntry = this.field.querySelector('input[type="text"]') as HTMLInputElement
 
         this.dropdownToggle = container.querySelector('[data-bs-toggle="dropdown"]') as HTMLElement
@@ -121,15 +171,123 @@ export class D3ItemList {
         this.dropdown = new bootstrap.Dropdown(this.dropdownToggle)
 
         this.itemList = this.dropdownMenu.querySelector('ul') as HTMLUListElement
+        this.dataSource = this.container.dataset.src!
+        this.initialSrc = this.container.dataset.initialData || null
+        this.selectionType = this.container.dataset.selectionType as any
 
         this.addListeners()
+        this._populated = this.populate()
     }
 
     private addListeners() {
-        this.container.addEventListener('focusout', () => this.dropdown.hide())
-        this.userEntry.addEventListener('focus', () => this.dropdown.show())
-        this.userEntry.addEventListener('focus', () => this.resetHighlight.bind(this))
-        this.container.addEventListener('keydown', this.keyboardListener.bind(this))
+        this.userEntry.addEventListener('click', () => this.userEntry.select())
+        this.userEntry.addEventListener('keydown', this.keyboardListener.bind(this))
+        this.userEntry.addEventListener('input', this.searchListener.bind(this))
+        this.userEntry.addEventListener('hidden.bs.dropdown', () => {
+            this.userEntry.value = ''
+            this.filter('')
+        })
+    }
+
+    public get populated(): Promise<void> {
+        return this._populated
+    }
+
+    public async populate() {
+        let data: any[] | undefined = await d3.json(this.dataSource, { method: 'GET', mode: 'same-origin' })
+        if (!data) return
+
+        let objs: D3Item[] = data.map((d) => new D3Item(d))
+
+        this.index = new TextSearch(objs, configureAsPrefixSearch)
+        this.candidates = d3
+            .select(this.itemList)
+            .selectAll('li')
+            .data(objs)
+            .enter()
+            .append('li')
+            .attr('class', 'dropdown-item')
+            .attr('tabindex', '0')
+            .sort((x, y) => Number(x.order) - Number(y.order) || d3.ascending(x.id, y.id))
+            .on('click', this.addItem.bind(this))
+            .on('keydown', this.keyboardListener.bind(this))
+        this.candidates
+            .append('span')
+            .attr('class', 'd3-item')
+            .attr('data-item-id', (d) => d.id)
+            .attr('data-item-type', (d) => d.type || 0)
+            .text((d) => d.name || d.id)
+            .style('color', (d) => d.getColor())
+
+        if (this.initialSrc === null) return
+
+        let items: any[] = (await d3.json(this.initialSrc, { method: 'GET', mode: 'same-origin' })) || []
+        this.selected = Object.assign({}, ...items.map((d) => ({ [d.id]: new D3Item(d) })))
+        if (!this.selected) return
+        this.updateSelection()
+    }
+
+    protected updateSelection() {
+        this.selection = d3.select(this.field).selectAll('span.d3-selected').data(Object.values(this.selected))
+        this.selection
+            .enter()
+            .insert('span', 'input')
+            .attr('tabindex', '0')
+            .attr('class', 'token d3-item d3-selected')
+            .attr('data-item-id', (d) => d.id)
+            .attr('data-item-type', (d) => d.type || 0)
+            .text((d) => d.name || d.id)
+            .style('color', (d) => d.getColor())
+            .style('background-color', (d) => d.getBackgroundColor())
+            .on('click', this.removeItem.bind(this))
+            .on('keydown', this.keyboardListener.bind(this))
+        this.selection.exit().remove()
+    }
+
+    protected addItem(event: MouseEvent, d: D3Item) {
+        d3.select(this.field).selectAll('span.d3-selected').remove()
+        if (this.selectionType === 'single') {
+            this.selected = { [d.id]: d }
+        } else {
+            this.selected[d.id] = d
+        }
+        this.updateSelection()
+        this.updateValue()
+        this.dropdown.update()
+    }
+
+    protected removeItem(event: MouseEvent, d: D3Item) {
+        delete this.selected[d.id]
+        d3.select(this.field).selectAll(`.d3-selected[data-item-id="${d.id}"]`).remove()
+        this.updateValue()
+        this.dropdown.update()
+    }
+
+    protected updateValue() {
+        let ids: string[] = Object.keys(this.selected)
+        this.input.value = ids.join('\x00')
+        this.input.dispatchEvent(new Event('change'))
+    }
+
+    public setSelection(selection: string) {
+        let ids: string[]
+        if (!selection.length) {
+            ids = []
+        } else {
+            ids = selection.split('\x00')
+        }
+        this.fromJSON(ids)
+    }
+
+    public searchListener() {
+        if (!this.expanded) this.dropdown.show()
+        this.filter(this.userEntry.value)
+    }
+
+    public filter(terms: string) {
+        let matches = new Set(this.index!.query(allKeywords(terms)).map((r) => r.ref))
+        this.candidates!.filter((d) => !matches.has(d.id)).attr('class', 'dropdown-item hidden')
+        this.candidates!.filter((d) => matches.has(d.id)).attr('class', 'dropdown-item')
     }
 
     public get expanded(): boolean {
@@ -137,51 +295,57 @@ export class D3ItemList {
     }
 
     protected keyboardListener(ev: KeyboardEvent): void {
-        if (!this.expanded) return
-        if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-            return this.moveItemHighlight(ev.key)
-        } else if (ev.key === 'Enter') {
-            return this.selectItem()
-        } else if (ev.key === 'Escape') {
-            return this.blur()
+        if (ev.key === 'Enter') {
+            ;(ev.target as HTMLElement).click()
         }
-    }
-
-    protected resetHighlight(key: string) {
-        this.itemList.querySelectorAll('.item-selected').forEach((elem) => {
-            elem.classList.remove('item-selected')
-        })
-    }
-
-    protected moveItemHighlight(key: string) {
-        let focused = this.itemList.querySelector('.item-selected')
-        let terminalElem: keyof HTMLUListElement
-        let nextElem: keyof HTMLElement
-        if (key === 'ArrowDown') {
-            terminalElem = 'firstElementChild'
-            nextElem = 'nextElementSibling'
-        } else if (key === 'ArrowUp') {
-            terminalElem = 'lastElementChild'
-            nextElem = 'previousElementSibling'
-        } else {
-            return
-        }
-        if (focused === null) {
-            this.itemList[terminalElem]?.classList.add('item-selected')
-        } else {
-            let nextItem = focused[nextElem]
-            if (nextItem !== null) {
-                nextItem.classList.add('item-selected')
-                focused.classList.remove('item-selected')
-            }
-        }
-    }
-
-    protected selectItem() {
-        this.itemList.querySelector('.item-selected')?.dispatchEvent(new Event('click', { bubbles: true }))
     }
 
     protected blur() {
         this.userEntry.blur()
     }
+
+    public fromJSON(items: string[]) {
+        let ids = new Set(items)
+        let data = this.candidates!.filter((d) => ids.has(d.id)).data()
+        this.selected = Object.assign({}, ...data.map((d) => ({ [d.id]: d })))
+        this.updateSelection()
+        this.updateValue()
+    }
+
+    public toJSON(): string[] {
+        return this.input.value.split('\x00')
+    }
+
+    public setInputId(id: string) {
+        this.input.id = id
+    }
+}
+
+export function createFlexSelect(e: HTMLElement) {
+    let select = e.querySelector('select') as HTMLSelectElement
+    if (select === null) return
+    let text = e.querySelector('.actionable') as HTMLElement
+    select.addEventListener('change', () => {
+        let selected = select.selectedOptions
+        let hint = selected ? selected[0].textContent : '(none)'
+        if (text) {
+            text.textContent = hint
+            text.dataset.value = selected.item(0)!.value
+        }
+    })
+    select.dispatchEvent(new Event('change'))
+}
+
+export function createAccordion(parent: HTMLElement, target: HTMLElement, toggle: boolean = false) {
+    let toggleElem = target.querySelector('.accordion-button') as HTMLElement
+    let collapseElem = target.querySelector('.accordion-collapse') as HTMLElement
+    toggleElem.dataset.bsTarget = `#${collapseElem.id}`
+    collapseElem.dataset.bsParent = `#${parent.id}`
+    return new bootstrap.Collapse(collapseElem, { parent: parent, toggle: toggle })
+}
+
+export function initTooltips(frame: Element) {
+    ;[].slice
+        .call(frame.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        .forEach((tooltipElem) => new bootstrap.Tooltip(tooltipElem))
 }
