@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'telescope2.web.apps.WebConfig',
     'telescope2.www.apps.WWWConfig',
     'telescope2.discord.contrib.utility.apps.BotUtilityConfig',
+    'telescope2.discord.contrib.polling.apps.PollConfig',
+    'telescope2.discord.contrib.museum.apps.MuseumConfig',
+    'telescope2.discord.contrib.integration.apps.IntegrationConfig',
     'channels',
 ]
 
