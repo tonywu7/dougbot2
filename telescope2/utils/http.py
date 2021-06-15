@@ -21,3 +21,9 @@ class HTTPNoContent(HttpResponse):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.status_code = 204
+
+
+class HTTPCreated(HttpResponse):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.status_code = 201

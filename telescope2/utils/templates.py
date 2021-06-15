@@ -26,6 +26,7 @@ from typing import Any, Callable, Optional, Tuple, TypeVar
 from django import template
 from django.template.base import Node, Parser, Token
 from django.utils.html import escape
+from django.utils.safestring import mark_safe
 
 N = TypeVar('N', bound=Node)
 NodeFactory = Callable[..., N]
@@ -236,5 +237,5 @@ def unwrap(context: template.Context, maybe_var):
 
 def optional_attr(attr: str, value: Optional[Any]):
     if value:
-        return f'{attr}="{escape(value)}"'
-    return ''
+        return mark_safe(f'{attr}="{escape(value)}"')
+    return mark_safe('')
