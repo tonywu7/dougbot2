@@ -30,6 +30,7 @@ from discord.ext.commands import Bot, Command, Group
 from django.core.cache import caches
 from django.db import IntegrityError
 from django.db.models.query import QuerySet
+from more_itertools import always_reversible
 
 from telescope2.utils.db import async_atomic
 from telescope2.utils.importutil import iter_module_tree, objpath
@@ -105,7 +106,7 @@ class Robot(Bot):
 
     @classmethod
     def _sync_layouts(cls, server: Server, guild: Guild):
-        role_order = {r.id: idx for idx, r in enumerate(guild.roles)}
+        role_order = {r.id: idx for idx, r in enumerate(always_reversible(guild.roles))}
         channel_order = {c.id: idx for idx, c in enumerate(cls.channels_ordered_1d(guild)) if c is not None}
         server.roles.bulk_update([
             models.Role(snowflake=k, order=v) for k, v in role_order.items()
