@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-const MODULES = ['./main', './apps/core']
+const MODULES = ['./main', './apps/core', './apps/constraints']
 
 window.addEventListener('DOMContentLoaded', () => {
     let mainScript = document.getElementById('script-entry')
@@ -25,13 +25,17 @@ window.addEventListener('DOMContentLoaded', () => {
             bootstrap: 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min',
             lodash: 'https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min',
             mustache: 'https://cdn.jsdelivr.net/npm/mustache@4.2.0/mustache.min',
+            d3: 'https://cdnjs.cloudflare.com/ajax/libs/d3/7.0.0/d3.min',
+            lunr: 'https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min',
         },
-        deps: ['bootstrap', 'lodash', 'mustache'],
+        deps: ['bootstrap', 'lodash', 'd3', 'mustache', 'lunr'],
         onNodeCreated: (node, config, module, path) => {
             const SRI = {
                 bootstrap: 'sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4',
                 lodash: 'sha256-ur/YlHMU96MxHEsy3fHGszZHas7NzH4RQlD4tDVvFhw=',
                 mustache: 'sha256-1/0GA1EkYejtvYFoa+rSq4LfM4m5zKI13Z1bQIhI4Co=',
+                d3: 'sha512-0x7/VCkKLLt4wnkFqI8Cgv6no+AaS1TDgmHLOoU3hy/WVtYta2J6gnOIHhYYDJlDxPqEqAYLPS4gzVex4mGJLw==',
+                lunr: 'sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg==',
             }
             if (SRI[module]) {
                 node.setAttribute('integrity', SRI[module])
