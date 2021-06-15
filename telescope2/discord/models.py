@@ -87,7 +87,10 @@ class NamingMixin:
         return f'{type(self).__name__}{sep}{self.pk}'
 
     def __str__(self):
-        return self.discriminator()
+        try:
+            return self.name
+        except Exception:
+            return self.discriminator()
 
     def __repr__(self) -> str:
         return f'<{self.discriminator()} at {hex(id(self))}>'
@@ -271,6 +274,9 @@ class BotCommand(NamingMixin, SubclassMetaMixin, models.Model):
     class Meta:
         verbose_name = 'bot command'
 
+    def __str__(self) -> str:
+        return self.identifier
+
 
 class ConstraintType(models.IntegerChoices):
     NONE = 0
@@ -278,8 +284,15 @@ class ConstraintType(models.IntegerChoices):
     ALL = 2
 
 
+class CommandConstraintList(NamingMixin, SubclassMetaMixin, models.Model):
+    guild: Server = models.OneToOneField(Server, on_delete=CASCADE, primary_key=True, related_name='command_constraints')
+
+    class Meta:
+        verbose_name = 'command constraint list'
+
+
 class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
-    guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='command_constraints')
+    collection: CommandConstraintList = models.ForeignKey(CommandConstraintList, on_delete=CASCADE, related_name='constraints')
 
     commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
     channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
