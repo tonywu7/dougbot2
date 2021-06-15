@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+from operator import attrgetter, itemgetter
 from typing import Dict, Generic, Iterable, List, Protocol, TypeVar, Union
 
 import discord
@@ -37,6 +38,11 @@ T = TypeVar(
     discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel,
 )
 U = TypeVar('U', bound='Entity')
+
+snowflake_key = itemgetter('snowflake')
+snowflake_dot = attrgetter('snowflake')
+id_key = itemgetter('id')
+id_dot = attrgetter('id')
 
 
 def convert_channel_type() -> models.IntegerChoices:
@@ -294,6 +300,9 @@ class CommandConstraintList(NamingMixin, SubclassMetaMixin, models.Model):
     class Meta:
         verbose_name = 'command constraint list'
 
+    def __call__(self, command: str, channel: discord.TextChannel, member: discord.Member) -> bool:
+        return
+
 
 class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     collection: CommandConstraintList = models.ForeignKey(CommandConstraintList, on_delete=CASCADE, related_name='constraints')
@@ -303,7 +312,17 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
 
     name: str = models.TextField(blank=True)
-    type: str = models.IntegerField(choices=ConstraintType.choices)
+    type: int = models.IntegerField(choices=ConstraintType.choices)
 
     class Meta:
         verbose_name = 'command constraint'
+
+    def __call__(self, member: discord.Member) -> bool:
+        target_roles = {snowflake_dot(r) for r in self.roles}
+        member_roles = {id_dot(r) for r in member.roles}
+        if self.type == 0:
+            return not (target_roles & member_roles)
+        elif self.type == 1:
+            return bool(target_roles & member_roles)
+        elif self.type == 2:
+            return (target_roles & member_roles) == target_roles

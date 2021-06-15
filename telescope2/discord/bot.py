@@ -25,7 +25,7 @@ from typing import (Generator, Iterable, List, Optional, Protocol, Set, Tuple,
 
 from asgiref.sync import sync_to_async
 from discord import AllowedMentions, Client, Guild, Message, Permissions
-from discord.abc import GuildChannel
+from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, Group
 from django.core.cache import caches
 from django.db import IntegrityError
@@ -86,8 +86,15 @@ class Robot(Bot):
     @classmethod
     def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
         for cat, channels in guild.by_category():
-            yield cat
+            if cat:
+                yield cat
             for c in channels:
+                yield c
+
+    @classmethod
+    def text_channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
+        for c in cls.channels_ordered_1d(guild):
+            if c.type in (ChannelType.text, ChannelType.news, ChannelType.category):
                 yield c
 
     @classmethod
@@ -107,7 +114,7 @@ class Robot(Bot):
     @classmethod
     def _sync_layouts(cls, server: Server, guild: Guild):
         role_order = {r.id: idx for idx, r in enumerate(always_reversible(guild.roles))}
-        channel_order = {c.id: idx for idx, c in enumerate(cls.channels_ordered_1d(guild)) if c is not None}
+        channel_order = {c.id: idx for idx, c in enumerate(cls.text_channels_ordered_1d(guild))}
         server.roles.bulk_update([
             models.Role(snowflake=k, order=v) for k, v in role_order.items()
         ], ['order'])
@@ -131,8 +138,12 @@ class Robot(Bot):
         server.name = guild.name
         server.save()
         cls._sync_models(models.Role, guild.roles, server.roles)
-        cls._sync_models(models.Channel, guild.channels, server.channels)
+        cls._sync_models(models.Channel, [*cls.text_channels_ordered_1d(guild)], server.channels)
         cls._sync_layouts(server, guild)
+
+    @classmethod
+    async def command_constraints_check(cls, ctx: Circumstances) -> bool:
+        return True
 
 
 class Telescope(Robot):
@@ -157,6 +168,7 @@ class Telescope(Robot):
 
     def _register_events(self):
         self.listen('on_guild_join')(self.on_guild_join)
+        self.check(self.command_constraints_check)
 
     def _register_commands(self):
         for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
