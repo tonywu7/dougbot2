@@ -17,21 +17,122 @@
 import { renderer } from './main'
 import { ResponsiveForm, displayNotification } from './responsive'
 
-export class AsyncForm extends ResponsiveForm {
+export type Constructor = new (...args: any[]) => {}
+export type GConstructor<T = {}> = new (...args: any[]) => T
+
+type Submissible = FormData | string
+type StateChangeMethods = 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+
+export interface AsyncPOST {
+    post(): Promise<void>
+}
+
+export interface AsyncPUT {
+    put(): Promise<void>
+}
+
+export interface AsyncDELETE {
+    delete(): Promise<void>
+}
+
+type AsyncSubmit = GConstructor<{
+    submit(data: Submissible, method: StateChangeMethods): Promise<Response | null>
+}>
+
+type FormController = GConstructor<{
+    getData(): Submissible
+    checkValid(): boolean
+    updateDefaults(): void
+}>
+
+export function AsyncPostSubmit<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class AsyncSubmit extends Base {
+        async submit(data: Submissible, method: StateChangeMethods): Promise<Response | null> {
+            let res = await super.submit(data, method)
+            if (res === null) return null
+            if (res.status < 299) {
+                this.updateDefaults()
+                let msg: string
+                try {
+                    msg = (await res.json()).message
+                } catch (e) {
+                    switch (res.status) {
+                        case 204:
+                            msg = 'Settings saved.'
+                            break
+                        case 201:
+                            msg = 'Items created'
+                            break
+                        default:
+                            msg = 'Submission accepted'
+                            break
+                    }
+                }
+                let notif = renderer.render('async-form-update-successful', { message: msg })
+                displayNotification(notif)
+            } else {
+                let msg: string
+                try {
+                    let data = await res.json()
+                    msg = data.error
+                } catch (e) {
+                    msg = `Server error; status ${res.status}`
+                }
+                let notif = renderer.render('async-form-update-error', { error: msg })
+                displayNotification(notif, { autohide: false, delay: 20 })
+            }
+            return res
+        }
+    }
+}
+
+export function SupportsPOST<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async post() {
+            return await this.submit(this.getData(), 'POST')
+        }
+    }
+}
+
+export function SupportsPUT<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async put() {
+            return await this.submit(this.getData(), 'PUT')
+        }
+    }
+}
+
+export function SupportsPATCH<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async patch() {
+            return await this.submit(this.getData(), 'PATCH')
+        }
+    }
+}
+
+export function SupportsDELETE<TBase extends AsyncSubmit & FormController>(Base: TBase) {
+    return class SupportsPOST extends Base {
+        async delete() {
+            return await this.submit(this.getData(), 'DELETE')
+        }
+    }
+}
+
+export class AsyncModelForm {
     readonly endpoint: string
-    private readonly csrf: string
+    protected form: HTMLFormElement
 
     constructor(form: HTMLFormElement) {
-        super(form)
+        this.form = form
         this.endpoint = form.dataset.endpoint!
-        this.csrf = this.getCSRF()
         this.initSubmitListener()
     }
 
     protected initSubmitListener() {
         let button = this.form.querySelector('.async-form-submit') as HTMLButtonElement
+        if (button === null) return
         button.addEventListener('click', async () => {
-            await this.submit()
+            await this.submit(this.getData(), 'POST')
         })
     }
 
@@ -43,7 +144,7 @@ export class AsyncForm extends ResponsiveForm {
         return csrf.value
     }
 
-    public updateDefaults() {
+    updateDefaults() {
         this.form.querySelectorAll('input').forEach((input) => {
             input.defaultChecked = input.checked
             input.defaultValue = input.value
@@ -52,40 +153,47 @@ export class AsyncForm extends ResponsiveForm {
         this.checkValid()
     }
 
-    public async submit() {
-        if (!this.checkValid()) return
+    checkValid(): boolean {
+        let valid = this.form.checkValidity()
+        if (!valid) {
+            this.form.reportValidity()
+        }
+        return valid
+    }
 
-        let formdata = new FormData(this.form)
-        let res: Response
+    getData(): FormData {
+        return new FormData(this.form)
+    }
+
+    public async submit(data: FormData, method = 'POST') {
+        if (!this.checkValid()) return null
         try {
-            res = await fetch(this.endpoint, {
-                method: 'POST',
+            let options: RequestInit = {
+                method: method,
                 mode: 'same-origin',
-                body: formdata,
+                body: data,
                 headers: {
-                    'X-CSRFToken': this.csrf,
+                    'X-CSRFToken': this.getCSRF(),
                 },
-            })
+            }
+            if (typeof data === 'string') {
+                ;(options.headers as any)['Content-Type'] = 'application/json'
+            }
+            return await fetch(this.endpoint, options)
         } catch (e) {
             let notif = renderer.render('async-form-update-error', { error: 'Cannot connect to server' })
             displayNotification(notif, { autohide: false, delay: 20 })
-            return
-        }
-
-        if (res.status === 204) {
-            this.updateDefaults()
-            let notif = renderer.render('async-form-update-successful', {})
-            displayNotification(notif)
-        } else {
-            let msg: string
-            try {
-                let data = await res.json()
-                msg = data.error
-            } catch (e) {
-                msg = `Server error; status ${res.status}`
-            }
-            let notif = renderer.render('async-form-update-error', { error: msg })
-            displayNotification(notif, { autohide: false, delay: 20 })
+            return null
         }
     }
+}
+
+export const AsyncResponsiveModelForm = AsyncPostSubmit(AsyncModelForm)
+
+export function getCSRF(elem: HTMLElement) {
+    let csrf = elem.querySelector('input[type="hidden"][name="csrfmiddlewaretoken"]') as HTMLInputElement
+    if (csrf === null) {
+        throw new Error(`No CSRF token found for form ${elem}`)
+    }
+    return csrf.value
 }

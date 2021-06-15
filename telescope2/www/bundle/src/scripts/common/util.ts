@@ -1,3 +1,5 @@
+import * as _ from 'lodash'
+
 export function killAllChildren(elem: HTMLElement) {
     while (elem.firstElementChild) elem.removeChild(elem.firstElementChild)
 }
@@ -124,4 +126,8 @@ export function serializeFormData(data: FormData): Record<string, string> {
         obj[k] = data.get(k)!.toString()
     }
     return obj
+}
+
+export function randomIdentifier(length: number, from: string = '0123456789abcdefghijklmnopqrstuvwxyz-_'): string {
+    return 'r' + _.sampleSize(from, length - 1).join('')
 }

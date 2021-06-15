@@ -15,10 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordClient } from './discord'
-import { TemplateRenderer, D3ItemList } from './responsive'
-import { AsyncForm } from './api'
+import { TemplateRenderer, D3ItemList, initTooltips } from './responsive'
+import { AsyncResponsiveModelForm } from './api'
 
 import * as util from '../common/util'
+import * as bootstrap from 'bootstrap'
 
 export var discord: DiscordClient
 export var renderer: TemplateRenderer
@@ -125,11 +126,12 @@ function initTopMenu() {
 
 function initWidgets() {
     document.querySelectorAll('.async-form').forEach((form) => {
-        new AsyncForm(form as HTMLFormElement)
+        new AsyncResponsiveModelForm(form as HTMLFormElement)
     })
     document.querySelectorAll('.d3-item-list').forEach((elem) => {
         new D3ItemList(elem as HTMLElement)
     })
+    initTooltips(document.documentElement)
 }
 
 function initTemplates() {
@@ -142,6 +144,12 @@ export function createAvatarElement(src: string): HTMLElement {
     img.src = src
     img.alt = `profile picture`
     return img
+}
+
+export function getGuildId(): string | null {
+    let elem = document.querySelector('[data-server-id]')
+    if (elem === null) return null
+    return (elem as HTMLElement).dataset.serverId!
 }
 
 export function init() {
