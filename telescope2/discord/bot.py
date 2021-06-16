@@ -29,16 +29,17 @@ from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, Group
 from django.core.cache import caches
 from django.db import IntegrityError
-from django.db.models.query import QuerySet
+from django.db.models.query import Q, QuerySet
 from more_itertools import always_reversible
 
 from telescope2.utils.db import async_atomic
 from telescope2.utils.importutil import iter_module_tree, objpath
+from telescope2.utils.profiling import cprofile
 
 from . import ipc, models
 from .apps import DiscordBotConfig
 from .context import Circumstances
-from .models import CommandConstraintList, Server
+from .models import CommandConstraint, CommandCriteria, Server
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
@@ -152,8 +153,15 @@ class Robot(Bot):
 
         @sync_to_async
         def eval_constraints():
-            constraints: CommandConstraintList = CommandConstraintList.objects.get(pk=ctx.guild.id)
-            return constraints(ctx.invoked_with, ctx.channel, ctx.message.author)
+            with cprofile('./stat'):
+                constraints = (
+                    CommandConstraint.objects.all()
+                    .filter(collection_id=ctx.guild.id)
+                    .filter(Q(commands__identifier__exact=ctx.invoked_with) | Q(commands=None))
+                    .filter(Q(channels__pk=ctx.channel.id) | Q(channels=None))
+                )
+                tests = CommandCriteria([c.to_dataclass() for c in constraints])
+                return tests(author)
 
         return await eval_constraints()
 

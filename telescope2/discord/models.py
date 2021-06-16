@@ -26,7 +26,7 @@ import inflect
 from discord.abc import ChannelType
 from django.apps import apps
 from django.db import models
-from django.db.models import CASCADE, Q
+from django.db.models import CASCADE
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 from more_itertools import bucket
@@ -302,14 +302,6 @@ class CommandConstraintList(NamingMixin, SubclassMetaMixin, models.Model):
     class Meta:
         verbose_name = 'command constraint list'
 
-    def __call__(self, command: str, channel: discord.TextChannel, member: discord.Member) -> bool:
-        constraints = (CommandConstraint.objects
-                       .filter(collection=self)
-                       .filter(Q(commands__identifier__exact=command) | Q(commands=None))
-                       .filter(Q(channels__pk=channel.id) | Q(channels=None)))
-        criteria = CommandCriteria([c.to_dataclass() for c in constraints])
-        return criteria(member)
-
 
 class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     collection: CommandConstraintList = models.ForeignKey(CommandConstraintList, on_delete=CASCADE, related_name='constraints')
@@ -320,6 +312,7 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
 
     name: str = models.TextField(blank=False)
     type: int = models.IntegerField(choices=ConstraintType.choices)
+    specificity: int = models.IntegerField(default=0)
 
     class Meta:
         verbose_name = 'command constraint'
@@ -327,27 +320,16 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     def to_dataclass(self) -> CommandCondition:
         return CommandCondition(
             type=self.type,
-            commands={id_dot(r) for r in self.commands.all()},
-            channels={snowflake_dot(r) for r in self.channels.all()},
-            roles={snowflake_dot(r) for r in self.roles.all()},
+            specificity=self.specificity,
+            roles=self.roles.values_list('snowflake', flat=True).all(),
         )
-
-
-def _to_int_ids(s):
-    return {int(k) for k in s}
 
 
 @attr.s
 class CommandCondition:
     type: ConstraintType = attr.ib()
-
-    commands: Set[int] = attr.ib(converter=_to_int_ids)
-    channels: Set[int] = attr.ib(converter=_to_int_ids)
-    roles: Set[int] = attr.ib(converter=_to_int_ids)
-
-    @property
-    def specificity(self) -> int:
-        return bool(self.channels) * 2 + bool(self.commands)
+    specificity: int = attr.ib()
+    roles: Set[int] = attr.ib(converter=set)
 
     def __call__(self, member: discord.Member) -> bool:
         member_roles = {id_dot(r) for r in member.roles}
@@ -369,6 +351,7 @@ class CommandCriteria:
 
     def __call__(self, member: discord.Member) -> bool:
         sorted_criteria = bucket(self.criteria, lambda c: c.specificity)
-        for specificity in sorted(sorted_criteria, reverse=True):
-            return all(c(member) for c in sorted_criteria[specificity])
-        return True
+        return all(
+            any(c(member) for c in sorted_criteria[specificity])
+            for specificity in sorted(sorted_criteria, reverse=True)
+        )

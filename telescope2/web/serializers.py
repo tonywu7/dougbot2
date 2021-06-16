@@ -24,7 +24,8 @@ from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import CharField, ModelSerializer
 
 from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                       CommandConstraintList, Role, Server)
+                                       CommandConstraintList, ConstraintType,
+                                       Role, Server)
 
 
 class Int64StringRelatedField(PrimaryKeyRelatedField):
@@ -88,9 +89,19 @@ class CommandConstraintSerializer(ModelSerializer):
     def update(self, instance: CommandConstraint, validated_data: Dict):
         instance.name = validated_data['name']
         instance.type = validated_data['type']
+        channels = validated_data['channels']
+        commands = validated_data['commands']
+        specificity = (
+            ((instance.type == ConstraintType.NONE.value) << 2)
+            + (bool(channels) << 1)
+            + bool(commands)
+        )
+        instance.specificity = specificity
         instance.save()
-        for k in ('channels', 'commands', 'roles'):
-            getattr(instance, k).set(validated_data[k])
+        roles = validated_data['roles']
+        instance.channels.set(channels)
+        instance.commands.set(commands)
+        instance.roles.set(roles)
         return instance
 
     def validate_roles(self, roles: List):
