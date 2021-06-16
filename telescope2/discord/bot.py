@@ -75,7 +75,7 @@ class Robot(Bot):
 
     def _register_events(self):
         self.listen('on_guild_join')(self.on_guild_join)
-        self.check(self.command_constraints_check)
+        self.check_once(self._command_global_check)
 
     def _register_commands(self):
         for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
@@ -93,24 +93,7 @@ class Robot(Bot):
         for label, ext in app.ext_map.items():
             cog_cls = ext.target
             self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
-            self.add_cog(cog_cls(self))
-
-    async def on_ready(self):
-        self.log.info('Bot ready')
-        self.log.info(f'User {self.user}')
-
-    async def on_guild_join(self, guild: Guild):
-        self.log.info(f'Joined {guild}')
-        try:
-            async with async_atomic():
-                await self.create_server(guild)
-        except IntegrityError:
-            pass
-        try:
-            async with async_atomic():
-                await self.sync_server(guild)
-        except IntegrityError:
-            pass
+            self.add_cog(cog_cls(label, self))
 
     async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=cls)
@@ -187,28 +170,6 @@ class Robot(Bot):
         cls._sync_layouts(server, guild)
 
     @classmethod
-    async def command_constraints_check(cls, ctx: Circumstances) -> bool:
-        author = ctx.message.author
-
-        if author.guild_permissions.administrator:
-            return True
-        if author == ctx.message.guild.owner:
-            return True
-
-        @sync_to_async
-        def eval_constraints():
-            constraints = (
-                CommandConstraint.objects.all()
-                .filter(collection_id=ctx.guild.id)
-                .filter(Q(commands__identifier__exact=ctx.invoked_with) | Q(commands=None))
-                .filter(Q(channels__pk=ctx.channel.id) | Q(channels=None))
-            )
-            tests = CommandCriteria([c.to_dataclass() for c in constraints])
-            return tests(author)
-
-        return await eval_constraints()
-
-    @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
         @sync_to_async
         def get():
@@ -228,3 +189,55 @@ class Robot(Bot):
     @classmethod
     def schedule_refresh(cls):
         caches['discord'].set('telescope2.discord.bot.refresh', True)
+
+    async def on_ready(self):
+        self.log.info('Bot ready')
+        self.log.info(f'User {self.user}')
+
+    async def on_guild_join(self, guild: Guild):
+        self.log.info(f'Joined {guild}')
+        try:
+            async with async_atomic():
+                await self.create_server(guild)
+        except IntegrityError:
+            pass
+        try:
+            async with async_atomic():
+                await self.sync_server(guild)
+        except IntegrityError:
+            pass
+
+    @classmethod
+    async def _command_global_check(cls, ctx: Circumstances) -> bool:
+        for check in asyncio.as_completed([
+            cls._cog_enabled_check(ctx),
+            cls._command_constraints_check(ctx),
+        ]):
+            if not await check:
+                return False
+        return True
+
+    @classmethod
+    async def _cog_enabled_check(cls, ctx: Circumstances) -> bool:
+        extension = ctx.cog
+        return extension is None or extension.app_label in ctx.server.extensions
+
+    @classmethod
+    async def _command_constraints_check(cls, ctx: Circumstances) -> bool:
+        author = ctx.message.author
+        if author.guild_permissions.administrator:
+            return True
+        if author == ctx.message.guild.owner:
+            return True
+
+        @sync_to_async
+        def eval_constraints():
+            constraints = (
+                CommandConstraint.objects.all()
+                .filter(collection_id=ctx.guild.id)
+                .filter(Q(commands__identifier__exact=ctx.invoked_with) | Q(commands=None))
+                .filter(Q(channels__pk=ctx.channel.id) | Q(channels=None))
+            )
+            tests = CommandCriteria([c.to_dataclass() for c in constraints])
+            return tests(author)
+        return await eval_constraints()

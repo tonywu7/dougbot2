@@ -93,7 +93,7 @@ def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMes
         if missing:
             errors.append(Error(
                 ('The following commands are registered in the bot but '
-                 f'not in the database: {" ".join(missing)}'),
+                 f'not in the database: {", ".join(missing)}'),
                 hint='Run the synccommands command to synchronize.',
                 id='discord.E001',
             ))

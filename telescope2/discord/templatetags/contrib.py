@@ -19,8 +19,8 @@ from __future__ import annotations
 from django.template import Context, Library, Node, NodeList
 
 from telescope2.utils.templates import create_tag_parser
-from telescope2.www.templatetags.element import (SidebarLinkNode,
-                                                 SidebarSectionNode)
+from telescope2.www.templatetags.element import SidebarLinkNode, \
+    SidebarSectionNode
 
 from ..apps import DiscordBotConfig
 
@@ -37,6 +37,8 @@ class ExtensionListNode(Node):
         ext_map = DiscordBotConfig.ext_map
         text = []
         for (ext_name, urls), (_, conf) in zip(url_map.items(), ext_map.items()):
+            if not urls:
+                continue
             nodelist = NodeList()
             for url in urls:
                 view = f'web:ext:{ext_name}:{url.name}'

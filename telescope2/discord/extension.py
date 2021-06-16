@@ -18,6 +18,7 @@ from discord.ext.commands import Bot, Cog
 
 
 class Gear(Cog):
-    def __init__(self, bot: Bot):
+    def __init__(self, label: str, bot: Bot, *args, **kwargs):
         super().__init__()
         self.bot = bot
+        self.app_label = label
