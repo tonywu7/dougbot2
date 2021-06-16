@@ -133,6 +133,10 @@ class DiscordCache:
         key = self._key(endpoint)
         return cache.get(key)
 
+    def invalidate(self):
+        for endpoint in self.ENDPOINT_TTL:
+            cache.delete(self._key(endpoint))
+
 
 class DiscordFetch:
     def __init__(self, session: Optional[ClientSession] = None, user_id: int = -1):

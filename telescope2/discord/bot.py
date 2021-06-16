@@ -20,8 +20,9 @@ import asyncio
 import logging
 from importlib import import_module
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Protocol, Set, Tuple, \
-    TypeVar
+from typing import (
+    Generator, Iterable, List, Optional, Protocol, Set, Tuple, TypeVar,
+)
 
 from asgiref.sync import sync_to_async
 from discord import AllowedMentions, Client, Guild, Message, Permissions

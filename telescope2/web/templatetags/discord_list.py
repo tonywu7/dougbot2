@@ -21,8 +21,9 @@ from django.template import Context, Library, Node, NodeList, Template
 from django.template.loader import get_template
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import create_tag_parser, domtokenlist, \
-    optional_attr, unwrap
+from telescope2.utils.templates import (
+    create_tag_parser, domtokenlist, optional_attr, unwrap,
+)
 
 register = Library()
 
@@ -43,7 +44,7 @@ class D3ItemList(Node):
         prefix = mark_safe(self.nodelist.render(ctx))
         tmpl: Template = get_template('telescope2/web/elements/item-list.html')
         select_type = unwrap(ctx, self.type)
-        autoclose = 'true' if select_type == 'single' else 'outside'
+        autoclose = 'inside' if select_type == 'single' else 'outside'
         return tmpl.render({
             'endpoint': unwrap(ctx, self.endpoint),
             'type': select_type,

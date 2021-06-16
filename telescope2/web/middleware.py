@@ -24,8 +24,9 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from more_itertools import partition
 
-from telescope2.discord.fetch import DiscordFetch, DiscordUnauthorized, \
-    PartialGuild
+from telescope2.discord.fetch import (
+    DiscordFetch, DiscordUnauthorized, PartialGuild,
+)
 from telescope2.discord.models import Server
 
 from .contexts import DiscordContext

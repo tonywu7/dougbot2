@@ -17,8 +17,9 @@
 import asyncio
 import threading
 from contextlib import contextmanager
-from typing import (Any, ContextManager, Coroutine, Dict, Generic, Optional,
-                    Type, TypeVar)
+from typing import (
+    Any, ContextManager, Coroutine, Dict, Generic, Optional, Type, TypeVar,
+)
 
 from discord import Client
 from discord.ext.commands import Bot

@@ -19,11 +19,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 
+import jwt
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
-
-import jwt
 
 from .datetime import utcnow
 

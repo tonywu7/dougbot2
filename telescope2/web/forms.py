@@ -24,8 +24,10 @@ from django.core.exceptions import ValidationError
 
 from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.models import Server
-from telescope2.utils.forms import AsyncFormMixin, D3SelectWidget, \
-    FormConstants, SwitchInput, find_widgets, gen_labels
+from telescope2.utils.forms import (
+    AsyncFormMixin, D3SelectWidget, FormConstants, SwitchInput, find_widgets,
+    gen_labels,
+)
 
 
 class PreferenceForms:

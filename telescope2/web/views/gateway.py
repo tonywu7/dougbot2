@@ -29,8 +29,9 @@ from django.views.decorators.http import require_POST
 from django.views.generic import View
 
 from telescope2.discord.apps import DiscordBotConfig
-from telescope2.discord.fetch import (DiscordFetch, app_auth_url,
-                                      bot_invite_url, create_session)
+from telescope2.discord.fetch import (
+    DiscordCache, DiscordFetch, app_auth_url, bot_invite_url, create_session,
+)
 from telescope2.discord.models import Server
 from telescope2.utils.http import HTTPCreated
 from telescope2.utils.jwt import validate_token
@@ -62,6 +63,7 @@ def user_login(req: HttpRequest) -> HttpResponse:
 
 
 def user_logout(req: HttpRequest) -> HttpResponse:
+    DiscordCache(req.user.snowflake).invalidate()
     logout(req)
     return redirect(reverse('web:index'))
 

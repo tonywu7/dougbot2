@@ -19,8 +19,9 @@ from __future__ import annotations
 from django.template import Context, Library, Node, NodeList
 
 from telescope2.utils.templates import create_tag_parser
-from telescope2.www.templatetags.element import SidebarLinkNode, \
-    SidebarSectionNode
+from telescope2.www.templatetags.element import (
+    SidebarLinkNode, SidebarSectionNode,
+)
 
 from ..apps import DiscordBotConfig
 
