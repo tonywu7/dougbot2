@@ -19,7 +19,7 @@
     </p>
     {% endif %}
     {% for form in formset %}
-    <div class="paragraph">
+    <div class="paragraph{% if forloop.first and form.key.value == 'Exception' %} text-warning{% endif %}">
         <h4>{{ form.name.value }}</h4>
         {{ form.key }}
         <ul class="form-fields">

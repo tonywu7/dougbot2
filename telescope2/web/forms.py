@@ -163,7 +163,7 @@ class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
         if is_superuser:
             items.insert(0, {'key': 'Exception', 'name': 'Uncaught exceptions'})
 
-        config = server.error_handling
+        config = server.logging
         for row in items:
             key = row['key']
             err_type = config.get(key, {})
@@ -183,10 +183,10 @@ class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
             channel = row['channel']
             if not channel:
                 continue
-            role = row['role']
             conf[row['key']] = {
+                'name': row['name'],
                 'channel': channel,
-                'role': role,
+                'role': row['role'],
             }
-        server.error_handling = conf
+        server.logging = conf
         server.save()

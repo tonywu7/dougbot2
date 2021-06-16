@@ -45,7 +45,7 @@ class DiscordBotConfig(AppConfig):
                 cursor.execute('PRAGMA journal_mode=WAL;')
 
     def ready(self) -> None:
-        from .bot import Telescope
+        from .bot import Robot
 
         connection_created.connect(self.sqlite_pragma)
         for k, v in apps.app_configs.items():
@@ -53,7 +53,7 @@ class DiscordBotConfig(AppConfig):
                 self.ext_map[k] = v
                 self.url_map[k] = v.public_views()
 
-        self.bot_thread = BotRunner(Telescope, {}, run_forever=False, standby=True, daemon=True)
+        self.bot_thread = BotRunner(Robot, {}, run_forever=False, standby=True, daemon=True)
         self.bot_thread.start()
 
     @classmethod
@@ -67,13 +67,13 @@ class DiscordBotConfig(AppConfig):
 
 @register('discord')
 def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMessage]:
-    from .bot import Robot, Telescope
+    from .bot import Robot
     from .models import BotCommand
     from .runner import BotRunner
 
     errors = []
 
-    with BotRunner.instanstiate(Telescope, {}) as bot:
+    with BotRunner.instanstiate(Robot, {}) as bot:
 
         bot: Robot
         cmds = {identifier for identifier, cmd in bot.iter_commands()}

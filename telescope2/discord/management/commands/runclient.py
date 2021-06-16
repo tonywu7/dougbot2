@@ -21,7 +21,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import autoreload
 
-from ...bot import Telescope
+from ...bot import Robot
 from ...runner import BotRunner
 
 
@@ -71,7 +71,7 @@ class Command(BaseCommand):
         })
 
         try:
-            runner = BotRunner(Telescope, {})
+            runner = BotRunner(Robot, {})
             runner.run()
         except KeyboardInterrupt:
             return

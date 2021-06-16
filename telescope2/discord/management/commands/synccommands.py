@@ -69,12 +69,12 @@ class Command(BaseCommand):
 
     @classmethod
     def sync_commands(cls, dry_run):
-        from ...bot import Telescope
+        from ...bot import Robot
         from ...models import BotCommand
         from ...runner import BotRunner
 
-        with BotRunner.instanstiate(Telescope, {}) as bot:
-            bot: Telescope
+        with BotRunner.instanstiate(Robot, {}) as bot:
+            bot: Robot
             designated = {identifier for identifier, cmd in bot.iter_commands()}
             registered = {v['identifier'] for v in BotCommand.objects.values('identifier')}
 

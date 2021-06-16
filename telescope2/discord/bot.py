@@ -20,8 +20,8 @@ import asyncio
 import logging
 from importlib import import_module
 from pathlib import Path
-from typing import (Generator, Iterable, List, Optional, Protocol, Set, Tuple,
-                    TypeVar)
+from typing import Generator, Iterable, List, Optional, Protocol, Set, Tuple, \
+    TypeVar
 
 from asgiref.sync import sync_to_async
 from discord import AllowedMentions, Client, Guild, Message, Permissions
@@ -55,6 +55,46 @@ class CommandIterator(Protocol):
 
 
 class Robot(Bot):
+    DEFAULT_PREFIX = 't;'
+    DEFAULT_PERMS = Permissions(805825782)
+
+    def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
+        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
+        super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
+
+        self.log = logging.getLogger('telescope')
+        self._register_events()
+        self._register_commands()
+        self._init_ipc()
+        self._load_extensions()
+
+    def _init_ipc(self):
+        thread = ipc.CachePollingThread('discord')
+        thread.add_event_listener('telescope2.discord.bot.refresh', sync_to_async(self._load_extensions))
+        thread.start()
+
+    def _register_events(self):
+        self.listen('on_guild_join')(self.on_guild_join)
+        self.check(self.command_constraints_check)
+
+    def _register_commands(self):
+        for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
+            module_path = f'.commands.{".".join(parts)}'
+            command_module = import_module(module_path, __package__)
+            try:
+                command_module.register_all(self)
+            except AttributeError:
+                pass
+            else:
+                self.log.info(f'Loaded commands from {module_path}')
+
+    def _load_extensions(self, *args, **kwargs):
+        app = DiscordBotConfig.get()
+        for label, ext in app.ext_map.items():
+            cog_cls = ext.target
+            self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
+            self.add_cog(cog_cls(self))
+
     async def on_ready(self):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
@@ -71,6 +111,11 @@ class Robot(Bot):
                 await self.sync_server(guild)
         except IntegrityError:
             pass
+
+    async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
+        ctx: Circumstances = await super().get_context(message, cls=cls)
+        await ctx.init()
+        return ctx
 
     def iter_commands(
         self, root: Optional[CommandIterator] = None, prefix: str = '',
@@ -163,42 +208,6 @@ class Robot(Bot):
 
         return await eval_constraints()
 
-
-class Telescope(Robot):
-
-    DEFAULT_PREFIX = 't;'
-    DEFAULT_PERMS = Permissions(805825782)
-
-    def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
-
-        self.log = logging.getLogger('telescope')
-        self._register_events()
-        self._register_commands()
-        self._init_ipc()
-        self._load_extensions()
-
-    def _init_ipc(self):
-        thread = ipc.CachePollingThread('discord')
-        thread.add_event_listener('telescope2.discord.bot.refresh', sync_to_async(self._load_extensions))
-        thread.start()
-
-    def _register_events(self):
-        self.listen('on_guild_join')(self.on_guild_join)
-        self.check(self.command_constraints_check)
-
-    def _register_commands(self):
-        for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
-            module_path = f'.commands.{".".join(parts)}'
-            command_module = import_module(module_path, __package__)
-            try:
-                command_module.register_all(self)
-            except AttributeError:
-                pass
-            else:
-                self.log.info(f'Loaded commands from {module_path}')
-
     @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
         @sync_to_async
@@ -219,15 +228,3 @@ class Telescope(Robot):
     @classmethod
     def schedule_refresh(cls):
         caches['discord'].set('telescope2.discord.bot.refresh', True)
-
-    def _load_extensions(self, *args, **kwargs):
-        app = DiscordBotConfig.get()
-        for label, ext in app.ext_map.items():
-            cog_cls = ext.target
-            self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
-            self.add_cog(cog_cls(self))
-
-    async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
-        ctx: Circumstances = await super().get_context(message, cls=cls)
-        await ctx.init()
-        return ctx

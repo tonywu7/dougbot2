@@ -185,7 +185,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
 
-    error_handling: Dict = models.JSONField(verbose_name='error handling config', default=dict)
+    logging: Dict = models.JSONField(verbose_name='logging config', default=dict)
 
     @property
     def extensions(self) -> Dict[str, CommandAppConfig]:
