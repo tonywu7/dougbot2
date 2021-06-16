@@ -49,14 +49,14 @@ class Command(BaseCommand):
             BotCommand(identifier=name) for name in cmds
         ])
         log.info('The following commands are synchronized to the database:')
-        log.info(_(' '.join(cmds), 'cyan', attrs=['bold']))
+        log.info(_(', '.join(cmds), 'cyan', attrs=['bold']))
 
     @classmethod
     def remove_cmds(cls, cmds):
         from ...models import BotCommand
         BotCommand.objects.filter(identifier__in=cmds).delete()
         log.info('The following commands are deleted from the database:')
-        log.info(_(' '.join(cmds), 'red', attrs=['bold']))
+        log.info(_(', '.join(cmds), 'red', attrs=['bold']))
 
     @classmethod
     def update_cmds(cls, cmds: Dict[str, str]):
