@@ -21,11 +21,11 @@ from typing import Dict, List
 from more_itertools import partition
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
-from rest_framework.serializers import CharField, ModelSerializer
+from rest_framework.serializers import CharField, ModelSerializer, \
+    ReadOnlyField
 
-from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                       CommandConstraintList, ConstraintType,
-                                       Role, Server)
+from telescope2.discord.models import BotCommand, Channel, CommandConstraint, \
+    CommandConstraintList, Role, Server
 
 
 class Int64StringRelatedField(PrimaryKeyRelatedField):
@@ -61,10 +61,11 @@ class ServerDataSerializer(ModelSerializer):
 
 class BotCommandSerializer(ModelSerializer):
     name = CharField(source='identifier')
+    color = ReadOnlyField(default=0xffffff)
 
     class Meta:
         model = BotCommand
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'color']
 
 
 class CommandConstraintSerializer(ModelSerializer):
@@ -91,11 +92,7 @@ class CommandConstraintSerializer(ModelSerializer):
         instance.type = validated_data['type']
         channels = validated_data['channels']
         commands = validated_data['commands']
-        specificity = (
-            ((instance.type == ConstraintType.NONE.value) << 2)
-            + (bool(channels) << 1)
-            + bool(commands)
-        )
+        specificity = CommandConstraint.calc_specificity(instance.type, channels, commands)
         instance.specificity = specificity
         instance.save()
         roles = validated_data['roles']

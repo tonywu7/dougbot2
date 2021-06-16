@@ -112,7 +112,7 @@ export class D3ItemList {
     selectionType: 'single' | 'multiple'
 
     selected: Record<any, D3Item> = {}
-    selection: d3.Selection<d3.BaseType, D3Item, HTMLElement, unknown> | null = null
+    selection: d3.Selection<HTMLElement, D3Item, HTMLElement, unknown> | null = null
     candidates: d3.Selection<HTMLLIElement, D3Item, HTMLUListElement, any> | null = null
     index: TextSearch<D3Item> | null = null
 
@@ -170,6 +170,11 @@ export class D3ItemList {
             .attr('data-item-type', (d) => d.type || 0)
             .text((d) => d.name || d.id)
             .style('color', (d) => d.getColor())
+
+        let initialData = this.container.querySelector('[data-initial-data]') as HTMLElement
+        if (!initialData) return
+        let selected = initialData.dataset.initialData!
+        if (selected.length) this.fromJSON(selected.split(','))
     }
 
     public async populated(): Promise<boolean> {
@@ -178,7 +183,13 @@ export class D3ItemList {
     }
 
     protected updateSelection() {
-        this.selection = d3.select(this.field).selectAll('span.d3-selected').data(Object.values(this.selected))
+        let select = d3.select(this.field).selectAll('span.d3-selected') as d3.Selection<
+            HTMLElement,
+            D3Datum,
+            HTMLElement,
+            unknown
+        >
+        this.selection = select.data(Object.values(this.selected))
         this.selection
             .enter()
             .insert('span', 'input')
@@ -231,6 +242,7 @@ export class D3ItemList {
 
     public searchListener() {
         if (!this.expanded) this.dropdown.show()
+        this.setValidity('')
         this.filter(this.userEntry.value)
     }
 
@@ -273,6 +285,21 @@ export class D3ItemList {
 
     public get isEmpty(): boolean {
         return Object.keys(this.selected).length === 0
+    }
+
+    public setValidity(message: string) {
+        this.userEntry.setCustomValidity(message)
+        this.userEntry.reportValidity()
+    }
+
+    public copyElements(): HTMLSpanElement {
+        let span = document.createElement('span')
+        span.append(
+            ...(d3.select(this.field).selectAll('span.d3-selected').nodes() || []).map((n) =>
+                (n as Node).cloneNode(true)
+            )
+        )
+        return span
     }
 }
 

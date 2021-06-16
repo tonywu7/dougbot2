@@ -27,3 +27,9 @@ class HTTPCreated(HttpResponse):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.status_code = 201
+
+
+class HTTPBadRequest(HttpResponse):
+    def __init__(self, content='Bad request', *args, **kwargs):
+        super().__init__(content=content, *args, **kwargs)
+        self.status_code = 400

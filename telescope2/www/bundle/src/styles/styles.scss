@@ -699,9 +699,10 @@ label.input-changed {
     .dropdown {
         ul {
             width: 100%;
-            max-height: 240px;
+            max-height: 50vh;
             padding: 6pt;
             overflow-y: scroll;
+            z-index: 1050;
         }
 
         li {
@@ -731,19 +732,22 @@ label.input-changed {
         }
     }
 
-    .d3-item,
-    .token {
-        padding: 4px;
+    .token-container {
         font-size: 0.9rem;
-        line-height: 1;
-    }
-
-    .d3-item {
-        border-radius: 3px;
         font-weight: 600;
-        cursor: pointer;
-        user-select: none;
     }
+}
+
+.d3-item,
+.token {
+    padding: 0.25em;
+    line-height: 1;
+}
+
+.d3-item {
+    border-radius: 0.25em;
+    cursor: pointer;
+    user-select: none;
 }
 
 .command-constraint-form {
@@ -812,8 +816,10 @@ label.input-changed {
             font-size: 1.15rem;
             padding: 3pt 0;
         }
+    }
 
-        margin: 0 0 1rem;
+    .form-fields {
+        margin-top: 1rem;
     }
 
     .constraint-type {
@@ -888,4 +894,25 @@ label.input-changed {
 
 .accordion-button:not(.collapsed) {
     color: var(--accent);
+}
+
+#constraint-inspector {
+    .test {
+        display: flex;
+        align-items: center;
+    }
+
+    .btn-submit {
+        margin: 0 6pt 0 0;
+    }
+
+    .test-result {
+        display: inline;
+        margin: 0;
+        line-height: 1.4;
+
+        .token {
+            padding: 0.1rem 0.2rem;
+        }
+    }
 }

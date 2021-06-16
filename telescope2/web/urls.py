@@ -40,6 +40,7 @@ urlpatterns = [
             views.mutation.async_form_save, name='api.mutation'),
 
     re_path(r'^api/v1/bot/commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),
+    re_path(r'^api/v1/bot/constraint-test$', views.data.constraint_test, name='api.bot.constraint_test'),
 
     re_path(
         r'^api/v1/guild/(?P<guild_id>[0-9]+)$',

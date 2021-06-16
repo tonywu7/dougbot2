@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordServer } from './discord'
-import { TemplateRenderer, D3ItemList, initTooltips, D3DataSource } from './responsive'
+import { TemplateRenderer, initTooltips, D3DataSource } from './responsive'
 import { AsyncModelForm } from './form'
 
 import { BotData } from './bot'
@@ -41,9 +41,6 @@ function initTopMenu() {
 function initWidgets() {
     document.querySelectorAll('.async-form').forEach((form) => {
         new AsyncModelForm(form as HTMLFormElement)
-    })
-    document.querySelectorAll('.d3-item-list').forEach((elem) => {
-        new D3ItemList(elem as HTMLElement)
     })
     initTooltips(document.documentElement)
 }

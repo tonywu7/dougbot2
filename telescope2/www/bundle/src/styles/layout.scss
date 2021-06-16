@@ -19,7 +19,7 @@
     top: 0;
     left: 0;
 
-    z-index: 5000;
+    z-index: 100;
 
     padding: var(--masthead-space-vertical) var(--masthead-space-horizontal);
 
@@ -46,7 +46,7 @@
     bottom: 0;
     overflow-x: visible;
     overflow-y: visible;
-    z-index: 5000;
+    z-index: 1000;
 
     padding: 1.5rem var(--masthead-space-horizontal) 0 0;
 

@@ -18,24 +18,31 @@
 {% section id='constraint-inspector' title='previewer' classes='grid-span-2' %}
 <div class="form command-constraint-form">
     <h4>Test out command constraints before saving them:</h4>
-    <ul>
-        <li><label>Channel</label>
-            {% d3itemlist 'discord:channels' 'single' classes='channel-list' placeholder='select channel' %}
-            <span class="input-group-text">#</span>
-            {% enditemlist %}
-        </li>
-        <li><label>Command</label>
-            {% d3itemlist 'bot:commands' 'single' classes='command-list' placeholder='select command' %}
-            <span class="input-group-text">?</span>
-            {% enditemlist %}
-        </li>
-        <li><label>Roles</label>
-            {% d3itemlist 'discord:roles' 'multiple' classes='role-list' placeholder='role names...' %}
-            <span class="input-group-text">@</span>
-            {% enditemlist %}
-        </li>
-        <li><label>Result</label></span></span></li>
-    </ul>
+    <form action="{% url 'web:api.bot.constraint_test' %}">
+        <ul>
+            <li><label>Member with roles:</label>
+                {% d3itemlist 'discord:roles' 'multiple' classes='role-list' placeholder='role names...' %}
+                <span class="input-group-text">@</span>
+                {% enditemlist %}
+            </li>
+            <li><label>Using command:</label>
+                {% d3itemlist 'bot:commands' 'single' classes='command-list' placeholder='select command' %}
+                <span class="input-group-text">?</span>
+                {% enditemlist %}
+            </li>
+            <li><label>In channel:</label>
+                {% d3itemlist 'discord:channels' 'single' classes='channel-list' placeholder='select channel' %}
+                <span class="input-group-text">#</span>
+                {% enditemlist %}
+            </li>
+            <li>
+                <span class="test">
+                    <button type="button" class="btn btn-outline-primary btn-submit">Test</button>
+                    <h4 class="test-result"></h4>
+                </span>
+            </li>
+        </ul>
+    </form>
 </div>
 {% endsection %}
 

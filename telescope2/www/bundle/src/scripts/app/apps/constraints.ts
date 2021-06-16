@@ -283,7 +283,7 @@ class CommandConstraintList extends AsyncModelForm {
         createAccordion(this.container, elem, true)
     }
 
-    public toJSON(): Record<ModelState, Partial<CCRecord>[]> {
+    public toMutations(): Record<ModelState, Partial<CCRecord>[]> {
         let aggregated: Record<ModelState, Partial<CCRecord>[]> = {
             [ModelState.CREATE]: [],
             [ModelState.UPDATE]: [],
@@ -309,13 +309,16 @@ class CommandConstraintList extends AsyncModelForm {
         return `/web/api/v1/guild/${this.guild!}/core/constraints/${data.id!}`
     }
 
-    public getJSON() {
-        let data = this.toJSON()
+    public getJSON(data: Record<ModelState, Partial<CCRecord>[]>) {
         let submission = {
             guild: this.guild!,
             constraints: [...data[ModelState.UPDATE], ...data[ModelState.CREATE]],
         }
-        return JSON.stringify(submission)
+        return submission
+    }
+
+    public toList() {
+        return this.getJSON(this.toMutations())
     }
 
     public checkValid(): boolean {
@@ -364,18 +367,89 @@ class CommandConstraintList extends AsyncModelForm {
 
     public async submit() {
         if (!this.checkValid()) return null
-        let data = this.toJSON()
-        let submission = {
-            guild: this.guild!,
-            constraints: [...data[ModelState.UPDATE], ...data[ModelState.CREATE]],
-        }
+        let data = this.toMutations()
+        let submission = this.getJSON(data)
         let responses = await Promise.all([...data[ModelState.DELETE].map((d) => this.delete(d)), this.put(submission)])
         return await this.postSubmit(responses[responses.length - 1])
     }
 }
 
+class CommandConstraintPreviewer {
+    list: CommandConstraintList
+    container: HTMLElement
+    form: HTMLFormElement
+    endpoint: string
+
+    private channel: D3ItemList
+    private command: D3ItemList
+    private roles: D3ItemList
+
+    result: HTMLElement
+
+    constructor(container: HTMLElement, list: CommandConstraintList) {
+        this.list = list
+        this.container = container
+        this.form = container.querySelector('form')!
+        this.endpoint = this.form.action
+
+        this.channel = new D3ItemList(this.container.querySelector('.channel-list') as HTMLElement)
+        this.command = new D3ItemList(this.container.querySelector('.command-list') as HTMLElement)
+        this.roles = new D3ItemList(this.container.querySelector('.role-list') as HTMLElement)
+        this.result = this.container.querySelector('.test-result') as HTMLElement
+
+        this.container.querySelector('.btn-submit')?.addEventListener('click', this.run.bind(this))
+
+        this.channel.input.addEventListener('change', () => this.setResult(undefined))
+        this.command.input.addEventListener('change', () => this.setResult(undefined))
+        this.roles.input.addEventListener('change', () => this.setResult(undefined))
+
+        Promise.all([this.channel.populated(), this.command.populated(), this.roles.populated()])
+    }
+
+    async run() {
+        for (let list of [this.roles, this.command, this.channel]) {
+            if (list.isEmpty) {
+                list.setValidity('This field cannot be empty')
+                return
+            }
+        }
+        let data = {
+            config: this.list.toList(),
+            channel: this.channel.toJSON(),
+            command: this.command.toJSON(),
+            roles: this.roles.toJSON(),
+        }
+        let res = await fetch(this.endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: { 'Content-Type': 'application/json' },
+        })
+        let result = await res.json()
+        this.setResult(result.result)
+    }
+
+    setResult(result: boolean | undefined) {
+        if (result === undefined) {
+            this.result.innerHTML = '...'
+            return
+        }
+        let value: HTMLElement = document.createElement('span')
+        let command: HTMLElement = this.command.copyElements()
+        let channel: HTMLElement = this.channel.copyElements()
+        if (result === true) {
+            value.innerHTML = '<i class="bi bi-circle-fill"></i> allowed'
+            value.classList.add('text-on')
+        } else if (result === false) {
+            value.innerHTML = '<i class="bi bi-circle-fill"></i> not allowed'
+            value.classList.add('text-off')
+        }
+        this.result.innerHTML = `This member is ${value.outerHTML} to use ${command.outerHTML} in ${channel.outerHTML}`
+    }
+}
+
 export function init() {
-    let container = document.querySelector('#constraint-form-list') as HTMLElement
-    if (!container) return
-    new CommandConstraintList(container)
+    let formlist = document.querySelector('#constraint-form-list') as HTMLElement
+    let list = new CommandConstraintList(formlist)
+    let preview = document.querySelector('#constraint-inspector') as HTMLElement
+    new CommandConstraintPreviewer(preview, list)
 }

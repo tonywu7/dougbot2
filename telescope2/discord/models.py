@@ -314,6 +314,14 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     type: int = models.IntegerField(choices=ConstraintType.choices)
     specificity: int = models.IntegerField(default=0)
 
+    @classmethod
+    def calc_specificity(cls, constraint_type: int, channels: List, commands: List):
+        return (
+            ((constraint_type == ConstraintType.NONE.value) << 2)
+            + (bool(channels) << 1)
+            + bool(commands)
+        )
+
     class Meta:
         verbose_name = 'command constraint'
 
@@ -325,24 +333,35 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
         )
 
 
+def _int_set(s):
+    return {int(n) for n in s}
+
+
 @attr.s
 class CommandCondition:
     type: ConstraintType = attr.ib()
     specificity: int = attr.ib()
-    roles: Set[int] = attr.ib(converter=set)
+    roles: Set[int] = attr.ib(converter=_int_set)
+
+    commands: Set = attr.ib(converter=_int_set, factory=set)
+    channels: Set = attr.ib(converter=_int_set, factory=set)
 
     def __call__(self, member: discord.Member) -> bool:
-        member_roles = {id_dot(r) for r in member.roles}
+        return self.test({id_dot(r) for r in member.roles})
+
+    def test(self, roles: Set[int]) -> bool:
         if self.type is ConstraintType.NONE.value:
-            return not (self.roles & member_roles)
+            return not (self.roles & roles)
         elif self.type is ConstraintType.ANY.value:
-            return bool(self.roles & member_roles)
+            return bool(self.roles & roles)
         elif self.type is ConstraintType.ALL.value:
-            return (self.roles & member_roles) == self.roles
+            return (self.roles & roles) == self.roles
 
     @classmethod
     def deserialize(cls, data: Dict):
-        return cls(data['type'], data['commands'], data['channels'], data['roles'])
+        kind, channels, commands = data['type'], data['channels'], data['commands']
+        specificity = CommandConstraint.calc_specificity(kind, channels, commands)
+        return cls(kind, specificity, data['roles'], commands=commands, channels=channels)
 
 
 @attr.s
@@ -350,8 +369,12 @@ class CommandCriteria:
     criteria: List[CommandCondition] = attr.ib(converter=list)
 
     def __call__(self, member: discord.Member) -> bool:
+        roles = {id_dot(r) for r in member.roles}
+        return self.test(roles)
+
+    def test(self, roles: Set[int]) -> bool:
         sorted_criteria = bucket(self.criteria, lambda c: c.specificity)
         return all(
-            any(c(member) for c in sorted_criteria[specificity])
+            any(c.test(roles) for c in sorted_criteria[specificity])
             for specificity in sorted(sorted_criteria, reverse=True)
         )

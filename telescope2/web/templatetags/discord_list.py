@@ -33,6 +33,8 @@ class D3ItemList(Node):
     nodelist: NodeList
     endpoint: str
     type: str
+    id: str = ''
+    name: str = ''
     initial: Optional[str] = None
     placeholder: str = '...'
     classes: str = ''
@@ -46,6 +48,8 @@ class D3ItemList(Node):
             'endpoint': unwrap(ctx, self.endpoint),
             'type': select_type,
             'prefix': prefix,
+            'id': optional_attr('id', unwrap(ctx, self.id)),
+            'name': optional_attr('name', unwrap(ctx, self.id)),
             'initial': optional_attr('data-initial-data', unwrap(ctx, self.initial)),
             'placeholder': unwrap(ctx, self.placeholder),
             'autoclose': autoclose,
