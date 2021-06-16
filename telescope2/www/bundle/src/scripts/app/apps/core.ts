@@ -31,7 +31,7 @@ function widgetPrefixLiveUpdate() {
 }
 
 function initLoggingView() {
-    document.querySelectorAll('.d3-item-list').forEach((e) => new D3ItemList(e as HTMLElement))
+    document.querySelectorAll('#logging .d3-item-list').forEach((e) => new D3ItemList(e as HTMLElement))
 }
 
 export function init() {
