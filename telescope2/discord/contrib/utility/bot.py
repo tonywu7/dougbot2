@@ -16,19 +16,24 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Callable, List, Optional, Union, overload
 
-from discord import CategoryChannel, Member, Permissions, Role, StageChannel, \
-    TextChannel, VoiceChannel
+from discord import (
+    CategoryChannel, Member, Permissions, Role, StageChannel, TextChannel,
+    VoiceChannel,
+)
 from discord.abc import GuildChannel
 from discord.ext.commands import BadArgument, Converter, Greedy, command
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
-from telescope2.utils.discord import HypotheticalMember, HypotheticalRole, \
-    color_to_rgb8, tag, traffic_light
+from telescope2.utils.discord import (
+    HypotheticalMember, HypotheticalRole, color_to_rgb8, tag, traffic_light,
+)
 
 from ...bot import Robot
+from ...checks import owner_only
 from ...context import Circumstances
 from ...extension import Gear
 
@@ -65,6 +70,14 @@ class PermissionTest(Converter):
         if isinstance(entity, Member):
             entity = HypotheticalRole(*entity.roles)
         return entity.permissions.administrator or getattr(entity.permissions, self.perm_name)
+
+
+class LoggingLevel(Converter):
+    async def convert(self, ctx: Circumstances, arg: str) -> int | str:
+        level = logging.getLevelName(arg)
+        if isinstance(level, int):
+            return level
+        return arg
 
 
 class Utilities(Gear):
@@ -117,3 +130,16 @@ class Utilities(Gear):
                 lines.append(unioned(subjects, HypotheticalRole))
 
         await ctx.send('\n'.join(lines))
+
+    @command('log')
+    @owner_only
+    async def _log(self, ctx: Circumstances, level: LoggingLevel, *, trimmed=''):
+        if isinstance(level, str):
+            trimmed = f'{level} {trimmed}'
+            level = logging.INFO
+        if not trimmed:
+            msg = ctx.message.content
+        else:
+            msg = trimmed
+        logging.getLogger(f'{self.log.name}.log').log(level, msg)
+        await ctx.send(msg)

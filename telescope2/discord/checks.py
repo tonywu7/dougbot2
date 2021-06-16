@@ -1,4 +1,4 @@
-# extension.py
+# checks.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,14 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import logging
+from discord.ext.commands import check
 
-from discord.ext.commands import Bot, Cog
+from .context import Circumstances
 
 
-class Gear(Cog):
-    def __init__(self, label: str, bot: Bot, *args, **kwargs):
-        super().__init__()
-        self.bot = bot
-        self.app_label = label
-        self.log = logging.getLogger(f'discord.logging.ext.{label}')
+def owner_only(f):
+    async def pred(ctx: Circumstances):
+        return await ctx.bot.is_owner(ctx.author)
+    return check(pred)(f)
