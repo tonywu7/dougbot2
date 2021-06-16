@@ -38,7 +38,7 @@ from telescope2.utils.importutil import iter_module_tree, objpath
 from . import ipc, models
 from .apps import DiscordBotConfig
 from .context import Circumstances
-from .models import Server
+from .models import CommandConstraintList, Server
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
@@ -143,7 +143,19 @@ class Robot(Bot):
 
     @classmethod
     async def command_constraints_check(cls, ctx: Circumstances) -> bool:
-        return True
+        author = ctx.message.author
+
+        if author.guild_permissions.administrator:
+            return True
+        if author == ctx.message.guild.owner:
+            return True
+
+        @sync_to_async
+        def eval_constraints():
+            constraints: CommandConstraintList = CommandConstraintList.objects.get(pk=ctx.guild.id)
+            return constraints(ctx.invoked_with, ctx.channel, ctx.message.author)
+
+        return await eval_constraints()
 
 
 class Telescope(Robot):

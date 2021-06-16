@@ -18,16 +18,18 @@ from __future__ import annotations
 
 import re
 from operator import attrgetter, itemgetter
-from typing import Dict, Generic, Iterable, List, Protocol, TypeVar, Union
+from typing import Dict, Generic, Iterable, List, Protocol, Set, TypeVar, Union
 
+import attr
 import discord
 import inflect
 from discord.abc import ChannelType
 from django.apps import apps
 from django.db import models
-from django.db.models import CASCADE
+from django.db.models import CASCADE, Q
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
+from more_itertools import bucket
 
 from telescope2.web.config import CommandAppConfig
 
@@ -301,7 +303,12 @@ class CommandConstraintList(NamingMixin, SubclassMetaMixin, models.Model):
         verbose_name = 'command constraint list'
 
     def __call__(self, command: str, channel: discord.TextChannel, member: discord.Member) -> bool:
-        return
+        constraints = (CommandConstraint.objects
+                       .filter(collection=self)
+                       .filter(Q(commands__identifier__exact=command) | Q(commands=None))
+                       .filter(Q(channels__pk=channel.id) | Q(channels=None)))
+        criteria = CommandCriteria([c.to_dataclass() for c in constraints])
+        return criteria(member)
 
 
 class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
@@ -311,18 +318,57 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
     roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
 
-    name: str = models.TextField(blank=True)
+    name: str = models.TextField(blank=False)
     type: int = models.IntegerField(choices=ConstraintType.choices)
 
     class Meta:
         verbose_name = 'command constraint'
 
+    def to_dataclass(self) -> CommandCondition:
+        return CommandCondition(
+            type=self.type,
+            commands={id_dot(r) for r in self.commands.all()},
+            channels={snowflake_dot(r) for r in self.channels.all()},
+            roles={snowflake_dot(r) for r in self.roles.all()},
+        )
+
+
+def _to_int_ids(s):
+    return {int(k) for k in s}
+
+
+@attr.s
+class CommandCondition:
+    type: ConstraintType = attr.ib()
+
+    commands: Set[int] = attr.ib(converter=_to_int_ids)
+    channels: Set[int] = attr.ib(converter=_to_int_ids)
+    roles: Set[int] = attr.ib(converter=_to_int_ids)
+
+    @property
+    def specificity(self) -> int:
+        return bool(self.channels) * 2 + bool(self.commands)
+
     def __call__(self, member: discord.Member) -> bool:
-        target_roles = {snowflake_dot(r) for r in self.roles}
         member_roles = {id_dot(r) for r in member.roles}
-        if self.type == 0:
-            return not (target_roles & member_roles)
-        elif self.type == 1:
-            return bool(target_roles & member_roles)
-        elif self.type == 2:
-            return (target_roles & member_roles) == target_roles
+        if self.type is ConstraintType.NONE.value:
+            return not (self.roles & member_roles)
+        elif self.type is ConstraintType.ANY.value:
+            return bool(self.roles & member_roles)
+        elif self.type is ConstraintType.ALL.value:
+            return (self.roles & member_roles) == self.roles
+
+    @classmethod
+    def deserialize(cls, data: Dict):
+        return cls(data['type'], data['commands'], data['channels'], data['roles'])
+
+
+@attr.s
+class CommandCriteria:
+    criteria: List[CommandCondition] = attr.ib(converter=list)
+
+    def __call__(self, member: discord.Member) -> bool:
+        sorted_criteria = bucket(self.criteria, lambda c: c.specificity)
+        for specificity in sorted(sorted_criteria, reverse=True):
+            return all(c(member) for c in sorted_criteria[specificity])
+        return True

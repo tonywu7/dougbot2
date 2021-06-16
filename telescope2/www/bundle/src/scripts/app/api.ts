@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { renderer } from './main'
-import { displayNotification, AsyncPostSubmit } from './responsive'
+import { displayNotification, AsyncPostSubmit, ResponsiveForm } from './responsive'
 
 export class AsyncModelForm {
     readonly endpoint: string
@@ -24,7 +24,34 @@ export class AsyncModelForm {
     constructor(form: HTMLFormElement) {
         this.form = form
         this.endpoint = form.dataset.endpoint!
+        this.initLabelListeners()
         this.initSubmitListener()
+    }
+
+    protected initLabelListeners() {
+        for (let input of this.form.querySelectorAll('input')) {
+            input.addEventListener('input', this.createInputListener(input))
+        }
+    }
+
+    protected createInputListener(input: HTMLInputElement): (ev: Event) => void {
+        let labels = input.labels
+        let changed: () => boolean
+        if (input.type === 'checkbox') {
+            changed = () => input.defaultChecked != input.checked
+        } else {
+            changed = () => input.defaultValue != input.value
+        }
+        return (ev) => {
+            input.setCustomValidity('')
+            if (changed()) {
+                labels?.forEach((label) => label.classList.add('input-changed'))
+                input.classList.add('input-changed')
+            } else {
+                labels?.forEach((label) => label.classList.remove('input-changed'))
+                input.classList.remove('input-changed')
+            }
+        }
     }
 
     protected initSubmitListener() {

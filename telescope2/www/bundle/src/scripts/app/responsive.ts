@@ -318,6 +318,10 @@ export class D3ItemList {
     public setInputId(id: string) {
         this.input.id = id
     }
+
+    public get isEmpty(): boolean {
+        return Object.keys(this.selected).length === 0
+    }
 }
 
 export function createFlexSelect(e: HTMLElement) {

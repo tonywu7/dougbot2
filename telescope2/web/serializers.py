@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from more_itertools import partition
+from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import CharField, ModelSerializer
 
@@ -72,7 +73,7 @@ class CommandConstraintSerializer(ModelSerializer):
 
     channels = Int64StringRelatedField(queryset=Channel.objects.all(), many=True, required=False)
     commands = Int64StringRelatedField(queryset=BotCommand.objects.all(), many=True, required=False)
-    roles = Int64StringRelatedField(queryset=Role.objects.all(), many=True, required=False)
+    roles = Int64StringRelatedField(queryset=Role.objects.all(), many=True, required=True)
 
     def to_internal_value(self, data: Dict):
         value = super().to_internal_value(data)
@@ -91,6 +92,11 @@ class CommandConstraintSerializer(ModelSerializer):
         for k in ('channels', 'commands', 'roles'):
             getattr(instance, k).set(validated_data[k])
         return instance
+
+    def validate_roles(self, roles: List):
+        if not roles:
+            raise ValidationError(detail='Roles cannot be empty.')
+        return roles
 
 
 class CommandConstraintListSerializer(ModelSerializer):

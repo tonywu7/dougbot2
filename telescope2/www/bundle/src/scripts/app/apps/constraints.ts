@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { getTemplate, killAllChildren, randomIdentifier } from '../../common/util'
+import { getTemplate, randomIdentifier } from '../../common/util'
 import {
     D3ItemList,
     createFlexSelect,
@@ -55,7 +55,7 @@ export class CommandConstraintForm {
 
     private type: HTMLSelectElement
 
-    private id: number | string
+    public id: number | string
     private guildId: string
 
     private deleted: boolean = false
@@ -85,15 +85,27 @@ export class CommandConstraintForm {
         initTooltips(this.container)
         this.setElementIds()
 
+        this.channels.input.addEventListener('change', this.setSpecificity.bind(this))
+        this.commands.input.addEventListener('change', this.setSpecificity.bind(this))
+
         Promise.all([this.channels.populated(), this.commands.populated(), this.roles.populated()]).then(() => {
             this.channels.fromJSON(data.channels)
             this.commands.fromJSON(data.commands)
             this.roles.fromJSON(data.roles)
+            this.setSpecificity()
         })
     }
 
     public getElement() {
         return this.container
+    }
+
+    public getSpecificity(): number {
+        return Number(!this.channels.isEmpty) * 2 + Number(!this.commands.isEmpty)
+    }
+
+    protected setSpecificity() {
+        this.container.querySelector('.constraint-specificity')!.textContent = this.getSpecificity().toString()
     }
 
     public static createNewForm(): CommandConstraintForm {
@@ -150,6 +162,29 @@ export class CommandConstraintForm {
         return [record, state]
     }
 
+    protected getName(): string {
+        let name = this.title.value
+        if (name.length) {
+            return name
+        } else {
+            return '(unnamed constraint)'
+        }
+    }
+
+    public checkValid(): boolean {
+        this.title.setCustomValidity('')
+        if (this.deleted) return true
+        if (!this.title.checkValidity()) {
+            return this.title.reportValidity()
+        }
+        if (this.roles.isEmpty) {
+            this.title.setCustomValidity('Roles cannot be empty')
+            this.title.reportValidity()
+            return false
+        }
+        return true
+    }
+
     public updateDefaults() {
         this.title.defaultValue = this.title.value
         this.setDeleted(false)
@@ -187,7 +222,7 @@ class CommandConstraintList {
     guild: string | null
 
     container: HTMLElement
-    forms: CommandConstraintForm[] = []
+    forms: Record<string, CommandConstraintForm> = {}
 
     endpoint: string
 
@@ -211,19 +246,19 @@ class CommandConstraintList {
         this.clear()
         for (let d of data.constraints) {
             let form = new CommandConstraintForm(d)
-            this.forms.push(form)
+            this.forms[form.id] = form
         }
-        this.container.append(...this.forms.map((f) => f.getElement()))
+        this.container.append(...Object.values(this.forms).map((f) => f.getElement()))
         this.container
             .querySelectorAll('.accordion-item')
             .forEach((e) => createAccordion(this.container, e as HTMLElement))
     }
 
     protected clear() {
-        while (this.forms.length) {
-            let form = this.forms.pop()
-            form?.remove()
+        for (let [k, v] of Object.entries(this.forms)) {
+            v.remove()
         }
+        this.forms = {}
     }
 
     protected async createList() {
@@ -244,7 +279,7 @@ class CommandConstraintList {
 
     public createNewForm() {
         let form = CommandConstraintForm.createNewForm()
-        this.forms.push(form)
+        this.forms[form.id] = form
         let elem = form.getElement()
         this.container.prepend(elem)
         createAccordion(this.container, elem, true)
@@ -256,7 +291,7 @@ class CommandConstraintList {
             [ModelState.UPDATE]: [],
             [ModelState.DELETE]: [],
         }
-        for (let [data, state] of this.forms.map((f) => f.toJSON())) {
+        for (let [data, state] of Object.values(this.forms).map((f) => f.toJSON())) {
             if (data === null) continue
             data.guild = this.guild!
             if (state === ModelState.CREATE) {
@@ -287,9 +322,11 @@ class CommandConstraintList {
 
     protected async put(data: { guild: string; constraints: Partial<CCRecord>[] }) {
         let response = await this.submit(JSON.stringify(data))
-        let res = response.clone()
-        let results: CCRecordList = await res.json()
-        this.parseData(results)
+        if (response.status < 299) {
+            let res = response.clone()
+            let results: CCRecordList = await res.json()
+            this.parseData(results)
+        }
         return response
     }
 
@@ -303,17 +340,22 @@ class CommandConstraintList {
     }
 
     public checkValid(): boolean {
+        for (let form of Object.values(this.forms)) {
+            if (!form.checkValid()) return false
+        }
         return true
     }
 
     public updateDefaults() {
-        for (let form of this.forms) {
+        for (let form of Object.values(this.forms)) {
             if (form.isDeleted) form.remove()
             else form.updateDefaults()
         }
     }
 
     public async commit() {
+        if (!this.checkValid()) return
+
         let data = this.toJSON()
 
         let submission = {

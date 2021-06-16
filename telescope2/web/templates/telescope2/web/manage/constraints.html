@@ -17,10 +17,10 @@
 
 {% section id='constraint-inspector' title='previewer' classes='grid-span-2' %}
 <div class="form command-constraint-form">
-    <h4>Test out command constraints</h4>
+    <h4>Test out command constraints before saving them:</h4>
     <ul>
-        <li><label>Channels</label>
-            {% d3itemlist 'discord:channels' 'multiple' classes='channel-list' placeholder='channel names...' %}
+        <li><label>Channel</label>
+            {% d3itemlist 'discord:channels' 'single' classes='channel-list' placeholder='select channel' %}
             <span class="input-group-text">#</span>
             {% enditemlist %}
         </li>
