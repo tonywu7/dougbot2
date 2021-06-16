@@ -236,6 +236,8 @@ def unwrap(context: template.Context, maybe_var):
 
 
 def optional_attr(attr: str, value: Optional[Any]):
-    if value:
+    if value is True:
+        return mark_safe(attr)
+    elif value:
         return mark_safe(f'{attr}="{escape(value)}"')
     return mark_safe('')

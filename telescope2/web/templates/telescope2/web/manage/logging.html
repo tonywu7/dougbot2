@@ -1,0 +1,37 @@
+{% extends 'telescope2/web/manage/base.html' %}
+{% load inspect element async_form discord_list %}
+
+{% block main_title %}Logging{% endblock %}
+
+{% block sections %}
+
+<div class="paragraph">
+    <p class="large-icon"><span><i class="bi bi-receipt-cutoff"></i></span></p>
+    <p>Setup logging channels for various types of events.</p>
+</div>
+
+{% section id='logging' title='logging channels' classes='grid-span-2' %}
+
+<form method="POST" class="form">
+    {% if errors %}
+    <p class="paragraph text-danger">
+        Some settings contain errors. Please check below:
+    </p>
+    {% endif %}
+    {% for form in formset %}
+    <div class="paragraph">
+        <h4>{{ form.name.value }}</h4>
+        {{ form.key }}
+        <ul class="form-fields">
+            {{ form.as_ul }}
+        </ul>
+    </div>
+    {% endfor %}
+    {{ formset.management_form }}
+    {% csrf_token %}
+    <button id="constraint-form-submit" type="submit" class="btn btn-primary">Save settings</button>
+</form>
+
+{% endsection %}
+
+{% endblock %}

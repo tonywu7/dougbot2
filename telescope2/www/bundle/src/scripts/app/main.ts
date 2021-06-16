@@ -42,6 +42,7 @@ function initWidgets() {
     document.querySelectorAll('.async-form').forEach((form) => {
         new AsyncModelForm(form as HTMLFormElement)
     })
+
     initTooltips(document.documentElement)
 }
 

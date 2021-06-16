@@ -21,8 +21,8 @@ from django.template import Context, Library, Node, NodeList, Template
 from django.template.loader import get_template
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import (create_tag_parser, domtokenlist,
-                                        optional_attr, unwrap)
+from telescope2.utils.templates import create_tag_parser, domtokenlist, \
+    optional_attr, unwrap
 
 register = Library()
 
@@ -50,7 +50,7 @@ class D3ItemList(Node):
             'prefix': prefix,
             'id': optional_attr('id', unwrap(ctx, self.id)),
             'name': optional_attr('name', unwrap(ctx, self.id)),
-            'initial': optional_attr('data-initial-data', unwrap(ctx, self.initial)),
+            'value': optional_attr('value', unwrap(ctx, self.initial)),
             'placeholder': unwrap(ctx, self.placeholder),
             'autoclose': autoclose,
             'classes': optional_attr('class', domtokenlist('d3-item-list', unwrap(ctx, self.classes))),

@@ -168,7 +168,7 @@ export class CommandConstraintForm extends AsyncModelForm {
         }
     }
 
-    public checkValid(): boolean {
+    public checkValidity(): boolean {
         this.title.setCustomValidity('')
         if (this.deleted) return true
         if (!this.title.checkValidity()) {
@@ -212,6 +212,9 @@ export class CommandConstraintForm extends AsyncModelForm {
         this.roles.setInputId(`ccform-${this.id}-roles`)
         let fields = this.form?.querySelector('.form-fields') as HTMLElement
         fields.id = `ccform-${this.id}--formfields`
+        ;(this.container.querySelector('.channels label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-channels`
+        ;(this.container.querySelector('.commands label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-commands`
+        ;(this.container.querySelector('.roles label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-roles`
     }
 }
 
@@ -321,9 +324,9 @@ class CommandConstraintList extends AsyncModelForm {
         return this.getJSON(this.toMutations())
     }
 
-    public checkValid(): boolean {
+    public checkValidity(): boolean {
         for (let form of Object.values(this.forms)) {
-            if (!form.checkValid()) return false
+            if (!form.checkValidity()) return false
         }
         return true
     }
@@ -366,7 +369,7 @@ class CommandConstraintList extends AsyncModelForm {
     }
 
     public async submit() {
-        if (!this.checkValid()) return null
+        if (!this.checkValidity()) return null
         let data = this.toMutations()
         let submission = this.getJSON(data)
         let responses = await Promise.all([...data[ModelState.DELETE].map((d) => this.delete(d)), this.put(submission)])
@@ -449,6 +452,7 @@ class CommandConstraintPreviewer {
 
 export function init() {
     let formlist = document.querySelector('#constraint-form-list') as HTMLElement
+    if (!formlist) return
     let list = new CommandConstraintList(formlist)
     let preview = document.querySelector('#constraint-inspector') as HTMLElement
     new CommandConstraintPreviewer(preview, list)

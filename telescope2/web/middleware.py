@@ -24,8 +24,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from more_itertools import partition
 
-from telescope2.discord.fetch import (DiscordFetch, DiscordUnauthorized,
-                                      PartialGuild)
+from telescope2.discord.fetch import DiscordFetch, DiscordUnauthorized, \
+    PartialGuild
 from telescope2.discord.models import Server
 
 from .contexts import DiscordContext
@@ -113,6 +113,7 @@ class DiscordContextMiddleware:
 
         context = DiscordContext(
             token, request.user.snowflake, request.user.username,
+            request.user.is_staff, request.user.is_superuser,
             profile, available, joined, server_id=guild_id,
         )
         if context.server_id and context.current is None:

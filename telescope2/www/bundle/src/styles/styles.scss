@@ -401,9 +401,6 @@ i.bi::before {
         margin: 0 0 1rem;
         user-select: none;
     }
-    .paragraph {
-        margin: 1rem 0;
-    }
 }
 
 h1 .http-status code {
@@ -542,6 +539,10 @@ label.input-changed {
     display: flex;
     flex-flow: column nowrap;
 
+    h4 {
+        margin-bottom: 0.8rem;
+    }
+
     &.form-text-large {
         label,
         li,
@@ -578,8 +579,8 @@ label.input-changed {
 
         label {
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
+            letter-spacing: 0.3px;
+            font-weight: 400;
             font-size: 0.8rem;
         }
     }
@@ -669,7 +670,7 @@ label.input-changed {
     position: relative;
     display: inline-block;
 
-    margin: 6px 0;
+    margin: 3px 0 6px;
 
     .token-container {
         display: inline-flex;
@@ -750,7 +751,7 @@ label.input-changed {
     user-select: none;
 }
 
-.command-constraint-form {
+.d3-item-list {
     .input-group-text {
         min-width: 40px;
         justify-content: center;
@@ -915,4 +916,16 @@ label.input-changed {
             padding: 0.1rem 0.2rem;
         }
     }
+}
+
+.paragraph {
+    margin: 1rem 0;
+
+    & + .paragraph {
+        margin-top: 0.5rem;
+    }
+}
+
+.errorlist {
+    color: $red;
 }

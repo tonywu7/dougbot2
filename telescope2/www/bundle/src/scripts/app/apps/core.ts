@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { D3ItemList } from '../responsive'
+
 function widgetPrefixLiveUpdate() {
     let prefix: string = ''
     let input = document.querySelector('input#id_prefix') as HTMLInputElement
@@ -28,6 +30,11 @@ function widgetPrefixLiveUpdate() {
     updatePrefixes()
 }
 
+function initLoggingView() {
+    document.querySelectorAll('.d3-item-list').forEach((e) => new D3ItemList(e as HTMLElement))
+}
+
 export function init() {
     widgetPrefixLiveUpdate()
+    initLoggingView()
 }

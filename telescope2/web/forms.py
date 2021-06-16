@@ -20,11 +20,12 @@ from operator import itemgetter
 
 from asgiref.sync import async_to_sync
 from django import forms
+from django.core.exceptions import ValidationError
 
 from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.models import Server
-from telescope2.utils.forms import (AsyncFormMixin, FormConstants, SwitchInput,
-                                    find_widgets, gen_labels)
+from telescope2.utils.forms import AsyncFormMixin, D3SelectWidget, \
+    FormConstants, SwitchInput, find_widgets, gen_labels
 
 
 class PreferenceForms:
@@ -40,6 +41,9 @@ class PreferenceForms:
 
     def sync_models(self):
         return ModelSynchronizationActionForm(instance=self.context.server)
+
+    def logging(self):
+        return LoggingConfigFormset.get_form(self.context.server, self.context.is_superuser)
 
 
 class UserCreationForm(forms.Form):
@@ -129,3 +133,60 @@ class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], form
             await bot.sync_server(guild)
 
         thread.run_coroutine(task(thread.client))
+
+
+channel_select_single = D3SelectWidget('discord:channels', 'single', prefix='#', classes='channel-list', placeholder='Select channel')
+role_select_single = D3SelectWidget('discord:roles', 'single', prefix='@', classes='role-list', placeholder='Select role')
+
+
+class LoggingConfigForm(FormConstants, forms.Form):
+    key = forms.CharField(widget=forms.HiddenInput)
+    name = forms.CharField(widget=forms.HiddenInput, required=False)
+    channel = forms.IntegerField(required=False, label='Send logs to this channel', widget=channel_select_single)
+    role = forms.IntegerField(required=False, label='Notify this role for every log message', widget=role_select_single)
+
+    def clean(self):
+        data = super().clean()
+        channel = data.get('channel')
+        role = data.get('role')
+        if role and not channel:
+            raise ValidationError('To set a role to notify, you must also specify a channel.')
+
+
+class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
+    @classmethod
+    def get_form(cls, server: Server, is_superuser: bool) -> LoggingConfigFormset:
+        items = [
+            {'key': 'MissingAnyRole', 'name': 'Constraint violations'},
+            {'key': 'UserInputError', 'name': 'Bad command invocations'},
+        ]
+        if is_superuser:
+            items.insert(0, {'key': 'Exception', 'name': 'Uncaught exceptions'})
+
+        config = server.error_handling
+        for row in items:
+            key = row['key']
+            err_type = config.get(key, {})
+            if not err_type:
+                continue
+            try:
+                row['channel'] = err_type.get('channel', '')
+                row['role'] = err_type.get('role', '')
+            except AttributeError:
+                continue
+
+        return cls(initial=items)
+
+    def save(self, server: Server):
+        conf = {}
+        for row in self.cleaned_data:
+            channel = row['channel']
+            if not channel:
+                continue
+            role = row['role']
+            conf[row['key']] = {
+                'channel': channel,
+                'role': role,
+            }
+        server.error_handling = conf
+        server.save()

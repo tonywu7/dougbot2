@@ -35,6 +35,7 @@ urlpatterns = [
     re_path(r'^guild/(?P<guild_id>[0-9]+)/index$', views.manage.index, name='manage.index'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='manage.core'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/constraints$', views.manage.constraints, name='manage.constraints'),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/logging$', views.manage.LoggingConfigView.as_view(), name='manage.logging'),
 
     re_path(r'^api/v1/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
             views.mutation.async_form_save, name='api.mutation'),

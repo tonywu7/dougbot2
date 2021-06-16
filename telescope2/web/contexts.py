@@ -61,14 +61,14 @@ class DiscordContext:
 
     user_id: int
     username: str
+    is_staff: bool
+    is_superuser: bool
 
     user_profile: PartialUser
 
     available_servers: Dict[int, PartialGuild]
     joined_servers: Dict[int, PartialGuild]
-
     server_id: Optional[int] = None
-
     server: Optional[Server] = None
 
     forms: PreferenceForms = None

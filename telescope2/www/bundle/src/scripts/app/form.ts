@@ -32,6 +32,7 @@ export class ResponsiveForm {
     protected initLabelListeners() {
         for (let input of this.form?.querySelectorAll('input') || []) {
             input.addEventListener('input', this.createLabelListener(input))
+            input.addEventListener('change', this.createLabelListener(input))
         }
     }
 
@@ -55,7 +56,7 @@ export class ResponsiveForm {
         }
     }
 
-    public checkValid(): boolean {
+    public checkValidity(): boolean {
         let valid = this.form?.checkValidity()
         if (!valid) {
             this.form?.reportValidity()
@@ -64,7 +65,7 @@ export class ResponsiveForm {
     }
 
     public async submit(): Promise<any> {
-        if (!this.checkValid()) return
+        if (!this.checkValidity()) return
         this.form?.submit()
     }
 }
@@ -111,10 +112,10 @@ export class AsyncModelForm extends ResponsiveForm {
             input.defaultValue = input.value
             input.dispatchEvent(new Event('input'))
         })
-        this.checkValid()
+        this.checkValidity()
     }
 
-    checkValid(): boolean {
+    checkValidity(): boolean {
         let valid = this.form?.checkValidity()
         if (!valid) {
             this.form?.reportValidity()
@@ -164,7 +165,7 @@ export class AsyncModelForm extends ResponsiveForm {
     }
 
     protected async post(): Promise<Response | null> {
-        if (!this.checkValid()) return null
+        if (!this.checkValidity()) return null
         if (!this.endpoint) return null
         try {
             let options: RequestInit = this.requestInit()

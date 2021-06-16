@@ -42,15 +42,15 @@ def error_response(reason: str | Dict, status: int = 400):
 @login_required
 def async_form_save(req: HttpRequest, schema: str, item_id: str) -> HttpResponse:
     try:
-        model_form: Type[AsyncFormMixin] = import_string(schema)
-        assert issubclass(model_form, AsyncFormMixin)
-        assert model_form.async_writable
+        form_cls: Type[AsyncFormMixin] = import_string(schema)
+        assert issubclass(form_cls, AsyncFormMixin)
+        assert form_cls.async_writable
     except (ImportError, AssertionError):
         raise SuspiciousOperation(f'Unknown form schema {schema}')
 
-    item = get_object_or_404(model_form._meta.model, pk=item_id)
+    item = get_object_or_404(form_cls._meta.model, pk=item_id)
 
-    form = model_form(data=req.POST, instance=item)
+    form = form_cls(data=req.POST, instance=item)
     if not form.is_valid():
         return error_response(form.errors)
 

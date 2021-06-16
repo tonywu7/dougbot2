@@ -171,10 +171,9 @@ export class D3ItemList {
             .text((d) => d.name || d.id)
             .style('color', (d) => d.getColor())
 
-        let initialData = this.container.querySelector('[data-initial-data]') as HTMLElement
-        if (!initialData) return
-        let selected = initialData.dataset.initialData!
-        if (selected.length) this.fromJSON(selected.split(','))
+        let initialData = this.input.value
+        if (!initialData.length) return
+        this.fromJSON(initialData.split(','))
     }
 
     public async populated(): Promise<boolean> {
@@ -285,6 +284,14 @@ export class D3ItemList {
 
     public get isEmpty(): boolean {
         return Object.keys(this.selected).length === 0
+    }
+
+    public checkValidity(): boolean {
+        if (this.input.required && this.isEmpty) {
+            this.setValidity('Please fill out this field')
+            return false
+        }
+        return true
     }
 
     public setValidity(message: string) {

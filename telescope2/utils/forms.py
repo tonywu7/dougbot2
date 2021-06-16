@@ -17,14 +17,16 @@
 from __future__ import annotations
 
 import copy
-from typing import Callable, Dict, Generic, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
 from django.db import models
 from django.forms import fields, widgets
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
-from telescope2.utils.collection import merge_collections
-from telescope2.utils.importutil import objpath
+from .collection import merge_collections
+from .importutil import objpath
+from .templates import domtokenlist, optional_attr
 
 WidgetType = TypeVar('WidgetType', bound=widgets.Widget)
 T = TypeVar('T', bound=models.Model)
@@ -115,3 +117,41 @@ def identity_field(model: Type[models.Model]):
     if not field:
         field = fields.CharField(required=True, widget=widgets.HiddenInput(), disabled=True)
     return field
+
+
+class D3SelectWidget(widgets.Widget):
+    template_name = 'telescope2/web/elements/item-list.html'
+
+    def __init__(self, endpoint: str, selection: str, container_id='', classes='',
+                 prefix='-',
+                 placeholder='Start typing ...', attrs: Optional[Dict] = None):
+        super().__init__(attrs=attrs)
+        self.id = container_id
+        self.classes = classes
+        self.endpoint = endpoint
+        self.selection = selection
+        self.prefix = prefix
+        self.placeholder = placeholder
+
+    @property
+    def is_hidden(self) -> bool:
+        return False
+
+    def get_context(self, name: str, value: Any, attrs: Optional[Dict]) -> Dict[str, Any]:
+        attrs = self.build_attrs(self.attrs, attrs)
+        attrs_str = mark_safe(' '.join([optional_attr(k, v) for k, v in attrs.items()]))
+        prefix = mark_safe(f'<span class="input-group-text">{self.prefix}</span>')
+        return {
+            'template_name': self.template_name,
+            'container_id': optional_attr('id', self.id),
+            'classes': optional_attr('class', domtokenlist('d3-item-list', self.classes)),
+            'required': optional_attr('required', self.is_required),
+            'name': optional_attr('name', name),
+            'value': optional_attr('value', self.format_value(value)),
+            'attrs': attrs_str,
+            'endpoint': self.endpoint,
+            'type': self.selection,
+            'prefix': prefix,
+            'placeholder': self.placeholder,
+            'autoclose': 'outside' if self.selection == 'multiple' else 'true',
+        }

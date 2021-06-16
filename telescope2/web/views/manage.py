@@ -21,8 +21,12 @@ from typing import Dict
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
+from django.views.generic import View
 
 from ..config import CommandAppConfig
+from ..contexts import DiscordContext
+from ..forms import LoggingConfigFormset
 from ..models import write_access_required
 
 Extensions = Dict[str, CommandAppConfig]
@@ -44,3 +48,24 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
 @write_access_required
 def constraints(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'telescope2/web/manage/constraints.html')
+
+
+@method_decorator(login_required, 'dispatch')
+@method_decorator(write_access_required, 'dispatch')
+class LoggingConfigView(View):
+    def get(self, req: HttpRequest, **kwargs) -> HttpResponse:
+        ctx: DiscordContext = req.get_ctx()
+        formset = ctx.forms.logging()
+        return render(req, 'telescope2/web/manage/logging.html', {'formset': formset})
+
+    def post(self, req: HttpRequest, **kwargs) -> HttpResponse:
+        ctx: DiscordContext = req.get_ctx()
+        formset = LoggingConfigFormset(data=req.POST)
+        context = {
+            'formset': formset,
+        }
+        if not formset.is_valid():
+            context['errors'] = True
+        else:
+            formset.save(ctx.server)
+        return render(req, 'telescope2/web/manage/logging.html', context)
