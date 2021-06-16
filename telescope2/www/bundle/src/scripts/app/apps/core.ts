@@ -17,7 +17,7 @@
 function widgetPrefixLiveUpdate() {
     let prefix: string = ''
     let input = document.querySelector('input#id_prefix') as HTMLInputElement
-    if (input === null) return
+    if (!input) return
     let updatePrefixes = () => {
         prefix = input.value
         document.querySelectorAll('.data-command-prefix').forEach((e) => (e.textContent = prefix))

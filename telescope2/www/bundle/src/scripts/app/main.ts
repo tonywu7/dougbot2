@@ -16,7 +16,7 @@
 
 import { DiscordServer } from './discord'
 import { TemplateRenderer, D3ItemList, initTooltips, D3DataSource } from './responsive'
-import { AsyncResponsiveModelForm } from './api'
+import { AsyncModelForm } from './form'
 
 import { BotData } from './bot'
 
@@ -40,7 +40,7 @@ function initTopMenu() {
 
 function initWidgets() {
     document.querySelectorAll('.async-form').forEach((form) => {
-        new AsyncResponsiveModelForm(form as HTMLFormElement)
+        new AsyncModelForm(form as HTMLFormElement)
     })
     document.querySelectorAll('.d3-item-list').forEach((elem) => {
         new D3ItemList(elem as HTMLElement)
@@ -62,7 +62,7 @@ export function createAvatarElement(src: string): HTMLElement {
 
 export function getGuildId(): string | null {
     let elem = document.querySelector('[data-server-id]')
-    if (elem === null) return null
+    if (!elem) return null
     return (elem as HTMLElement).dataset.serverId!
 }
 

@@ -66,54 +66,6 @@ class D3Item implements D3Datum {
     }
 }
 
-export class ResponsiveForm {
-    form: HTMLFormElement
-
-    constructor(form: HTMLFormElement) {
-        this.form = form
-        this.initListeners()
-    }
-
-    protected initListeners() {
-        for (let input of this.form.querySelectorAll('input')) {
-            input.addEventListener('input', this.createInputListener(input))
-        }
-    }
-
-    protected createInputListener(input: HTMLInputElement): (ev: Event) => void {
-        let labels = input.labels
-        let changed: () => boolean
-        if (input.type === 'checkbox') {
-            changed = () => input.defaultChecked != input.checked
-        } else {
-            changed = () => input.defaultValue != input.value
-        }
-        return (ev) => {
-            input.setCustomValidity('')
-            if (changed()) {
-                labels?.forEach((label) => label.classList.add('input-changed'))
-                input.classList.add('input-changed')
-            } else {
-                labels?.forEach((label) => label.classList.remove('input-changed'))
-                input.classList.remove('input-changed')
-            }
-        }
-    }
-
-    public checkValid(): boolean {
-        let valid = this.form.checkValidity()
-        if (!valid) {
-            this.form.reportValidity()
-        }
-        return valid
-    }
-
-    public async submit() {
-        if (!this.checkValid()) return
-        this.form.submit()
-    }
-}
-
 export class TemplateRenderer {
     private templates: Record<string, string> = {}
 
@@ -326,7 +278,7 @@ export class D3ItemList {
 
 export function createFlexSelect(e: HTMLElement) {
     let select = e.querySelector('select') as HTMLSelectElement
-    if (select === null) return
+    if (!select) return
     let text = e.querySelector('.actionable') as HTMLElement
     select.addEventListener('change', () => {
         let selected = select.selectedOptions
@@ -355,106 +307,4 @@ export function initTooltips(frame: Element) {
 
 export interface D3DataSource {
     data(dtype: string): Promise<D3Datum[]>
-}
-
-export type Constructor = new (...args: any[]) => {}
-export type GConstructor<T = {}> = new (...args: any[]) => T
-
-export type Submissible = FormData | string
-export type StateChangeMethods = 'POST' | 'PATCH' | 'PUT' | 'DELETE'
-
-export interface AsyncPOST {
-    post(): Promise<void>
-}
-
-export interface AsyncPUT {
-    put(): Promise<void>
-}
-
-export interface AsyncDELETE {
-    delete(): Promise<void>
-}
-
-export type AsyncSubmit = GConstructor<{
-    submit(data: Submissible, method: StateChangeMethods): Promise<Response | null>
-}>
-
-export type FormController = GConstructor<{
-    getData(): Submissible
-    checkValid(): boolean
-    updateDefaults(): void
-}>
-
-export function SupportsPOST<TBase extends AsyncSubmit & FormController>(Base: TBase) {
-    return class SupportsPOST extends Base {
-        async post() {
-            return await this.submit(this.getData(), 'POST')
-        }
-    }
-}
-
-export function SupportsPUT<TBase extends AsyncSubmit & FormController>(Base: TBase) {
-    return class SupportsPOST extends Base {
-        async put() {
-            return await this.submit(this.getData(), 'PUT')
-        }
-    }
-}
-
-export function SupportsPATCH<TBase extends AsyncSubmit & FormController>(Base: TBase) {
-    return class SupportsPOST extends Base {
-        async patch() {
-            return await this.submit(this.getData(), 'PATCH')
-        }
-    }
-}
-
-export function SupportsDELETE<TBase extends AsyncSubmit & FormController>(Base: TBase) {
-    return class SupportsPOST extends Base {
-        async delete() {
-            return await this.submit(this.getData(), 'DELETE')
-        }
-    }
-}
-
-export function AsyncPostSubmit<TBase extends AsyncSubmit & FormController>(Base: TBase) {
-    return class AsyncSubmit extends Base {
-        async submit(data: Submissible, method: StateChangeMethods): Promise<Response | null> {
-            let res = await super.submit(data, method)
-            if (res === null) return null
-            let response = res.clone()
-            if (res.status < 299) {
-                this.updateDefaults()
-                let msg: string
-                try {
-                    msg = (await res.json()).message || 'Settings saved.'
-                } catch (e) {
-                    switch (res.status) {
-                        case 204:
-                            msg = 'Settings saved.'
-                            break
-                        case 201:
-                            msg = 'Items created'
-                            break
-                        default:
-                            msg = 'Submission accepted'
-                            break
-                    }
-                }
-                let notif = renderer.render('async-form-update-successful', { message: msg })
-                displayNotification(notif)
-            } else {
-                let msg: string
-                try {
-                    let data = await res.json()
-                    msg = data.error
-                } catch (e) {
-                    msg = `Server error; status ${res.status}`
-                }
-                let notif = renderer.render('async-form-update-error', { error: msg })
-                displayNotification(notif, { autohide: false, delay: 20 })
-            }
-            return response
-        }
-    }
 }

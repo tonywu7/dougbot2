@@ -23,7 +23,7 @@ export var discord: DiscordClient
 
 async function discordOAuth2() {
     let authInfoContainer = document.querySelector('#discord-oauth2') as HTMLElement
-    if (authInfoContainer === null) return
+    if (!authInfoContainer) return
     let authInfo = authInfoContainer.querySelector('form') as HTMLFormElement
     let loginForm: FormData
     try {
@@ -33,7 +33,7 @@ async function discordOAuth2() {
         return
     }
     let accessToken = loginForm.get('access_token')?.toString()!
-    if (accessToken === null) return
+    if (!accessToken) return
 
     discord = new DiscordClient(accessToken)
     let userCreateInfo = util.serializeFormData(loginForm)
@@ -56,7 +56,7 @@ async function discordOAuth2() {
 
 async function initDiscord() {
     let userInfoElem = document.querySelector('#user-info') as HTMLElement
-    if (userInfoElem === null) return
+    if (!userInfoElem) return
 
     let accessToken = userInfoElem.dataset.accessToken
     if (accessToken === undefined || accessToken === 'None') window.location.href = '/web/logout'
@@ -66,7 +66,7 @@ async function initDiscord() {
 
 function discordJoinServer() {
     let form = document.querySelector('#discord-join-server form') as HTMLFormElement
-    if (form === null) return
+    if (!form) return
     form.submit()
 }
 

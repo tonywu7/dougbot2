@@ -51,7 +51,7 @@ export class User implements DiscordIdentity, HasIcon, HasName {
     }
 
     get iconURL(): string | null {
-        if (this.avatar === null) return null
+        if (!this.avatar) return null
         return `${CDN_PREFIX}/avatars/${this.id}/${this.avatar}.png`
     }
 }
@@ -144,7 +144,7 @@ export class DiscordClient {
 
     async fetchUser() {
         let data = await this.get('/users/@me')
-        if (data === null) {
+        if (!data) {
             throw new Error('Error fetching current user id')
         }
         this._user = new User(data)
@@ -167,7 +167,7 @@ export class DiscordClient {
     async fetchGuilds(): Promise<Guild[]> {
         if (this._guilds.length) return [...this._guilds]
         let data: Record<string, any>[] = (await this.get('/users/@me/guilds')) as Record<string, any>[]
-        if (data === null) return []
+        if (!data) return []
         this._guilds = data.map((d) => new Guild(d))
         return [...this._guilds]
     }

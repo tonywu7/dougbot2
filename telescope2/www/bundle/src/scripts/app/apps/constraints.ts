@@ -15,16 +15,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { getTemplate, randomIdentifier } from '../../common/util'
-import {
-    D3ItemList,
-    createFlexSelect,
-    initTooltips,
-    createAccordion,
-    Submissible,
-    AsyncPostSubmit,
-} from '../responsive'
+import { D3ItemList, createFlexSelect, initTooltips, createAccordion } from '../responsive'
 import { getGuildId } from '../main'
 import { ModelState } from '../constants'
+import { AsyncModelForm } from '../form'
 
 interface CCRecord {
     id: number | string
@@ -43,9 +37,8 @@ interface CCRecordList {
     constraints: CCRecord[]
 }
 
-export class CommandConstraintForm {
+export class CommandConstraintForm extends AsyncModelForm {
     private container: HTMLElement
-    private form: HTMLFormElement
 
     private title: HTMLInputElement
 
@@ -61,23 +54,23 @@ export class CommandConstraintForm {
     private deleted: boolean = false
     private deleteButton: HTMLButtonElement
 
-    constructor(data: CCRecord) {
-        this.container = getTemplate('template-cmd-constraint', 'div') as HTMLElement
-        this.form = this.container.querySelector('form')!
+    constructor(container: HTMLElement, form: HTMLFormElement, data: CCRecord) {
+        super(form)
+        this.container = container
 
         this.id = data.id
         this.guildId = data.guild
 
-        this.title = this.form.querySelector('.constraint-title input') as HTMLInputElement
+        this.title = this.form?.querySelector('.constraint-title input') as HTMLInputElement
         this.title.value = data.name
 
-        this.type = this.form.querySelector('.command-constraint-type') as HTMLSelectElement
+        this.type = this.form?.querySelector('.command-constraint-type') as HTMLSelectElement
         this.type.value = data.type.toString()
         createFlexSelect(this.type.parentElement as HTMLElement)
 
-        this.channels = new D3ItemList(this.form.querySelector('.channel-list') as HTMLElement)
-        this.commands = new D3ItemList(this.form.querySelector('.command-list') as HTMLElement)
-        this.roles = new D3ItemList(this.form.querySelector('.role-list') as HTMLElement)
+        this.channels = new D3ItemList(this.form?.querySelector('.channel-list') as HTMLElement)
+        this.commands = new D3ItemList(this.form?.querySelector('.command-list') as HTMLElement)
+        this.roles = new D3ItemList(this.form?.querySelector('.role-list') as HTMLElement)
 
         this.deleteButton = this.container.querySelector('.btn-delete') as HTMLButtonElement
         this.deleteButton.addEventListener('click', this.deleteListener.bind(this))
@@ -87,6 +80,7 @@ export class CommandConstraintForm {
 
         this.channels.input.addEventListener('change', this.setSpecificity.bind(this))
         this.commands.input.addEventListener('change', this.setSpecificity.bind(this))
+        this.type.addEventListener('change', this.setSpecificity.bind(this))
 
         Promise.all([this.channels.populated(), this.commands.populated(), this.roles.populated()]).then(() => {
             this.channels.fromJSON(data.channels)
@@ -101,16 +95,18 @@ export class CommandConstraintForm {
     }
 
     public getSpecificity(): number {
-        return Number(!this.channels.isEmpty) * 2 + Number(!this.commands.isEmpty)
+        return Number(!this.channels.isEmpty) * 2 + Number(!this.commands.isEmpty) + Number(this.type.value === '0') * 4
     }
 
     protected setSpecificity() {
         this.container.querySelector('.constraint-specificity')!.textContent = this.getSpecificity().toString()
     }
 
-    public static createNewForm(): CommandConstraintForm {
+    public static createNewForm(data?: CCRecord): CommandConstraintForm {
         let id = randomIdentifier(6)
-        return new CommandConstraintForm({
+        let container = getTemplate('template-cmd-constraint', 'div') as HTMLElement
+        let form = container.querySelector('form')!
+        data = data || {
             id: id,
             guild: getGuildId()!,
             name: '',
@@ -118,7 +114,8 @@ export class CommandConstraintForm {
             channels: [],
             commands: [],
             roles: [],
-        })
+        }
+        return new CommandConstraintForm(container, form, data)
     }
 
     deleteListener() {
@@ -213,29 +210,29 @@ export class CommandConstraintForm {
         this.channels.setInputId(`ccform-${this.id}-channels`)
         this.commands.setInputId(`ccform-${this.id}-commands`)
         this.roles.setInputId(`ccform-${this.id}-roles`)
-        let fields = this.form.querySelector('.form-fields') as HTMLElement
+        let fields = this.form?.querySelector('.form-fields') as HTMLElement
         fields.id = `ccform-${this.id}--formfields`
     }
 }
 
-class CommandConstraintList {
+class CommandConstraintList extends AsyncModelForm {
     guild: string | null
 
     container: HTMLElement
     forms: Record<string, CommandConstraintForm> = {}
 
-    endpoint: string
-
     constructor(container: HTMLElement) {
+        super(undefined)
         this.guild = getGuildId()
         this.container = container
         this.endpoint = container.dataset.src!
         document.querySelector('#constraint-form-new')?.addEventListener('click', this.createNewForm.bind(this))
-        document.querySelector('#constraint-form-submit')?.addEventListener('click', this.commit.bind(this))
+        document.querySelector('#constraint-form-submit')?.addEventListener('click', this.submit.bind(this))
         this.fetchList()
     }
 
     protected async fetchList() {
+        if (!this.endpoint) return
         let res = await fetch(this.endpoint)
         if (res.status === 404) return await this.createList()
         let data: CCRecordList = await res.json()
@@ -245,7 +242,7 @@ class CommandConstraintList {
     protected parseData(data: CCRecordList) {
         this.clear()
         for (let d of data.constraints) {
-            let form = new CommandConstraintForm(d)
+            let form = CommandConstraintForm.createNewForm(d)
             this.forms[form.id] = form
         }
         this.container.append(...Object.values(this.forms).map((f) => f.getElement()))
@@ -262,6 +259,7 @@ class CommandConstraintList {
     }
 
     protected async createList() {
+        if (!this.endpoint) return
         await fetch(this.endpoint, {
             method: 'POST',
             body: JSON.stringify({ guild: getGuildId(), constraints: [] }),
@@ -272,7 +270,7 @@ class CommandConstraintList {
         })
     }
 
-    private getCSRF(): string {
+    protected getCSRF(): string {
         let csrf = this.container.querySelector('input[type="hidden"][name="csrfmiddlewaretoken"]') as HTMLInputElement
         return csrf.value
     }
@@ -292,7 +290,7 @@ class CommandConstraintList {
             [ModelState.DELETE]: [],
         }
         for (let [data, state] of Object.values(this.forms).map((f) => f.toJSON())) {
-            if (data === null) continue
+            if (!data) continue
             data.guild = this.guild!
             if (state === ModelState.CREATE) {
                 data.tempId = data.id
@@ -311,26 +309,7 @@ class CommandConstraintList {
         return `/web/api/v1/guild/${this.guild!}/core/constraints/${data.id!}`
     }
 
-    protected async delete(data: Partial<CCRecord>) {
-        return await fetch(this.deleteEndpoint(data), {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': this.getCSRF(),
-            },
-        })
-    }
-
-    protected async put(data: { guild: string; constraints: Partial<CCRecord>[] }) {
-        let response = await this.submit(JSON.stringify(data))
-        if (response.status < 299) {
-            let res = response.clone()
-            let results: CCRecordList = await res.json()
-            this.parseData(results)
-        }
-        return response
-    }
-
-    public getData(): Submissible {
+    public getJSON() {
         let data = this.toJSON()
         let submission = {
             guild: this.guild!,
@@ -353,34 +332,50 @@ class CommandConstraintList {
         }
     }
 
-    public async commit() {
-        if (!this.checkValid()) return
-
-        let data = this.toJSON()
-
-        let submission = {
-            guild: this.guild!,
-            constraints: [...data[ModelState.UPDATE], ...data[ModelState.CREATE]],
-        }
-        return await Promise.all([...data[ModelState.DELETE].map((d) => this.delete(d)), this.put(submission)])
+    protected async post() {
+        return null
     }
 
-    public async submit(data: string, method = 'PUT') {
-        return await fetch(this.putEndpoint(), {
-            method: method,
-            body: data,
+    protected async delete(data: Partial<CCRecord>): Promise<Response> {
+        return await fetch(this.deleteEndpoint(data), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': this.getCSRF(),
+            },
+        })
+    }
+
+    protected async put(data: { guild: string; constraints: Partial<CCRecord>[] }): Promise<Response> {
+        let response = await fetch(this.putEndpoint(), {
+            method: 'PUT',
+            body: JSON.stringify(data),
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': this.getCSRF(),
             },
         })
+        if (response.status < 299) {
+            let res = response.clone()
+            let results: CCRecordList = await res.json()
+            this.parseData(results)
+        }
+        return response
+    }
+
+    public async submit() {
+        if (!this.checkValid()) return null
+        let data = this.toJSON()
+        let submission = {
+            guild: this.guild!,
+            constraints: [...data[ModelState.UPDATE], ...data[ModelState.CREATE]],
+        }
+        let responses = await Promise.all([...data[ModelState.DELETE].map((d) => this.delete(d)), this.put(submission)])
+        return await this.postSubmit(responses[responses.length - 1])
     }
 }
 
-const CommandConstraintListResponsive = AsyncPostSubmit(CommandConstraintList)
-
 export function init() {
     let container = document.querySelector('#constraint-form-list') as HTMLElement
-    if (container === null) return
-    new CommandConstraintListResponsive(container)
+    if (!container) return
+    new CommandConstraintList(container)
 }
