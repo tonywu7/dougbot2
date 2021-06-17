@@ -34,7 +34,7 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 from telescope2.utils.datetime import utcnow, utctimestamp
-from telescope2.utils.jwt import gen_token
+from telescope2.web.utils.jwt import gen_token
 
 from .bot import Robot
 

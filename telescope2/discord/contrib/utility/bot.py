@@ -30,13 +30,11 @@ from discord.ext.commands import (
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
-from telescope2.utils.discord import (
-    HypotheticalMember, HypotheticalRole, color_to_rgb8, tag, traffic_light,
-)
-
 from ...bot import Robot
 from ...context import Circumstances
 from ...extension import Gear
+from ...utils.models import HypotheticalMember, HypotheticalRole
+from ...utils.textutil import tag, traffic_light
 
 
 class PermissionTest(Converter):
@@ -100,7 +98,7 @@ class Utilities(Gear):
     async def roles(self, ctx: Circumstances, *args):
         lines = []
         for r in reversed(ctx.guild.roles):
-            lines.append(f'{tag(r)} `#{color_to_rgb8(r.color):06x}`')
+            lines.append(f'{tag(r)} `#{r.color.value:06x}`')
         await ctx.send('\n'.join(lines))
 
     @command('perms')

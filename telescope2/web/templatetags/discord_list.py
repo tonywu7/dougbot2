@@ -21,7 +21,7 @@ from django.template import Context, Library, Node, NodeList, Template
 from django.template.loader import get_template
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import (
+from ..utils.templates import (
     create_tag_parser, domtokenlist, optional_attr, unwrap,
 )
 

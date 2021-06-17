@@ -23,7 +23,9 @@ from django.template import Context, Library, Node, NodeList, Variable, loader
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.templates import create_tag_parser, optional_attr, unwrap
+from telescope2.web.utils.templates import (
+    create_tag_parser, optional_attr, unwrap,
+)
 
 register = Library()
 

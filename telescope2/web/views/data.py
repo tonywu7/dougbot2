@@ -31,13 +31,13 @@ from telescope2.discord.models import (
     BotCommand, Channel, CommandCondition, CommandConstraint,
     CommandConstraintList, CommandCriteria, Role, Server, ServerScoped,
 )
-from telescope2.utils.http import HTTPBadRequest
 
 from ..contexts import DiscordContext
 from ..serializers import (
     BotCommandSerializer, ChannelSerializer, CommandConstraintListSerializer,
     CommandConstraintSerializer, RoleSerializer, ServerDataSerializer,
 )
+from ..utils.http import HTTPBadRequest
 
 
 class DiscordServerModelListView(ListModelMixin, GenericAPIView):

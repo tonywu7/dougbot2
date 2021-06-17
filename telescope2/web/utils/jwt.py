@@ -24,7 +24,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
-from .datetime import utcnow
+from telescope2.utils.datetime import utcnow
 
 
 def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: str = '', aud: str = '',

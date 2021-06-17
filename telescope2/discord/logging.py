@@ -23,10 +23,9 @@ from typing import List, Optional, Tuple, TypedDict
 from discord import AllowedMentions, Embed, Role, TextChannel
 from discord.utils import escape_markdown
 
-from telescope2.utils.discord import tag, unmarked
-
 from .context import Circumstances
 from .errors import report_exception
+from .utils.textutil import tag, unmarked
 
 
 class _LoggingConf(TypedDict):

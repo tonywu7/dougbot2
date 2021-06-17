@@ -25,7 +25,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.module_loading import import_string
 from django.views.decorators.http import require_POST
 
-from telescope2.utils.forms import AsyncFormMixin
+from ..utils.forms import AsyncFormMixin
 
 
 def error_response(reason: str | Dict, status: int = 400):

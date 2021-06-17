@@ -33,11 +33,11 @@ from telescope2.discord.fetch import (
     DiscordCache, DiscordFetch, app_auth_url, bot_invite_url, create_session,
 )
 from telescope2.discord.models import Server
-from telescope2.utils.http import HTTPCreated
-from telescope2.utils.jwt import validate_token
 
 from ..forms import ServerCreationForm, UserCreationForm
 from ..models import User, write_access_required
+from ..utils.http import HTTPCreated
+from ..utils.jwt import validate_token
 
 
 def verify_state(req: HttpRequest):

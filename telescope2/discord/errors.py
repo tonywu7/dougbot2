@@ -24,10 +24,10 @@ from discord import Color, Embed, File, TextChannel
 from discord.ext.commands import errors
 
 from telescope2.utils.datetime import localnow, utcnow
-from telescope2.utils.discord import tag, trunc_for_field
 
 from . import constraint, extension
 from .context import Circumstances
+from .utils.textutil import tag, trunc_for_field
 
 
 class _ErrorConf(TypedDict):

@@ -17,8 +17,8 @@
 from django.template import Context, Library, Node, NodeList, Variable
 from django.utils.safestring import mark_safe
 
-from telescope2.utils.forms import AsyncFormMixin
-from telescope2.utils.templates import (
+from ..utils.forms import AsyncFormMixin
+from ..utils.templates import (
     create_tag_parser, domtokenlist, optional_attr, unwrap,
 )
 

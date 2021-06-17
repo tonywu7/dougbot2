@@ -24,8 +24,9 @@ from django.forms import fields, widgets
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from .collection import merge_collections
-from .importutil import objpath
+from telescope2.utils.collection import merge_collections
+from telescope2.utils.importutil import objpath
+
 from .templates import domtokenlist, optional_attr
 
 WidgetType = TypeVar('WidgetType', bound=widgets.Widget)

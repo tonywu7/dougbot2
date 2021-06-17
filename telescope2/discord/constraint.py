@@ -20,10 +20,9 @@ from discord.ext.commands.errors import CheckFailure
 from discord.utils import escape_markdown
 from django.db.models.query import Q
 
-from telescope2.utils.discord import tag
-
 from .context import Circumstances
 from .models import CommandConstraint, CommandCriteria
+from .utils.textutil import tag
 
 
 async def command_constraints_check(ctx: Circumstances) -> bool:
