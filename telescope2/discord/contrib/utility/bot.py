@@ -133,13 +133,14 @@ class Utilities(Gear):
 
     @command('log')
     @owner_only
-    async def _log(self, ctx: Circumstances, level: LoggingLevel, *, trimmed=''):
+    async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, trimmed=''):
         if isinstance(level, str):
             trimmed = f'{level} {trimmed}'
+            level = logging.INFO
+        elif level is None:
             level = logging.INFO
         if not trimmed:
             msg = ctx.message.content
         else:
             msg = trimmed
-        logging.getLogger(f'{self.log.name}.log').log(level, msg)
-        await ctx.send(msg)
+        await ctx.log.log(f'{self.app_label}.log', level, msg)

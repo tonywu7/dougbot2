@@ -17,12 +17,14 @@
 from __future__ import annotations
 
 from functools import reduce
+from io import StringIO
 from typing import Any, Callable, Dict, Optional, Type
 
 from discord import Color, Member, Permissions, Role
 from discord.abc import GuildChannel, User
 from discord.ext.commands import Context
 from discord.utils import SnowflakeList
+from markdown import Markdown
 from more_itertools import flatten
 
 PERM_GETTER: Dict[Type, Callable[[Any], Permissions]] = {
@@ -91,3 +93,25 @@ def traffic_light(val: bool | None, strict=False):
 
 def color_to_rgb8(c: Color) -> int:
     return c.value
+
+
+def unmark_element(element, stream=None):
+    # https://stackoverflow.com/a/54923798/10896407
+    if stream is None:
+        stream = StringIO()
+    if element.text:
+        stream.write(element.text)
+    for sub in element:
+        unmark_element(sub, stream)
+    if element.tail:
+        stream.write(element.tail)
+    return stream.getvalue()
+
+
+Markdown.output_formats['plain'] = unmark_element
+_md = Markdown(output_format='plain')
+_md.stripTopLevelTags = False
+
+
+def unmarked(text: str) -> str:
+    return _md.convert(text)
