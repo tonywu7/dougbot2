@@ -19,10 +19,13 @@ from __future__ import annotations
 from typing import Dict
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic import View
+
+from telescope2.discord.errors import PRIVILEGED_EXCEPTIONS
 
 from ..config import CommandAppConfig
 from ..contexts import DiscordContext
@@ -67,5 +70,9 @@ class LoggingConfigView(View):
         if not formset.is_valid():
             context['errors'] = True
         else:
+            for form in formset:
+                if (form.cleaned_data['key'] in PRIVILEGED_EXCEPTIONS
+                        and not req.user.is_superuser):
+                    raise PermissionDenied()
             formset.save(ctx.server)
         return render(req, 'telescope2/web/manage/logging.html', context)

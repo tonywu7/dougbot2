@@ -17,6 +17,12 @@
 from datetime import datetime
 
 import udatetime
+from django.conf import settings
+from pytz import timezone
+
+
+def localnow() -> datetime:
+    return datetime.now(tz=timezone(settings.TIME_ZONE))
 
 
 def utcnow() -> datetime:

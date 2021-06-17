@@ -24,7 +24,9 @@ from discord import (
     VoiceChannel,
 )
 from discord.abc import GuildChannel
-from discord.ext.commands import BadArgument, Converter, Greedy, command
+from discord.ext.commands import (
+    BadArgument, Converter, Greedy, command, is_owner,
+)
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
@@ -33,7 +35,6 @@ from telescope2.utils.discord import (
 )
 
 from ...bot import Robot
-from ...checks import owner_only
 from ...context import Circumstances
 from ...extension import Gear
 
@@ -132,7 +133,7 @@ class Utilities(Gear):
         await ctx.send('\n'.join(lines))
 
     @command('log')
-    @owner_only
+    @is_owner()
     async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, trimmed=''):
         if isinstance(level, str):
             trimmed = f'{level} {trimmed}'
@@ -144,3 +145,22 @@ class Utilities(Gear):
         else:
             msg = trimmed
         await ctx.log.log(f'{self.app_label}.log', level, msg)
+
+    @command('throw')
+    @is_owner()
+    async def _throw(self, ctx: Circumstances, *, args=None):
+        return {}[None]
+
+    @command('overflow')
+    @is_owner()
+    async def _overflow(self, ctx: Circumstances, *, args=None):
+        return await self._overflow(ctx, args=args)
+
+    @command('kill')
+    @is_owner()
+    async def _kill(self, ctx: Circumstances, *, typing=True, args=None):
+        if typing:
+            async with ctx.typing():
+                return await self._kill(ctx, typing=False, args=args)
+        else:
+            return await self._kill(ctx, typing=False, args=args)

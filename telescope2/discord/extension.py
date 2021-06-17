@@ -17,6 +17,7 @@
 import logging
 
 from discord.ext.commands import Bot, Cog
+from discord.ext.commands.errors import DisabledCommand
 
 
 class Gear(Cog):
@@ -25,3 +26,17 @@ class Gear(Cog):
         self.bot = bot
         self.app_label = label
         self.log = logging.getLogger(f'discord.logging.ext.{label}')
+
+
+async def cog_enabled_check(ctx) -> bool:
+    if await ctx.bot.is_owner(ctx.author):
+        return True
+    extension = ctx.cog
+    if not (extension is None or extension.app_label in ctx.server.extensions):
+        raise ModuleDisabled(extension)
+    return True
+
+
+class ModuleDisabled(DisabledCommand):
+    def __init__(self, cog: Cog, *args):
+        super().__init__(message=f'Attempted to use disabled module {cog.qualified_name}', *args)

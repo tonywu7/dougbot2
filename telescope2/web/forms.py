@@ -23,6 +23,8 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from telescope2.discord.apps import DiscordBotConfig
+from telescope2.discord.errors import EXCEPTIONS
+from telescope2.discord.logging import LOGGING_CLASSES
 from telescope2.discord.models import Server
 from telescope2.utils.forms import (
     AsyncFormMixin, D3SelectWidget, FormConstants, SwitchInput, find_widgets,
@@ -146,6 +148,7 @@ class LoggingConfigForm(FormConstants, forms.Form):
     name = forms.CharField(widget=forms.HiddenInput, required=False)
     channel = forms.IntegerField(required=False, label='Send logs to this channel', widget=channel_select_single)
     role = forms.IntegerField(required=False, label='Notify this role for every log message', widget=role_select_single)
+    superuser = forms.BooleanField(widget=forms.HiddenInput, required=False)
 
     def clean(self):
         data = super().clean()
@@ -158,12 +161,13 @@ class LoggingConfigForm(FormConstants, forms.Form):
 class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
     @classmethod
     def get_form(cls, server: Server, is_superuser: bool) -> LoggingConfigFormset:
-        items = [
-            {'key': 'MissingAnyRole', 'name': 'Constraint violations'},
-            {'key': 'UserInputError', 'name': 'Bad command invocations'},
-        ]
-        if is_superuser:
-            items.insert(0, {'key': 'Exception', 'name': 'Uncaught exceptions'})
+        items = []
+        for item in EXCEPTIONS.values():
+            require_superuser = item.get('superuser')
+            if not require_superuser or require_superuser and is_superuser:
+                items.append(item)
+        for item in LOGGING_CLASSES:
+            items.append(item)
 
         config = server.logging
         for row in items:

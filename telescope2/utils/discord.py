@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from functools import reduce
 from io import StringIO
+from textwrap import shorten
 from typing import Any, Callable, Dict, Optional, Type
 
 from discord import Color, Member, Permissions, Role
@@ -56,11 +57,11 @@ class HypotheticalMember:
 
 
 def perm_union(*perms: Permissions) -> Permissions:
-    return Permissions(reduce(lambda x, y: x.value | y.value, perms, Permissions.none()))
+    return reduce(lambda x, y: Permissions(x.value | y.value), perms, Permissions.none())
 
 
 def perm_intersection(*perms: Permissions) -> Permissions:
-    return Permissions(reduce(lambda x, y: x.value & y.value, perms, Permissions.all()))
+    return reduce(lambda x, y: Permissions(x.value & y.value), perms, Permissions.all())
 
 
 def perm_complement(perm: Permissions) -> Permissions:
@@ -115,3 +116,7 @@ _md.stripTopLevelTags = False
 
 def unmarked(text: str) -> str:
     return _md.convert(text)
+
+
+def trunc_for_field(text: str) -> str:
+    return shorten(text, width=960, placeholder='... (truncated)')

@@ -30,16 +30,16 @@ from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, Group
 from django.core.cache import caches
 from django.db import IntegrityError
-from django.db.models.query import Q, QuerySet
+from django.db.models.query import QuerySet
 from more_itertools import always_reversible
 
 from telescope2.utils.db import async_atomic
 from telescope2.utils.importutil import iter_module_tree, objpath
 
-from . import ipc, models
+from . import constraint, errors, extension, ipc, models
 from .apps import DiscordBotConfig
 from .context import Circumstances
-from .models import CommandConstraint, CommandCriteria, Server
+from .models import Server
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
@@ -76,7 +76,7 @@ class Robot(Bot):
 
     def _register_events(self):
         self.listen('on_guild_join')(self.on_guild_join)
-        self.check_once(self._command_global_check)
+        self.check_once(self.command_global_check)
 
     def _register_commands(self):
         for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
@@ -209,36 +209,14 @@ class Robot(Bot):
             pass
 
     @classmethod
-    async def _command_global_check(cls, ctx: Circumstances) -> bool:
+    async def command_global_check(cls, ctx: Circumstances) -> bool:
         for check in asyncio.as_completed([
-            cls._cog_enabled_check(ctx),
-            cls._command_constraints_check(ctx),
+            extension.cog_enabled_check(ctx),
+            constraint.command_constraints_check(ctx),
         ]):
             if not await check:
                 return False
         return True
 
-    @classmethod
-    async def _cog_enabled_check(cls, ctx: Circumstances) -> bool:
-        extension = ctx.cog
-        return extension is None or extension.app_label in ctx.server.extensions
-
-    @classmethod
-    async def _command_constraints_check(cls, ctx: Circumstances) -> bool:
-        author = ctx.message.author
-        if author.guild_permissions.administrator:
-            return True
-        if author == ctx.message.guild.owner:
-            return True
-
-        @sync_to_async
-        def eval_constraints():
-            constraints = (
-                CommandConstraint.objects.all()
-                .filter(collection_id=ctx.guild.id)
-                .filter(Q(commands__identifier__exact=ctx.invoked_with) | Q(commands=None))
-                .filter(Q(channels__pk=ctx.channel.id) | Q(channels=None))
-            )
-            tests = CommandCriteria([c.to_dataclass() for c in constraints])
-            return tests(author)
-        return await eval_constraints()
+    async def on_command_error(self, context, exception):
+        return await errors.log_command_errors(context, exception)
