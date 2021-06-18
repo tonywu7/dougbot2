@@ -20,8 +20,8 @@ from functools import wraps
 from typing import Dict, List
 
 from asgiref.sync import sync_to_async
-from discord import Guild, Member, Message
-from discord.ext.commands import Bot, Command, Context
+from discord import Guild, Member, Message, User
+from discord.ext.commands import Context
 from django.db import transaction
 
 from .models import Server
@@ -43,19 +43,26 @@ def _guard(err: str):
 class Circumstances(Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
+        from .bot import Robot
+        from .documentation import Instruction, Manual
         from .logging import ContextualLogger
+
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server
 
+        self.me: Member | User
         self.message: Message
-        self.command: Command
-        self.bot: Bot
+        self.command: Instruction
         self.invoked_with: str
         self.invoked_parents: List[str]
-        self.invoked_subcommand: Command | None
+        self.invoked_subcommand: Instruction | None
 
         self.author: Member
         self.guild: Guild
+
+        self.bot: Robot
+        self.manual: Manual = self.bot.manual
+        self.prefix: str
 
     @property
     @_guard('Context is missing server instance')

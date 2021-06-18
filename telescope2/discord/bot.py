@@ -18,8 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from importlib import import_module
-from pathlib import Path
 from typing import (
     Generator, Iterable, List, Optional, Protocol, Set, Tuple, TypeVar,
 )
@@ -27,19 +25,28 @@ from typing import (
 from asgiref.sync import sync_to_async
 from discord import AllowedMentions, Client, Guild, Message, Permissions
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import Bot, Command, Group
+from discord.ext.commands import Bot, Command, has_guild_permissions
+from discord.utils import escape_markdown
 from django.core.cache import caches
 from django.db import IntegrityError
 from django.db.models.query import QuerySet
 from more_itertools import always_reversible
 
+from telescope2.utils.datetime import utcnow, utctimestamp
 from telescope2.utils.db import async_atomic
-from telescope2.utils.importutil import iter_module_tree, objpath
+from telescope2.utils.functional import finalizer
+from telescope2.utils.importutil import objpath
 
-from . import constraint, errors, extension, ipc, models
+from . import constraint
+from . import documentation as doc
+from . import extension, ipc, models
 from .apps import DiscordBotConfig
+from .command import Ensemble, Instruction
 from .context import Circumstances
+from .documentation import Manual, help_command
+from .logging import log_command_errors
 from .models import Server
+from .utils.textutil import code, em, strong
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
@@ -60,14 +67,30 @@ class Robot(Bot):
     DEFAULT_PERMS = Permissions(805825782)
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        super().__init__(loop=loop, command_prefix=self.which_prefix, **options)
 
-        self.log = logging.getLogger('telescope')
+        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
+        super().__init__(loop=loop, command_prefix=self.which_prefix, help_command=None, **options)
+
+        self.log = logging.getLogger('discord.bot')
+        self.manual: Manual
+
         self._register_events()
         self._register_commands()
         self._init_ipc()
         self._load_extensions()
+        self._create_manual()
+
+    @finalizer(1)
+    def instruction(self, *args, **kwargs):
+        return super().command(*args, cls=Instruction, **kwargs)
+
+    @finalizer(1)
+    def ensemble(self, *args, invoke_without_command=False, **kwargs):
+        return super().group(
+            *args, cls=Ensemble,
+            invoke_without_command=invoke_without_command,
+            **kwargs,
+        )
 
     def _init_ipc(self):
         thread = ipc.CachePollingThread('discord')
@@ -79,15 +102,7 @@ class Robot(Bot):
         self.check_once(self.command_global_check)
 
     def _register_commands(self):
-        for parts in iter_module_tree(str(Path(__file__).with_name('commands')), 1):
-            module_path = f'.commands.{".".join(parts)}'
-            command_module = import_module(module_path, __package__)
-            try:
-                command_module.register_all(self)
-            except AttributeError:
-                pass
-            else:
-                self.log.info(f'Loaded commands from {module_path}')
+        register_base_commands(self)
 
     def _load_extensions(self, *args, **kwargs):
         app = DiscordBotConfig.get()
@@ -95,6 +110,11 @@ class Robot(Bot):
             cog_cls = ext.target
             self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
             self.add_cog(cog_cls(label, self))
+
+    def _create_manual(self):
+        from .documentation import Manual
+        self.manual = Manual.from_bot(self)
+        self.manual.finalize()
 
     async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=cls)
@@ -104,13 +124,8 @@ class Robot(Bot):
     def iter_commands(
         self, root: Optional[CommandIterator] = None, prefix: str = '',
     ) -> Generator[Tuple[str, Command], None, None]:
-
-        root = root or self
-        for cmd in root.commands:
-            identifier = f'{prefix} {cmd.name}'.strip()
-            yield (identifier, cmd)
-            if isinstance(cmd, Group):
-                yield from self.iter_commands(cmd, identifier)
+        for cmd in self.walk_commands():
+            yield (cmd.qualified_name, cmd)
 
     @classmethod
     def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
@@ -219,4 +234,67 @@ class Robot(Bot):
         return True
 
     async def on_command_error(self, context, exception):
-        return await errors.log_command_errors(context, exception)
+        return await log_command_errors(context, exception)
+
+
+def register_base_commands(bot: Robot):
+    @bot.instruction('echo')
+    @doc.description('Send the command arguments back.')
+    @doc.argument('text', 'Message to send back.')
+    @doc.example('The quick brown fox', em('sends back "The quick brown fox"'))
+    async def echo(ctx: Circumstances, *, text: str = None):
+        if not text:
+            await ctx.send(ctx.message.content)
+        else:
+            await ctx.send(text)
+
+    @bot.instruction('ping')
+    @doc.description('Test the network latency between the bot and Discord.')
+    async def ping(ctx: Circumstances, *, args: str = None):
+        await ctx.send(f':PONG {utctimestamp()}')
+
+    @bot.ensemble('prefix', invoke_without_command=True)
+    @doc.description('Get the command prefix for the bot in this server.')
+    @doc.invocation((), 'Print the prefix.')
+    async def get_prefix(ctx: Circumstances):
+        prefix = escape_markdown(ctx.server.prefix)
+        example = f'Example: {strong(f"{prefix}echo")}'
+        await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
+
+    @get_prefix.instruction('set')
+    @doc.description('Set a new prefix for this server.')
+    @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
+    @doc.example('?', f'Set the command prefix to {code("?")}')
+    @has_guild_permissions(manage_guild=True)
+    async def set_prefix(ctx: Circumstances, prefix: str):
+        try:
+            await ctx.set_prefix(prefix)
+            await get_prefix(ctx)
+        except ValueError as e:
+            await ctx.send(f'{strong("Error:")} {e}')
+            raise
+
+    @bot.listen('on_message')
+    async def on_ping(msg: Message):
+        gateway_dst = utctimestamp()
+
+        if not bot.user:
+            return
+        if bot.user.id != msg.author.id:
+            return
+        if msg.content[:6] != ':PONG ':
+            return
+
+        try:
+            msg_created = float(msg.content[6:])
+        except ValueError:
+            return
+
+        gateway_latency = 1000 * (gateway_dst - msg_created)
+        edit_start = utcnow()
+        await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
+        edit_latency = (utcnow() - edit_start).total_seconds() * 1000
+
+        await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
+
+    bot.add_command(help_command)

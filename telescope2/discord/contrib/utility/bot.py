@@ -17,58 +17,27 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, List, Optional, Union, overload
+import os
+from typing import List, Optional, Union
 
+import psutil
 from discord import (
-    CategoryChannel, Member, Permissions, Role, StageChannel, TextChannel,
-    VoiceChannel,
+    CategoryChannel, Member, Role, StageChannel, TextChannel, VoiceChannel,
 )
-from discord.abc import GuildChannel
 from discord.ext.commands import (
-    BadArgument, Converter, Greedy, command, is_owner,
+    Converter, Greedy, has_guild_permissions, is_owner,
 )
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
+from ... import documentation as doc
 from ...bot import Robot
+from ...command import instruction
 from ...context import Circumstances
+from ...converters import PermissionName
 from ...extension import Gear
 from ...utils.models import HypotheticalMember, HypotheticalRole
-from ...utils.textutil import tag, traffic_light
-
-
-class PermissionTest(Converter):
-    perm_name: str
-
-    async def convert(self, ctx: Circumstances, arg: str) -> Callable[[Role], bool]:
-        if not hasattr(Permissions, arg):
-            raise BadArgument(
-                f'No such permission {arg}\n'
-                'Consult https://discordpy.readthedocs.io/'
-                'en/stable/api.html#discord.Permissions '
-                'for a list of possible attributed.',
-            )
-        self.perm_name = arg
-        return self
-
-    @overload
-    def __call__(self, entity: Role, channel: None) -> bool:
-        ...
-
-    @overload
-    def __call__(self, entity: Member, channel: None) -> bool:
-        ...
-
-    @overload
-    def __call__(self, entity: Member, channel: GuildChannel) -> bool:
-        ...
-
-    def __call__(self, entity: Role | Member, channel: Optional[GuildChannel] = None) -> bool:
-        if channel:
-            return getattr(channel.permissions_for(entity), self.perm_name)
-        if isinstance(entity, Member):
-            entity = HypotheticalRole(*entity.roles)
-        return entity.permissions.administrator or getattr(entity.permissions, self.perm_name)
+from ...utils.textutil import E, code, strong, tag, traffic_light
 
 
 class LoggingLevel(Converter):
@@ -83,26 +52,49 @@ class Utilities(Gear):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @command('channels')
-    async def channels(self, ctx: Circumstances, *args):
+    @instruction('channels')
+    @doc.description('List all channels in the server.')
+    @doc.restriction(has_guild_permissions, manage_channels=True)
+    async def channels(self, ctx: Circumstances, *, args: str = None):
         lines = []
         for cs in split_before(Robot.channels_ordered_1d(ctx.guild),
                                lambda c: isinstance(c, CategoryChannel)):
             if cs[0]:
-                lines.append(f'**{escape_markdown(cs[0].name)}**')
+                lines.append(strong(escape_markdown(cs[0].name)))
             for c in cs[1:]:
                 lines.append(tag(c))
         await ctx.send('\n'.join(lines))
 
-    @command('roles')
-    async def roles(self, ctx: Circumstances, *args):
+    @instruction('roles')
+    @doc.description('List all roles in the server, including the color codes.')
+    @doc.restriction(has_guild_permissions, manage_roles=True)
+    async def roles(self, ctx: Circumstances, *, args: str = None):
         lines = []
         for r in reversed(ctx.guild.roles):
-            lines.append(f'{tag(r)} `#{r.color.value:06x}`')
+            lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
         await ctx.send('\n'.join(lines))
 
-    @command('perms')
-    async def perms(self, ctx: Circumstances, permtest: PermissionTest, roles: Greedy[Union[Role, Member]],
+    @instruction('perms')
+    @doc.description('Survey role permissions.')
+    @doc.argument('permission', (
+        'The permission to check. Must be exactly one of the items listed under '
+        '[the Discord.py documentation.](https://discordpy.readthedocs.io/en/stable/api.html#discord.Permissions)'
+    ))
+    @doc.argument('roles', 'The role or member whose perms to check.')
+    @doc.argument('channel', 'Check the perms in the context of this channel. If not supplied, check server perms.')
+    @doc.invocation(('permission',), 'Check for all roles whether a role has this permission server-wide.')
+    @doc.invocation(('permission', 'channel'), 'Check for all roles whether a role has this permission in a particular channel.')
+    @doc.invocation(('permission', 'roles'), 'Check if these roles have this permission server-wide.')
+    @doc.invocation(('permission', 'roles', 'channel'), (
+        'Check if these roles have this permission in a channel, '
+        'and if someone with all these roles combined will have this permission.'
+    ))
+    @doc.restriction(has_guild_permissions, manage_roles=True, manage_channels=True)
+    @doc.example('administrator', f'See which roles have the {code("administrator")} perm.')
+    @doc.example('send_messages #rules', 'See which roles can send messages in the #rules channel.')
+    @doc.example('mention_everyone @everyone @Moderator',
+                 'See whether @everyone and the Moderator role has the "Mention @everyone, @here, and All Roles" perm.')
+    async def perms(self, ctx: Circumstances, permission: PermissionName, roles: Greedy[Union[Role, Member]],
                     channel: Optional[Union[TextChannel, VoiceChannel, StageChannel]] = None):
         lines = []
         if roles:
@@ -112,29 +104,32 @@ class Utilities(Gear):
         def unioned(subjects: List[Union[Role, Member]], cls):
             s = cls(*subjects)
             union = ' | '.join([tag(s) for s in subjects])
-            return f'{traffic_light(permtest(s, channel))} {union}'
+            return f'{traffic_light(permission(s, channel))} {union}'
 
         if channel:
-            lines.append(f'Permission: **{permtest.perm_name}** in {tag(channel)}')
+            lines.append(f'Permission: {strong(permission.perm_name)} in {tag(channel)}')
             for r in subjects:
                 s = HypotheticalMember(r)
-                lines.append(f'{traffic_light(permtest(s, channel))} {tag(r)}')
+                lines.append(f'{traffic_light(permission(s, channel))} {tag(r)}')
             if len(roles) > 1:
                 lines.append(unioned(subjects, HypotheticalMember))
         else:
-            lines.append(f'Permission: **{permtest.perm_name}**')
+            lines.append(f'Permission: {strong(permission.perm_name)}')
             for r in subjects:
-                lines.append(f'{traffic_light(permtest(r))} {tag(r)}')
+                lines.append(f'{traffic_light(permission(r))} {tag(r)}')
             if len(roles) > 1:
                 lines.append(unioned(subjects, HypotheticalRole))
 
         await ctx.send('\n'.join(lines))
 
-    @command('log')
-    @is_owner()
-    async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, trimmed=''):
+    @instruction('log')
+    @doc.description("Put a message in the bot's log file.")
+    @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
+    @doc.argument('text', 'The message to log.')
+    @doc.restriction(is_owner)
+    async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, text: str = ''):
         if isinstance(level, str):
-            trimmed = f'{level} {trimmed}'
+            trimmed = f'{level} {text}'
             level = logging.INFO
         elif level is None:
             level = logging.INFO
@@ -144,21 +139,27 @@ class Utilities(Gear):
             msg = trimmed
         await ctx.log.log(f'{self.app_label}.log', level, msg)
 
-    @command('throw')
-    @is_owner()
-    async def _throw(self, ctx: Circumstances, *, args=None):
+    @instruction('throw')
+    @doc.description('Throw an exception inside the command handler.')
+    @doc.restriction(is_owner)
+    async def _throw(self, ctx: Circumstances, *, args: str = None):
         return {}[None]
 
-    @command('overflow')
-    @is_owner()
-    async def _overflow(self, ctx: Circumstances, *, args=None):
+    @instruction('overflow')
+    @doc.description(f'Throw a {code("RecursionError")}.')
+    @doc.restriction(is_owner)
+    async def _overflow(self, ctx: Circumstances, *, args: str = None):
         return await self._overflow(ctx, args=args)
 
-    @command('kill')
-    @is_owner()
-    async def _kill(self, ctx: Circumstances, *, typing=True, args=None):
-        if typing:
-            async with ctx.typing():
-                return await self._kill(ctx, typing=False, args=args)
-        else:
-            return await self._kill(ctx, typing=False, args=args)
+    @instruction('kill')
+    @doc.description('Try to kill the bot by attempting an irrecoverable stack overflow.')
+    @doc.argument('sig', f'If equals {code(-9)}, {strong("send SIGKILL instead")} {E("gun")}.')
+    @doc.restriction(is_owner)
+    async def _kill(self, ctx: Circumstances, *, sig: str = None):
+        async with ctx.typing():
+            if sig == '-9':
+                psutil.Process(os.getpid()).kill()
+            return await self._do_kill(ctx, sig)
+
+    async def _do_kill(self, ctx, *args, **kwargs):
+        return await self._do_kill(ctx, *args, **kwargs)

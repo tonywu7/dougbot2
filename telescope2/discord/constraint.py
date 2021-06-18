@@ -17,12 +17,11 @@
 from asgiref.sync import sync_to_async
 from discord import Member, TextChannel
 from discord.ext.commands.errors import CheckFailure
-from discord.utils import escape_markdown
 from django.db.models.query import Q
 
 from .context import Circumstances
 from .models import CommandConstraint, CommandCriteria
-from .utils.textutil import tag
+from .utils.textutil import strong, tag
 
 
 async def command_constraints_check(ctx: Circumstances) -> bool:
@@ -45,12 +44,12 @@ async def command_constraints_check(ctx: Circumstances) -> bool:
 
     result = await eval_constraints()
     if not result:
-        raise ConstraintFailure(ctx.message.content, author, ctx.channel)
+        raise ConstraintFailure(ctx.invoked_with, author, ctx.channel)
     return True
 
 
 class ConstraintFailure(CheckFailure):
     def __init__(self, invocation: str, author: Member, channel: TextChannel, *args):
-        message = (f'{tag(author)} attempted to use a disallowed command '
-                   f'in {tag(channel)}:\n{escape_markdown(invocation)}')
+        message = (f'{tag(author)} attempted to use disallowed command {strong(invocation)} '
+                   f'in {tag(channel)}')
         super().__init__(message=message, *args)
