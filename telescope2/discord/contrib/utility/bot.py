@@ -16,17 +16,12 @@
 
 from __future__ import annotations
 
-import logging
-import os
 from typing import List, Optional, Union
 
-import psutil
 from discord import (
     CategoryChannel, Member, Role, StageChannel, TextChannel, VoiceChannel,
 )
-from discord.ext.commands import (
-    Converter, Greedy, has_guild_permissions, is_owner,
-)
+from discord.ext.commands import Greedy, has_guild_permissions
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
@@ -37,15 +32,7 @@ from ...context import Circumstances
 from ...converters import PermissionName
 from ...extension import Gear
 from ...utils.models import HypotheticalMember, HypotheticalRole
-from ...utils.textutil import E, code, strong, tag, traffic_light
-
-
-class LoggingLevel(Converter):
-    async def convert(self, ctx: Circumstances, arg: str) -> int | str:
-        level = logging.getLevelName(arg)
-        if isinstance(level, int):
-            return level
-        return arg
+from ...utils.textutil import code, strong, tag, traffic_light
 
 
 class Utilities(Gear):
@@ -121,45 +108,3 @@ class Utilities(Gear):
                 lines.append(unioned(subjects, HypotheticalRole))
 
         await ctx.send('\n'.join(lines))
-
-    @instruction('log')
-    @doc.description("Put a message in the bot's log file.")
-    @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
-    @doc.argument('text', 'The message to log.')
-    @doc.restriction(is_owner)
-    async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, text: str = ''):
-        if isinstance(level, str):
-            trimmed = f'{level} {text}'
-            level = logging.INFO
-        elif level is None:
-            level = logging.INFO
-        if not trimmed:
-            msg = ctx.message.content
-        else:
-            msg = trimmed
-        await ctx.log.log(f'{self.app_label}.log', level, msg)
-
-    @instruction('throw')
-    @doc.description('Throw an exception inside the command handler.')
-    @doc.restriction(is_owner)
-    async def _throw(self, ctx: Circumstances, *, args: str = None):
-        return {}[None]
-
-    @instruction('overflow')
-    @doc.description(f'Throw a {code("RecursionError")}.')
-    @doc.restriction(is_owner)
-    async def _overflow(self, ctx: Circumstances, *, args: str = None):
-        return await self._overflow(ctx, args=args)
-
-    @instruction('kill')
-    @doc.description('Try to kill the bot by attempting an irrecoverable stack overflow.')
-    @doc.argument('sig', f'If equals {code(-9)}, {strong("send SIGKILL instead")} {E("gun")}.')
-    @doc.restriction(is_owner)
-    async def _kill(self, ctx: Circumstances, *, sig: str = None):
-        async with ctx.typing():
-            if sig == '-9':
-                psutil.Process(os.getpid()).kill()
-            return await self._do_kill(ctx, sig)
-
-    async def _do_kill(self, ctx, *args, **kwargs):
-        return await self._do_kill(ctx, *args, **kwargs)
