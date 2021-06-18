@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 from io import StringIO
-from textwrap import shorten
+from textwrap import indent, shorten
+from typing import Tuple
 
-from discord import Role
+from discord import Embed, Role
 from discord.abc import GuildChannel, User
 from discord.ext.commands import Context
 from markdown import Markdown
@@ -38,6 +39,43 @@ def tag(obj) -> str:
         if obj.is_default():
             return '@everyone'
         return f'<@&{obj.id}>'
+    return obj
+
+
+def em(s: str) -> str:
+    return f'_{s}_'
+
+
+def strong(s: str) -> str:
+    return f'**{s}**'
+
+
+def u(s: str) -> str:
+    return f'__{s}__'
+
+
+def code(s: str) -> str:
+    return f'`{s}`'
+
+
+def pre(s: str, lang='') -> str:
+    return f'```{lang}\n{s}\n```'
+
+
+def strike(s: str) -> str:
+    return f'~~{s}~~'
+
+
+def redact(s: str) -> str:
+    return f'||{s}||'
+
+
+def blockquote(s: str) -> str:
+    return indent(s, '> ', predicate=lambda t: True)
+
+
+def E(s: str) -> str:
+    return f':{s}:'
 
 
 def traffic_light(val: bool | None, strict=False):
@@ -73,3 +111,32 @@ def unmarked(text: str) -> str:
 
 def trunc_for_field(text: str) -> str:
     return shorten(text, width=960, placeholder='... (truncated)')
+
+
+def page_plaintext(sections: Tuple[str, str], title=None, description=None, footer=None, divider='') -> str:
+    lines = []
+    if title:
+        lines.append(u(strong(title)))
+        if divider is not None:
+            lines.append(divider)
+    if description:
+        lines.append(description)
+        if divider is not None:
+            lines.append(divider)
+    for title, body in sections:
+        lines.append(strong(title))
+        lines.append(body)
+        if divider is not None:
+            lines.append(divider)
+    if footer:
+        lines.append(footer)
+    return '\n'.join(lines)
+
+
+def page_embed(sections: Tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed:
+    embed = Embed(title=title, description=description)
+    for title, body in sections:
+        embed.add_field(name=title, value=body, inline=False)
+    if footer:
+        embed.set_footer(text=footer)
+    return embed

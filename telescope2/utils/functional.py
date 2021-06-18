@@ -14,16 +14,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import pickle
 from functools import wraps
 from hashlib import sha256
+from inspect import isfunction
 from types import MethodType
+from typing import Callable, Generic, List, TypeVar
 
 from django.core.cache import caches
 
 from .importutil import objpath
 
 _MISS = object()
+
+T = TypeVar('T')
+U = TypeVar('U')
+
+Wrapper = Callable[[T], U]
+Decorator = Callable[..., Wrapper[T, U]]
 
 
 def _sha256digest(b: bytes):
@@ -72,3 +82,53 @@ def evict(cache_id: str, func, *args, **kwargs):
         args = (func.__self__, *args)
         func = func.__func__
     caches[cache_id].delete(persistent_hash(func, args, kwargs))
+
+
+class ReverseDecorator(Generic[T, U]):
+    def __init__(self, initial: T):
+        self.initial: T = initial
+        self.stack: List[Wrapper[T, U]] = []
+
+    def apply(self) -> U:
+        obj = self.initial
+        for wrapper in reversed(self.stack):
+            obj = wrapper(obj)
+        return obj
+
+
+def _ensure_proxy(f: T | ReverseDecorator[T, U]) -> ReverseDecorator[T, U]:
+    if not isinstance(f, ReverseDecorator):
+        return ReverseDecorator(f)
+    return f
+
+
+def deferred(deco_func: Decorator[T, U]) -> Decorator[T | ReverseDecorator[T, U], ReverseDecorator[T, U]]:
+    def make_decorator(deco_func: Decorator[T, U]):
+        def decorated(*args, **kwargs):
+            wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+            def substitute(f: T | ReverseDecorator[T, U]) -> ReverseDecorator[T, U]:  # noqa: E306
+                proxy = _ensure_proxy(f)
+                proxy.stack.append(wrapper)
+                return proxy
+            return substitute
+        return decorated
+
+    if not isfunction(deco_func):
+        return make_decorator
+    return make_decorator(deco_func)
+
+
+def finalizer(deco_func: Decorator[T, U]) -> Decorator[ReverseDecorator[T, U], U]:
+    def make_decorator(deco_func: Decorator[T, U]):
+        def decorated(*args, **kwargs) -> U:
+            wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+            def substitute(proxy: ReverseDecorator[T, U]) -> U:  # noqa: E306
+                proxy = _ensure_proxy(proxy)
+                proxy.stack.append(wrapper)
+                return proxy.apply()
+            return substitute
+        return decorated
+
+    if not isfunction(deco_func):
+        return make_decorator
+    return make_decorator(deco_func)

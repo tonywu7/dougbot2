@@ -14,9 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, List, Type
+from __future__ import annotations
 
+import re
+from typing import Dict, Iterable, List, Optional, Tuple, Type
+
+import editdistance
 import inflect
+import unidecode
 from django.db.models import Model
 
 inflection = inflect.engine()
@@ -34,6 +39,10 @@ def autoverbose(name: str) -> Dict[str, str]:
 
 def pluralize(count: int, term: str) -> str:
     return inflection.plural_noun(term, count)
+
+
+def singularize(term: str) -> str:
+    return inflection.singular_noun(term) or term
 
 
 def plural_clause(count: int, term: str, verb: str) -> str:
@@ -62,3 +71,159 @@ def pluralize_model(count: int, model: Type[Model]) -> str:
 
 def pl_cat(category: str, terms: List[str], sep=' ', conj='and') -> str:
     return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
+
+
+class QuantifiedNP:
+    def __init__(self, *nouns, concise: str = None, attributive: str = '',
+                 predicative: str = '', conjunction: str = 'or'):
+        if not nouns:
+            raise ValueError('One or more noun terms required')
+
+        self._kwargs = {
+            'nouns': nouns,
+            'concise': concise,
+            'attributive': attributive,
+            'predicative': predicative,
+            'conjunction': conjunction,
+        }
+
+        if concise is None:
+            concise = nouns[0]
+        self.concise_singular = inflection.singular_noun(concise) or concise
+        self.concise_plural = inflection.plural_noun(concise)
+
+        self.predicative = predicative.strip()
+        if self.predicative:
+            self.predicative = f', {self.predicative}'
+        attributive = attributive.strip()
+        if attributive:
+            self.attr_singular = f'{attributive} '
+            self.attr_plural = f'{inflection.plural_adj(attributive)} '
+        else:
+            self.attr_singular = ''
+            self.attr_plural = ''
+        self.nouns_singular = coord_conj(*[inflection.singular_noun(n) or n for n in nouns], conj=conjunction)
+        self.nouns_plural = coord_conj(*[inflection.plural_noun(n) for n in nouns], conj=conjunction)
+
+    def _formatted(self, prefix: str, attr: str, noun: str, pred: str):
+        return f'{prefix}{attr}{noun}{pred}'
+
+    def concise(self, num: int):
+        if num > 1:
+            return self.concise_plural
+        return self.concise_singular
+
+    def a(self):
+        return inflection.a(self._formatted('', self.attr_singular, self.nouns_singular, self.predicative))
+
+    def one(self):
+        return self._formatted('one ', self.attr_singular, self.nouns_singular, self.predicative)
+
+    def one_of(self):
+        return self._formatted('one of ', self.attr_singular, self.nouns_singular, self.predicative)
+
+    def no(self):
+        return self._formatted('no ', self.attr_singular, self.nouns_singular, self.predicative)
+
+    def zero_or_more(self):
+        return self._formatted('zero or more ', self.attr_plural, self.nouns_plural, self.predicative)
+
+    def one_or_more(self):
+        return self._formatted('one or more ', self.attr_plural, self.nouns_plural, self.predicative)
+
+    def some(self):
+        return self._formatted('some ', self.attr_singular, self.nouns_singular, self.predicative)
+
+    def bare(self):
+        return self._formatted('', self.attr_singular, self.nouns_singular, '')
+
+    def bare_pl(self):
+        return self._formatted('', self.attr_plural, self.nouns_plural, '')
+
+    def __or__(self, other: QuantifiedNP) -> QuantifiedNP:
+        if not isinstance(other, QuantifiedNP):
+            return NotImplemented
+        if (not self.nouns_singular == other.nouns_singular
+                or not self.predicative == other.predicative):
+            return QuantifiedNPS(self, other)
+        kwargs = {}
+        kwargs['concise'] = coord_conj(self._kwargs['concise'], other._kwargs['concise'], conj='or')
+        kwargs['attributive'] = coord_conj(self._kwargs['attributive'], other._kwargs['attributive'], conj='or')
+        kwargs['predicative'] = self._kwargs['predicative']
+        kwargs['conjunction'] = self._kwargs['conjunction']
+        return QuantifiedNP(*self._kwargs['nouns'], **kwargs)
+
+
+class QuantifiedNPS(QuantifiedNP):
+    def __init__(self, *phrases: QuantifiedNP):
+        self.phrases = phrases
+
+    def concise(self, num: int):
+        if num > 1:
+            return self.bare_pl()
+        return self.bare()
+
+    def a(self):
+        return inflection.a(self.bare())
+
+    def one(self):
+        return f'one {self.bare()}'
+
+    def one_of(self):
+        return f'one of {self.bare()}'
+
+    def no(self):
+        return f'no {self.bare()}'
+
+    def zero_or_more(self, conj='or'):
+        terms = [p.concise(2) for p in self.phrases]
+        return f'zero or more {coord_conj(*terms, conj=conj)}'
+
+    def one_or_more(self, conj='or'):
+        terms = [p.concise(2) for p in self.phrases]
+        return f'one or more {coord_conj(*terms, conj=conj)}'
+
+    def some(self, conj='or'):
+        terms = [p.concise(1) for p in self.phrases]
+        return f'some {coord_conj(*terms, conj=conj)}'
+
+    def bare(self, conj='or'):
+        return coord_conj(*[p.concise(1) for p in self.phrases], conj=conj)
+
+    def bare_pl(self, conj='or'):
+        return coord_conj(*[p.concise(2) for p in self.phrases], conj=conj)
+
+    def __iter__(self):
+        yield from self.phrases
+
+    def flattened(self):
+        for phrase in self.phrases:
+            if isinstance(phrase, QuantifiedNPS):
+                yield from phrase
+            else:
+                yield phrase
+
+    def __or__(self, other: QuantifiedNP | QuantifiedNPS) -> QuantifiedNPS:
+        if not isinstance(other, QuantifiedNP):
+            return NotImplemented
+        phrases = [*self.phrases]
+        if isinstance(other, QuantifiedNPS):
+            phrases.extend(other.phrases)
+        else:
+            phrases.append(other)
+        return QuantifiedNPS(*phrases)
+
+
+def fuzzy_match(query: str, targets: Iterable[str], threshold=2) -> Tuple[Optional[str], int, int]:
+    for idx, target in enumerate(targets):
+        distance = editdistance.eval(query, target)
+        if distance <= threshold:
+            return target, idx, distance
+    return None, -1, -1
+
+
+def slugify(name: str, sep='-', *, limit=0) -> str:
+    t = re.sub(r'[\W_]+', sep, str(unidecode.unidecode(name))).strip(sep).lower()
+    if limit > 0:
+        t = sep.join(t.split(sep)[:limit])
+    return t
