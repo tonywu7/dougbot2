@@ -76,7 +76,7 @@ class Utilities(Gear):
         'Check if these roles have this permission in a channel, '
         'and if someone with all these roles combined will have this permission.'
     ))
-    @doc.restriction(has_guild_permissions, manage_roles=True, manage_channels=True)
+    @doc.restriction(has_guild_permissions, manage_roles=True)
     @doc.example('administrator', f'See which roles have the {code("administrator")} perm.')
     @doc.example('send_messages #rules', 'See which roles can send messages in the #rules channel.')
     @doc.example('mention_everyone @everyone @Moderator',
