@@ -153,6 +153,9 @@ class QuantifiedNP:
         kwargs['conjunction'] = self._kwargs['conjunction']
         return QuantifiedNP(*self._kwargs['nouns'], **kwargs)
 
+    def __repr__(self):
+        return f'<Quantified noun phrase: {self.nouns_singular}>'
+
 
 class QuantifiedNPS(QuantifiedNP):
     def __init__(self, *phrases: QuantifiedNP):

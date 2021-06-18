@@ -60,7 +60,7 @@ from telescope2.utils.lang import (
 
 from .command import DocumentationMixin, Instruction, instruction
 from .context import Circumstances
-from .converters import Choice, CaseInsensitive
+from .converters import CaseInsensitive, Choice
 from .utils.textutil import (
     blockquote, code, page_embed, page_plaintext, pre, strong,
 )
@@ -102,7 +102,7 @@ log = logging.getLogger('discord.commands')
 
 
 class DescribedConverter(Protocol):
-    accept: QuantifiedNP
+    __accept__: QuantifiedNP
 
 
 class DescribedCheck(Protocol):
@@ -150,9 +150,12 @@ def _is_optional_type(annotation) -> bool:
 
 
 def _is_converter(annotation: _Converter) -> bool:
-    return (isinstance(annotation, Converter)
-            or issubclass(annotation, type)
-            and issubclass(annotation, Converter))
+    if isinstance(annotation, Converter):
+        return True
+    try:
+        return issubclass(annotation, Converter)
+    except TypeError:
+        return False
 
 
 def _constituent_types(annotation) -> Tuple[Type, ...]:
@@ -248,11 +251,11 @@ class Argument:
         defined = TYPE_DESCRIPTIONS.get(annotation)
         if defined:
             return defined
-        elif _is_converter(annotation):
-            try:
-                return annotation.accept
-            except Exception:
-                pass
+        try:
+            if isinstance(annotation.__accept__, QuantifiedNP):
+                return annotation.__accept__
+        except AttributeError:
+            pass
         if not isinstance(annotation, type):
             annotation = type(annotation)
         return QuantifiedNP(camel_case_to_spaces(annotation.__name__))
@@ -427,7 +430,7 @@ class Documentation:
         'examples': ('Examples', ['Examples']),
         'signature': ('Type signatures', ['Synopsis', 'Syntax', 'Arguments']),
     }
-    HelpFormat = Choice(*HELP_STYLES.keys(), concise_name='info category')
+    HelpFormat = Choice(*sorted(HELP_STYLES.keys()), concise_name='info category')
 
 
 @attr.s

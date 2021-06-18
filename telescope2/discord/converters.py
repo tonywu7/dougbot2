@@ -30,8 +30,8 @@ from .utils.models import HypotheticalRole
 
 
 class PermissionName(Converter):
-    accept = QuantifiedNP('permission name', predicative='see [this page](https://discordpy.readthedocs.io/en/'
-                          'stable/api.html#discord.Permissions) for a list')
+    __accept__ = QuantifiedNP('permission name', predicative='see [this page](https://discordpy.readthedocs.io/en/'
+                              'stable/api.html#discord.Permissions) for a list')
 
     perm_name: str
 
@@ -74,7 +74,7 @@ class Constant(Converter):
         self.const = value
 
     @property
-    def accept(self):
+    def __accept__(self):
         return QuantifiedNP(f'the exact text "{self.const}"', concise=f'"{self.const}"', predicative='without the quotes')
 
     async def convert(self, ctx: Circumstances, arg: str):
@@ -92,7 +92,7 @@ class Choice(Converter, TypeVar, _root=True):
         self.concise = concise_name
 
     @property
-    def accept(self):
+    def __accept__(self):
         fullname = self.concise + ': ' + coord_conj(*[f'"{w}"' for w in self.choices], conj='or')
         return QuantifiedNP(fullname, concise=self.concise, predicative='case sensitive' if self.case_sensitive else '')
 
@@ -105,7 +105,7 @@ class Choice(Converter, TypeVar, _root=True):
 
 
 class CaseInsensitive(Converter, TypeVar, _root=True):
-    accept = QuantifiedNP('text', predicative='case insensitive')
+    __accept__ = QuantifiedNP('text', predicative='case insensitive')
 
     def __init__(self) -> None:
         return
