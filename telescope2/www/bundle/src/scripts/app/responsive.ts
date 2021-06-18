@@ -160,7 +160,9 @@ export class D3ItemList {
             .append('li')
             .attr('class', 'dropdown-item')
             .attr('tabindex', '0')
-            .sort((x, y) => Number(x.order) - Number(y.order) || d3.ascending(x.id, y.id))
+            .sort(
+                (x, y) => Number(x.order) - Number(y.order) || d3.ascending(x.name, y.name) || d3.ascending(x.id, y.id)
+            )
             .on('click', this.addItem.bind(this))
             .on('keydown', this.keyboardListener.bind(this))
         this.candidates
