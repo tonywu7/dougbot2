@@ -50,8 +50,15 @@ class _ErrorConf(TypedDict):
 
 LOGGING_CLASSES: List[_LoggingConf] = []
 
+UNCAUGHT_EXCEPTIONS = (
+    errors.CommandInvokeError,
+    errors.ConversionError,
+    errors.ExtensionError,
+    errors.ClientException,
+)
+
 EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
-    (errors.CommandInvokeError,): {
+    UNCAUGHT_EXCEPTIONS: {
         'name': 'Uncaught exceptions',
         'key': 'CommandInvokeError',
         'level': logging.ERROR,
@@ -149,7 +156,7 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
                      f'{ctx.message.content}',
                      exc_info=exc)
         return
-    if isinstance(exc, errors.CommandInvokeError):
+    if isinstance(exc, UNCAUGHT_EXCEPTIONS):
         exc_info = exc.__cause__
     else:
         exc_info = None
