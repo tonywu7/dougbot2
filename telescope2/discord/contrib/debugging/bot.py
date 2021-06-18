@@ -43,20 +43,20 @@ class Debugging(Gear):
         super().__init__(*args, **kwargs)
 
     @instruction('log')
-    @doc.description("Put a message in the bot's log file.")
+    @doc.description("Send a message into the bot's log file.")
     @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
     @doc.argument('text', 'The message to log.')
     @doc.restriction(is_owner)
     async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, text: str = ''):
         if isinstance(level, str):
-            trimmed = f'{level} {text}'
+            text = f'{level} {text}'
             level = logging.INFO
         elif level is None:
             level = logging.INFO
-        if not trimmed:
+        if not text:
             msg = ctx.message.content
         else:
-            msg = trimmed
+            msg = text
         await ctx.log.log(f'{self.app_label}.log', level, msg)
 
     @instruction('throw')
