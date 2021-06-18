@@ -23,8 +23,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from telescope2.discord.apps import DiscordBotConfig
-from telescope2.discord.errors import EXCEPTIONS
-from telescope2.discord.logging import LOGGING_CLASSES
+from telescope2.discord.logging import EXCEPTIONS, LOGGING_CLASSES
 from telescope2.discord.models import Server
 
 from .utils.forms import (

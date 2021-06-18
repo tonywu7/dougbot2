@@ -16,16 +16,22 @@
 
 from __future__ import annotations
 
+import io
 import logging
+import sys
+import traceback
 from functools import partialmethod
-from typing import List, Optional, Tuple, TypedDict
+from typing import Dict, List, Optional, Tuple, Type, TypedDict
 
-from discord import AllowedMentions, Embed, Role, TextChannel
+from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
+from discord.ext.commands import errors
 from discord.utils import escape_markdown
 
+from telescope2.utils.datetime import localnow, utcnow
+
+from . import constraint, extension
 from .context import Circumstances
-from .errors import report_exception
-from .utils.textutil import tag, unmarked
+from .utils.textutil import tag, trunc_for_field, unmarked
 
 
 class _LoggingConf(TypedDict):
@@ -35,7 +41,51 @@ class _LoggingConf(TypedDict):
     role: Optional[int]
 
 
+class _ErrorConf(TypedDict):
+    key: str
+    name: str
+    level: int
+    superuser: Optional[bool]
+
+
 LOGGING_CLASSES: List[_LoggingConf] = []
+
+EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
+    (errors.CommandInvokeError,): {
+        'name': 'Uncaught exceptions',
+        'key': 'CommandInvokeError',
+        'level': logging.ERROR,
+        'superuser': True,
+    },
+    (errors.NotOwner,): {
+        'name': 'Bot owner-only commands called',
+        'key': 'NotOwner',
+        'level': logging.WARNING,
+        'superuser': True,
+    },
+    (extension.ModuleDisabled,): {
+        'name': 'Disabled module called',
+        'key': 'ModuleDisabled',
+        'level': logging.INFO,
+    },
+    (constraint.ConstraintFailure,): {
+        'name': 'Constraint violations',
+        'key': 'ConstraintFailure',
+        'level': logging.INFO,
+    },
+}
+
+PRIVILEGED_EXCEPTIONS = {d['key'] for d in EXCEPTIONS.values() if d.get('superuser')}
+
+COLORS = {
+    logging.DEBUG: Color(0x6610f2),
+    logging.INFO: Color(0x0d6efd),
+    logging.WARNING: Color(0xffc107),
+    logging.ERROR: Color(0xdc3545),
+    logging.CRITICAL: Color(0xd63384),
+}
+
+_log = logging.getLogger('discord.logging.exceptions')
 
 
 class ContextualLogger:
@@ -88,3 +138,47 @@ class ContextualLogger:
     warning = partialmethod(log, level=logging.WARNING)
     error = partialmethod(log, level=logging.ERROR)
     critical = partialmethod(log, level=logging.CRITICAL)
+
+
+async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
+    for types, info in EXCEPTIONS.items():
+        if isinstance(exc, types):
+            break
+    else:
+        _log.warning('Uncaught exception while handling command:\n'
+                     f'{ctx.message.content}',
+                     exc_info=exc)
+        return
+    if isinstance(exc, errors.CommandInvokeError):
+        exc_info = exc.__cause__
+    else:
+        exc_info = None
+    title = info['name']
+    level = info['level']
+    embed = Embed(
+        title=title,
+        description=str(exc),
+        timestamp=utcnow(),
+        url=ctx.message.jump_url,
+        color=COLORS[level],
+    )
+    embed.add_field(name='Author', value=tag(ctx.author), inline=True)
+    embed.add_field(name='Channel', value=tag(ctx.channel), inline=True)
+    embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
+    return await ctx.log.log(info['key'], level, '', exc_info=exc_info, embed=embed)
+
+
+def censor_paths(tb: str):
+    for path in sys.path:
+        tb = tb.replace(path, '')
+    return tb
+
+
+async def report_exception(channel: TextChannel, exc_info: BaseException):
+    if not isinstance(exc_info, BaseException):
+        return
+    tb = traceback.format_exception(type(exc_info), exc_info, exc_info.__traceback__)
+    tb_body = censor_paths(''.join(tb))
+    tb_file = io.BytesIO(tb_body.encode())
+    filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
+    await channel.send(file=File(tb_file, filename=filename))

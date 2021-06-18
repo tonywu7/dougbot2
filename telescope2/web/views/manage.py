@@ -25,7 +25,7 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 
-from telescope2.discord.errors import PRIVILEGED_EXCEPTIONS
+from telescope2.discord.logging import PRIVILEGED_EXCEPTIONS
 
 from ..config import CommandAppConfig
 from ..contexts import DiscordContext
