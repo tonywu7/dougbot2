@@ -23,7 +23,10 @@ from typing import (
 )
 
 from asgiref.sync import sync_to_async
-from discord import AllowedMentions, Client, Guild, Message, Permissions
+from discord import (
+    AllowedMentions, Client, Guild, Message, MessageReference, Permissions,
+    RawReactionActionEvent,
+)
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, has_guild_permissions
 from discord.utils import escape_markdown
@@ -44,6 +47,7 @@ from .apps import DiscordBotConfig
 from .command import Ensemble, Instruction
 from .context import Circumstances
 from .documentation import Manual, help_command
+from .events import Events
 from .logging import log_command_errors
 from .models import Server
 from .utils.textutil import code, em, strong
@@ -74,8 +78,9 @@ class Robot(Bot):
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual
 
-        self._register_events()
-        self._register_commands()
+        add_event_listeners(self)
+        register_base_commands(self)
+
         self._init_ipc()
         self._load_extensions()
         self._create_manual()
@@ -96,10 +101,6 @@ class Robot(Bot):
         thread = ipc.CachePollingThread('discord')
         thread.add_event_listener('telescope2.discord.bot.refresh', sync_to_async(self._load_extensions))
         thread.start()
-
-    def _register_events(self):
-        self.listen('on_guild_join')(self.on_guild_join)
-        self.check_once(self.command_global_check)
 
     def _register_commands(self):
         register_base_commands(self)
@@ -210,7 +211,24 @@ class Robot(Bot):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
 
-    async def on_guild_join(self, guild: Guild):
+    async def on_command_error(self, context, exception):
+        return await log_command_errors(context, exception)
+
+
+def add_event_listeners(self: Robot):
+
+    @self.check_once
+    async def command_global_check(ctx: Circumstances) -> bool:
+        for check in asyncio.as_completed([
+            extension.cog_enabled_check(ctx),
+            constraint.command_constraints_check(ctx),
+        ]):
+            if not await check:
+                return False
+        return True
+
+    @self.listen('on_guild_join')
+    async def on_guild_join(guild: Guild):
         self.log.info(f'Joined {guild}')
         try:
             async with async_atomic():
@@ -223,22 +241,26 @@ class Robot(Bot):
         except IntegrityError:
             pass
 
-    @classmethod
-    async def command_global_check(cls, ctx: Circumstances) -> bool:
-        for check in asyncio.as_completed([
-            extension.cog_enabled_check(ctx),
-            constraint.command_constraints_check(ctx),
-        ]):
-            if not await check:
-                return False
-        return True
+    @self.listen('on_raw_reaction_add')
+    @Events.event_filter(Events.emote_added)
+    @Events.event_filter(Events.emote_no_bots)
+    @Events.event_filter(Events.emote_matches('🗑'))
+    async def handle_reply_delete(evt: RawReactionActionEvent):
+        channel: GuildChannel = self.get_channel(evt.channel_id)
+        message: Message = await channel.fetch_message(evt.message_id)
+        if message.author != self.user:
+            return
+        reference: MessageReference = message.reference
+        if not reference:
+            self.log.debug('handle_reply_delete: no reference found')
+            return
+        reply: Message = await channel.fetch_message(reference.message_id)
+        if reply.author.id == evt.user_id:
+            await message.delete()
 
-    async def on_command_error(self, context, exception):
-        return await log_command_errors(context, exception)
 
-
-def register_base_commands(bot: Robot):
-    @bot.instruction('echo')
+def register_base_commands(self: Robot):
+    @self.instruction('echo')
     @doc.description('Send the command arguments back.')
     @doc.argument('text', 'Message to send back.')
     @doc.example('The quick brown fox', em('sends back "The quick brown fox"'))
@@ -248,12 +270,12 @@ def register_base_commands(bot: Robot):
         else:
             await ctx.send(text)
 
-    @bot.instruction('ping')
+    @self.instruction('ping')
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances, *, args: str = None):
         await ctx.send(f':PONG {utctimestamp()}')
 
-    @bot.ensemble('prefix', invoke_without_command=True)
+    @self.ensemble('prefix', invoke_without_command=True)
     @doc.description('Get the command prefix for the bot in this server.')
     @doc.invocation((), 'Print the prefix.')
     async def get_prefix(ctx: Circumstances):
@@ -274,13 +296,13 @@ def register_base_commands(bot: Robot):
             await ctx.send(f'{strong("Error:")} {e}')
             raise
 
-    @bot.listen('on_message')
+    @self.listen('on_message')
     async def on_ping(msg: Message):
         gateway_dst = utctimestamp()
 
-        if not bot.user:
+        if not self.user:
             return
-        if bot.user.id != msg.author.id:
+        if self.user.id != msg.author.id:
             return
         if msg.content[:6] != ':PONG ':
             return
@@ -297,4 +319,4 @@ def register_base_commands(bot: Robot):
 
         await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
-    bot.add_command(help_command)
+    self.add_command(help_command)

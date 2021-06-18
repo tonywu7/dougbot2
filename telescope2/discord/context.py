@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import Dict, List
+from typing import Callable, Coroutine, Dict, List
 
 from asgiref.sync import sync_to_async
 from discord import Guild, Member, Message, User
@@ -41,6 +41,10 @@ def _guard(err: str):
 
 # 'Cause of ...
 class Circumstances(Context):
+
+    send: Callable[..., Coroutine[None, None, Message]]
+    reply: Callable[..., Coroutine[None, None, Message]]
+
     def __init__(self, **attrs):
         super().__init__(**attrs)
         from .bot import Robot
@@ -96,3 +100,7 @@ class Circumstances(Context):
         with transaction.atomic():
             self.server.prefix = prefix
             self.server.save()
+
+    async def reply_with_delete(self, *args, **kwargs):
+        msg = await self.reply(*args, **kwargs)
+        await msg.add_reaction('🗑')

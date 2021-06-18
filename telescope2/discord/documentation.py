@@ -45,7 +45,6 @@ from typing import (
 import attr
 import discord
 from discord import Embed, Forbidden
-from discord.abc import Messageable
 from discord.ext import commands
 from discord.ext.commands import Command, Converter, Greedy
 from discord.utils import escape_markdown
@@ -361,7 +360,7 @@ class Documentation:
         for sig in self.invocations.values():
             lines.append(f'{self.call_sign} {sig.as_synopsis()}')
         for subc in self.subcommands:
-            lines.append(f'{self.call_sign} {subc} [...]')
+            lines.append(f'{subc} [...]')
         return tuple(lines)
 
     def ensure_signatures(self):
@@ -528,11 +527,11 @@ def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> Che
     return wrapper
 
 
-async def _send_with_text_fallback(msg: Messageable, embed: Embed, text: str, **kwargs):
+async def _send_with_text_fallback(ctx: Circumstances, embed: Embed, text: str, **kwargs):
     try:
-        return await msg.send(embed=embed, **kwargs)
+        return await ctx.reply_with_delete(embed=embed, **kwargs)
     except Forbidden:
-        return await msg.send(content=text, **kwargs)
+        return await ctx.reply_with_delete(content=text, **kwargs)
 
 
 @instruction('help', aliases=['man', 'man:tty'])
