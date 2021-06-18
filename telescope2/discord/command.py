@@ -38,6 +38,9 @@ class Instruction(DocumentationMixin, Command):
 
 
 class Ensemble(DocumentationMixin, Group):
+    def __init__(self, *args, case_insensitive=None, **kwargs):
+        super().__init__(*args, case_insensitive=True, **kwargs)
+
     @finalizer
     def instruction(self, *args, **kwargs):
         return super().command(*args, cls=Instruction, **kwargs)

@@ -73,7 +73,11 @@ class Robot(Bot):
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
 
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
-        super().__init__(loop=loop, command_prefix=self.which_prefix, help_command=None, **options)
+        super().__init__(
+            loop=loop, command_prefix=self.which_prefix,
+            help_command=None, case_insensitive=True,
+            **options,
+        )
 
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual

@@ -60,7 +60,7 @@ from telescope2.utils.lang import (
 
 from .command import DocumentationMixin, Instruction, instruction
 from .context import Circumstances
-from .converters import Choice
+from .converters import Choice, CaseInsensitive
 from .utils.textutil import (
     blockquote, code, page_embed, page_plaintext, pre, strong,
 )
@@ -545,7 +545,9 @@ async def _send_with_text_fallback(ctx: Circumstances, embed: Embed, text: str, 
 @example('perms', f'Check help doc for {code("perms")}')
 @example('full perms', f'See detailed information about the command {code("perms")}')
 @example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
-async def help_command(ctx: Circumstances, category: Optional[Documentation.HelpFormat] = 'normal', *, query: str = ''):
+async def help_command(ctx: Circumstances,
+                       category: Optional[Documentation.HelpFormat] = 'normal',
+                       *, query: CaseInsensitive = ''):
     man = ctx.manual
     use_plaintext = ctx.invoked_with == 'man:tty'
 

@@ -102,3 +102,13 @@ class Choice(Converter, TypeVar, _root=True):
         if arg in self.choices:
             return arg
         raise BadArgument(f'Invalid choice {arg}. Choices are {self.accept.one_of()}')
+
+
+class CaseInsensitive(Converter, TypeVar, _root=True):
+    accept = QuantifiedNP('text', predicative='case insensitive')
+
+    def __init__(self) -> None:
+        return
+
+    async def convert(self, ctx: Circumstances, arg: str):
+        return arg.lower()
