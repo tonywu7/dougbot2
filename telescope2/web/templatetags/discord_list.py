@@ -44,7 +44,7 @@ class D3ItemList(Node):
         prefix = mark_safe(self.nodelist.render(ctx))
         tmpl: Template = get_template('telescope2/web/elements/item-list.html')
         select_type = unwrap(ctx, self.type)
-        autoclose = 'inside' if select_type == 'single' else 'outside'
+        autoclose = 'true' if select_type == 'single' else 'outside'
         return tmpl.render({
             'endpoint': unwrap(ctx, self.endpoint),
             'type': select_type,
