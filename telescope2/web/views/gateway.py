@@ -29,9 +29,8 @@ from django.views.decorators.http import require_POST
 from django.views.generic import View
 
 from telescope2.discord.apps import DiscordBotConfig
-from telescope2.discord.fetch import (
-    DiscordCache, DiscordFetch, app_auth_url, bot_invite_url, create_session,
-)
+from telescope2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
+                                      bot_invite_url, create_session)
 from telescope2.discord.models import Server
 
 from ..forms import ServerCreationForm, UserCreationForm

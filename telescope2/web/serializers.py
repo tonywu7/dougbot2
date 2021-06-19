@@ -21,14 +21,10 @@ from typing import Dict, List
 from more_itertools import partition
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
-from rest_framework.serializers import (
-    CharField, ModelSerializer, ReadOnlyField,
-)
+from rest_framework.serializers import CharField, ModelSerializer, ReadOnlyField
 
-from telescope2.discord.models import (
-    BotCommand, Channel, CommandConstraint, CommandConstraintList, Role,
-    Server,
-)
+from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
+                                       CommandConstraintList, Role, Server)
 
 
 class Int64StringRelatedField(PrimaryKeyRelatedField):

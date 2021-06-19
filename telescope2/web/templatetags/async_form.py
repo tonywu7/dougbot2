@@ -18,9 +18,8 @@ from django.template import Context, Library, Node, NodeList, Variable
 from django.utils.safestring import mark_safe
 
 from ..utils.forms import AsyncFormMixin
-from ..utils.templates import (
-    create_tag_parser, domtokenlist, optional_attr, unwrap,
-)
+from ..utils.templates import (create_tag_parser, domtokenlist, optional_attr,
+                               unwrap)
 
 register = Library()
 

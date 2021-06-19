@@ -18,9 +18,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Union
 
-from discord import (
-    CategoryChannel, Member, Role, StageChannel, TextChannel, VoiceChannel,
-)
+from discord import (CategoryChannel, Member, Role, StageChannel, TextChannel,
+                     VoiceChannel)
 from discord.ext.commands import Greedy, has_guild_permissions
 from discord.utils import escape_markdown
 from more_itertools import split_before

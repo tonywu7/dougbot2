@@ -21,23 +21,21 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework.generics import GenericAPIView
-from rest_framework.mixins import (
-    CreateModelMixin, DestroyModelMixin, ListModelMixin, RetrieveModelMixin,
-    UpdateModelMixin,
-)
+from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+                                   ListModelMixin, RetrieveModelMixin,
+                                   UpdateModelMixin)
 from rest_framework.serializers import ModelSerializer
 
 from telescope2.discord.constraint import CommandCondition, CommandCriteria
-from telescope2.discord.models import (
-    BotCommand, Channel, CommandConstraint, CommandConstraintList, Role,
-    Server, ServerScoped,
-)
+from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
+                                       CommandConstraintList, Role, Server,
+                                       ServerScoped)
 
 from ..contexts import DiscordContext
-from ..serializers import (
-    BotCommandSerializer, ChannelSerializer, CommandConstraintListSerializer,
-    CommandConstraintSerializer, RoleSerializer, ServerDataSerializer,
-)
+from ..serializers import (BotCommandSerializer, ChannelSerializer,
+                           CommandConstraintListSerializer,
+                           CommandConstraintSerializer, RoleSerializer,
+                           ServerDataSerializer)
 from ..utils.http import HTTPBadRequest
 
 

@@ -27,10 +27,8 @@ from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.logging import EXCEPTIONS, LOGGING_CLASSES
 from telescope2.discord.models import Server
 
-from .utils.forms import (
-    AsyncFormMixin, D3SelectWidget, FormConstants, SwitchInput, find_widgets,
-    gen_labels,
-)
+from .utils.forms import (AsyncFormMixin, D3SelectWidget, FormConstants,
+                          SwitchInput, find_widgets, gen_labels)
 
 
 class PreferenceForms:
