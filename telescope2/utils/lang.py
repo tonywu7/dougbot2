@@ -62,6 +62,17 @@ def coord_conj(*terms: str, conj='and', oxford=True) -> str:
     return f'{", ".join(terms[:-1])}{oxford} {conj} {terms[-1]}'
 
 
+def either_or(*terms: str, sep=', ') -> str:
+    if not terms:
+        return ''
+    if len(terms) == 1:
+        return terms[0]
+    if len(terms) == 2:
+        return f'either {terms[0]} or {terms[1]}'
+    sep = f'{sep}or '
+    return f'either {sep.join(terms)}'
+
+
 def pluralize_model(count: int, model: Type[Model]) -> str:
     if count == 1:
         return f'{count} {model._meta.verbose_name}'

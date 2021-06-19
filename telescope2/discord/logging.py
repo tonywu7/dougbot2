@@ -29,9 +29,9 @@ from discord.utils import escape_markdown
 
 from telescope2.utils.datetime import localnow, utcnow
 
-from . import constraint, extension
+from . import command, constraint, extension
 from .context import Circumstances, CommandContextError
-from .utils.textutil import tag, trunc_for_field, unmarked
+from .utils.textutil import tag, trunc_for_field, unmarked, untagged
 
 
 class _LoggingConf(TypedDict):
@@ -58,13 +58,11 @@ UNCAUGHT_EXCEPTIONS = (
     CommandContextError,
 )
 
+BYPASSED = (
+    command.EnvironmentMismatch,
+)
+
 EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
-    (errors.NotOwner,): {
-        'name': 'Bot owner-only commands called',
-        'key': 'NotOwner',
-        'level': logging.WARNING,
-        'superuser': True,
-    },
     (extension.ModuleDisabled,): {
         'name': 'Disabled module called',
         'key': 'ModuleDisabled',
@@ -79,6 +77,12 @@ EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
         'name': 'Uncaught exceptions',
         'key': 'CommandInvokeError',
         'level': logging.ERROR,
+        'superuser': True,
+    },
+    (errors.NotOwner,): {
+        'name': 'Bot owner-only commands called',
+        'key': 'NotOwner',
+        'level': logging.WARNING,
         'superuser': True,
     },
 }
@@ -105,7 +109,7 @@ class ContextualLogger:
                   exc_info: Optional[BaseException] = None,
                   embed: Optional[Embed] = None, **kwargs):
         logger = logging.getLogger(f'{self.prefix}.{msg_class}')
-        logger.log(level, unmarked(msg), *args, exc_info=exc_info, **kwargs)
+        logger.log(level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs)
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> Tuple[TextChannel, str, Role | None]:
@@ -149,6 +153,8 @@ class ContextualLogger:
 
 
 async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
+    if isinstance(exc, BYPASSED):
+        return
     for types, info in EXCEPTIONS.items():
         if isinstance(exc, types):
             break
@@ -173,7 +179,7 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
     embed.add_field(name='Author', value=tag(ctx.author), inline=True)
     embed.add_field(name='Channel', value=tag(ctx.channel), inline=True)
     embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
-    return await ctx.log.log(info['key'], level, '', exc_info=exc_info, embed=embed)
+    return await ctx.log.log(info['key'], level, str(exc), exc_info=exc_info, embed=embed)
 
 
 def censor_paths(tb: str):

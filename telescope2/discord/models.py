@@ -18,9 +18,8 @@ from __future__ import annotations
 
 import re
 from operator import attrgetter, itemgetter
-from typing import Dict, Generic, Iterable, List, Protocol, Set, TypeVar, Union
+from typing import Dict, Generic, Iterable, List, Protocol, TypeVar, Union
 
-import attr
 import discord
 import inflect
 from discord.abc import ChannelType
@@ -29,10 +28,11 @@ from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
-from more_itertools import bucket
 
 from telescope2.web.config import CommandAppConfig
 from telescope2.web.models import User as SystemUser
+
+from .utils.textutil import strong, tag_literal
 
 inflection = inflect.engine()
 
@@ -319,6 +319,7 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     name: str = models.TextField(blank=False)
     type: int = models.IntegerField(choices=ConstraintType.choices)
     specificity: int = models.IntegerField(default=0)
+    error_msg: str = models.TextField(blank=True, verbose_name='error message')
 
     @classmethod
     def calc_specificity(cls, constraint_type: int, channels: List, commands: List):
@@ -328,59 +329,26 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
             + bool(commands)
         )
 
+    @classmethod
+    def gen_error_message(cls, constraint_type: int, roles: List[Role]) -> str:
+        ctype = {0: 'none of', 1: 'any of', 2: 'all of'}[constraint_type]
+        role_names = ' '.join([tag_literal('role', r.snowflake) for r in roles])
+        return f'{strong(ctype)} {role_names}'
+
+    def from_dict(self, data: Dict):
+        self.name = data['name']
+        self.type = data['type']
+        channels = data['channels']
+        commands = data['commands']
+        roles = data['roles']
+        specificity = self.calc_specificity(self.type, channels, commands)
+        error_message = self.gen_error_message(self.type, roles)
+        self.specificity = specificity
+        self.error_msg = error_message
+        self.save()
+        self.channels.set(channels)
+        self.commands.set(commands)
+        self.roles.set(roles)
+
     class Meta:
         verbose_name = 'command constraint'
-
-    def to_dataclass(self) -> CommandCondition:
-        return CommandCondition(
-            type=self.type,
-            specificity=self.specificity,
-            roles=self.roles.values_list('snowflake', flat=True).all(),
-        )
-
-
-def _int_set(s):
-    return {int(n) for n in s}
-
-
-@attr.s
-class CommandCondition:
-    type: ConstraintType = attr.ib()
-    specificity: int = attr.ib()
-    roles: Set[int] = attr.ib(converter=_int_set)
-
-    commands: Set = attr.ib(converter=_int_set, factory=set)
-    channels: Set = attr.ib(converter=_int_set, factory=set)
-
-    def __call__(self, member: discord.Member) -> bool:
-        return self.test({id_dot(r) for r in member.roles})
-
-    def test(self, roles: Set[int]) -> bool:
-        if self.type is ConstraintType.NONE.value:
-            return not (self.roles & roles)
-        elif self.type is ConstraintType.ANY.value:
-            return bool(self.roles & roles)
-        elif self.type is ConstraintType.ALL.value:
-            return (self.roles & roles) == self.roles
-
-    @classmethod
-    def deserialize(cls, data: Dict):
-        kind, channels, commands = data['type'], data['channels'], data['commands']
-        specificity = CommandConstraint.calc_specificity(kind, channels, commands)
-        return cls(kind, specificity, data['roles'], commands=commands, channels=channels)
-
-
-@attr.s
-class CommandCriteria:
-    criteria: List[CommandCondition] = attr.ib(converter=list)
-
-    def __call__(self, member: discord.Member) -> bool:
-        roles = {id_dot(r) for r in member.roles}
-        return self.test(roles)
-
-    def test(self, roles: Set[int]) -> bool:
-        sorted_criteria = bucket(self.criteria, lambda c: c.specificity)
-        return all(
-            any(c.test(roles) for c in sorted_criteria[specificity])
-            for specificity in sorted(sorted_criteria, reverse=True)
-        )

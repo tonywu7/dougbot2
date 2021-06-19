@@ -21,10 +21,13 @@ from typing import Dict, List
 from more_itertools import partition
 from rest_framework.exceptions import ValidationError
 from rest_framework.relations import PrimaryKeyRelatedField
-from rest_framework.serializers import CharField, ModelSerializer, ReadOnlyField
+from rest_framework.serializers import (
+    CharField, ModelSerializer, ReadOnlyField,
+)
 
 from telescope2.discord.models import (
-    BotCommand, Channel, CommandConstraint, CommandConstraintList, Role, Server,
+    BotCommand, Channel, CommandConstraint, CommandConstraintList, Role,
+    Server,
 )
 
 
@@ -88,17 +91,7 @@ class CommandConstraintSerializer(ModelSerializer):
         return self.update(instance, validated_data)
 
     def update(self, instance: CommandConstraint, validated_data: Dict):
-        instance.name = validated_data['name']
-        instance.type = validated_data['type']
-        channels = validated_data['channels']
-        commands = validated_data['commands']
-        specificity = CommandConstraint.calc_specificity(instance.type, channels, commands)
-        instance.specificity = specificity
-        instance.save()
-        roles = validated_data['roles']
-        instance.channels.set(channels)
-        instance.commands.set(commands)
-        instance.roles.set(roles)
+        instance.from_dict(validated_data)
         return instance
 
     def validate_roles(self, roles: List):

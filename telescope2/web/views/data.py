@@ -27,9 +27,10 @@ from rest_framework.mixins import (
 )
 from rest_framework.serializers import ModelSerializer
 
+from telescope2.discord.constraint import CommandCondition, CommandCriteria
 from telescope2.discord.models import (
-    BotCommand, Channel, CommandCondition, CommandConstraint,
-    CommandConstraintList, CommandCriteria, Role, Server, ServerScoped,
+    BotCommand, Channel, CommandConstraint, CommandConstraintList, Role,
+    Server, ServerScoped,
 )
 
 from ..contexts import DiscordContext
@@ -131,4 +132,4 @@ def constraint_test(req: HttpRequest) -> HttpResponse:
     )]
     criteria = CommandCriteria(conditions)
 
-    return JsonResponse({'result': criteria.test(roles)})
+    return JsonResponse({'result': criteria.test(roles) is True})

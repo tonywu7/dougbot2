@@ -212,6 +212,12 @@ class Robot(Bot):
             return [cls.DEFAULT_PREFIX, f'<@!{bot_id}> ']
         return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
 
+    async def invoke(self, ctx):
+        try:
+            return await super().invoke(ctx)
+        except constraint.ConstraintFailure as exc:
+            self.dispatch('command_error', ctx, exc)
+
     @classmethod
     def schedule_refresh(cls):
         caches['discord'].set('telescope2.discord.bot.refresh', True)
@@ -221,15 +227,24 @@ class Robot(Bot):
         self.log.info(f'User {self.user}')
 
     async def on_command_error(self, context: Circumstances, exception: Exception):
+        should_log = True
         if isinstance(exception, CommandNotFound):
-            return await self.on_command_not_found(context, exception)
-        return await log_command_errors(context, exception)
+            should_log = await self.on_command_not_found(context, exception)
+        if isinstance(exception, constraint.ConstraintFailure):
+            should_log = await self.on_constraint_failure(context, exception)
+        if should_log:
+            return await log_command_errors(context, exception)
 
-    async def on_command_not_found(self, context: Circumstances, exception: CommandNotFound):
+    async def on_constraint_failure(self, context: Circumstances, exception: constraint.ConstraintFailure) -> bool:
+        await context.reply(exception.reply, delete_after=60)
+        return True
+
+    async def on_command_not_found(self, context: Circumstances, exception: CommandNotFound) -> bool:
         try:
             self.manual.lookup(context.invoked_with)
         except NoSuchCommand as no_command:
-            return await context.reply(str(no_command), delete_after=60)
+            await context.reply(str(no_command), delete_after=60)
+        return False
 
     async def on_message(self, message):
         try:

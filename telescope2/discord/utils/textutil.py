@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from io import StringIO
 from textwrap import indent, shorten
 from typing import Tuple
@@ -25,12 +26,16 @@ from discord.abc import GuildChannel, User
 from discord.ext.commands import Context
 from markdown import Markdown
 
+RE_USER_MENTION = re.compile(r'<@(\d+)>')
+RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
+RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
+
 
 def trimmed_msg(ctx: Context) -> str:
     return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]
 
 
-def tag(obj) -> str:
+def tag(obj, kind=None) -> str:
     if isinstance(obj, User):
         return f'<@{obj.id}>'
     if isinstance(obj, GuildChannel):
@@ -40,6 +45,15 @@ def tag(obj) -> str:
             return '@everyone'
         return f'<@&{obj.id}>'
     return obj
+
+
+def tag_literal(kind: str, val: int):
+    return {
+        'user': '<@%(val)d>',
+        'member': '<@%(val)d>',
+        'channel': '<#%(val)d>',
+        'role': '<@&%(val)d>',
+    }[kind] % {'val': val}
 
 
 def em(s: str) -> str:
@@ -103,6 +117,13 @@ def unmark_element(element, stream=None):
 Markdown.output_formats['plain'] = unmark_element
 _md = Markdown(output_format='plain')
 _md.stripTopLevelTags = False
+
+
+def untagged(text: str) -> str:
+    text = RE_USER_MENTION.sub(r'user:\1', text)
+    text = RE_ROLE_MENTION.sub(r'role:\1', text)
+    text = RE_CHANNEL_MENTION.sub(r'channel:\1', text)
+    return text
 
 
 def unmarked(text: str) -> str:

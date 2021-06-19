@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
-from discord.ext.commands import Command, Group, command, errors, group
+from discord.ext.commands import (
+    CheckFailure, Command, Group, command, errors, group,
+)
 
-from telescope2.utils.functional import finalizer
+from telescope2.utils.functional import deferred, finalizer
 
 from .context import Circumstances
 from .utils.textutil import strong
@@ -37,22 +39,19 @@ class DocumentationMixin:
 
 
 class Instruction(DocumentationMixin, Command):
+    dm_command = False
+
     async def invoke(self, ctx: Circumstances):
         try:
             return await super().invoke(ctx)
         except errors.UserInputError as exc:
             return await self.on_input_error(ctx, exc)
-        except errors.CheckFailure as exc:
-            return await self.on_check_violation(ctx, exc)
         except errors.CommandOnCooldown as exc:
             return await self.on_cmd_cooldown(ctx, exc)
         except errors.MaxConcurrencyReached as exc:
             return await self.on_max_concurrency(ctx, exc)
 
     async def on_input_error(self, ctx: Circumstances, exc: errors.UserInputError):
-        return await ctx.reply(content=str(exc))
-
-    async def on_check_violation(self, ctx: Circumstances, exc: errors.CheckFailure):
         return await ctx.reply(content=str(exc))
 
     async def on_cmd_cooldown(self, ctx: Circumstances, exc: errors.CommandOnCooldown):
@@ -76,6 +75,19 @@ class Ensemble(DocumentationMixin, Group):
         return command
 
 
+@deferred(1)
+def dm_command():
+    def wrapper(f: Instruction):
+        f.dm_command = True
+        return f
+    return wrapper
+
+
+async def command_environment_check(ctx: Circumstances):
+    if not (ctx.command.dm_command ^ bool(ctx.guild)):
+        raise EnvironmentMismatch()
+
+
 @finalizer(1)
 def instruction(name: str, **kwargs) -> Instruction:
     return command(name, cls=Instruction, **kwargs)
@@ -96,3 +108,8 @@ class NoSuchCommand(ValueError):
 
     def __str__(self) -> str:
         return self.message
+
+
+class EnvironmentMismatch(CheckFailure):
+    def __init__(self, message=None, *args):
+        super().__init__(message='Server vs. DM commands misused', *args)
