@@ -1,6 +1,16 @@
 {% verbatim %}
-<template id="async-form-update-successful" class="handlebars-template">
-    <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive"
+<template id="server-message-tmpl" class="handlebars-template">
+    <div class="toast align-items-center server-message {{ classlist }} border-0" role="alert" aria-live="assertive"
+        aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</template><template id="async-form-update-successful" class="handlebars-template">
+    <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="polite"
         aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body">

@@ -929,3 +929,40 @@ label.input-changed {
 .errorlist {
     color: $red;
 }
+
+.toast.debug {
+    background-color: $pink;
+    color: $white;
+}
+
+.toast.info {
+    background-color: $cyan-300;
+    color: $gray-900;
+}
+
+.toast.info.success {
+    background-color: $green;
+    color: $gray-300;
+}
+
+.toast.warning {
+    background-color: $yellow;
+    color: $black;
+}
+
+.toast.error,
+.toast.critical {
+    background-color: $red;
+    color: $white;
+}
+
+.toast.server-message {
+    position: relative;
+
+    .btn-close {
+        padding: 1px 6px;
+        position: relative;
+        right: 0.7rem;
+        top: 0.7rem;
+    }
+}

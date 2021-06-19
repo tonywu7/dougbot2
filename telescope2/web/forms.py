@@ -21,6 +21,7 @@ from operator import itemgetter
 from asgiref.sync import async_to_sync
 from django import forms
 from django.core.exceptions import ValidationError
+from django.http import HttpRequest
 
 from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.logging import EXCEPTIONS, LOGGING_CLASSES
@@ -44,7 +45,7 @@ class PreferenceForms:
         return ExtensionToggleForm(instance=self.context.server)
 
     def sync_models(self):
-        return ModelSynchronizationActionForm(instance=self.context.server)
+        return ModelSyncActionForm(instance=self.context.server)
 
     def logging(self):
         return LoggingConfigFormset.get_form(self.context.server, self.context.is_superuser)
@@ -69,7 +70,7 @@ class UserCreationForm(forms.Form):
 class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
-        fields = ['snowflake']
+        fields = ['snowflake', 'invited_by', 'disabled']
 
 
 class CommandPrefixForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
@@ -116,7 +117,7 @@ class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm
         super().save(commit=commit)
 
 
-class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
+class ModelSyncActionForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
     async_writable = True
 
     class Meta:
@@ -137,6 +138,9 @@ class ModelSynchronizationActionForm(FormConstants, AsyncFormMixin[Server], form
             await bot.sync_server(guild)
 
         thread.run_coroutine(task(thread.client))
+
+    def user_tests(self, req: HttpRequest) -> bool:
+        return req.user.is_superuser
 
 
 channel_select_single = D3SelectWidget('discord:channels', 'single', prefix='#', classes='channel-list', placeholder='Select channel')

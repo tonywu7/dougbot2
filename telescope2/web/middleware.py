@@ -17,6 +17,8 @@
 from typing import Dict, List, Tuple
 
 from asgiref.sync import sync_to_async
+from discord.errors import HTTPException
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
@@ -25,7 +27,7 @@ from django.urls import reverse
 from more_itertools import partition
 
 from telescope2.discord.fetch import (
-    DiscordFetch, DiscordUnauthorized, PartialGuild,
+    DiscordCache, DiscordFetch, DiscordUnauthorized, PartialGuild,
 )
 from telescope2.discord.models import Server
 
@@ -64,9 +66,45 @@ async def fetch_discord_info(req: HttpRequest):
     return token, profile, guilds
 
 
+def invalidate_cache(req: HttpRequest):
+    ctx: DiscordContext = req.get_ctx()
+    user_id = ctx.user_id
+    cache = DiscordCache(user_id)
+    cache.invalidate()
+
+
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
     await sync_to_async(logout)(req)
+    messages.warning(req, 'Your Discord login credentials have expired. Please log in again.')
     return render(req, 'telescope2/web/index.html')
+
+
+@sync_to_async
+def disable_server(server: Server):
+    server.disabled = True
+    server.save()
+
+
+def message_server_disabled(req):
+    messages.error(req, ('The bot no longer has access to this server. '
+                         'You must manually invite the bot again to continue managing the bot in this server.'))
+
+
+async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
+    message_server_disabled(req)
+    invalidate_cache(req)
+    ctx: DiscordContext = req.get_ctx()
+    await disable_server(ctx.server)
+    return redirect(reverse('web:manage.index', kwargs={'guild_id': ctx.server_id}))
+
+
+def handle_server_disabled(req: HttpRequest) -> HttpResponse:
+    message_server_disabled(req)
+    ctx: DiscordContext = req.get_ctx()
+    redirect_url = reverse('web:manage.index', kwargs={'guild_id': ctx.server_id})
+    if redirect_url == req.path:
+        return render(req, 'telescope2/web/manage/index.html')
+    return redirect(redirect_url)
 
 
 async def load_servers(req: HttpRequest, guilds: List[PartialGuild]):
@@ -120,6 +158,8 @@ class DiscordContextMiddleware:
         if context.server_id and context.current is None:
             return redirect(reverse('web:index'))
 
+        request.discord = context
+
         @sync_to_async
         def get_preferences():
             if context.server_id is None:
@@ -130,9 +170,21 @@ class DiscordContextMiddleware:
                 return None
 
         context.server = await get_preferences()
+        if context.server and context.server.disabled:
+            return handle_server_disabled(request)
 
-        request.discord = context
+    async def process_exception(self, request: HttpRequest, exception: Exception):
+        if isinstance(exception, Logout):
+            return await logout_current_user(request)
+        if isinstance(exception, HTTPException):
+            return await handle_discord_forbidden(request)
+        if isinstance(exception, ServerDisabled):
+            return handle_server_disabled(request)
 
 
 class Logout(Exception):
+    pass
+
+
+class ServerDisabled(Exception):
     pass

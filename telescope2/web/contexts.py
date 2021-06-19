@@ -32,6 +32,7 @@ from .forms import PreferenceForms
 def user_info(req: HttpRequest):
     return {
         'user_authenticated': req.user.is_authenticated,
+        'user_superuser': req.user.is_superuser,
     }
 
 

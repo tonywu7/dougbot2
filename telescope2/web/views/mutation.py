@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Dict, Type
 
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import SuspiciousOperation
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.module_loading import import_string
@@ -51,6 +51,9 @@ def async_form_save(req: HttpRequest, schema: str, item_id: str) -> HttpResponse
     item = get_object_or_404(form_cls._meta.model, pk=item_id)
 
     form = form_cls(data=req.POST, instance=item)
+    if not form.user_tests(req):
+        raise PermissionDenied()
+
     if not form.is_valid():
         return error_response(form.errors)
 

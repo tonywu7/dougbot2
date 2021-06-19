@@ -89,6 +89,9 @@ class AsyncFormMixin(Generic[T]):
     def mutation_endpoint(self):
         return reverse('web:api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
 
+    def user_tests(self, req) -> bool:
+        return True
+
     save: Callable[[bool], T]
 
 

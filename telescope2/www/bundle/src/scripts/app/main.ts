@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordServer } from './discord'
-import { TemplateRenderer, initTooltips, D3DataSource } from './responsive'
+import { TemplateRenderer, initTooltips, D3DataSource, displayNotification } from './responsive'
 import { AsyncModelForm } from './form'
 
 import { BotData } from './bot'
@@ -48,6 +48,16 @@ function initWidgets() {
 
 function initTemplates() {
     renderer = new TemplateRenderer(document.querySelector('#template-container') as HTMLElement)
+}
+
+function displayServerMessages() {
+    document.querySelectorAll('#server-messages li').forEach((elem) => {
+        let msg = elem.innerHTML
+        let element = elem as HTMLElement
+        let classlist = [...element.classList].join(' ')
+        let notif = renderer.render('server-message-tmpl', { message: msg, classlist: classlist })
+        displayNotification(notif, { autohide: false })
+    })
 }
 
 export function createAvatarElement(src: string): HTMLElement {
@@ -83,4 +93,5 @@ export function init() {
     initTopMenu()
     initWidgets()
     initTemplates()
+    displayServerMessages()
 }

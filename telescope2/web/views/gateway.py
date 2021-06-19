@@ -21,9 +21,9 @@ from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Permission
-from django.core.exceptions import SuspiciousOperation
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import View
@@ -156,14 +156,19 @@ class CreateServerProfileView(View):
         if state != 'valid' or not guild_id:
             raise SuspiciousOperation('Bad credentials.')
         return render(req, 'telescope2/web/joined.html', {
-            'form': ServerCreationForm(data={'snowflake': int(guild_id)}),
+            'form': ServerCreationForm(data={
+                'snowflake': int(guild_id),
+                'invited_by': req.user,
+                'disable': False,
+            }),
         })
 
     @staticmethod
     @login_required
     @write_access_required
     def post(req: HttpRequest) -> HttpResponse:
-        form = ServerCreationForm(data=req.POST)
+        instance = get_object_or_404(Server, pk=req.POST.get('snowflake'))
+        form = ServerCreationForm(data=req.POST, instance=instance)
         if not form.is_valid():
             try:
                 is_race_condition = form.errors['snowflake'].data[0].code == 'unique'
@@ -179,18 +184,26 @@ class CreateServerProfileView(View):
         return redirect(reverse('web:manage.index', kwargs={'guild_id': snowflake}))
 
 
+def user_invited_guild(user: User, guild_id: str) -> bool:
+    return user.invited_servers.filter(snowflake__exact=guild_id).exists()
+
+
 class DeleteServerProfileView(View):
     @staticmethod
     @login_required
     @write_access_required
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
-        return render(req, 'telescope2/web/leave.html')
+        if user_invited_guild(req.user, guild_id):
+            return render(req, 'telescope2/web/leave.html')
+        raise PermissionDenied()
 
     @staticmethod
     @login_required
     @write_access_required
     @async_to_sync
     async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
+        if not user_invited_guild(req.user, guild_id):
+            raise PermissionDenied()
         guild_id = req.POST.get('guild_id')
         try:
             guild_id = int(guild_id)
