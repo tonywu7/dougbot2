@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'django_extensions',
     'telescope2.discord.apps.DiscordBotConfig',
     'telescope2.web.apps.WebConfig',
-    'telescope2.www.apps.WWWConfig',
     'telescope2.discord.contrib.debugging.apps.DebuggingConfig',
     'telescope2.discord.contrib.utility.apps.BotUtilityConfig',
     'telescope2.discord.contrib.polling.apps.PollConfig',
@@ -157,13 +156,13 @@ LOGIN_URL = '/web'
 
 STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_DIRS = [
-    PROJECT_DIR / 'www' / 'static',
+    PROJECT_DIR / 'web' / 'static',
     RESOURCE_BUILD_DIR,
 ]
 
 if DEBUG:
     STATICFILES_DIRS += [
-        PROJECT_DIR / 'www' / 'bundle',
+        PROJECT_DIR / 'web' / 'bundle',
     ]
 
 STATIC_URL = '/static/'
