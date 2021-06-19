@@ -23,7 +23,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import View
@@ -167,7 +167,10 @@ class CreateServerProfileView(View):
     @login_required
     @write_access_required
     def post(req: HttpRequest) -> HttpResponse:
-        instance = get_object_or_404(Server, pk=req.POST.get('snowflake'))
+        try:
+            instance = Server.objects.get(pk=req.POST.get('snowflake'))
+        except Server.DoesNotExist:
+            instance = None
         form = ServerCreationForm(data=req.POST, instance=instance)
         if not form.is_valid():
             try:

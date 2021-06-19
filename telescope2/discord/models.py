@@ -26,12 +26,13 @@ import inflect
 from discord.abc import ChannelType
 from django.apps import apps
 from django.db import models
-from django.db.models import CASCADE
+from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 from more_itertools import bucket
 
 from telescope2.web.config import CommandAppConfig
+from telescope2.web.models import User as SystemUser
 
 inflection = inflect.engine()
 
@@ -174,6 +175,9 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
+
+    invited_by: SystemUser = models.ForeignKey(SystemUser, on_delete=SET_NULL, null=True, related_name='invited_servers')
+    disabled: bool = models.BooleanField(default=False)
 
     prefix: str = models.CharField(max_length=16, default='t;')
     _extensions: str = models.TextField(blank=True)

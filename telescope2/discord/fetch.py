@@ -36,8 +36,6 @@ from django.urls import reverse
 from telescope2.utils.datetime import utcnow, utctimestamp
 from telescope2.web.utils.jwt import gen_token
 
-from .bot import Robot
-
 OAUTH2_PROTOCOL = 'https'
 OAUTH2_DOMAIN = 'discord.com'
 OAUTH2_PATH = '/api/oauth2/authorize'
@@ -83,6 +81,7 @@ def app_auth_url(req: HttpRequest) -> Tuple[str, str]:
 
 
 def bot_invite_url(req: HttpRequest, guild_id: str | int) -> Tuple[str, str]:
+    from .bot import Robot
     return oauth_url(req, 'bot', reverse('web:authorized'), guild_id=guild_id,
                      permissions=Robot.DEFAULT_PERMS.value, disable_guild_select='true')
 

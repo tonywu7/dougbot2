@@ -178,17 +178,21 @@ class Robot(Bot):
 
     @classmethod
     @sync_to_async(thread_sensitive=False)
-    def sync_server(cls, guild: Guild):
+    def sync_server(cls, guild: Guild, name=True, roles=True, channels=True, layout=True):
         server: Server = (
             Server.objects
             .prefetch_related('channels', 'roles')
             .get(pk=guild.id)
         )
-        server.name = guild.name
-        server.save()
-        cls._sync_models(models.Role, guild.roles, server.roles)
-        cls._sync_models(models.Channel, [*cls.text_channels_ordered_1d(guild)], server.channels)
-        cls._sync_layouts(server, guild)
+        if name:
+            server.name = guild.name
+            server.save()
+        if roles:
+            cls._sync_models(models.Role, guild.roles, server.roles)
+        if channels:
+            cls._sync_models(models.Channel, [*cls.text_channels_ordered_1d(guild)], server.channels)
+        if layout:
+            cls._sync_layouts(server, guild)
 
     @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
@@ -261,6 +265,27 @@ def add_event_listeners(self: Robot):
         reply: Message = await channel.fetch_message(reference.message_id)
         if reply.author.id == evt.user_id:
             await message.delete()
+
+    @self.listen('on_guild_channel_create')
+    @self.listen('on_guild_channel_update')
+    @self.listen('on_guild_channel_delete')
+    async def update_channels(channel, updated=None):
+        updated = updated or channel
+        self.log.info(f'Updating channels for {updated.guild}')
+        await self.sync_server(updated.guild, roles=False)
+
+    @self.listen('on_guild_role_create')
+    @self.listen('on_guild_role_update')
+    @self.listen('on_guild_role_delete')
+    async def update_roles(role, updated=None):
+        updated = updated or role
+        self.log.info(f'Updating roles for {updated.guild}')
+        await self.sync_server(role.guild, channels=False)
+
+    @self.listen('on_guild_update')
+    async def update_server(before: Guild, after: Guild):
+        self.log.info(f'Updating server info for {after}')
+        await self.sync_server(after, roles=False, channels=False, layout=False)
 
 
 def register_base_commands(self: Robot):
