@@ -55,10 +55,10 @@ from more_itertools import partition
 from telescope2.utils.datetime import utcnow
 from telescope2.utils.functional import deferred
 from telescope2.utils.lang import (
-    QuantifiedNP, coord_conj, singularize, slugify,
+    QuantifiedNP, coord_conj, pluralize, singularize, slugify,
 )
 
-from .command import DocumentationMixin, Instruction, instruction
+from .command import DocumentationMixin, Instruction, instruction, NoSuchCommand
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice
 from .utils.textutil import (
@@ -299,6 +299,7 @@ class Documentation:
     arguments: Dict[str, Argument] = attr.ib(factory=dict)
     subcommands: Dict[str, Documentation] = attr.ib(factory=dict)
     restrictions: List[str] = attr.ib(factory=list)
+    hidden: bool = attr.ib(default=False)
 
     sections: Dict[str, str] = attr.ib(factory=dict)
 
@@ -463,10 +464,21 @@ class Manual:
             lines = []
             for call in sorted(calls):
                 command = self.commands[call]
+                if command.hidden:
+                    continue
                 lines.append(f'{strong(call)}: {command.description}')
             self.toc[section] = '\n'.join(lines)
         self.toc_embed = page_embed(self.toc.items(), title='Command list')
         self.toc_text = page_plaintext(self.toc.items(), title='Command list')
+
+    def lookup(self, query: str) -> Documentation:
+        try:
+            return self.commands[query]
+        except KeyError:
+            match = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
+            if match:
+                match = match[0]
+            raise NoSuchCommand(query, match)
 
 
 @deferred(1)
@@ -530,6 +542,38 @@ def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> Che
     return wrapper
 
 
+@deferred(1)
+def hidden():
+    def wrapper(f: Instruction):
+        f.doc.hidden = True
+        return f
+    return wrapper
+
+
+@deferred(1)
+def cooldown(rate: int, per: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
+    def wrapper(f: Instruction):
+        commands.cooldown(rate, per, bucket)(f)
+        bucket_type = {
+            commands.BucketType.default: 'globally',
+            commands.BucketType.user: 'for each user',
+            commands.BucketType.member: 'for each user',
+            commands.BucketType.guild: 'for each server',
+            commands.BucketType.channel: 'for each channel',
+            commands.BucketType.category: 'for each channel category',
+            commands.BucketType.role: 'for each role',
+        }.get(bucket)
+        cooldown = (f'Rate limited: {rate} {pluralize(rate, "call")} '
+                    f'every {per} {pluralize(per, "second")}')
+        if bucket_type is None:
+            info = f'{cooldown}; dynamic.'
+        else:
+            info = f'{cooldown} {bucket_type}'
+        f.doc.restrictions.append(info)
+        return f
+    return wrapper
+
+
 async def _send_with_text_fallback(ctx: Circumstances, embed: Embed, text: str, **kwargs):
     try:
         return await ctx.reply_with_delete(embed=embed, **kwargs)
@@ -569,14 +613,11 @@ async def help_command(ctx: Circumstances,
 
     if query[:len(ctx.prefix)] == ctx.prefix:
         query = query[len(ctx.prefix):]
-    doc = man.commands.get(query)
 
-    if not doc:
-        match = fuzzy.extractOne(query, man.commands.keys(), score_cutoff=65)
-        if match:
-            return await ctx.send(f'No command named {strong(query)}. Did you mean {strong(match[0])}?')
-        else:
-            return await ctx.send(f'No command named {strong(query)}')
+    try:
+        doc = man.lookup(query)
+    except NoSuchCommand as exc:
+        return await ctx.send(str(exc), delete_after=60)
 
     rich_help, text_help = doc.generate_help(category)
     set_embed_info(rich_help)

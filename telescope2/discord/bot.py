@@ -29,6 +29,7 @@ from discord import (
 )
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, has_guild_permissions
+from discord.ext.commands.errors import CommandNotFound
 from discord.utils import escape_markdown
 from django.core.cache import caches
 from django.db import IntegrityError
@@ -44,8 +45,8 @@ from . import constraint
 from . import documentation as doc
 from . import extension, ipc, models
 from .apps import DiscordBotConfig
-from .command import Ensemble, Instruction
-from .context import Circumstances
+from .command import Ensemble, Instruction, NoSuchCommand
+from .context import Circumstances, CommandContextError
 from .documentation import Manual, help_command
 from .events import Events
 from .logging import log_command_errors
@@ -219,8 +220,27 @@ class Robot(Bot):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
 
-    async def on_command_error(self, context, exception):
+    async def on_command_error(self, context: Circumstances, exception: Exception):
+        if isinstance(exception, CommandNotFound):
+            return await self.on_command_not_found(context, exception)
         return await log_command_errors(context, exception)
+
+    async def on_command_not_found(self, context: Circumstances, exception: CommandNotFound):
+        try:
+            self.manual.lookup(context.invoked_with)
+        except NoSuchCommand as no_command:
+            return await context.reply(str(no_command), delete_after=60)
+
+    async def on_message(self, message):
+        try:
+            return await super().on_message(message)
+        except Exception as exc:
+            ctx = await self.get_context(message)
+            try:
+                ctx_error = CommandContextError(exc)
+                raise ctx_error from exc
+            except CommandContextError as exc:
+                return await log_command_errors(ctx, exc)
 
 
 def add_event_listeners(self: Robot):

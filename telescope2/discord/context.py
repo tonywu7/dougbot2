@@ -21,8 +21,10 @@ from typing import Callable, Coroutine, Dict, List
 
 from asgiref.sync import sync_to_async
 from discord import Guild, Member, Message, User
+from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
+from discord.ext.commands.errors import CommandError
 from django.db import transaction
 
 from .models import Server
@@ -56,13 +58,13 @@ class Circumstances(Context):
         self._server: Server
 
         self.me: Member | User
-        self.message: Message
+        self.message: Message | Messageable
         self.command: Instruction
         self.invoked_with: str
         self.invoked_parents: List[str]
         self.invoked_subcommand: Instruction | None
 
-        self.author: Member
+        self.author: Member | Messageable
         self.guild: Guild
 
         self.bot: Robot
@@ -108,3 +110,9 @@ class Circumstances(Context):
             await msg.add_reaction('🗑')
         except Forbidden:
             pass
+
+
+class CommandContextError(CommandError):
+    def __init__(self, exc: Exception):
+        self.original = exc
+        super().__init__('Command context raised an exception: {0.__class__.__name__}: {0}'.format(exc))

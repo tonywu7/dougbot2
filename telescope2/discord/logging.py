@@ -30,7 +30,7 @@ from discord.utils import escape_markdown
 from telescope2.utils.datetime import localnow, utcnow
 
 from . import constraint, extension
-from .context import Circumstances
+from .context import Circumstances, CommandContextError
 from .utils.textutil import tag, trunc_for_field, unmarked
 
 
@@ -55,15 +55,10 @@ UNCAUGHT_EXCEPTIONS = (
     errors.ConversionError,
     errors.ExtensionError,
     errors.ClientException,
+    CommandContextError,
 )
 
 EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
-    UNCAUGHT_EXCEPTIONS: {
-        'name': 'Uncaught exceptions',
-        'key': 'CommandInvokeError',
-        'level': logging.ERROR,
-        'superuser': True,
-    },
     (errors.NotOwner,): {
         'name': 'Bot owner-only commands called',
         'key': 'NotOwner',
@@ -79,6 +74,12 @@ EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
         'name': 'Constraint violations',
         'key': 'ConstraintFailure',
         'level': logging.INFO,
+    },
+    UNCAUGHT_EXCEPTIONS: {
+        'name': 'Uncaught exceptions',
+        'key': 'CommandInvokeError',
+        'level': logging.ERROR,
+        'superuser': True,
     },
 }
 
