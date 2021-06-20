@@ -80,8 +80,12 @@ def pluralize_model(count: int, model: Type[Model]) -> str:
         return f'{count} {model._meta.verbose_name_plural}'
 
 
-def pl_cat(category: str, terms: List[str], sep=' ', conj='and') -> str:
+def pl_cat_attributive(category: str, terms: List[str], sep=' ', conj='and') -> str:
     return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
+
+
+def pl_cat_predicative(category: str, terms: List[str], sep=' ', conj='and') -> str:
+    return f'{coord_conj(*terms, conj=conj)}{sep}{pluralize(len(terms), category)}'
 
 
 class QuantifiedNP:
@@ -125,7 +129,8 @@ class QuantifiedNP:
         return self.concise_singular
 
     def a(self):
-        return inflection.a(self._formatted('', self.attr_singular, self.nouns_singular, self.predicative))
+        term = f'{self.attr_singular}{self.nouns_singular}'
+        return f'{inflection.a(self.attr_singular or self.nouns_singular).split(" ")[0]} {term}{self.predicative}'
 
     def one(self):
         return self._formatted('one ', self.attr_singular, self.nouns_singular, self.predicative)
@@ -162,7 +167,14 @@ class QuantifiedNP:
         kwargs['attributive'] = coord_conj(self._kwargs['attributive'], other._kwargs['attributive'], conj='or')
         kwargs['predicative'] = self._kwargs['predicative']
         kwargs['conjunction'] = self._kwargs['conjunction']
-        return QuantifiedNP(*self._kwargs['nouns'], **kwargs)
+        item = QuantifiedNP(*self._kwargs['nouns'], **kwargs)
+        item.concise_plural = coord_conj(inflection.plural(self._kwargs['concise']),
+                                         inflection.plural(other._kwargs['concise']),
+                                         conj='or')
+        item.attr_plural = coord_conj(inflection.plural_adj(self._kwargs['attributive']),
+                                      inflection.plural_adj(other._kwargs['attributive']),
+                                      conj='or') + ' '
+        return item
 
     def __repr__(self):
         return f'<Quantified noun phrase: {self.nouns_singular}>'
