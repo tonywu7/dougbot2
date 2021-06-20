@@ -681,6 +681,9 @@ class Manual:
                 match = match[0]
             raise NoSuchCommand(query, match)
 
+    def hidden_commands(self) -> Dict[str, Documentation]:
+        return {k: v for k, v in self.commands.items() if v.hidden}
+
     @instruction('help', aliases=['man', 'man:tty'])
     @description('Get help about commands.')
     @argument('category', 'What kind of help info to get.')

@@ -24,8 +24,10 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin, RetrieveModelMixin,
                                    UpdateModelMixin)
+from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
 
+from telescope2.discord.apps import DiscordBotConfig
 from telescope2.discord.constraint import CommandCondition, CommandCriteria
 from telescope2.discord.models import (BotCommand, Channel, CommandConstraint,
                                        CommandConstraintList, Role, Server,
@@ -76,7 +78,16 @@ class BotCommandListView(ListModelMixin, GenericAPIView):
     serializer_class = BotCommandSerializer
 
     def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self.list(req, *args, **kwargs)
+        if not req.user.is_superuser:
+            app = DiscordBotConfig.get()
+            thread = app.bot_thread
+            bot = thread.client
+            hidden = bot.manual.hidden_commands()
+            queryset = self.queryset.exclude(identifier__in=hidden.keys()).all()
+        else:
+            queryset = self.queryset.all()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class CommandConstraintListView(
