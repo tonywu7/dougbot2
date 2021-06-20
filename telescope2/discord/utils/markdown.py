@@ -1,4 +1,4 @@
-# textutil.py
+# markdown.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,16 +19,20 @@ from __future__ import annotations
 import re
 from io import StringIO
 from textwrap import indent, shorten
-from typing import Tuple
+from typing import List, Tuple
 
 from discord import Embed, Role
 from discord.abc import GuildChannel, User
 from discord.ext.commands import Context
+from discord.ext.commands.view import StringView
 from markdown import Markdown
 
 RE_USER_MENTION = re.compile(r'<@(\d+)>')
 RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
 RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
+
+MTA_E = '<:mta_arrowE:856190628857249792>'
+MTA_W = '<:mta_arrowW:856190628399153164>'
 
 
 def trimmed_msg(ctx: Context) -> str:
@@ -92,6 +96,10 @@ def E(s: str) -> str:
     return f':{s}:'
 
 
+def a(href: str, text: str) -> str:
+    return f'[{text}]({href})'
+
+
 def traffic_light(val: bool | None, strict=False):
     if val:
         return '🟢'
@@ -99,6 +107,18 @@ def traffic_light(val: bool | None, strict=False):
         return '🟡'
     else:
         return '⛔'
+
+
+def mta_arrow_bracket(s: str) -> str:
+    return f'{MTA_E} {s} {MTA_W}'
+
+
+def indicate_eol(s: StringView) -> str:
+    return f'{s.buffer[:s.index + 1]} {MTA_W}'
+
+
+def indicate_extra_text(s: StringView) -> str:
+    return f'{s.buffer[:s.index]} {MTA_E} {s.buffer[s.index:]} {MTA_W}'
 
 
 def unmark_element(element, stream=None):
@@ -161,3 +181,9 @@ def page_embed(sections: Tuple[str, str], title=Embed.Empty, description=Embed.E
     if footer:
         embed.set_footer(text=footer)
     return embed
+
+
+def limit_results(results: List[str], limit: int) -> List[str]:
+    if len(results) <= limit:
+        return results
+    return results[:limit] + [f'({len(results) - limit} more)']

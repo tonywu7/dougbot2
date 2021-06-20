@@ -16,7 +16,9 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional, TypeVar, overload
+import re
+from operator import itemgetter
+from typing import Callable, Iterable, List, Literal, Optional, Tuple, overload
 
 from discord import Member, Permissions, Role
 from discord.abc import GuildChannel
@@ -26,7 +28,22 @@ from discord.ext.commands.errors import BadArgument
 from telescope2.utils.lang import QuantifiedNP, coord_conj
 
 from .context import Circumstances
+from .utils.markdown import code
 from .utils.models import HypotheticalRole
+
+
+def _unpack_varargs(item: Tuple, names: List[str], **defaults):
+    if not isinstance(item, tuple):
+        item = (item,)
+    unpacked = {**defaults, **dict(zip(names, item))}
+    for k in unpacked:
+        v = unpacked[k]
+        try:
+            if v.__origin__ is Literal:
+                unpacked[k] = v.__args__[0]
+        except AttributeError:
+            pass
+    return itemgetter(*names)(unpacked)
 
 
 class PermissionName(Converter):
@@ -37,12 +54,10 @@ class PermissionName(Converter):
 
     async def convert(self, ctx: Circumstances, arg: str) -> Callable[[Role], bool]:
         if not hasattr(Permissions, arg):
-            raise BadArgument(
-                f'No such permission {arg}\n'
-                'Consult https://discordpy.readthedocs.io/'
-                'en/stable/api.html#discord.Permissions '
-                'for a list of possible attributed.',
-            )
+            if not hasattr(Permissions, arg.replace('server', 'guild')):
+                raise BadArgument(f'No such permission {arg}')
+            else:
+                arg = arg.replace('server', 'guild')
         self.perm_name = arg
         return self
 
@@ -70,45 +85,92 @@ class PermissionName(Converter):
 
 
 class Constant(Converter):
-    def __init__(self, value: str = '::') -> None:
-        self.const = value
+    def __class_getitem__(cls, const: str):
+        const = _unpack_varargs(const)
+        __accept__ = QuantifiedNP(f'the exact text "{const}"',
+                                  concise=f'"{const}"',
+                                  predicative='without the quotes')
 
-    @property
-    def __accept__(self):
-        return QuantifiedNP(f'the exact text "{self.const}"', concise=f'"{self.const}"', predicative='without the quotes')
-
-    async def convert(self, ctx: Circumstances, arg: str):
-        if arg != self.const:
-            raise BadArgument(f'Constant value {self.const} expected')
-
-
-class Choice(Converter, TypeVar, _root=True):
-    def __init__(self, *choices: str, concise_name: str, case_sensitive: bool = False) -> None:
-        self.case_sensitive = case_sensitive
-        if case_sensitive:
-            self.choices = choices
-        else:
-            self.choices = {c.lower() for c in choices}
-        self.concise = concise_name
-
-    @property
-    def __accept__(self):
-        fullname = self.concise + ': ' + coord_conj(*[f'"{w}"' for w in self.choices], conj='or')
-        return QuantifiedNP(fullname, concise=self.concise, predicative='case sensitive' if self.case_sensitive else '')
-
-    async def convert(self, ctx: Circumstances, arg: str):
-        if not self.case_sensitive:
-            arg = arg.lower()
-        if arg in self.choices:
+        @classmethod
+        async def convert(ctx: Circumstances, arg: str):
+            if arg != const:
+                raise BadArgument(f'The exact string "{const}" expected.')
             return arg
-        raise BadArgument(f'Invalid choice {arg}. Choices are {self.accept.one_of()}')
+
+        __dict__ = {'__accept__': __accept__, 'convert': convert}
+        return type(cls.__name__, (Converter, str,), __dict__)
 
 
-class CaseInsensitive(Converter, TypeVar, _root=True):
+class Choice(Converter):
+    def __class_getitem__(cls, item: Tuple[Iterable[str], str, bool]):
+        choices, concise_name, case_sensitive = _unpack_varargs(
+            item, ('choices', 'concise_name', 'case_sensitive'),
+            case_sensitive=False,
+        )
+
+        if case_sensitive:
+            choices = choices
+        else:
+            choices = {c.lower(): None for c in choices}
+
+        fullname = concise_name + ': ' + coord_conj(*[f'"{w}"' for w in choices], conj='or')
+        __accept__ = QuantifiedNP(fullname, concise=concise_name,
+                                  predicative='case sensitive' if case_sensitive else '')
+
+        @classmethod
+        async def convert(cls, ctx: Circumstances, arg: str):
+            if not case_sensitive:
+                arg = arg.lower()
+            if arg in choices:
+                return arg
+            raise InvalidChoices(__accept__, arg)
+
+        __dict__ = {'__accept__': __accept__, 'convert': convert}
+        return type(cls.__name__, (Converter, str,), __dict__)
+
+
+class CaseInsensitive(Converter):
     __accept__ = QuantifiedNP('text', predicative='case insensitive')
-
-    def __init__(self) -> None:
-        return
 
     async def convert(self, ctx: Circumstances, arg: str):
         return arg.lower()
+
+
+class RegExp(Converter):
+    def __class_getitem__(cls, item: Tuple[str, str, str]) -> None:
+        pattern, name, predicative = _unpack_varargs(
+            item, ('pattern', 'name', 'predicative'),
+            concise=None, predicative=None,
+        )
+        pattern: re.Pattern = re.compile(pattern)
+        name = name or 'pattern'
+        predicative = predicative or ('matching the regular expression '
+                                      f'{code(pattern.pattern)}')
+        __accept__ = QuantifiedNP(name, predicative=predicative)
+
+        @classmethod
+        async def convert(cls, ctx: Circumstances, arg: str):
+            matched = pattern.fullmatch(arg)
+            if not matched:
+                raise RegExpMismatch(__accept__, arg, pattern)
+            return matched
+
+        __dict__ = {'__accept__': __accept__, 'convert': convert}
+        return type(cls.__name__, (Converter,), __dict__)
+
+
+class InvalidChoices(BadArgument):
+    def __init__(self, choices: QuantifiedNP, found: str, *args):
+        self.choices = choices
+        self.received = found
+        message = f'Invalid choice "{found}". Choices are {choices.one_of()}'
+        super().__init__(message=message, *args)
+
+
+class RegExpMismatch(BadArgument):
+    def __init__(self, expected: QuantifiedNP, arg: str, pattern: re.Pattern, *args):
+        self.expected = expected
+        self.received = arg
+        self.pattern = pattern
+        message = f'Argument should be {self.expected.a()}'
+        super().__init__(message=message, *args)

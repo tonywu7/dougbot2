@@ -30,7 +30,7 @@ from telescope2.utils.lang import either_or
 
 from .context import Circumstances
 from .models import CommandConstraint, ConstraintType, id_dot
-from .utils.textutil import strong, tag
+from .utils.markdown import strong, tag
 
 
 async def command_constraints_check(ctx: Circumstances) -> bool:

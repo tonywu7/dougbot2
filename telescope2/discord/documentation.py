@@ -1,19 +1,4 @@
-# doc.py
-# Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# command.py
+# documentation.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -37,38 +22,34 @@ from fractions import Fraction
 from functools import cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
-from typing import (
-    Any, Callable, Deque, Dict, List, Literal, Optional, Protocol, Tuple, Type,
-    Union,
-)
+from typing import (Any, Callable, DefaultDict, Deque, Dict, List, Literal,
+                    Optional, Protocol, Set, Tuple, Type, Union)
 
 import attr
 import discord
-from discord import Embed, Forbidden
+from discord import Embed
 from discord.ext import commands
-from discord.ext.commands import Command, Converter, Greedy
+from discord.ext.commands import Cog, Command, Converter, Greedy
+from discord.ext.commands.errors import CommandError
 from discord.utils import escape_markdown
 from django.utils.text import camel_case_to_spaces
 from fuzzywuzzy import process as fuzzy
-from more_itertools import partition
+from more_itertools import flatten, partition
 
 from telescope2.utils.datetime import utcnow
 from telescope2.utils.functional import deferred
-from telescope2.utils.lang import (
-    QuantifiedNP, coord_conj, pluralize, singularize, slugify,
-)
+from telescope2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
+                                   singularize, slugify)
 
-from .command import DocumentationMixin, Instruction, instruction, NoSuchCommand
+from .command import (DocumentationMixin, Instruction, NoSuchCommand,
+                      instruction)
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice
-from .utils.textutil import (
-    blockquote, code, page_embed, page_plaintext, pre, strong,
-)
+from .utils.markdown import (blockquote, code, mta_arrow_bracket, page_embed,
+                             page_plaintext, pre, strong)
 
-_ALL_CHANNEL_TYPES = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
-_ALL_CHANNEL_TYPES_OPTIONAL = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, None]
-_TEXT_AND_VC_TYPES = Union[discord.TextChannel, discord.VoiceChannel]
-_TEXT_AND_VC_TYPES_OPTIONAL = Union[discord.TextChannel, discord.VoiceChannel, None]
+_AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
+_TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
 
 TYPE_DESCRIPTIONS: Dict[Type, QuantifiedNP] = {
     int: QuantifiedNP('whole number'),
@@ -76,20 +57,32 @@ TYPE_DESCRIPTIONS: Dict[Type, QuantifiedNP] = {
     Fraction: QuantifiedNP('number', attributive='whole, decimal, or fractional'),
 
     str: QuantifiedNP('text'),
-    bool: QuantifiedNP('yes', 'no', concise='yes/no'),
+    bool: QuantifiedNP('yes or no', concise='yes/no'),
 
     discord.Member: QuantifiedNP('id', 'name', 'mention', concise='user', attributive="Discord user's"),
+    discord.Message: QuantifiedNP('id', 'URL', concise='message', attributive="message's"),
+    discord.PartialMessage: QuantifiedNP('id', 'URL', concise='message', attributive="message's"),
     discord.Role: QuantifiedNP('id', 'name', 'mention', concise='role', attributive="role's"),
     discord.TextChannel: QuantifiedNP('id', 'name', concise='text channel', attributive="text channel's"),
     discord.VoiceChannel: QuantifiedNP('id', 'name', concise='voice channel', attributive="voice channel's"),
-    discord.Colour: QuantifiedNP('color', predicative=f'in hexadecimal {code("#fd7d1c")} or RGB {code("rgb(253,125,28)")}'),
+    discord.Colour: QuantifiedNP('color', predicative='in hexadecimal or RGB format'),
     discord.Emoji: QuantifiedNP('emote', predicative='must be in servers the bot is in'),
     discord.PartialEmoji: QuantifiedNP('emote'),
 
-    _ALL_CHANNEL_TYPES: QuantifiedNP('channel id', 'name', concise='channel', attributive="channel's"),
-    _ALL_CHANNEL_TYPES_OPTIONAL: QuantifiedNP('channel id', 'name', concise='channel', attributive="channel's"),
-    _TEXT_AND_VC_TYPES: QuantifiedNP('channel id', 'name', concise='channel', attributive="channel's"),
-    _TEXT_AND_VC_TYPES_OPTIONAL: QuantifiedNP('channel id', 'name', concise='channel', attributive="channel's"),
+    _AllChannelTypes: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+    Optional[_AllChannelTypes]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+    _TextAndVCs: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+    Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+}
+
+BUCKET_DESCRIPTIONS = {
+    commands.BucketType.default: 'globally',
+    commands.BucketType.user: 'for each user',
+    commands.BucketType.member: 'for each user',
+    commands.BucketType.guild: 'for each server',
+    commands.BucketType.channel: 'for each channel',
+    commands.BucketType.category: 'for each channel category',
+    commands.BucketType.role: 'for each role',
 }
 
 _Converter = Union[Converter, Type[Converter]]
@@ -101,6 +94,32 @@ CheckDecorator = Callable[..., CheckWrapper]
 log = logging.getLogger('discord.commands')
 
 
+def infinidict():
+    return defaultdict(infinidict)
+
+
+def infinigetitem(d: DefaultDict, key: Tuple):
+    for k in key:
+        d = d[k]
+    return d
+
+
+def infinisetitem(d: DefaultDict, key: Tuple, value: Any):
+    if not key:
+        raise ValueError
+    for k in key[:-1]:
+        d = d[k]
+    d[key[-1]] = value
+
+
+def infinidelitem(d: DefaultDict, key: Tuple):
+    if not key:
+        raise ValueError
+    for k in key[:-1]:
+        d = d[k]
+    del d[key[-1]]
+
+
 class DescribedConverter(Protocol):
     __accept__: QuantifiedNP
 
@@ -109,15 +128,26 @@ class DescribedCheck(Protocol):
     description: List[str]
 
 
+def describe_concurrency(number: int, bucket: commands.BucketType):
+    bucket_type = BUCKET_DESCRIPTIONS[bucket]
+    info = (f'maximum {number} {pluralize(number, "call")} '
+            f'running at the same time {bucket_type}')
+    return info
+
+
+def readable_perm_name(p: str) -> str:
+    return p.replace('_', ' ').replace('guild', 'server').title()
+
+
 def _record_perm_check(place: str, **perms: bool) -> List[str]:
     denied, allowed = partition(lambda t: t[1], perms.items())
-    denied = [strong(s) for s, v in denied]
-    allowed = [strong(s) for s, v in allowed]
+    denied = [strong(readable_perm_name(s)) for s, v in denied]
+    allowed = [strong(readable_perm_name(s)) for s, v in allowed]
     msg = []
     if allowed:
-        msg.append(f'Requires {coord_conj(*allowed)} perms in {place}')
+        msg.append(f'Requires {pl_cat_predicative("perm", allowed)} in {place}')
     if denied:
-        msg.append(f'Denies anyone with {coord_conj(*denied)} perms in {place}')
+        msg.append(f'Denies anyone with {pl_cat_predicative("perm", denied)} in {place}')
     return msg
 
 
@@ -144,7 +174,7 @@ def _is_type_union(annotation) -> bool:
 
 def _is_optional_type(annotation) -> bool:
     try:
-        return None in annotation.__args__
+        return type(None) in annotation.__args__
     except AttributeError:
         return False
 
@@ -203,7 +233,7 @@ class Argument:
         if self.help:
             accepts = f'{self.help} Accepts {accepts}'
         else:
-            accepts = f'{accepts[:1].upper()}{accepts[1:]}'
+            accepts = f'Accepts {accepts}'
         return accepts
 
     def as_signature(self) -> str:
@@ -221,10 +251,10 @@ class Argument:
         if self.final:
             return f'[{self.slug} ...]'
         if self.greedy:
-            return f'{self.slug} [{self.slug} ...]'
+            return f'[{self.slug} {self.slug} ...]'
         if self.is_optional:
             return f'[{self.slug}]'
-        return f'<{self.slug}>'
+        return f'‹{self.slug}›'
 
     def __repr__(self):
         return self.slug
@@ -236,6 +266,8 @@ class Argument:
         if annotation is Parameter.empty:
             raise BadDocumentation(f'Parameter {param.name} is not annotated')
         default = param.default if param.default is not Parameter.empty else attr.NOTHING
+        if default is attr.NOTHING and _is_optional_type(param.annotation):
+            default = None
         final = param.kind is Parameter.KEYWORD_ONLY
         greedy = isinstance(annotation, type(Greedy))
         if greedy:
@@ -288,6 +320,9 @@ class CommandSignature:
 
 @attr.s(kw_only=True)
 class Documentation:
+    name: str = attr.ib()
+    parent: str = attr.ib()
+
     call_sign: str = attr.ib()
     description: str = attr.ib(default='(no description)')
     synopsis: Tuple[str, ...] = attr.ib(converter=tuple, default=('(no synopsis)',))
@@ -299,13 +334,20 @@ class Documentation:
     arguments: Dict[str, Argument] = attr.ib(factory=dict)
     subcommands: Dict[str, Documentation] = attr.ib(factory=dict)
     restrictions: List[str] = attr.ib(factory=list)
+
     hidden: bool = attr.ib(default=False)
+    standalone: bool = attr.ib(default=False)
+    aliases: List[str] = attr.ib(factory=list)
 
     sections: Dict[str, str] = attr.ib(factory=dict)
+    frozen: bool = attr.ib(default=False)
 
     @classmethod
     def from_command(cls, cmd: Instruction) -> Documentation:
-        doc = cls(call_sign=cmd.qualified_name)
+        doc = cls(name=cmd.name, parent=cmd.full_parent_name,
+                  call_sign=cmd.qualified_name,
+                  standalone=getattr(cmd, 'invoke_without_command', True),
+                  aliases=cmd.aliases)
         doc.arguments = doc.infer_arguments(cmd.params)
         return doc
 
@@ -317,17 +359,18 @@ class Documentation:
         if not options:
             yield CommandSignature(stack)
             return
-        arg = options.popleft()
-        if arg.is_unused:
+        if options[0].is_unused:
+            arg = options.popleft()
             yield from self.iter_call_styles(options, stack)
-            options.append(arg)
-        elif arg.is_optional or arg.greedy:
+            options.appendleft(arg)
+        elif options[0].is_optional or options[0].greedy:
+            arg = options.popleft()
             yield from self.iter_call_styles(options, stack)
             stack.append(arg)
             yield from self.iter_call_styles(options, stack)
-            options.append(stack.pop())
+            options.appendleft(stack.pop())
         else:
-            stack.append(arg)
+            stack.append(options.popleft())
             yield from self.iter_call_styles(options, stack)
             options.appendleft(stack.pop())
 
@@ -380,6 +423,8 @@ class Documentation:
             self.restrictions.extend(processor(*args, **kwargs))
 
     def finalize(self):
+        if self.frozen:
+            return
         self.ensure_signatures()
         self.synopsis = self.build_synopsis()
 
@@ -401,15 +446,16 @@ class Documentation:
             sections['Examples'] = self.format_examples(self.examples.items())
         if self.discussions:
             sections['Discussions'] = self.format_examples(self.discussions.items())
+        if self.aliases:
+            sections['Aliases'] = ', '.join(self.aliases)
 
         self.assert_documentations()
+        self.frozen = True
 
     def assert_documentations(self):
         sections = self.sections
         if sections['Description'] == '(no description)':
             log.warning(MissingDescription(self.call_sign))
-        # if 'Examples' not in sections:
-        #     log.warning(MissingExamples(self.call_sign))
 
     def generate_help(self, style: str) -> Tuple[Embed, str]:
         title, chapters = self.HELP_STYLES[style]
@@ -424,61 +470,35 @@ class Documentation:
         text_help = page_plaintext(**kwargs)
         return rich_help, text_help
 
+    def format_argument_highlight(self, args: List, kwargs: Dict) -> Tuple[str, Argument]:
+        args: Deque = deque(args)
+        kwargs: Deque = deque(kwargs.items())
+        arguments: Deque = deque(self.arguments.items())
+        stack: List[str] = []
+        while args:
+            if isinstance(args.popleft(), (Circumstances, Cog)):
+                continue
+            key, arg = arguments.popleft()
+            stack.append(str(arg))
+        while kwargs:
+            kwargs.popleft()
+            key, arg = arguments.popleft()
+            stack.append()
+        if arguments:
+            key, arg = arguments.popleft()
+            stack.append(mta_arrow_bracket(strong(arg)))
+        if arguments:
+            stack.append('...')
+        return ' '.join(stack), arg
+
     HELP_STYLES = {
-        'normal': ('Command', ['Syntax', 'Examples', 'Restrictions']),
-        'short': ('Help', ['Synopsis']),
-        'full': ('Documentation', ['Synopsis', 'Syntax', 'Arguments', 'Examples', 'Restrictions', 'Discussions']),
+        'normal': ('Command', ['Syntax', 'Examples', 'Aliases']),
+        'short': ('Help', ['Synopsis', 'Aliases']),
+        'full': ('Documentation', ['Synopsis', 'Aliases', 'Syntax', 'Arguments', 'Examples', 'Restrictions', 'Discussions']),
         'examples': ('Examples', ['Examples']),
         'signature': ('Type signatures', ['Synopsis', 'Syntax', 'Arguments']),
     }
-    HelpFormat = Choice(*sorted(HELP_STYLES.keys()), concise_name='info category')
-
-
-@attr.s
-class Manual:
-    commands: Dict[str, Documentation] = attr.ib(factory=dict)
-    sections: Dict[str, List[str]] = attr.ib(factory=lambda: defaultdict(list))
-
-    toc: Dict[str, str] = attr.ib(factory=dict)
-    toc_embed: Embed = attr.ib(default=None)
-    toc_text: str = attr.ib(default=None)
-
-    @classmethod
-    def from_bot(cls, bot):
-        man = Manual()
-        for call, cmd in bot.iter_commands():
-            call: str
-            cmd: DocumentationMixin
-            man.commands[call] = cmd.doc
-            if cmd.cog:
-                section = cmd.cog.qualified_name
-            else:
-                section = 'Miscellaneous'
-            man.sections[section].append(call)
-        return man
-
-    def finalize(self):
-        for doc in self.commands.values():
-            doc.finalize()
-        for section, calls in sorted(self.sections.items(), key=lambda t: t[0]):
-            lines = []
-            for call in sorted(calls):
-                command = self.commands[call]
-                if command.hidden:
-                    continue
-                lines.append(f'{strong(call)}: {command.description}')
-            self.toc[section] = '\n'.join(lines)
-        self.toc_embed = page_embed(self.toc.items(), title='Command list')
-        self.toc_text = page_plaintext(self.toc.items(), title='Command list')
-
-    def lookup(self, query: str) -> Documentation:
-        try:
-            return self.commands[query]
-        except KeyError:
-            match = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
-            if match:
-                match = match[0]
-            raise NoSuchCommand(query, match)
+    HelpFormat = Choice[HELP_STYLES.keys(), 'info category']
 
 
 @deferred(1)
@@ -554,15 +574,7 @@ def hidden():
 def cooldown(rate: int, per: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
     def wrapper(f: Instruction):
         commands.cooldown(rate, per, bucket)(f)
-        bucket_type = {
-            commands.BucketType.default: 'globally',
-            commands.BucketType.user: 'for each user',
-            commands.BucketType.member: 'for each user',
-            commands.BucketType.guild: 'for each server',
-            commands.BucketType.channel: 'for each channel',
-            commands.BucketType.category: 'for each channel category',
-            commands.BucketType.role: 'for each role',
-        }.get(bucket)
+        bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
         cooldown = (f'Rate limited: {rate} {pluralize(rate, "call")} '
                     f'every {per} {pluralize(per, "second")}')
         if bucket_type is None:
@@ -574,59 +586,147 @@ def cooldown(rate: int, per: float, bucket: commands.BucketType | Callable[[disc
     return wrapper
 
 
-async def _send_with_text_fallback(ctx: Circumstances, embed: Embed, text: str, **kwargs):
-    try:
-        return await ctx.reply_with_delete(embed=embed, **kwargs)
-    except Forbidden:
-        return await ctx.reply_with_delete(content=text, **kwargs)
+@deferred(1)
+def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
+    def wrapper(f: Instruction):
+        commands.max_concurrency(number, bucket, wait=wait)(f)
+        f.doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
+        return f
+    return wrapper
 
 
-@instruction('help', aliases=['man', 'man:tty'])
-@description('Get help about commands.')
-@argument('category', 'What kind of help info to get.')
-@argument('query', 'A command name, such as "echo" or "prefix set".')
-@invocation((), 'See all commands.')
-@invocation(('query',), 'See help for a command.')
-@invocation(('category',), False)
-@invocation(('category', 'query'), 'See specific info about a command, such as argument types.')
-@example('perms', f'Check help doc for {code("perms")}')
-@example('full perms', f'See detailed information about the command {code("perms")}')
-@example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
-async def help_command(ctx: Circumstances,
-                       category: Optional[Documentation.HelpFormat] = 'normal',
-                       *, query: CaseInsensitive = ''):
-    man = ctx.manual
-    use_plaintext = ctx.invoked_with == 'man:tty'
+@attr.s
+class Manual:
+    commands: Dict[str, Documentation] = attr.ib(factory=dict)
+    sections: Dict[str, List[str]] = attr.ib(factory=lambda: defaultdict(list))
+    aliases: Dict[str, str] = attr.ib(factory=dict)
 
-    def set_embed_info(embed: Embed):
-        embed.set_author(name=ctx.me.display_name, icon_url=ctx.me.avatar_url)
-        embed.timestamp = utcnow()
+    toc: Dict[str, str] = attr.ib(factory=dict)
+    toc_embed: Embed = attr.ib(default=None)
+    toc_text: str = attr.ib(default=None)
 
-    if not query:
-        toc_embed = man.toc_embed.copy()
-        set_embed_info(toc_embed)
-        toc_embed.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} [command]" to see help info for that command')
-        toc_text = man.toc_text
+    frozen: bool = attr.ib(default=False)
+
+    @classmethod
+    def from_bot(cls, bot):
+        man = Manual()
+        for call, cmd in bot.iter_commands():
+            call: str
+            cmd: DocumentationMixin
+            man.commands[call] = cmd.doc
+            if cmd.cog:
+                section = cmd.cog.qualified_name
+            else:
+                section = 'Miscellaneous'
+            man.sections[section].append(call)
+        return man
+
+    def propagate_restrictions(self, tree: Dict[str, Documentation],
+                               stack: List[List[str]],
+                               seen: Set[str]):
+        for call_sign, doc in tree.items():
+            if call_sign in seen:
+                continue
+            seen.add(call_sign)
+            restrictions = [f'(Parent) {r}' for r in doc.restrictions]
+            doc.restrictions.extend(flatten(stack))
+            stack.append(restrictions)
+            self.propagate_restrictions(doc.subcommands, stack, seen)
+            stack.pop()
+
+    def register_aliases(self):
+        aliases: Dict[str, List[str]] = defaultdict(list)
+        for call_sign, doc in self.commands.items():
+            aliased_prefixes = [*aliases[doc.parent]]
+            aliased_prefixes.append(doc.parent)
+            for prefix in aliased_prefixes:
+                for alias in doc.aliases:
+                    aliases[call_sign].append(f'{prefix} {alias}'.strip())
+        for call_sign, aliases_ in aliases.items():
+            for alias in aliases_:
+                self.aliases[alias] = call_sign
+
+    def finalize(self):
+        if self.frozen:
+            return
+        self.propagate_restrictions(self.commands, [], set())
+        self.register_aliases()
+        for doc in self.commands.values():
+            doc.finalize()
+        for section, calls in sorted(self.sections.items(), key=lambda t: t[0]):
+            lines = []
+            for call in sorted(calls):
+                doc = self.commands[call]
+                if doc.hidden or not doc.standalone:
+                    continue
+                lines.append(f'{strong(call)}: {doc.description}')
+            content = '\n'.join(lines)
+            if content.strip():
+                self.toc[section] = content
+        self.toc_embed = page_embed(self.toc.items(), title='Command list')
+        self.toc_text = page_plaintext(self.toc.items(), title='Command list')
+        self.frozen = True
+
+    def lookup(self, query: str) -> Documentation:
+        try:
+            return self.commands[query]
+        except KeyError:
+            pass
+        try:
+            aliased = self.aliases[query]
+            return self.commands[aliased]
+        except KeyError:
+            match = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
+            if match:
+                match = match[0]
+            raise NoSuchCommand(query, match)
+
+    @instruction('help', aliases=['man', 'man:tty'])
+    @description('Get help about commands.')
+    @argument('category', 'What kind of help info to get.')
+    @argument('query', 'A command name, such as "echo" or "prefix set".')
+    @invocation((), 'See all commands.')
+    @invocation(('query',), 'See help for a command.')
+    @invocation(('category',), False)
+    @invocation(('category', 'query'), 'See specific info about a command, such as argument types.')
+    @example('perms', f'Check help doc for {code("perms")}')
+    @example('full perms', f'See detailed information about the command {code("perms")}')
+    @example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
+    async def help_command(ctx: Circumstances,
+                           category: Optional[Documentation.HelpFormat] = 'normal',
+                           *, query: CaseInsensitive = ''):
+        man = ctx.manual
+        use_plaintext = ctx.invoked_with == 'man:tty'
+
+        def set_embed_info(embed: Embed):
+            embed.set_author(name=ctx.me.display_name, icon_url=ctx.me.avatar_url)
+            embed.timestamp = utcnow()
+
+        if not query:
+            toc_embed = man.toc_embed.copy()
+            set_embed_info(toc_embed)
+            toc_embed.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} [command]" to see help info for that command')
+            toc_text = man.toc_text
+            if use_plaintext:
+                return await ctx.send(toc_text)
+            return await ctx.reply_with_text_fallback(toc_embed, toc_text)
+
+        if query[:len(ctx.prefix)] == ctx.prefix:
+            query = query[len(ctx.prefix):]
+
+        try:
+            doc = man.lookup(query)
+        except NoSuchCommand as exc:
+            return await ctx.send(str(exc), delete_after=60)
+
+        rich_help, text_help = doc.generate_help(category)
+        set_embed_info(rich_help)
+        if category == 'normal':
+            rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
+
         if use_plaintext:
-            return await ctx.send(toc_text)
-        return await _send_with_text_fallback(ctx, toc_embed, toc_text)
-
-    if query[:len(ctx.prefix)] == ctx.prefix:
-        query = query[len(ctx.prefix):]
-
-    try:
-        doc = man.lookup(query)
-    except NoSuchCommand as exc:
-        return await ctx.send(str(exc), delete_after=60)
-
-    rich_help, text_help = doc.generate_help(category)
-    set_embed_info(rich_help)
-    if category == 'normal':
-        rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
-
-    if use_plaintext:
-        return await ctx.send(text_help)
-    return await _send_with_text_fallback(ctx, rich_help, text_help)
+            return await ctx.send(text_help)
+        return await ctx.reply_with_text_fallback(rich_help, text_help)
 
 
 class BadDocumentation(UserWarning):
@@ -644,12 +744,6 @@ class MissingExamples(BadDocumentation):
         self.message = f'{call_sign}: No command example provided'
 
 
-__all__ = [
-    'Documentation',
-    'Manual',
-    'discussion',
-    'description',
-    'argument',
-    'invocation',
-    'example',
-]
+class SendHelp(CommandError):
+    def __init__(self, message=None, *args):
+        super().__init__(message=message, *args)

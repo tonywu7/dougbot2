@@ -32,7 +32,7 @@ from django.db.models.query import QuerySet
 from telescope2.web.config import CommandAppConfig
 from telescope2.web.models import User as SystemUser
 
-from .utils.textutil import strong, tag_literal
+from .utils.markdown import strong, tag_literal
 
 inflection = inflect.engine()
 

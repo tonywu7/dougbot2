@@ -16,14 +16,12 @@
 
 from __future__ import annotations
 
-from discord.ext.commands import (
-    CheckFailure, Command, Group, command, errors, group,
-)
+from discord.ext.commands import CheckFailure, Command, Group, command, group
 
 from telescope2.utils.functional import deferred, finalizer
 
 from .context import Circumstances
-from .utils.textutil import strong
+from .utils.markdown import strong
 
 
 class DocumentationMixin:
@@ -41,25 +39,6 @@ class DocumentationMixin:
 class Instruction(DocumentationMixin, Command):
     dm_command = False
 
-    async def invoke(self, ctx: Circumstances):
-        try:
-            return await super().invoke(ctx)
-        except errors.UserInputError as exc:
-            return await self.on_input_error(ctx, exc)
-        except errors.CommandOnCooldown as exc:
-            return await self.on_cmd_cooldown(ctx, exc)
-        except errors.MaxConcurrencyReached as exc:
-            return await self.on_max_concurrency(ctx, exc)
-
-    async def on_input_error(self, ctx: Circumstances, exc: errors.UserInputError):
-        return await ctx.reply(content=str(exc))
-
-    async def on_cmd_cooldown(self, ctx: Circumstances, exc: errors.CommandOnCooldown):
-        return await ctx.reply(content=str(exc))
-
-    async def on_max_concurrency(self, ctx: Circumstances, exc: errors.MaxConcurrencyReached):
-        return await ctx.reply(content=str(exc))
-
 
 class Ensemble(DocumentationMixin, Group):
     def __init__(self, *args, case_insensitive=None, **kwargs):
@@ -68,6 +47,10 @@ class Ensemble(DocumentationMixin, Group):
     @finalizer
     def instruction(self, *args, **kwargs):
         return super().command(*args, cls=Instruction, **kwargs)
+
+    @finalizer
+    def ensemble(self, *args, cls=None, **kwargs):
+        return super().group(*args, cls=type(self), **kwargs)
 
     def add_command(self, command: Instruction):
         super().add_command(command)

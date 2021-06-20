@@ -31,7 +31,7 @@ from telescope2.utils.datetime import localnow, utcnow
 
 from . import command, constraint, extension
 from .context import Circumstances, CommandContextError
-from .utils.textutil import tag, trunc_for_field, unmarked, untagged
+from .utils.markdown import tag, trunc_for_field, unmarked, untagged
 
 
 class _LoggingConf(TypedDict):
@@ -60,29 +60,48 @@ UNCAUGHT_EXCEPTIONS = (
 
 BYPASSED = (
     command.EnvironmentMismatch,
+    errors.CommandNotFound,
+    errors.ArgumentParsingError,
+    errors.UserInputError,
 )
 
 EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
+    (errors.MaxConcurrencyReached,
+     errors.CommandOnCooldown): {
+        'name': 'Command throttling hit',
+        'key': 'CommandThrottling',
+        'level': logging.DEBUG,
+    },
+    (errors.BotMissingAnyRole,
+     errors.BotMissingPermissions,
+     errors.BotMissingRole): {
+        'name': 'Bot permission requirements not met',
+        'key': 'Unauthorized',
+        'level': logging.WARNING,
+    },
+    (errors.MissingPermissions,
+     errors.MissingAnyRole,
+     errors.MissingRole,
+     constraint.ConstraintFailure): {
+        'name': 'Unauthorized invocations',
+        'key': 'MissingPerms',
+        'level': logging.DEBUG,
+    },
     (extension.ModuleDisabled,): {
         'name': 'Disabled module called',
         'key': 'ModuleDisabled',
         'level': logging.INFO,
     },
-    (constraint.ConstraintFailure,): {
-        'name': 'Constraint violations',
-        'key': 'ConstraintFailure',
-        'level': logging.INFO,
+    (errors.NotOwner,): {
+        'name': 'Bot owner-only commands called',
+        'key': 'NotOwner',
+        'level': logging.WARNING,
+        'superuser': True,
     },
     UNCAUGHT_EXCEPTIONS: {
         'name': 'Uncaught exceptions',
         'key': 'CommandInvokeError',
         'level': logging.ERROR,
-        'superuser': True,
-    },
-    (errors.NotOwner,): {
-        'name': 'Bot owner-only commands called',
-        'key': 'NotOwner',
-        'level': logging.WARNING,
         'superuser': True,
     },
 }
@@ -107,18 +126,16 @@ class ContextualLogger:
 
     async def log(self, msg_class: str, level: int, msg: str, *args,
                   exc_info: Optional[BaseException] = None,
-                  embed: Optional[Embed] = None, **kwargs):
+                  embed: Optional[Embed] = None, embed_only=False, **kwargs):
         logger = logging.getLogger(f'{self.prefix}.{msg_class}')
         logger.log(level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs)
+        if embed_only:
+            msg = ''
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> Tuple[TextChannel, str, Role | None]:
-        config: _LoggingConf | None = self.ctx.log_config.get(msg_class)
-        if not config:
-            raise LookupError
-        channel = config.get('channel')
-        if not channel:
-            raise LookupError
+        config: _LoggingConf = self.ctx.log_config[msg_class]
+        channel = config['channel']
         channel: TextChannel = self.ctx.guild.get_channel(channel)
         if not isinstance(channel, TextChannel):
             raise LookupError
@@ -179,7 +196,9 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
     embed.add_field(name='Author', value=tag(ctx.author), inline=True)
     embed.add_field(name='Channel', value=tag(ctx.channel), inline=True)
     embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
-    return await ctx.log.log(info['key'], level, str(exc), exc_info=exc_info, embed=embed)
+    msg = (f'Error while processing trigger {ctx.invoked_with}: '
+           f'{type(exc).__name__}: {exc}')
+    return await ctx.log.log(info['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 
 def censor_paths(tb: str):

@@ -20,7 +20,7 @@ from functools import wraps
 from typing import Callable, Coroutine, Dict, List
 
 from asgiref.sync import sync_to_async
-from discord import Guild, Member, Message, User
+from discord import Embed, Guild, Member, Message, User
 from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
@@ -71,6 +71,11 @@ class Circumstances(Context):
         self.manual: Manual = self.bot.manual
         self.prefix: str
 
+        try:
+            self.session = self.bot.request
+        except AttributeError:
+            pass
+
     @property
     @_guard('Context is missing server instance')
     def server(self) -> Server:
@@ -110,6 +115,21 @@ class Circumstances(Context):
             await msg.add_reaction('🗑')
         except Forbidden:
             pass
+
+    async def reply_with_text_fallback(self, embed: Embed, text: str, **kwargs):
+        try:
+            return await self.reply_with_delete(embed=embed, **kwargs)
+        except Forbidden:
+            return await self.reply_with_delete(content=text, **kwargs)
+
+    @property
+    def full_invoked_with(self) -> str:
+        if self.invoked_parents:
+            return f'{self.prefix}{" ".join(self.invoked_parents)} {self.invoked_with}'
+        return f'{self.prefix}{self.invoked_with}'
+
+    async def send_help(self, query: str = None):
+        return await self.bot.manual.help_command(ctx=self, query=query or self.command.qualified_name)
 
 
 class CommandContextError(CommandError):

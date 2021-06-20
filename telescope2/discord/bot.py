@@ -18,19 +18,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import (
-    Generator, Iterable, List, Optional, Protocol, Set, Tuple, TypeVar,
-)
+from typing import (Generator, Iterable, List, Optional, Protocol, Set, Tuple,
+                    TypeVar)
 
+import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (
-    AllowedMentions, Client, Guild, Message, MessageReference, Permissions,
-    RawReactionActionEvent,
-)
+from discord import (AllowedMentions, Client, Guild, Message, MessageReference,
+                     Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, has_guild_permissions
-from discord.ext.commands.errors import CommandNotFound
 from discord.utils import escape_markdown
+from django.conf import settings
 from django.core.cache import caches
 from django.db import IntegrityError
 from django.db.models.query import QuerySet
@@ -45,13 +43,14 @@ from . import constraint
 from . import documentation as doc
 from . import extension, ipc, models
 from .apps import DiscordBotConfig
-from .command import Ensemble, Instruction, NoSuchCommand
+from .command import Ensemble, Instruction
 from .context import Circumstances, CommandContextError
-from .documentation import Manual, help_command
+from .documentation import Manual
+from .errors import explain_exception
 from .events import Events
 from .logging import log_command_errors
 from .models import Server
-from .utils.textutil import code, em, strong
+from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
@@ -73,7 +72,7 @@ class Robot(Bot):
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
 
-        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=True)
+        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
         super().__init__(
             loop=loop, command_prefix=self.which_prefix,
             help_command=None, case_insensitive=True,
@@ -82,6 +81,7 @@ class Robot(Bot):
 
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual
+        self.request: aiohttp.ClientSession
 
         add_event_listeners(self)
         register_base_commands(self)
@@ -106,6 +106,14 @@ class Robot(Bot):
         thread = ipc.CachePollingThread('discord')
         thread.add_event_listener('telescope2.discord.bot.refresh', sync_to_async(self._load_extensions))
         thread.start()
+
+    async def _init_client_session(self):
+        if hasattr(self, 'request'):
+            await self.request.close()
+        self.request = aiohttp.ClientSession(
+            loop=asyncio.get_running_loop(),
+            headers={'User-Agent': settings.USER_AGENT},
+        )
 
     def _register_commands(self):
         register_base_commands(self)
@@ -212,12 +220,6 @@ class Robot(Bot):
             return [cls.DEFAULT_PREFIX, f'<@!{bot_id}> ']
         return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
 
-    async def invoke(self, ctx):
-        try:
-            return await super().invoke(ctx)
-        except constraint.ConstraintFailure as exc:
-            self.dispatch('command_error', ctx, exc)
-
     @classmethod
     def schedule_refresh(cls):
         caches['discord'].set('telescope2.discord.bot.refresh', True)
@@ -225,26 +227,8 @@ class Robot(Bot):
     async def on_ready(self):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
-
-    async def on_command_error(self, context: Circumstances, exception: Exception):
-        should_log = True
-        if isinstance(exception, CommandNotFound):
-            should_log = await self.on_command_not_found(context, exception)
-        if isinstance(exception, constraint.ConstraintFailure):
-            should_log = await self.on_constraint_failure(context, exception)
-        if should_log:
-            return await log_command_errors(context, exception)
-
-    async def on_constraint_failure(self, context: Circumstances, exception: constraint.ConstraintFailure) -> bool:
-        await context.reply(exception.reply, delete_after=60)
-        return True
-
-    async def on_command_not_found(self, context: Circumstances, exception: CommandNotFound) -> bool:
-        try:
-            self.manual.lookup(context.invoked_with)
-        except NoSuchCommand as no_command:
-            await context.reply(str(no_command), delete_after=60)
-        return False
+        await self._init_client_session()
+        self.log.info('Started an aiohttp.ClientSession')
 
     async def on_message(self, message):
         try:
@@ -252,10 +236,19 @@ class Robot(Bot):
         except Exception as exc:
             ctx = await self.get_context(message)
             try:
-                ctx_error = CommandContextError(exc)
-                raise ctx_error from exc
+                raise CommandContextError(exc) from exc
             except CommandContextError as exc:
                 return await log_command_errors(ctx, exc)
+
+    async def on_command_error(self, ctx: Circumstances, exc: Exception):
+        try:
+            await explain_exception(ctx, exc)
+        except Exception as exc:
+            try:
+                raise CommandContextError(exc) from exc
+            except CommandContextError as exc:
+                return await log_command_errors(ctx, exc)
+        await log_command_errors(ctx, exc)
 
 
 def add_event_listeners(self: Robot):
@@ -336,7 +329,7 @@ def register_base_commands(self: Robot):
 
     @self.instruction('ping')
     @doc.description('Test the network latency between the bot and Discord.')
-    async def ping(ctx: Circumstances, *, args: str = None):
+    async def ping(ctx: Circumstances):
         await ctx.send(f':PONG {utctimestamp()}')
 
     @self.ensemble('prefix', invoke_without_command=True)
@@ -383,4 +376,4 @@ def register_base_commands(self: Robot):
 
         await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
-    self.add_command(help_command)
+    self.add_command(Manual.help_command)

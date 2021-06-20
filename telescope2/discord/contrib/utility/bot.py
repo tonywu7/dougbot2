@@ -30,8 +30,8 @@ from ...command import instruction
 from ...context import Circumstances
 from ...converters import PermissionName
 from ...extension import Gear
+from ...utils.markdown import code, strong, tag, traffic_light
 from ...utils.models import HypotheticalMember, HypotheticalRole
-from ...utils.textutil import code, strong, tag, traffic_light
 
 
 class Utilities(Gear):
@@ -41,7 +41,7 @@ class Utilities(Gear):
     @instruction('channels')
     @doc.description('List all channels in the server.')
     @doc.restriction(has_guild_permissions, manage_channels=True)
-    async def channels(self, ctx: Circumstances, *, args: str = None):
+    async def channels(self, ctx: Circumstances):
         lines = []
         for cs in split_before(Robot.channels_ordered_1d(ctx.guild),
                                lambda c: isinstance(c, CategoryChannel)):
@@ -54,20 +54,21 @@ class Utilities(Gear):
     @instruction('roles')
     @doc.description('List all roles in the server, including the color codes.')
     @doc.restriction(has_guild_permissions, manage_roles=True)
-    async def roles(self, ctx: Circumstances, *, args: str = None):
+    async def roles(self, ctx: Circumstances):
         lines = []
         for r in reversed(ctx.guild.roles):
             lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
         await ctx.send('\n'.join(lines))
 
-    @instruction('perms')
+    @instruction('perms', ignore_extra=False)
     @doc.description('Survey role permissions.')
-    @doc.argument('permission', (
-        'The permission to check. Must be exactly one of the items listed under '
-        '[the Discord.py documentation.](https://discordpy.readthedocs.io/en/stable/api.html#discord.Permissions)'
-    ))
+    @doc.argument('permission', ('The permission to check.'))
     @doc.argument('roles', 'The role or member whose perms to check.')
     @doc.argument('channel', 'Check the perms in the context of this channel. If not supplied, check server perms.')
+    @doc.invocation((), 'Show a list of possible permission names.')
+    @doc.invocation(('channel',), False)
+    @doc.invocation(('roles',), False)
+    @doc.invocation(('roles', 'channel'), False)
     @doc.invocation(('permission',), 'Check for all roles whether a role has this permission server-wide.')
     @doc.invocation(('permission', 'channel'), 'Check for all roles whether a role has this permission in a particular channel.')
     @doc.invocation(('permission', 'roles'), 'Check if these roles have this permission server-wide.')
@@ -80,8 +81,11 @@ class Utilities(Gear):
     @doc.example('send_messages #rules', 'See which roles can send messages in the #rules channel.')
     @doc.example('mention_everyone @everyone @Moderator',
                  'See whether @everyone and the Moderator role has the "Mention @everyone, @here, and All Roles" perm.')
-    async def perms(self, ctx: Circumstances, permission: PermissionName, roles: Greedy[Union[Role, Member]],
+    async def perms(self, ctx: Circumstances, permission: Optional[PermissionName], roles: Greedy[Union[Role, Member]],
                     channel: Optional[Union[TextChannel, VoiceChannel, StageChannel]] = None):
+        if not permission:
+            return await ctx.send(PERMISSIONS)
+
         lines = []
         if roles:
             roles = {r: None for r in roles}.keys()
@@ -107,3 +111,36 @@ class Utilities(Gear):
                 lines.append(unioned(subjects, HypotheticalRole))
 
         await ctx.send('\n'.join(lines))
+
+
+PERMISSIONS = """\
+(Underscores are required)
+
+**General server permissions**
+`manage_channels`, `manage_emojis`, `manage_server`,
+`manage_roles`/`manage_permissions`, `manage_webhooks`,
+`view_audit_log`, `view_channel`, `view_guild_insights`,
+
+**Membership permissions**
+`create_instant_invite`,
+`manage_nicknames`, `change_nickname`,
+`kick_members`, `ban_members`,
+
+**Text channel permissions**
+`read_messages`, `send_messages`,
+`attach_files`, `embed_links`,
+`add_reactions`, `external_emojis`/`use_external_emojis`,
+`mention_everyone`, `manage_messages`,
+`read_message_history`, `send_tts_messages`,
+`use_slash_commands`,
+
+**Voice channel permissions**
+`connect`, `speak`, `stream`,
+`use_voice_activation`,
+`priority_speaker`,
+`mute_members`, `move_members`,
+`deafen_members`, `request_to_speak`,
+
+**Privileged permission**
+`administrator`
+"""
