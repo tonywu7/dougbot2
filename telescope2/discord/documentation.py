@@ -425,6 +425,7 @@ class Documentation:
     def finalize(self):
         if self.frozen:
             return
+        self.frozen = True
         self.ensure_signatures()
         self.synopsis = self.build_synopsis()
 
@@ -450,7 +451,6 @@ class Documentation:
             sections['Aliases'] = ', '.join(self.aliases)
 
         self.assert_documentations()
-        self.frozen = True
 
     def assert_documentations(self):
         sections = self.sections
@@ -640,7 +640,7 @@ class Manual:
             aliased_prefixes = [*aliases[doc.parent]]
             aliased_prefixes.append(doc.parent)
             for prefix in aliased_prefixes:
-                for alias in doc.aliases:
+                for alias in [doc.name, *doc.aliases]:
                     aliases[call_sign].append(f'{prefix} {alias}'.strip())
         for call_sign, aliases_ in aliases.items():
             for alias in aliases_:
@@ -649,6 +649,7 @@ class Manual:
     def finalize(self):
         if self.frozen:
             return
+        self.frozen = True
         self.propagate_restrictions(self.commands, [], set())
         self.register_aliases()
         for doc in self.commands.values():
@@ -665,7 +666,6 @@ class Manual:
                 self.toc[section] = content
         self.toc_embed = page_embed(self.toc.items(), title='Command list')
         self.toc_text = page_plaintext(self.toc.items(), title='Command list')
-        self.frozen = True
 
     def lookup(self, query: str) -> Documentation:
         try:
