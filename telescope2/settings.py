@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'telescope2.discord.contrib.polling.apps.PollConfig',
     'telescope2.discord.contrib.museum.apps.MuseumConfig',
     'telescope2.discord.contrib.integration.apps.IntegrationConfig',
+    'telescope2.discord.contrib.internet.apps.InternetConfig',
     'channels',
 ]
 
