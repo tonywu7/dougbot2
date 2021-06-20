@@ -15,9 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django import template
+from django.conf import settings
 from django.utils.safestring import mark_safe
-
-from ... import settings
 
 register = template.Library()
 
@@ -25,7 +24,8 @@ register = template.Library()
 @register.simple_tag(takes_context=False)
 def pkg_version():
     """Return package version string."""
-    return settings.__version__
+    from ...settings import __version__
+    return __version__
 
 
 @register.simple_tag(takes_context=False)
@@ -34,7 +34,9 @@ def pkg_version_string():
     from aiohttp import __version__ as aiohttp_version
     from discord import __version__ as discord_version
     from django import __version__ as django_version
-    return mark_safe(f'<code>{settings.APP_NAME}/{settings.__version__}</code> '
+
+    from ...settings import __version__
+    return mark_safe(f'<code>{settings.APP_NAME}/{__version__}</code> '
                      f'<code>aiohttp/{aiohttp_version}</code> '
                      f'<code>discord.py/{discord_version}</code> '
                      f'<code>django/{django_version}</code>')
@@ -54,5 +56,8 @@ def fullfilename(context):
 
 @register.simple_tag(takes_context=True)
 def viewname(context: template.Context):
-    req = context['request']
-    return req.resolver_match.view_name
+    try:
+        req = context['request']
+        return req.resolver_match.view_name
+    except Exception:
+        return ''

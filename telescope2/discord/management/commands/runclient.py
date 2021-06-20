@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
+import time
 from datetime import datetime
 
 from django.conf import settings
@@ -40,7 +41,7 @@ class Command(BaseCommand):
         self.run(**options)
 
     def run(self, *, use_reloader: bool = True, **options):
-        if use_reloader:
+        if use_reloader and settings.DEBUG:
             autoreload.run_with_reloader(self.run_client, **options)
         else:
             self.run_client(**options)
@@ -71,7 +72,9 @@ class Command(BaseCommand):
         })
 
         try:
-            runner = BotRunner(Robot, {})
-            runner.run()
+            runner = BotRunner(Robot, {}, daemon=True)
+            runner.start()
+            while True:
+                time.sleep(10)
         except KeyboardInterrupt:
             return

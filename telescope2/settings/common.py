@@ -10,7 +10,7 @@ __version__ = '0.0.1'
 
 config_logging(make_logging_config(APP_NAME))
 
-PROJECT_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.with_name('instance') / 'app'
 RESOURCE_BUILD_DIR = PROJECT_DIR.parent / 'build'
 
@@ -19,11 +19,9 @@ secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
 
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+ALLOWED_HOSTS = ['localhost']
 
 # Application definition
 
@@ -48,23 +46,6 @@ INSTALLED_APPS = [
     'telescope2.discord.contrib.integration.apps.IntegrationConfig',
     'telescope2.discord.contrib.internet.apps.InternetConfig',
     'channels',
-]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    *([
-        'django.middleware.cache.UpdateCacheMiddleware',
-        'django.middleware.common.CommonMiddleware',
-        'django.middleware.cache.FetchFromCacheMiddleware',
-    ] if not DEBUG else [
-        'django.middleware.common.CommonMiddleware',
-    ]),
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'telescope2.web.middleware.DiscordContextMiddleware',
 ]
 
 ROOT_URLCONF = 'telescope2.urls'
@@ -160,11 +141,6 @@ STATICFILES_DIRS = [
     PROJECT_DIR / 'web' / 'static',
     RESOURCE_BUILD_DIR,
 ]
-
-if DEBUG:
-    STATICFILES_DIRS += [
-        PROJECT_DIR / 'web' / 'bundle',
-    ]
 
 STATIC_URL = '/static/'
 
