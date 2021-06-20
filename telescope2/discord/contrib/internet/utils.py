@@ -23,6 +23,7 @@ from urllib.parse import urlencode, urlunsplit
 import attr
 from aiohttp import ClientSession
 from discord import Embed
+from discord.utils import escape_markdown
 
 from ...utils.markdown import a, strong, trunc_for_field
 
@@ -47,7 +48,7 @@ class OEISEntry:
 
     @property
     def title(self) -> str:
-        return f'A{self.number:06} {self.name}'
+        return f'A{self.number:06} {escape_markdown(self.name)}'
 
     @property
     def description(self) -> str:
