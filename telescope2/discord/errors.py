@@ -31,6 +31,7 @@ from .context import Circumstances
 from .converters import InvalidChoices, RegExpMismatch
 from .documentation import (NoSuchCommand, SendHelp, describe_concurrency,
                             readable_perm_name)
+from .extension import ModuleDisabled
 from .utils.markdown import (code, indicate_eol, indicate_extra_text, strong,
                              tag_literal)
 
@@ -282,6 +283,11 @@ async def on_bad_union(ctx, exc: errors.BadUnionArgument):
 @prepend_argument_hint(True, sep='\n⚠️ ')
 async def on_bad_args(ctx, exc):
     return strong(escape_markdown(str(exc))), 30
+
+
+@explains(ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
 @explains(Exception, 'Error', -100)

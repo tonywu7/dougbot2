@@ -39,4 +39,5 @@ async def cog_enabled_check(ctx) -> bool:
 
 class ModuleDisabled(DisabledCommand):
     def __init__(self, cog: Cog, *args):
+        self.module = cog.qualified_name
         super().__init__(message=f'Attempted to use disabled module {cog.qualified_name}', *args)
