@@ -85,9 +85,12 @@ class AsyncFormMixin(Generic[T]):
 
     async_writable: bool = False
 
-    @property
-    def mutation_endpoint(self):
-        return reverse('web:api.mutation', kwargs={'schema': objpath(type(self)), 'item_id': self.instance.pk})
+    def mutation_endpoint(self, server_id: str):
+        return reverse('web:api.mutation', kwargs={
+            'schema': objpath(type(self)),
+            'guild_id': server_id,
+            'item_id': self.instance.pk,
+        })
 
     def user_tests(self, req) -> bool:
         return True

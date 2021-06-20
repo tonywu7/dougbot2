@@ -39,7 +39,7 @@ urlpatterns = [
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/sync$', views.manage.model_synchronization_view, name='manage.sync'),
 
-    re_path(r'^api/v1/mutation/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)$',
+    re_path(r'^api/v1/guild/(?P<guild_id>[0-9]+)/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)/mutate$',
             views.mutation.async_form_save, name='api.mutation'),
 
     re_path(r'^api/v1/bot/commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),

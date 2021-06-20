@@ -32,11 +32,17 @@ class AsyncFormNode(Node):
         self.id = id
         self.classes = classes
 
+    def get_server_id(self, context: Context) -> str:
+        return context['discord'].server_id
+
     def render(self, context: Context) -> str:
         form = self.form.resolve(context)
         if not isinstance(form, AsyncFormMixin):
             raise TypeError(f'{repr(form)} must be a subclass of {AsyncFormMixin}')
-        endpoint = form.mutation_endpoint
+        try:
+            endpoint = form.mutation_endpoint(self.get_server_id(context))
+        except (KeyError, AttributeError):
+            raise ValueError('Cannot render an async form in a view not tied to a Discord server.')
         form_html = self.nodelist.render(context)
         section_id = optional_attr('id', unwrap(context, self.id))
         classes = optional_attr('class', domtokenlist('form async-form', unwrap(context, self.classes)))

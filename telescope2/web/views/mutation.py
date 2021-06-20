@@ -40,7 +40,7 @@ def error_response(reason: str | Dict, status: int = 400):
 
 @require_POST
 @login_required
-def async_form_save(req: HttpRequest, schema: str, item_id: str) -> HttpResponse:
+def async_form_save(req: HttpRequest, schema: str, item_id: str, guild_id: str) -> HttpResponse:
     try:
         form_cls: Type[AsyncFormMixin] = import_string(schema)
         assert issubclass(form_cls, AsyncFormMixin)

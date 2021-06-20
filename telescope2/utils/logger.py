@@ -264,7 +264,7 @@ def make_logging_config(
                 'level': logging.INFO,
             },
             'discord.fetch': {
-                'level': logging.INFO,
+                'level': logging.DEBUG,
             },
             'discord.gateway': {
                 'level': logging.INFO,
@@ -286,7 +286,7 @@ def make_logging_config(
             },
             'django.template': {
                 'level': logging.INFO,
-            }
+            },
         },
         'root': {
             'level': level,

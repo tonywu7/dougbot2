@@ -34,6 +34,10 @@ from .contexts import DiscordContext
 from .models import User
 
 
+def _http_safe_method(req: HttpRequest) -> bool:
+    return req.method in ('GET', 'HEAD', 'OPTIONS')
+
+
 async def fetch_discord_info(req: HttpRequest):
     user: User = req.user
 
@@ -48,7 +52,7 @@ async def fetch_discord_info(req: HttpRequest):
     if not token:
         raise Logout
 
-    fetch = DiscordFetch(user_id=user.snowflake)
+    fetch = DiscordFetch(user_id=user.snowflake, nocache=not _http_safe_method(req))
     await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
 
     try:

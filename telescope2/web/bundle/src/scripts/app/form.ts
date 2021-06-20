@@ -130,6 +130,10 @@ export class AsyncModelForm extends ResponsiveForm {
     protected async postSubmit(response: Response | null): Promise<Response | null> {
         if (!response) return null
         let res = response.clone()
+        if (res.redirected) {
+            window.location.href = '/web/logout'
+            return null
+        }
         if (res.status < 299) {
             this.updateDefaults()
             let msg: string
