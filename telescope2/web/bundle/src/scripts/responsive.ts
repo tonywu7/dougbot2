@@ -15,8 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import * as bootstrap from 'bootstrap'
-import * as Mustache from 'mustache'
 import * as d3 from 'd3'
+import * as Mustache from 'mustache'
 import { TextSearch, configureAsPrefixSearch, allKeywords } from './search'
 import { datasources, renderer } from './main'
 
@@ -79,7 +79,7 @@ export class TemplateRenderer {
     public render(id: string, context: Record<string, any>): HTMLElement {
         let template = this.templates[id]
         let parser = document.createElement('template')
-        let rendered = Mustache.render(template, context).trim()
+        let rendered = Mustache.render(template, context)
         parser.innerHTML = rendered
         return parser.content.firstElementChild as HTMLElement
     }

@@ -1,8 +1,0 @@
-{
-    "extends": "../tsconfig-shared.json",
-    "compilerOptions": {
-        "lib": ["ES2017", "DOM", "DOM.Iterable"],
-    },
-    "references": [],
-    "include": ["../common/**/*.ts", "./**/*.ts", "../common/**/*.js", "./**/*.js"]
-}

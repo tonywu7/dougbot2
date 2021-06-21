@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "description": "",
     "author": "@tonyzbf",
-    "license": "AGPL-3.0-or-later",
+    "license": "GPL-3.0-or-later",
     "browserlist": [
         "defaults",
         "not ie > 0",
@@ -12,19 +12,43 @@
         "not and_uc > 0",
         "> 5%"
     ],
+    "private": true,
+    "sideEffects": ["*.scss"],
     "devDependencies": {
         "@types/bootstrap": "^5.0.16",
+        "@types/d3": "^6.7.0",
         "@types/lodash": "^4.14.167",
         "@types/lunr": "^2.3.3",
-        "requirejs": "^2.3.6"
+        "@types/mustache": "^4.1.1",
+        "bootstrap": "^5.0.1",
+        "css-loader": "^5.2.6",
+        "mustache": "^4.2.0",
+        "npm": "^7.17.0",
+        "requirejs": "^2.3.6",
+        "sass": "^1.35.1",
+        "sass-loader": "^12.1.0",
+        "style-loader": "^2.0.0",
+        "ts-loader": "^9.2.3",
+        "typescript": "^4.3.4",
+        "webpack": "^5.39.1",
+        "webpack-cli": "^4.7.2"
     },
     "repository": {
         "url": "https://github.com/tonyzbf/telescope2"
     },
-    "dependencies": {
-        "@types/d3": "^6.7.0",
-        "@types/mustache": "^4.1.1",
-        "bootstrap": "^5.0.1",
-        "npm": "^7.17.0"
+    "prettier": {
+        "overrides": [
+            {
+                "files": "webpack.config.js",
+                "options": {
+                    "tabWidth": 2
+                }
+            }
+        ],
+        "trailingComma": "es5",
+        "tabWidth": 4,
+        "semi": false,
+        "singleQuote": true,
+        "printWidth": 120
     }
 }

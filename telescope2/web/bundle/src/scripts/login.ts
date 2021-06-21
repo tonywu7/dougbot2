@@ -17,7 +17,7 @@
 import { DiscordClient } from './discord'
 import { homepage } from './main'
 
-import * as util from '../common/util'
+import * as util from './util'
 
 export var discord: DiscordClient
 
@@ -44,7 +44,10 @@ async function discordOAuth2() {
     let res = await fetch(window.location.pathname, {
         method: 'POST',
         mode: 'same-origin',
-        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
         body: JSON.stringify(userCreateInfo),
     })
     if (res.status === 403) {
@@ -70,12 +73,8 @@ function discordJoinServer() {
     form.submit()
 }
 
-export function init() {
-    discordOAuth2()
-        .then(() => {
-            return initDiscord()
-        })
-        .then(() => {
-            discordJoinServer()
-        })
+export async function init() {
+    await discordOAuth2()
+    await initDiscord()
+    discordJoinServer()
 }

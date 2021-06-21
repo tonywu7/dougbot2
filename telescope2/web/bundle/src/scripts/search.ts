@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import * as lunr from 'lunr'
-import { slugify } from '../common/util'
+import { slugify } from './util'
 
 type Configurator = (a: lunr.Builder) => void
 

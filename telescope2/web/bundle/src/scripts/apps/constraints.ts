@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { getTemplate, randomIdentifier } from '../../common/util'
+import { getTemplate, randomIdentifier } from '../util'
 import { D3ItemList, createFlexSelect, initTooltips, createAccordion } from '../responsive'
 import { getGuildId } from '../main'
 import { ModelState } from '../constants'

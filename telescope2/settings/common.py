@@ -12,7 +12,7 @@ config_logging(make_logging_config(APP_NAME))
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 BASE_DIR = PROJECT_DIR.with_name('instance') / 'app'
-RESOURCE_BUILD_DIR = PROJECT_DIR.parent / 'build'
+RESOURCE_BUILD_DIR = PROJECT_DIR / 'web' / 'bundle' / 'build'
 
 instance_conf = Config(RepositoryIni(BASE_DIR / 'settings.ini'))
 secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
@@ -136,10 +136,10 @@ USE_TZ = True
 
 LOGIN_URL = '/web'
 
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = PROJECT_DIR / 'web' / 'bundle' / 'dist'
 STATICFILES_DIRS = [
-    PROJECT_DIR / 'web' / 'static',
     RESOURCE_BUILD_DIR,
+    PROJECT_DIR / 'web' / 'static',
 ]
 
 STATIC_URL = '/static/'
