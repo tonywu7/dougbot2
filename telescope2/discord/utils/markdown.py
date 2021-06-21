@@ -31,8 +31,14 @@ RE_USER_MENTION = re.compile(r'<@(\d+)>')
 RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
 RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
 
-MTA_E = '<:mta_arrowE:856190628857249792>'
-MTA_W = '<:mta_arrowW:856190628399153164>'
+ARROWS_E = {
+    'white': '<:mta_arrowE:856190628857249792>',
+    'red': '<:mta_arrowE_red:856460793330794536>',
+}
+ARROWS_W = {
+    'white': '<:mta_arrowW:856190628399153164>',
+    'red': '<:mta_arrowW_red:856460793323323392>',
+}
 
 
 def trimmed_msg(ctx: Context) -> str:
@@ -109,16 +115,16 @@ def traffic_light(val: bool | None, strict=False):
         return '⛔'
 
 
-def mta_arrow_bracket(s: str) -> str:
-    return f'{MTA_E} {s} {MTA_W}'
+def mta_arrow_bracket(s: str, color='white') -> str:
+    return f'{ARROWS_E[color]} {s} {ARROWS_W[color]}'
 
 
-def indicate_eol(s: StringView) -> str:
-    return f'{s.buffer[:s.index + 1]} {MTA_W}'
+def indicate_eol(s: StringView, color='white') -> str:
+    return f'{s.buffer[:s.index + 1]} {ARROWS_W[color]}'
 
 
-def indicate_extra_text(s: StringView) -> str:
-    return f'{s.buffer[:s.index]} {MTA_E} {s.buffer[s.index:]} {MTA_W}'
+def indicate_extra_text(s: StringView, color='white') -> str:
+    return f'{s.buffer[:s.index]} {ARROWS_E[color]} {s.buffer[s.index:]} {ARROWS_W[color]}'
 
 
 def unmark_element(element, stream=None):

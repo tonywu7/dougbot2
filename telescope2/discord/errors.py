@@ -132,7 +132,7 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             if not should_log:
                 return
             msg, autodelete = should_log
-            arg_info, arg = ctx.command.doc.format_argument_highlight(ctx.args, ctx.kwargs)
+            arg_info, arg = ctx.command.doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
             arg_info = f'\n> {ctx.full_invoked_with} {arg_info}'
             if supply_arg_type:
                 arg_info = f'{arg_info}\n{strong(arg)}: {arg.describe()}'
@@ -189,13 +189,13 @@ async def on_unexpected_eof(ctx, exc: errors.ExpectedClosingQuoteError):
 @explains(errors.UnexpectedQuoteError, 'Unexpected quote')
 @append_matching_quotes_hint()
 async def on_unexpected_quote(ctx, exc: errors.UnexpectedQuoteError):
-    return f'\n> {indicate_eol(ctx.view)} ⚠️ Did not expect a {code(exc.quote)} here', 30
+    return f'\n> {indicate_eol(ctx.view, "red")} ⚠️ Did not expect a {code(exc.quote)} here', 30
 
 
 @explains(errors.InvalidEndOfQuotedStringError, 'Missing spaces after quotes')
 @append_matching_quotes_hint()
 async def on_unexpected_char_after_quote(ctx, exc: errors.InvalidEndOfQuotedStringError):
-    return (f'\n> {indicate_eol(ctx.view)} ⚠️ There should be a space before this '
+    return (f'\n> {indicate_eol(ctx.view, "red")} ⚠️ There should be a space before this '
             f'character {code(exc.char)} after the quote.'), 30
 
 
@@ -208,7 +208,7 @@ async def on_missing_args(ctx, exc):
 @explains(errors.TooManyArguments, 'Too many arguments')
 @append_quotation_hint()
 async def on_too_many_args(ctx, exc: errors.TooManyArguments):
-    return f'\n> {indicate_extra_text(ctx.view)} ⚠️ {strong("Extra text found.")}', 60
+    return f'\n> {indicate_extra_text(ctx.view, "red")} ⚠️ {strong("Extra text found.")}', 60
 
 
 @explains(RegExpMismatch, 'Pattern mismatch', priority=5)

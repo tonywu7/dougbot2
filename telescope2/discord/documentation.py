@@ -470,7 +470,7 @@ class Documentation:
         text_help = page_plaintext(**kwargs)
         return rich_help, text_help
 
-    def format_argument_highlight(self, args: List, kwargs: Dict) -> Tuple[str, Argument]:
+    def format_argument_highlight(self, args: List, kwargs: Dict, color='white') -> Tuple[str, Argument]:
         args: Deque = deque(args)
         kwargs: Deque = deque(kwargs.items())
         arguments: Deque = deque(self.arguments.items())
@@ -486,7 +486,7 @@ class Documentation:
             stack.append()
         if arguments:
             key, arg = arguments.popleft()
-            stack.append(mta_arrow_bracket(strong(arg)))
+            stack.append(mta_arrow_bracket(strong(arg), color))
         if arguments:
             stack.append('...')
         return ' '.join(stack), arg
