@@ -263,6 +263,12 @@ def add_event_listeners(self: Robot):
                 return False
         return True
 
+    @self.listen('on_message')
+    async def on_bare_mention(msg: Message):
+        if msg.content == f'<@!{self.user.id}>':
+            prefixes = await self.which_prefix(self, msg)
+            return await msg.reply(f'Prefix is {strong(prefixes[0])}')
+
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
         self.log.info(f'Joined {guild}')

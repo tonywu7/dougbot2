@@ -171,7 +171,8 @@ def append_quotation_hint():
             if not should_log:
                 return
             msg, autodelete = should_log
-            msg = (f'{msg}\n\nMake sure you spelled them correctly. If some of the arguments have spaces in them '
+            msg = (f"{msg}\n\nThis could happen because the bot couldn't find members/roles by name. Make sure "
+                   'you spelled them correctly. If some of the arguments have spaces in them '
                    f"(e.g. role names or nicknames), {strong('you will need to quote them in double quotes')}:\n"
                    f'✅ {example_correct}\n🔴 {example_incorrect}')
             return msg, autodelete
