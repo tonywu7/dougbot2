@@ -1,0 +1,3 @@
+[submodule "telescope2-admin"]
+	path = telescope2-admin
+	url = ../telescope2-admin
