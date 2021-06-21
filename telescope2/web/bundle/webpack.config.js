@@ -5,7 +5,7 @@ const devMode = process.env.NODE_ENV !== 'production'
 
 const BASE = path.resolve(__dirname)
 const SOURCE = path.resolve(BASE, 'src')
-const DEST = path.resolve(BASE, 'build')
+const DEST = path.resolve(BASE, 'build', 'telescope2')
 
 module.exports = {
   mode: devMode ? 'development' : 'production',
