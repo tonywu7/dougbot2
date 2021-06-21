@@ -46,7 +46,10 @@ class Utilities(Gear):
         for cs in split_before(Robot.channels_ordered_1d(ctx.guild),
                                lambda c: isinstance(c, CategoryChannel)):
             if cs[0]:
-                lines.append(strong(escape_markdown(cs[0].name)))
+                if isinstance(cs[0], CategoryChannel):
+                    lines.append(strong(escape_markdown(cs[0].name)))
+                else:
+                    lines.append(tag(cs[0]))
             for c in cs[1:]:
                 lines.append(tag(c))
         await ctx.send('\n'.join(lines))
