@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import random
 from datetime import datetime
 from typing import List, Tuple
 from urllib.parse import urlencode, urlunsplit
@@ -72,6 +73,8 @@ class OEISEntry:
 
 
 class OEIS:
+    NUM_SEQUENCES = 341962  # 21 Jun 2021
+
     def __init__(self, session: ClientSession):
         self.session = session
 
@@ -89,3 +92,6 @@ class OEIS:
             if not results:
                 raise ValueError('Too many results found for this query.')
             return OEISEntry.from_dict(results[0]), count
+
+    async def random(self) -> Tuple[OEISEntry, int]:
+        return await self.get(f'A{random.randrange(1, self.NUM_SEQUENCES)}')

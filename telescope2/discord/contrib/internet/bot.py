@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import random
 from typing import Literal, Optional
 
 import aiohttp
@@ -63,9 +62,13 @@ class Internet(Gear):
         elif a_number:
             query = a_number[0]
         else:
-            query = f'A{random.randrange(1, 1000000)}'
+            query = None
         try:
-            sequence, num_results = await OEIS(ctx.session).get(query)
+            oeis = OEIS(ctx.session)
+            if query:
+                sequence, num_results = await oeis.get(query)
+            else:
+                sequence, num_results = await oeis.random()
         except ValueError as e:
             reason = str(e)
             if not integers and not a_number:
