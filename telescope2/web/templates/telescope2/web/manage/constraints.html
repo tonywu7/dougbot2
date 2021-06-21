@@ -1,6 +1,8 @@
 {% extends 'telescope2/web/manage/base.html' %}
 {% load inspect element async_form discord_list %}
 
+{% block title %}Command constraints - {{ discord.server.name|default:'server' }}{% endblock %}
+
 {% block main_title %}Command constraints{% endblock %}
 
 {% block sections %}

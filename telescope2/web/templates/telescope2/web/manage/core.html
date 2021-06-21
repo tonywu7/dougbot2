@@ -1,6 +1,8 @@
 {% extends 'telescope2/web/manage/base.html' %}
 {% load inspect element async_form %}
 
+{% block title %}Core settings - {{ discord.server.name|default:'server' }}{% endblock %}
+
 {% block main_title %}Core settings{% endblock %}
 
 {% block sections %}

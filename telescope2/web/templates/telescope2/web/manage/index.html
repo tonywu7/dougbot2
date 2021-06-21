@@ -1,6 +1,8 @@
 {% extends 'telescope2/web/manage/base.html' %}
 {% load inspect element builtins %}
 
+{% block title %}Home - {{ discord.server.name|default:'server' }}{% endblock %}
+
 {% block main_title %}
 <span class="bot-name">{{ branding_full }}</span>
 {% endblock %}
