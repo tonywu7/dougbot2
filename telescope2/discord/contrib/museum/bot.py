@@ -47,7 +47,6 @@ BEGIN_OR_END = ('begin', 'end', 'start', 'stop')
 
 RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)')
 
-STOPWORDS = stopwords.words('english')
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
 
 
@@ -158,6 +157,7 @@ class Museum(Gear):
 
 class StoryCollector:
     def __init__(self, ctx: Circumstances):
+        self.STOPWORDS = stopwords.words('english')
         self.ctx = ctx
         self.stream = ParagraphStream()
         self.overflow = False
@@ -229,7 +229,7 @@ class StoryCollector:
 
         unpunctuated = self.story.translate(TRANS_PUNCTUATIONS)
         tokens = [word.lower() for word in nltk.tokenize.word_tokenize(unpunctuated)]
-        tokens_filtered = [t for t in tokens if t not in STOPWORDS]
+        tokens_filtered = [t for t in tokens if t not in self.STOPWORDS]
         token_counter = Counter(tokens_filtered)
 
         contributors = ', '.join(sorted(tag(au) for au in msgs_by_authors))
