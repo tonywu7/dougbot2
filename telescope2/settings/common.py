@@ -2,20 +2,16 @@ from pathlib import Path
 
 from decouple import Config, RepositoryIni
 
-from telescope2.utils.logger import config_logging, make_logging_config
-
 APP_NAME = 'telescope2'
 
 __version__ = '0.0.1'
 
-config_logging(make_logging_config(APP_NAME))
-
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-BASE_DIR = PROJECT_DIR.with_name('instance') / 'app'
+BASE_DIR = PROJECT_DIR.with_name('instance')
 RESOURCE_BUILD_DIR = PROJECT_DIR / 'web' / 'bundle' / 'build'
 
-instance_conf = Config(RepositoryIni(BASE_DIR / 'settings.ini'))
 secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
+discord_conf = Config(RepositoryIni(BASE_DIR / 'discord.ini'))
 
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
@@ -104,23 +100,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-    },
-    'discord': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/3',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-    },
-}
-
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
@@ -136,7 +115,7 @@ USE_TZ = True
 
 LOGIN_URL = '/web'
 
-STATIC_ROOT = PROJECT_DIR / 'web' / 'bundle' / 'dist'
+STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_DIRS = [
     RESOURCE_BUILD_DIR,
     PROJECT_DIR / 'web' / 'static',
@@ -146,17 +125,14 @@ STATIC_URL = '/static/'
 
 LOGGING_CONFIG = None
 
-instance_settings = []
-instance_secrets = [
+discord_secrets = [
     'DISCORD_CLIENT_ID',
     'DISCORD_CLIENT_SECRET',
     'DISCORD_BOT_TOKEN',
 ]
 
-for k in instance_settings:
-    globals()[k] = instance_conf(k)
-for k in instance_secrets:
-    globals()[k] = secrets_conf(k)
+for k in discord_secrets:
+    globals()[k] = discord_conf(k)
 
 ASGI_APPLICATION = 'telescope2.asgi.application'
 
@@ -167,20 +143,41 @@ JWT_DEFAULT_EXP = 300
 
 USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonyzbf/telescope2)'
 
-
-CACHEOPS_REDIS = 'redis://localhost:6379/2'
-
-CACHEOPS_DEFAULTS = {
-    'timeout': 60 * 60,
-}
-
-CACHEOPS = {
-    'auth.user': {'ops': 'get', 'timeout': 60 * 15},
-    'auth.*': {'ops': ('fetch', 'get')},
-    'auth.permission': {'ops': 'all'},
-    'discord.*': {'ops': {'fetch', 'get'}},
-}
-
-CACHE_MIDDLEWARE_ALIAS = 'default'
-
 APPEND_SLASH = True
+
+
+def config_caches(redis_host):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{redis_host}:6379/1',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+        },
+        'discord': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{redis_host}:6379/3',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+        },
+    }
+
+    CACHEOPS_REDIS = f'redis://{redis_host}:6379/2'
+
+    CACHEOPS_DEFAULTS = {
+        'timeout': 60 * 60,
+    }
+
+    CACHEOPS = {
+        'auth.user': {'ops': 'get', 'timeout': 60 * 15},
+        'auth.*': {'ops': ('fetch', 'get')},
+        'auth.permission': {'ops': 'all'},
+        'discord.*': {'ops': {'fetch', 'get'}},
+    }
+
+    CACHE_MIDDLEWARE_ALIAS = 'default'
+
+    return (CACHES, CACHEOPS_REDIS, CACHEOPS_DEFAULTS,
+            CACHEOPS, CACHE_MIDDLEWARE_ALIAS)

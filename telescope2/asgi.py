@@ -13,7 +13,7 @@ import django
 
 import telescope2.web.routing
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telescope2.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telescope2.settings.production')
 
 django.setup()
 

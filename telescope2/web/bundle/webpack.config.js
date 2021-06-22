@@ -14,7 +14,7 @@ module.exports = {
   entry: path.resolve(SOURCE, 'index.ts'),
 
   devtool: 'source-map',
-  watch: true,
+  watch: devMode,
 
   module: {
     rules: [
