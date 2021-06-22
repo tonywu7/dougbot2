@@ -1,6 +1,8 @@
 {% extends 'telescope2/commons/article.html' %}
 {% load errors %}
 
+{% block title %}Server Error{% endblock %}
+
 {% block article %}
 
 <h1>{% httpstatus %}</h1>
