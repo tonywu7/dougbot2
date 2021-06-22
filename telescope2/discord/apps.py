@@ -16,12 +16,16 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Dict, List
 
+from cacheops import invalidate_model
 from django.apps import AppConfig, apps
+from django.conf import settings
 from django.core.checks import CheckMessage, Error, Warning, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
+from redis.exceptions import ConnectionError
 
 from telescope2.web.config import AnnotatedPattern, CommandAppConfig
 
@@ -52,6 +56,12 @@ class DiscordBotConfig(AppConfig):
                 self.ext_map[k] = v
                 self.url_map[k] = v.public_views()
 
+        if (not settings.DISCORD_CLIENT_ID
+                or not settings.DISCORD_CLIENT_SECRET
+                or not settings.DISCORD_BOT_TOKEN):
+            logging.getLogger('discord.config').warning('Discord credentials are missing. Will not connect to Discord.')
+            return
+
         self.bot_thread = BotRunner(Robot, {}, run_forever=False, standby=True, daemon=True)
         self.bot_thread.start()
 
@@ -65,10 +75,27 @@ class DiscordBotConfig(AppConfig):
 
 
 @register('discord')
+def check_discord_credentials(app_configs: List[AppConfig], **kwargs) -> List[CheckMessage]:
+    if (not settings.DISCORD_CLIENT_ID
+            or not settings.DISCORD_CLIENT_SECRET
+            or not settings.DISCORD_BOT_TOKEN):
+
+        return [Error('Discord credentials are missing.',
+                      hint='Run the init command to supply them.',
+                      id='discord.E010')]
+    return []
+
+
+@register('discord')
 def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMessage]:
     from .bot import Robot
     from .models import BotCommand
     from .runner import BotRunner
+
+    try:
+        invalidate_model(BotCommand)
+    except ConnectionError:
+        pass
 
     errors = []
 
@@ -93,14 +120,14 @@ def check_command_paths(app_configs: List[AppConfig], **kwargs) -> List[CheckMes
             errors.append(Error(
                 ('The following commands are registered in the bot but '
                  f'not in the database: {", ".join(missing)}'),
-                hint='Run the synccommands command to synchronize.',
+                hint='Run the synccmds command to synchronize.',
                 id='discord.E001',
             ))
         if deleted:
             errors.append(Error(
                 ('The following commands are found in the database but '
-                 f'are no longer available in the bot: {" ".join(deleted)}'),
-                hint='Run the synccommands command to synchronize.',
+                 f'are no longer available in the bot: {", ".join(deleted)}'),
+                hint='Run the synccmds command to synchronize.',
                 id='discord.E002',
             ))
 

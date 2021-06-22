@@ -15,12 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import logging
 import threading
 from contextlib import contextmanager
 from typing import (Any, ContextManager, Coroutine, Dict, Generic, Optional,
                     Type, TypeVar)
 
 from discord import Client
+from discord.errors import LoginFailure
 from discord.ext.commands import Bot
 from django.conf import settings
 
@@ -33,6 +35,8 @@ class BotRunner(threading.Thread, Generic[T]):
                  run_forever=True, standby=False,
                  *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.log = logging.getLogger('discord.runner')
+
         self._client_cls = client_cls
         self._client_options = client_opts
         self._run_forever = run_forever
@@ -47,6 +51,9 @@ class BotRunner(threading.Thread, Generic[T]):
 
         self._request: Coroutine
         self._data: Any
+
+    def get_client(self) -> T:
+        return self._client_cls(**self._client_options)
 
     def run_client(self):
         with self.bot_init:
@@ -112,7 +119,13 @@ class BotRunner(threading.Thread, Generic[T]):
         return hasattr(self, 'client')
 
     def run(self) -> None:
-        return self.run_client()
+        try:
+            return self.run_client()
+        except LoginFailure as exc:
+            self.log.error('The bot failed to connect to Discord.')
+            self.log.critical(exc)
+            if exc.__cause__:
+                self.log.critical(exc.__cause__)
 
     def join(self, timeout: Optional[float] = None) -> None:
         if hasattr(self, 'client'):

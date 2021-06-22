@@ -122,7 +122,7 @@ class Robot(Bot):
         app = DiscordBotConfig.get()
         for label, ext in app.ext_map.items():
             cog_cls = ext.target
-            self.log.info(f'Loaded extension: {label} {objpath(cog_cls)}')
+            self.log.debug(f'Loaded extension: {label} {objpath(cog_cls)}')
             self.add_cog(cog_cls(label, self))
 
     def _create_manual(self):
