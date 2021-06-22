@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import re
 from operator import itemgetter
-from typing import Callable, Iterable, List, Literal, Optional, Tuple, overload
+from typing import (Callable, Iterable, List, Literal, Optional, Tuple, Union,
+                    overload)
 
 from discord import Member, Permissions, Role
 from discord.abc import GuildChannel
@@ -86,19 +87,22 @@ class PermissionName(Converter):
 
 class Constant(Converter):
     def __class_getitem__(cls, const: str):
-        const = _unpack_varargs(const)
-        __accept__ = QuantifiedNP(f'the exact text "{const}"',
-                                  concise=f'"{const}"',
-                                  predicative='without the quotes')
+        const = _unpack_varargs(const, ['const'])
+        __accept__ = QuantifiedNP(
+            f'exact text "{const}"',
+            concise=f'{const}',
+            predicative='without the quotes',
+            definite=True,
+        )
 
         @classmethod
-        async def convert(ctx: Circumstances, arg: str):
+        async def convert(cls, ctx: Circumstances, arg: str):
             if arg != const:
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg
 
         __dict__ = {'__accept__': __accept__, 'convert': convert}
-        return type(cls.__name__, (Converter, str,), __dict__)
+        return type(cls.__name__, (Converter,), __dict__)
 
 
 class Choice(Converter):
@@ -126,7 +130,7 @@ class Choice(Converter):
             raise InvalidChoices(__accept__, arg)
 
         __dict__ = {'__accept__': __accept__, 'convert': convert}
-        return type(cls.__name__, (Converter, str,), __dict__)
+        return type(cls.__name__, (Converter,), __dict__)
 
 
 class CaseInsensitive(Converter):
@@ -159,6 +163,16 @@ class RegExp(Converter):
         return type(cls.__name__, (Converter,), __dict__)
 
 
+class Fallback:
+    def __class_getitem__(cls, item):
+        return Union[item, Literal[False], str, None]
+
+
+class ReplyRequired(BadArgument):
+    def __call__(self):
+        return super().__call__(message='You need to call this command while replying to a message.')
+
+
 class InvalidChoices(BadArgument):
     def __init__(self, choices: QuantifiedNP, found: str, *args):
         self.choices = choices
@@ -173,4 +187,9 @@ class RegExpMismatch(BadArgument):
         self.received = arg
         self.pattern = pattern
         message = f'Argument should be {self.expected.a()}'
+        super().__init__(message=message, *args)
+
+
+class InvalidSyntax(BadArgument):
+    def __init__(self, message, *args):
         super().__init__(message=message, *args)

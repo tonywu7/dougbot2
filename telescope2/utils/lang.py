@@ -17,9 +17,8 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, Iterable, List, Optional, Tuple, Type
+from typing import Dict, List, Type
 
-import editdistance
 import inflect
 import unidecode
 from django.db.models import Model
@@ -90,7 +89,7 @@ def pl_cat_predicative(category: str, terms: List[str], sep=' ', conj='and') -> 
 
 class QuantifiedNP:
     def __init__(self, *nouns, concise: str = None, attributive: str = '',
-                 predicative: str = '', conjunction: str = 'or'):
+                 predicative: str = '', conjunction: str = 'or', definite=False):
         if not nouns:
             raise ValueError('One or more noun terms required')
 
@@ -100,12 +99,14 @@ class QuantifiedNP:
             'attributive': attributive,
             'predicative': predicative,
             'conjunction': conjunction,
+            'definite': definite,
         }
+        self.definite = definite
 
         if concise is None:
             concise = nouns[0]
         self.concise_singular = inflection.singular_noun(concise) or concise
-        self.concise_plural = inflection.plural_noun(concise)
+        self.concise_plural = inflection.plural(concise)
 
         self.predicative = predicative.strip()
         if self.predicative:
@@ -118,7 +119,7 @@ class QuantifiedNP:
             self.attr_singular = ''
             self.attr_plural = ''
         self.nouns_singular = coord_conj(*[inflection.singular_noun(n) or n for n in nouns], conj=conjunction)
-        self.nouns_plural = coord_conj(*[inflection.plural_noun(n) for n in nouns], conj=conjunction)
+        self.nouns_plural = coord_conj(*[inflection.plural(n) for n in nouns], conj=conjunction)
 
     def _formatted(self, prefix: str, attr: str, noun: str, pred: str):
         return f'{prefix}{attr}{noun}{pred}'
@@ -130,7 +131,11 @@ class QuantifiedNP:
 
     def a(self):
         term = f'{self.attr_singular}{self.nouns_singular}'
-        return f'{inflection.a(self.attr_singular or self.nouns_singular).split(" ")[0]} {term}{self.predicative}'
+        if self.definite:
+            art = 'the'
+        else:
+            art = inflection.a(self.attr_singular or self.nouns_singular).split(" ")[0]
+        return f'{art} {term}{self.predicative}'
 
     def one(self):
         return self._formatted('one ', self.attr_singular, self.nouns_singular, self.predicative)
@@ -160,7 +165,8 @@ class QuantifiedNP:
         if not isinstance(other, QuantifiedNP):
             return NotImplemented
         if (not self.nouns_singular == other.nouns_singular
-                or not self.predicative == other.predicative):
+                or not self.predicative == other.predicative
+                or any((self.definite, other.definite))):
             return QuantifiedNPS(self, other)
         kwargs = {}
         kwargs['concise'] = coord_conj(self._kwargs['concise'], other._kwargs['concise'], conj='or')
@@ -238,14 +244,6 @@ class QuantifiedNPS(QuantifiedNP):
         else:
             phrases.append(other)
         return QuantifiedNPS(*phrases)
-
-
-def fuzzy_match(query: str, targets: Iterable[str], threshold=2) -> Tuple[Optional[str], int, int]:
-    for idx, target in enumerate(targets):
-        distance = editdistance.eval(query, target)
-        if distance <= threshold:
-            return target, idx, distance
-    return None, -1, -1
 
 
 def slugify(name: str, sep='-', *, limit=0) -> str:

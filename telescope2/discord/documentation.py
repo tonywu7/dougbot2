@@ -17,24 +17,24 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from fractions import Fraction
 from functools import cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
-from typing import (Any, Callable, DefaultDict, Deque, Dict, List, Literal,
-                    Optional, Protocol, Set, Tuple, Type, Union)
+from typing import (Any, Callable, DefaultDict, Deque, Dict, FrozenSet, List,
+                    Literal, Optional, Protocol, Set, Tuple, Type, Union)
 
 import attr
 import discord
-from discord import Embed
+from discord import Embed, MessageReference
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Converter, Greedy
-from discord.ext.commands.errors import CommandError
+from discord.ext.commands.errors import UserInputError
 from discord.utils import escape_markdown
 from django.utils.text import camel_case_to_spaces
 from fuzzywuzzy import process as fuzzy
-from more_itertools import flatten, partition
+from more_itertools import flatten, partition, split_at
 
 from telescope2.utils.datetime import utcnow
 from telescope2.utils.functional import deferred
@@ -44,9 +44,9 @@ from telescope2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
 from .command import (DocumentationMixin, Instruction, NoSuchCommand,
                       instruction)
 from .context import Circumstances
-from .converters import CaseInsensitive, Choice
-from .utils.markdown import (blockquote, code, mta_arrow_bracket, page_embed,
-                             page_plaintext, pre, strong)
+from .converters import CaseInsensitive, Choice, ReplyRequired
+from .utils.markdown import (a, blockquote, code, mta_arrow_bracket,
+                             page_embed, page_plaintext, pre, strong)
 
 _AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
@@ -172,6 +172,13 @@ def _is_type_union(annotation) -> bool:
         return False
 
 
+def _is_literal_type(annotation) -> bool:
+    try:
+        return annotation.__origin__ is Literal
+    except AttributeError:
+        return False
+
+
 def _is_optional_type(annotation) -> bool:
     try:
         return type(None) in annotation.__args__
@@ -197,17 +204,28 @@ def _constituent_types(annotation) -> Tuple[Type, ...]:
 
 @attr.s(eq=True, hash=True)
 class Argument:
-    key: str = attr.ib()
-    annotation: Type | _Converter = attr.ib()
-    accepts: QuantifiedNP = attr.ib()
-    greedy: bool = attr.ib()
-    final: bool = attr.ib()
-    default: Any = attr.ib(default=attr.NOTHING)
-    help: str = attr.ib(default='')
+    key: str = attr.ib(order=False)
+    annotation: Type | _Converter = attr.ib(order=False)
+    accepts: QuantifiedNP = attr.ib(order=False)
+    greedy: bool = attr.ib(order=False)
+    final: bool = attr.ib(order=False)
+    default: Any = attr.ib(default=attr.NOTHING, order=False)
+    help: str = attr.ib(default='', order=False)
+
+    description: str = attr.ib(default='', order=False)
+    node: str = attr.ib(default='', order=False)
+    signature: str = attr.ib(default='', order=False)
+    order: int = attr.ib(default=0)
+
+    @property
+    def is_hidden(self) -> str:
+        return self.key[0] == '_'
 
     @property
     def is_unused(self) -> bool:
-        return self.final and self.is_optional and not self.help
+        return (self.final and self.is_optional
+                and not self.help
+                and not self.description)
 
     @property
     def is_optional(self) -> bool:
@@ -218,6 +236,8 @@ class Argument:
         return slugify(singularize(self.key))
 
     def describe(self) -> str:
+        if self.description:
+            return self.description
         if self.is_unused:
             accepts = 'Extra texts, not used'
         elif self.final:
@@ -236,7 +256,9 @@ class Argument:
             accepts = f'Accepts {accepts}'
         return accepts
 
-    def as_signature(self) -> str:
+    def as_node(self) -> str:
+        if self.node:
+            return self.node
         if self.is_unused:
             return ''
         if self.final:
@@ -246,6 +268,8 @@ class Argument:
         return f'[{self.accepts.concise(1)}]'
 
     def __str__(self):
+        if self.signature:
+            return self.signature
         if self.is_unused:
             return '[...]'
         if self.final:
@@ -297,7 +321,8 @@ class Argument:
         defined = TYPE_DESCRIPTIONS.get(annotation)
         if defined:
             return defined
-        constituents = [*filter(lambda t: t is not type(None), _constituent_types(annotation))]  # noqa: E721
+        constituents = filter(lambda t: t is not type(None), _constituent_types(annotation))  # noqa: E721
+        constituents = [*split_at(constituents, _is_literal_type)][0]
         if len(constituents) == 1:
             return cls.infer_accepts(constituents[0])
         return reduce(or_, [cls.infer_accepts(t) for t in constituents])
@@ -305,17 +330,17 @@ class Argument:
 
 @attr.s(eq=True, hash=True)
 class CommandSignature:
-    arguments: Tuple[Argument, ...] = attr.ib(converter=tuple)
+    arguments: Tuple[Argument, ...] = attr.ib(converter=lambda args: tuple(sorted(args)))
     description: str = attr.ib(default='', hash=False)
 
     def as_synopsis(self) -> str:
         return ' '.join(filter(None, (str(arg) for arg in self.arguments)))
 
-    def as_signature(self) -> str:
-        return ' '.join(filter(None, (arg.as_signature() for arg in self.arguments)))
+    def as_node(self) -> str:
+        return ' '.join(filter(None, (arg.as_node() for arg in self.arguments)))
 
-    def as_tuple(self) -> Tuple[str, ...]:
-        return tuple(arg.key for arg in self.arguments)
+    def as_frozenset(self) -> Tuple[str, ...]:
+        return frozenset(arg.key for arg in self.arguments if not arg.is_hidden)
 
 
 @attr.s(kw_only=True)
@@ -330,14 +355,15 @@ class Documentation:
     examples: Dict[str, str] = attr.ib(factory=dict)
     discussions: Dict[str, str] = attr.ib(factory=dict)
 
-    invocations: Dict[Tuple[str, ...], CommandSignature] = attr.ib(default=None)
-    arguments: Dict[str, Argument] = attr.ib(factory=dict)
+    invocations: OrderedDict[FrozenSet[str], CommandSignature] = attr.ib(default=None)
+    arguments: OrderedDict[str, Argument] = attr.ib(factory=OrderedDict, converter=OrderedDict)
     subcommands: Dict[str, Documentation] = attr.ib(factory=dict)
     restrictions: List[str] = attr.ib(factory=list)
 
     hidden: bool = attr.ib(default=False)
     standalone: bool = attr.ib(default=False)
     aliases: List[str] = attr.ib(factory=list)
+    invalid_syntaxes: Set[FrozenSet[str]] = attr.ib(factory=set)
 
     sections: Dict[str, str] = attr.ib(factory=dict)
     frozen: bool = attr.ib(default=False)
@@ -348,7 +374,7 @@ class Documentation:
                   call_sign=cmd.qualified_name,
                   standalone=getattr(cmd, 'invoke_without_command', True),
                   aliases=cmd.aliases)
-        doc.arguments = doc.infer_arguments(cmd.params)
+        doc.infer_arguments(cmd.params)
         return doc
 
     def iter_call_styles(self, options: Deque[Argument] = None, stack: List[Argument] = None):
@@ -389,23 +415,31 @@ class Documentation:
         # Always skip the first argument which is either self/cls or context
         # If it is self/cls, ignore subsequent ones
         # that are annotated as Context
-        arguments = {}
+        arguments = OrderedDict()
         for k, v in [*args.items()][1:]:
             if v.annotation is Circumstances:
                 continue
             arguments[k] = Argument.from_parameter(v)
-        return arguments
+        arguments['__command__'] = Argument(
+            key='__command__', annotation=None,
+            accepts=None, greedy=False, final=False,
+            default=None, help='', description='',
+            node=self.call_sign, signature=self.call_sign,
+            order=-1,
+        )
+        self.arguments = arguments
 
     def build_signatures(self):
-        signatures = {}
+        signatures = OrderedDict()
         for sig in self.iter_call_styles():
-            signatures[sig.as_tuple()] = sig
+            signatures[sig.as_frozenset()] = sig
         return signatures
 
     def build_synopsis(self):
         lines = []
-        for sig in self.invocations.values():
-            lines.append(f'{self.call_sign} {sig.as_synopsis()}')
+        for keys, sig in self.invocations.items():
+            if keys not in self.invalid_syntaxes:
+                lines.append(sig.as_synopsis())
         for subc in self.subcommands:
             lines.append(f'{subc} [...]')
         return tuple(lines)
@@ -433,12 +467,19 @@ class Documentation:
         sections['Synopsis'] = pre('\n'.join(self.synopsis))
         sections['Description'] = self.description
 
-        invocations = {f'{self.call_sign} {sig.as_signature()}'.strip(): sig.description
-                       for sig in self.invocations.values()}
+        invocations = {sig.as_node().strip(): sig.description
+                       for keys, sig in self.invocations.items()
+                       if keys not in self.invalid_syntaxes}
         subcommands = {f'{k} ...': f'{v.description} (subcommand)'
                        for k, v in self.subcommands.items()}
-        sections['Syntax'] = self.format_examples({**invocations, **subcommands}.items())
-        arguments = [f'{strong(arg.key)}: {arg.describe()}' for arg in self.arguments.values()]
+
+        sections['Syntax'] = self.format_examples(
+            {**invocations, **subcommands}.items(),
+            transform=lambda s: a('https://.', strong(s)),
+        )
+        arguments = [f'{strong(arg.key)}: {arg.describe()}'
+                     for arg in self.arguments.values()
+                     if not arg.is_hidden]
         sections['Arguments'] = '\n'.join(arguments)
 
         if self.restrictions:
@@ -473,7 +514,7 @@ class Documentation:
     def format_argument_highlight(self, args: List, kwargs: Dict, color='white') -> Tuple[str, Argument]:
         args: Deque = deque(args)
         kwargs: Deque = deque(kwargs.items())
-        arguments: Deque = deque(self.arguments.items())
+        arguments: Deque = deque([*split_at(sorted(self.arguments.items(), key=lambda t: t[1]), lambda t: t[1].is_hidden)][-1])
         stack: List[str] = []
         while args:
             if isinstance(args.popleft(), (Circumstances, Cog)):
@@ -483,7 +524,7 @@ class Documentation:
         while kwargs:
             kwargs.popleft()
             key, arg = arguments.popleft()
-            stack.append()
+            stack.append(str(arg))
         if arguments:
             key, arg = arguments.popleft()
             stack.append(mta_arrow_bracket(strong(arg), color))
@@ -493,6 +534,7 @@ class Documentation:
 
     HELP_STYLES = {
         'normal': ('Command', ['Syntax', 'Examples', 'Aliases']),
+        'syntax': ('Help', ['Syntax']),
         'short': ('Help', ['Synopsis', 'Aliases']),
         'full': ('Documentation', ['Synopsis', 'Aliases', 'Syntax', 'Arguments', 'Examples', 'Restrictions', 'Discussions']),
         'examples': ('Examples', ['Examples']),
@@ -526,10 +568,13 @@ def discussion(title: str, body: str):
 
 
 @deferred(1)
-def argument(arg: str, desc: str, term: Optional[str | QuantifiedNP] = None):
+def argument(arg: str, help: str = '', *, node: str = '',
+             signature: str = '', term: Optional[str | QuantifiedNP] = None):
     def wrapper(f: Instruction):
         argument = f.doc.arguments[arg]
-        argument.help = desc
+        argument.help = help
+        argument.node = node
+        argument.signature = signature
         if isinstance(term, QuantifiedNP):
             argument.accepts = term
         elif isinstance(term, str):
@@ -539,15 +584,28 @@ def argument(arg: str, desc: str, term: Optional[str | QuantifiedNP] = None):
 
 
 @deferred(1)
-def invocation(signature: Tuple[str], desc: str | Literal[False]):
+def invocation(signature: Tuple[str, ...], desc: str | Literal[False]):
+    signature: FrozenSet[str] = frozenset(signature)
+
     def wrapper(f: Instruction):
         f.doc.ensure_signatures()
         if desc:
             f.doc.invocations[signature].description = desc
+            f.doc.invocations.move_to_end(signature, last=True)
+            f.doc.invalid_syntaxes.discard(signature)
         else:
-            del f.doc.invocations[signature]
+            if signature not in f.doc.invocations:
+                raise KeyError(signature)
+            f.doc.invalid_syntaxes.add(signature)
         return f
     return wrapper
+
+
+@deferred
+def use_syntax_whitelist(f: Instruction):
+    f.doc.ensure_signatures()
+    f.doc.invalid_syntaxes |= f.doc.invocations.keys()
+    return f
 
 
 @deferred(1)
@@ -591,6 +649,29 @@ def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
     def wrapper(f: Instruction):
         commands.max_concurrency(number, bucket, wait=wait)(f)
         f.doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
+        return f
+    return wrapper
+
+
+@deferred(1)
+def accepts_reply(desc: str = 'Reply to a message', required=False):
+    async def inject_reply(self_or_ctx: Cog | Circumstances, *args):
+        if not isinstance(self_or_ctx, Circumstances):
+            ctx = args[0]
+        else:
+            ctx = self_or_ctx
+        reply: MessageReference = ctx.message.reference
+        if reply is None and required:
+            raise ReplyRequired()
+        ctx.kwargs['reply'] = reply
+
+    def wrapper(f: Instruction):
+        f.before_invoke(inject_reply)
+        arg = f.doc.arguments['reply']
+        arg.description = desc
+        arg.signature = '(with reply)'
+        arg.node = '┌ (while replying to a message)\n'
+        arg.order = -2
         return f
     return wrapper
 
@@ -747,6 +828,12 @@ class MissingExamples(BadDocumentation):
         self.message = f'{call_sign}: No command example provided'
 
 
-class SendHelp(CommandError):
-    def __init__(self, message=None, *args):
+class SendHelp(UserInputError):
+    def __init__(self, category='normal', *args):
+        self.category = category
+        super().__init__(message=None, *args)
+
+
+class NotAcceptable(UserInputError):
+    def __init__(self, message, *args):
         super().__init__(message=message, *args)

@@ -14,10 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import heapq
 from functools import wraps
-from typing import (Callable, Coroutine, Dict, List, Optional, Tuple, Type,
-                    Union)
+from typing import (Callable, Coroutine, Dict, List, Literal, Optional, Tuple,
+                    Type, Union)
 
 from discord import AllowedMentions
 from discord.ext.commands import errors
@@ -28,15 +30,16 @@ from telescope2.utils.lang import pl_cat_predicative
 
 from .constraint import ConstraintFailure
 from .context import Circumstances
-from .converters import InvalidChoices, RegExpMismatch
-from .documentation import (NoSuchCommand, SendHelp, describe_concurrency,
-                            readable_perm_name)
+from .converters import (InvalidChoices, InvalidSyntax, RegExpMismatch,
+                         ReplyRequired)
+from .documentation import (NoSuchCommand, NotAcceptable, SendHelp,
+                            describe_concurrency, readable_perm_name)
 from .extension import ModuleDisabled
 from .utils.markdown import (code, indicate_eol, indicate_extra_text, strong,
                              tag_literal)
 
 _ExceptionType = Union[Type[Exception], Tuple[Type[Exception]]]
-_ExceptionHandler = Callable[[Circumstances, Exception], Coroutine[None, None, Optional[Tuple[str, float]]]]
+_ExceptionHandler = Callable[[Circumstances, Exception], Coroutine[None, None, Union[Tuple[str, float], Literal[False], None]]]
 
 exception_handlers: List[Tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: Dict[_ExceptionType, str] = {}
@@ -68,10 +71,12 @@ async def explain_exception(ctx: Circumstances, exc: Exception):
     for _, _, exc_t, handler in reversed(exception_handlers):
         if not isinstance(exc, exc_t):
             continue
-        should_reply = await handler(ctx, exc)
-        if not should_reply:
+        explanation = await handler(ctx, exc)
+        if explanation is False:
+            break
+        if explanation is None:
             continue
-        msg, autodelete = should_reply
+        msg, autodelete = explanation
         title = exception_names.get(exc_t, 'Error')
         return await reply_command_failure(ctx, title, msg, autodelete)
 
@@ -120,8 +125,11 @@ async def on_constraint_failure(ctx, exc):
 
 
 @explains(SendHelp, priority=50)
-async def send_help(ctx: Circumstances, exc):
-    await ctx.send_help(ctx.command.qualified_name)
+async def send_help(ctx: Circumstances, exc: SendHelp):
+    await ctx.send_help(ctx.command.qualified_name, exc.category)
+    if isinstance(exc.__cause__, Exception):
+        await explain_exception(ctx, exc.__cause__)
+    return False
 
 
 def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
@@ -200,7 +208,7 @@ async def on_unexpected_char_after_quote(ctx, exc: errors.InvalidEndOfQuotedStri
 
 
 @explains(errors.MissingRequiredArgument, 'Not enough arguments')
-@prepend_argument_hint(True)
+@prepend_argument_hint(True, sep='\n⚠️ ')
 async def on_missing_args(ctx, exc):
     return 'This argument is missing.', 20
 
@@ -221,6 +229,21 @@ async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> Tuple[str,
 @prepend_argument_hint(True, sep='\n⚠️ ')
 async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> Tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 45
+
+
+@explains(ReplyRequired, 'Message reference required', priority=5)
+async def explains_required_reply(ctx: Circumstances, exc) -> Tuple[str, int]:
+    return str(exc), 20
+
+
+@explains(NotAcceptable, 'Item not acceptable', priority=5)
+async def explains_not_acceptable(ctx: Circumstances, exc) -> Tuple[str, int]:
+    return str(exc), 30
+
+
+@explains(InvalidSyntax, 'Usage Error', priority=5)
+async def explains_usage_error(ctx: Circumstances, exc) -> Tuple[str, int]:
+    return str(exc), 30
 
 
 @explains((

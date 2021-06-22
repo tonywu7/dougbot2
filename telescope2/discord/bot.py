@@ -350,7 +350,7 @@ def register_base_commands(self: Robot):
     @doc.description('Set a new prefix for this server.')
     @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
     @doc.example('?', f'Set the command prefix to {code("?")}')
-    @has_guild_permissions(manage_guild=True)
+    @doc.restriction(has_guild_permissions, manage_guild=True)
     async def set_prefix(ctx: Circumstances, prefix: str):
         try:
             await ctx.set_prefix(prefix)

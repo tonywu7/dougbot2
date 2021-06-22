@@ -44,11 +44,11 @@ class Ensemble(DocumentationMixin, Group):
     def __init__(self, *args, case_insensitive=None, **kwargs):
         super().__init__(*args, case_insensitive=True, **kwargs)
 
-    @finalizer
+    @finalizer(1)
     def instruction(self, *args, **kwargs):
         return super().command(*args, cls=Instruction, **kwargs)
 
-    @finalizer
+    @finalizer(1)
     def ensemble(self, *args, cls=None, **kwargs):
         return super().group(*args, cls=type(self), **kwargs)
 

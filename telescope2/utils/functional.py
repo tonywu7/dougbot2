@@ -105,7 +105,10 @@ def _ensure_proxy(f: T | ReverseDecorator[T, U]) -> ReverseDecorator[T, U]:
 def deferred(deco_func: Decorator[T, U]) -> Decorator[T | ReverseDecorator[T, U], ReverseDecorator[T, U]]:
     def make_decorator(deco_func: Decorator[T, U]):
         def decorated(*args, **kwargs):
-            wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+            if not is_final_deco:
+                wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+            else:
+                wrapper: Wrapper[T, U] = deco_func
             def substitute(f: T | ReverseDecorator[T, U]) -> ReverseDecorator[T, U]:  # noqa: E306
                 proxy = _ensure_proxy(f)
                 proxy.stack.append(wrapper)
@@ -113,15 +116,19 @@ def deferred(deco_func: Decorator[T, U]) -> Decorator[T | ReverseDecorator[T, U]
             return substitute
         return decorated
 
-    if not isfunction(deco_func):
+    is_final_deco = isfunction(deco_func)
+    if not is_final_deco:
         return make_decorator
-    return make_decorator(deco_func)
+    return make_decorator(deco_func)()
 
 
 def finalizer(deco_func: Decorator[T, U]) -> Decorator[ReverseDecorator[T, U], U]:
     def make_decorator(deco_func: Decorator[T, U]):
-        def decorated(*args, **kwargs) -> U:
-            wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+        def decorated(*args, **kwargs):
+            if not is_final_deco:
+                wrapper: Wrapper[T, U] = deco_func(*args, **kwargs)
+            else:
+                wrapper: Wrapper[T, U] = deco_func
             def substitute(proxy: ReverseDecorator[T, U]) -> U:  # noqa: E306
                 proxy = _ensure_proxy(proxy)
                 proxy.stack.append(wrapper)
@@ -129,6 +136,7 @@ def finalizer(deco_func: Decorator[T, U]) -> Decorator[ReverseDecorator[T, U], U
             return substitute
         return decorated
 
-    if not isfunction(deco_func):
+    is_final_deco = isfunction(deco_func)
+    if not is_final_deco:
         return make_decorator
-    return make_decorator(deco_func)
+    return make_decorator(deco_func)()

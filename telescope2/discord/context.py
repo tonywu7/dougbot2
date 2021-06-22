@@ -20,7 +20,7 @@ from functools import wraps
 from typing import Callable, Coroutine, Dict, List
 
 from asgiref.sync import sync_to_async
-from discord import Embed, Guild, Member, Message, User
+from discord import Embed, Guild, Member, Message, User, AllowedMentions
 from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
@@ -47,6 +47,8 @@ class Circumstances(Context):
 
     send: Callable[..., Coroutine[None, None, Message]]
     reply: Callable[..., Coroutine[None, None, Message]]
+
+    NOTIFY_REPLY = AllowedMentions(replied_user=True)
 
     def __init__(self, **attrs):
         super().__init__(**attrs)
@@ -128,8 +130,9 @@ class Circumstances(Context):
             return f'{self.prefix}{" ".join(self.invoked_parents)} {self.invoked_with}'
         return f'{self.prefix}{self.invoked_with}'
 
-    async def send_help(self, query: str = None):
-        return await self.bot.manual.help_command(ctx=self, query=query or self.command.qualified_name)
+    async def send_help(self, query: str = None, category='normal'):
+        query = query or self.command.qualified_name
+        return await self.bot.manual.help_command(self, category, query=query)
 
 
 class CommandContextError(CommandError):

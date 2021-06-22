@@ -1,6 +1,3 @@
-from typing import List
-
-
 def merge_collections(*mappings):
     base = {}
     base.update(mappings[0])
@@ -18,9 +15,3 @@ def merge_collections(*mappings):
             else:
                 base[k] = v
     return base
-
-
-def null_separated_int_list(line: str) -> List[int]:
-    if not line:
-        return []
-    return [int(s.strip()) for s in line.split('\x00')]
