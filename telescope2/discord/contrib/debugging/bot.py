@@ -70,6 +70,7 @@ class Debugging(Gear):
     @doc.cooldown(1, 10, BucketType.user)
     @doc.hidden()
     async def _throw(self, ctx: Circumstances, *, args: str = None):
+        print(hash(ctx.message.author))
         return {}[None]
 
     @instruction('overflow')

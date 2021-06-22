@@ -16,10 +16,11 @@
 
 from __future__ import annotations
 
+import enum
 import re
 from io import StringIO
 from textwrap import indent, shorten
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 
 from discord import Embed, Role
 from discord.abc import GuildChannel, User
@@ -30,6 +31,8 @@ from markdown import Markdown
 RE_USER_MENTION = re.compile(r'<@(\d+)>')
 RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
 RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
+RE_BLOCKQUOTE = re.compile(r'^> ')
+RE_PRE_BORDER = re.compile(r'^```.*$')
 
 ARROWS_E = {
     'white': '<:mta_arrowE:856190628857249792>',
@@ -45,7 +48,7 @@ def trimmed_msg(ctx: Context) -> str:
     return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]
 
 
-def tag(obj, kind=None) -> str:
+def tag(obj) -> str:
     if isinstance(obj, User):
         return f'<@{obj.id}>'
     if isinstance(obj, GuildChannel):
@@ -138,6 +141,93 @@ def unmark_element(element, stream=None):
     if element.tail:
         stream.write(element.tail)
     return stream.getvalue()
+
+
+class ParagraphStream:
+
+    class BLOCK(enum.Enum):
+        PRESERVE = 0
+        INLINE = 2
+
+    def __init__(self, separator: str = ' ', pre: BLOCK = BLOCK.PRESERVE, blockquote: BLOCK = BLOCK.PRESERVE):
+        self.lines: List[str] = []
+        self.sep = separator
+        self.pre = pre
+        self.blockquote = blockquote
+
+    def append(self, text: str):
+        self.lines.extend(filter(None, text.split('\n')))
+
+    def __len__(self) -> int:
+        return sum(len(s) for s in self.lines)
+
+    def __iter__(self) -> Iterator[str]:
+        buffer = []
+        line_iter = iter(self.lines)
+
+        if self.blockquote is self.BLOCK.PRESERVE:
+            def blockquote(line: str):
+                nonlocal buffer
+                if buffer:
+                    yield self.sep.join(buffer)
+                    buffer = []
+                yield line
+        else:
+            def blockquote(line: str):
+                buffer.append(RE_BLOCKQUOTE.sub('', line))
+                return []
+
+        if self.pre is self.BLOCK.PRESERVE:
+            def pre(line: str):
+                nonlocal buffer
+                if buffer:
+                    yield self.sep.join(buffer)
+                    buffer = []
+                yield line
+                for line in line_iter:
+                    yield line
+                    if RE_PRE_BORDER.match(line):
+                        return
+        else:
+            def pre(line: str):
+                return []
+
+        while True:
+            try:
+                line = next(line_iter)
+            except StopIteration:
+                break
+
+            if RE_BLOCKQUOTE.match(line):
+                yield from blockquote(line)
+            elif RE_PRE_BORDER.match(line):
+                yield from pre(line)
+            else:
+                buffer.append(line)
+
+        if buffer:
+            yield self.sep.join(buffer)
+
+
+def chapterize(text: str, length: int = 1920, leeway=16,
+               closing=' ... ', opening='(continued) ') -> Iterator[str]:
+    if len(text) < length:
+        yield text
+        return
+    while True:
+        cutoff = text[length:length + 1]
+        if not cutoff:
+            yield text
+            return
+        for i in range(length - 1, length - leeway - 1, -1):
+            if text[i:i + 1].isspace():
+                break
+        else:
+            yield text[0:length - leeway] + '-' + closing
+            text = opening + text[length - leeway:]
+            continue
+        yield text[0:i] + closing
+        text = opening + text[i + 1:]
 
 
 Markdown.output_formats['plain'] = unmark_element
