@@ -1,0 +1,12 @@
+#!/bin/bash
+source /venv/bin/activate
+
+if [[ $1 == "web" ]];
+then
+    daphne -b :: -p 8086 telescope2.asgi:application;
+elif [[ $1 == "bot" ]]
+then
+    python3 manage.py runclient;
+else
+    python3 manage.py $1;
+fi

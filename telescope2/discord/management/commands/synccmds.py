@@ -17,9 +17,11 @@
 import logging
 from typing import Dict, List
 
+from cacheops import invalidate_model
 from django.core.checks import Tags
 from django.core.management.base import BaseCommand
 from django.db import Error, transaction
+from redis.exceptions import ConnectionError
 
 from telescope2.utils.logger import colored as _
 from telescope2.utils.repl import Form, Question
@@ -72,6 +74,11 @@ class Command(BaseCommand):
         from ...bot import Robot
         from ...models import BotCommand
         from ...runner import BotRunner
+
+        try:
+            invalidate_model(BotCommand)
+        except ConnectionError:
+            pass
 
         with BotRunner.instanstiate(Robot, {}) as bot:
             bot: Robot

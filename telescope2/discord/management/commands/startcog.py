@@ -30,7 +30,7 @@ class Command(StartAppCommand):
 
     def handle(self, **options):
         app_name = options['name']
-        options['template'] = str(Path(__file__).with_name('template.tar.gz').resolve(strict=True))
+        options['template'] = str((Path(__file__).with_name('templates') / 'app.tar.gz').resolve(strict=True))
         options['directory'] = target = str(Path(__file__).parent.parent.with_name('contrib') / app_name)
         os.makedirs(target, exist_ok=False)
         super().handle(**options)

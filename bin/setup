@@ -1,0 +1,25 @@
+#!/bin/bash
+source /venv/bin/activate
+set -eux
+
+# Setup instance
+
+TARGET=$(pwd)/instance
+
+mkdir $TARGET
+
+# Copy empty settings files
+printf "[settings]\nDISCORD_CLIENT_ID=\nDISCORD_CLIENT_SECRET=\nDISCORD_BOT_TOKEN=\n" > $TARGET/discord.ini
+
+# Init nltk
+python3 -m nltk.downloader -d /usr/local/share/nltk_data stopwords punkt
+
+# Generate random secret
+python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[settings]\nSECRET_KEY={SECRET}', flush=True)" > $TARGET/secrets.ini
+
+# Initialize database
+python3 manage.py migrate --skip-checks
+python3 manage.py synccmds
+
+# Collect assets
+yes yes | python3 manage.py collectstatic
