@@ -30,17 +30,17 @@ from django.conf import settings
 from nltk.corpus import stopwords
 from pendulum import DateTime, instance
 
+from telescope2.discord import documentation as doc
+from telescope2.discord.command import instruction
+from telescope2.discord.context import Circumstances
+from telescope2.discord.converters import Choice, InvalidSyntax
+from telescope2.discord.documentation import NotAcceptable
+from telescope2.discord.extension import Gear
+from telescope2.discord.utils.markdown import (ParagraphStream, a, chapterize,
+                                               strong, tag, tag_literal)
 from telescope2.utils.datetime import utcnow
 from telescope2.utils.db import async_atomic
 
-from ... import documentation as doc
-from ...command import instruction
-from ...context import Circumstances
-from ...converters import Choice, InvalidSyntax
-from ...documentation import NotAcceptable
-from ...extension import Gear
-from ...utils.markdown import (ParagraphStream, a, chapterize, strong, tag,
-                               tag_literal)
 from .models import StoryTask
 
 BEGIN_OR_END = ('begin', 'end', 'start', 'stop')

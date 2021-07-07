@@ -21,7 +21,7 @@ import logging
 import sys
 import traceback
 from functools import partialmethod
-from typing import Dict, List, Optional, Tuple, Type, TypedDict
+from typing import Optional, TypedDict
 
 from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
 from discord.ext.commands import errors
@@ -48,7 +48,7 @@ class _ErrorConf(TypedDict):
     superuser: Optional[bool]
 
 
-LOGGING_CLASSES: List[_LoggingConf] = []
+LOGGING_CLASSES: list[_LoggingConf] = []
 
 UNCAUGHT_EXCEPTIONS = (
     errors.CommandInvokeError,
@@ -65,7 +65,7 @@ BYPASSED = (
     errors.UserInputError,
 )
 
-EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
+EXCEPTIONS: dict[tuple[type[Exception], ...], _ErrorConf] = {
     (errors.MaxConcurrencyReached,
      errors.CommandOnCooldown): {
         'name': 'Command throttling hit',
@@ -92,16 +92,16 @@ EXCEPTIONS: Dict[Tuple[Type[Exception], ...], _ErrorConf] = {
         'key': 'ModuleDisabled',
         'level': logging.INFO,
     },
-    (errors.NotOwner,): {
-        'name': 'Bot owner-only commands called',
-        'key': 'NotOwner',
-        'level': logging.WARNING,
-        'superuser': True,
-    },
     UNCAUGHT_EXCEPTIONS: {
         'name': 'Uncaught exceptions',
         'key': 'CommandInvokeError',
         'level': logging.ERROR,
+        'superuser': True,
+    },
+    (errors.NotOwner,): {
+        'name': 'Bot owner-only commands called',
+        'key': 'NotOwner',
+        'level': logging.WARNING,
         'superuser': True,
     },
 }
@@ -133,7 +133,7 @@ class ContextualLogger:
             msg = ''
         await self.deliver(msg_class, msg, embed, exc_info)
 
-    def get_dest_info(self, msg_class: str) -> Tuple[TextChannel, str, Role | None]:
+    def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
         config: _LoggingConf = self.ctx.log_config[msg_class]
         channel = config['channel']
         channel: TextChannel = self.ctx.guild.get_channel(channel)

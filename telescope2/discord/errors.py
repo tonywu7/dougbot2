@@ -17,9 +17,9 @@
 from __future__ import annotations
 
 import heapq
+from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import (Callable, Coroutine, Dict, List, Literal, Optional, Tuple,
-                    Type, Union)
+from typing import Literal, Optional, Tuple, Union
 
 from discord import AllowedMentions
 from discord.ext.commands import errors
@@ -38,11 +38,11 @@ from .extension import ModuleDisabled
 from .utils.markdown import (code, indicate_eol, indicate_extra_text, strong,
                              tag_literal)
 
-_ExceptionType = Union[Type[Exception], Tuple[Type[Exception]]]
+_ExceptionType = Union[type[Exception], Tuple[type[Exception]]]
 _ExceptionHandler = Callable[[Circumstances, Exception], Coroutine[None, None, Union[Tuple[str, float], Literal[False], None]]]
 
-exception_handlers: List[Tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
-exception_names: Dict[_ExceptionType, str] = {}
+exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
+exception_names: dict[_ExceptionType, str] = {}
 
 
 def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
@@ -221,28 +221,28 @@ async def on_too_many_args(ctx, exc: errors.TooManyArguments):
 
 @explains(RegExpMismatch, 'Pattern mismatch', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> Tuple[str, int]:
+async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 30
 
 
 @explains(InvalidChoices, 'Invalid choices', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> Tuple[str, int]:
+async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 45
 
 
 @explains(ReplyRequired, 'Message reference required', priority=5)
-async def explains_required_reply(ctx: Circumstances, exc) -> Tuple[str, int]:
+async def explains_required_reply(ctx: Circumstances, exc) -> tuple[str, int]:
     return str(exc), 20
 
 
 @explains(NotAcceptable, 'Item not acceptable', priority=5)
-async def explains_not_acceptable(ctx: Circumstances, exc) -> Tuple[str, int]:
+async def explains_not_acceptable(ctx: Circumstances, exc) -> tuple[str, int]:
     return str(exc), 30
 
 
 @explains(InvalidSyntax, 'Usage Error', priority=5)
-async def explains_usage_error(ctx: Circumstances, exc) -> Tuple[str, int]:
+async def explains_usage_error(ctx: Circumstances, exc) -> tuple[str, int]:
     return str(exc), 30
 
 
@@ -256,26 +256,26 @@ async def explains_usage_error(ctx: Circumstances, exc) -> Tuple[str, int]:
 ), 'Not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
 @append_quotation_hint()
-async def explains_not_found(ctx: Circumstances, exc) -> Tuple[str, int]:
+async def explains_not_found(ctx: Circumstances, exc) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.PartialEmojiConversionFailure, 'Emote not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
 @append_quotation_hint()
-async def explains_emote_not_found(ctx: Circumstances, exc: errors.PartialEmojiConversionFailure) -> Tuple[str, int]:
+async def explains_emote_not_found(ctx: Circumstances, exc: errors.PartialEmojiConversionFailure) -> tuple[str, int]:
     return strong(f'{escape_markdown(exc.argument)} is not an emote or is not in a valid Discord emote format.'), 30
 
 
 @explains(errors.BadInviteArgument, 'Invalid invite')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_invite(ctx: Circumstances, exc: errors.BadInviteArgument) -> Tuple[str, int]:
+async def explains_bad_invite(ctx: Circumstances, exc: errors.BadInviteArgument) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.BadBoolArgument, 'Incorrect value to a true/false argument')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_boolean(ctx: Circumstances, exc: errors.BadBoolArgument) -> Tuple[str, int]:
+async def explains_bad_boolean(ctx: Circumstances, exc: errors.BadBoolArgument) -> tuple[str, int]:
     return ((strong(escape_markdown(exc.argument)) + ' is not an acceptable answer to a true/false question in English.\n\n')
             + ('The following are considered to be true: '
                'yes, y, true, t, 1, enable, on\n'
@@ -285,13 +285,13 @@ async def explains_bad_boolean(ctx: Circumstances, exc: errors.BadBoolArgument) 
 
 @explains(errors.ChannelNotReadable, 'No access to channel')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_channel_not_readable(ctx: Circumstances, exc) -> Tuple[str, int]:
+async def explains_channel_not_readable(ctx: Circumstances, exc) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.BadColourArgument, 'Incorrect color format', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_color(ctx: Circumstances, exc: errors.BadColourArgument) -> Tuple[str, int]:
+async def explains_bad_color(ctx: Circumstances, exc: errors.BadColourArgument) -> tuple[str, int]:
     example = code('"rgb(255, 255, 255)"')
     return (f'{strong(escape_markdown(str(exc)))}\n\nTo provide a color in the RGB format that also contains '
             f'spaces, be sure to quote it in double quotes: {example}'), 30

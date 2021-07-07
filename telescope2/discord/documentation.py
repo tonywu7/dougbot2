@@ -22,8 +22,7 @@ from fractions import Fraction
 from functools import cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
-from typing import (Any, Callable, DefaultDict, Deque, Dict, FrozenSet, List,
-                    Literal, Optional, Protocol, Set, Tuple, Type, Union)
+from typing import Any, Callable, Literal, Optional, Protocol, Union
 
 import attr
 import discord
@@ -51,7 +50,7 @@ from .utils.markdown import (a, blockquote, code, mta_arrow_bracket,
 _AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
 
-TYPE_DESCRIPTIONS: Dict[Type, QuantifiedNP] = {
+TYPE_DESCRIPTIONS: dict[type, QuantifiedNP] = {
     int: QuantifiedNP('whole number'),
     float: QuantifiedNP('number', attributive='whole or decimal'),
     Fraction: QuantifiedNP('number', attributive='whole, decimal, or fractional'),
@@ -85,7 +84,7 @@ BUCKET_DESCRIPTIONS = {
     commands.BucketType.role: 'for each role',
 }
 
-_Converter = Union[Converter, Type[Converter]]
+_Converter = Union[Converter, type[Converter]]
 
 CheckPredicate = Callable[[Circumstances], bool]
 CheckWrapper = Callable[[Command], Command]
@@ -98,13 +97,13 @@ def infinidict():
     return defaultdict(infinidict)
 
 
-def infinigetitem(d: DefaultDict, key: Tuple):
+def infinigetitem(d: defaultdict, key: tuple):
     for k in key:
         d = d[k]
     return d
 
 
-def infinisetitem(d: DefaultDict, key: Tuple, value: Any):
+def infinisetitem(d: defaultdict, key: tuple, value: Any):
     if not key:
         raise ValueError
     for k in key[:-1]:
@@ -112,7 +111,7 @@ def infinisetitem(d: DefaultDict, key: Tuple, value: Any):
     d[key[-1]] = value
 
 
-def infinidelitem(d: DefaultDict, key: Tuple):
+def infinidelitem(d: defaultdict, key: tuple):
     if not key:
         raise ValueError
     for k in key[:-1]:
@@ -125,7 +124,7 @@ class DescribedConverter(Protocol):
 
 
 class DescribedCheck(Protocol):
-    description: List[str]
+    description: list[str]
 
 
 def describe_concurrency(number: int, bucket: commands.BucketType):
@@ -139,7 +138,7 @@ def readable_perm_name(p: str) -> str:
     return p.replace('_', ' ').replace('guild', 'server').title()
 
 
-def _record_perm_check(place: str, **perms: bool) -> List[str]:
+def _record_perm_check(place: str, **perms: bool) -> list[str]:
     denied, allowed = partition(lambda t: t[1], perms.items())
     denied = [strong(readable_perm_name(s)) for s, v in denied]
     allowed = [strong(readable_perm_name(s)) for s, v in allowed]
@@ -158,7 +157,7 @@ def _record_owner_check():
 _record_server_perm_check = partial(_record_perm_check, 'server')
 _record_channel_perm_check = partial(_record_perm_check, 'channel')
 
-CHECK_TRANSLATOR: Dict[CheckDecorator, Callable[..., List[str]]] = {
+CHECK_TRANSLATOR: dict[CheckDecorator, Callable[..., list[str]]] = {
     commands.has_permissions: _record_channel_perm_check,
     commands.has_guild_permissions: _record_server_perm_check,
     commands.is_owner: _record_owner_check,
@@ -195,7 +194,7 @@ def _is_converter(annotation: _Converter) -> bool:
         return False
 
 
-def _constituent_types(annotation) -> Tuple[Type, ...]:
+def _constituent_types(annotation) -> tuple[type, ...]:
     try:
         return annotation.__args__
     except AttributeError:
@@ -205,7 +204,7 @@ def _constituent_types(annotation) -> Tuple[Type, ...]:
 @attr.s(eq=True, hash=True)
 class Argument:
     key: str = attr.ib(order=False)
-    annotation: Type | _Converter = attr.ib(order=False)
+    annotation: type | _Converter = attr.ib(order=False)
     accepts: QuantifiedNP = attr.ib(order=False)
     greedy: bool = attr.ib(order=False)
     final: bool = attr.ib(order=False)
@@ -301,7 +300,7 @@ class Argument:
         return argument
 
     @classmethod
-    def infer_accepts(cls, annotation: Type | DescribedConverter) -> QuantifiedNP:
+    def infer_accepts(cls, annotation: type | DescribedConverter) -> QuantifiedNP:
         if _is_type_union(annotation):
             return cls.infer_union_type(annotation)
         defined = TYPE_DESCRIPTIONS.get(annotation)
@@ -330,7 +329,7 @@ class Argument:
 
 @attr.s(eq=True, hash=True)
 class CommandSignature:
-    arguments: Tuple[Argument, ...] = attr.ib(converter=lambda args: tuple(sorted(args)))
+    arguments: tuple[Argument, ...] = attr.ib(converter=lambda args: tuple(sorted(args)))
     description: str = attr.ib(default='', hash=False)
 
     def as_synopsis(self) -> str:
@@ -339,7 +338,7 @@ class CommandSignature:
     def as_node(self) -> str:
         return ' '.join(filter(None, (arg.as_node() for arg in self.arguments)))
 
-    def as_frozenset(self) -> Tuple[str, ...]:
+    def as_frozenset(self) -> tuple[str, ...]:
         return frozenset(arg.key for arg in self.arguments if not arg.is_hidden)
 
 
@@ -350,22 +349,22 @@ class Documentation:
 
     call_sign: str = attr.ib()
     description: str = attr.ib(default='(no description)')
-    synopsis: Tuple[str, ...] = attr.ib(converter=tuple, default=('(no synopsis)',))
+    synopsis: tuple[str, ...] = attr.ib(converter=tuple, default=('(no synopsis)',))
 
-    examples: Dict[str, str] = attr.ib(factory=dict)
-    discussions: Dict[str, str] = attr.ib(factory=dict)
+    examples: dict[str, str] = attr.ib(factory=dict)
+    discussions: dict[str, str] = attr.ib(factory=dict)
 
-    invocations: OrderedDict[FrozenSet[str], CommandSignature] = attr.ib(default=None)
+    invocations: OrderedDict[frozenset[str], CommandSignature] = attr.ib(default=None)
     arguments: OrderedDict[str, Argument] = attr.ib(factory=OrderedDict, converter=OrderedDict)
-    subcommands: Dict[str, Documentation] = attr.ib(factory=dict)
-    restrictions: List[str] = attr.ib(factory=list)
+    subcommands: dict[str, Documentation] = attr.ib(factory=dict)
+    restrictions: list[str] = attr.ib(factory=list)
 
     hidden: bool = attr.ib(default=False)
     standalone: bool = attr.ib(default=False)
-    aliases: List[str] = attr.ib(factory=list)
-    invalid_syntaxes: Set[FrozenSet[str]] = attr.ib(factory=set)
+    aliases: list[str] = attr.ib(factory=list)
+    invalid_syntaxes: set[frozenset[str]] = attr.ib(factory=set)
 
-    sections: Dict[str, str] = attr.ib(factory=dict)
+    sections: dict[str, str] = attr.ib(factory=dict)
     frozen: bool = attr.ib(default=False)
 
     @classmethod
@@ -377,7 +376,7 @@ class Documentation:
         doc.infer_arguments(cmd.params)
         return doc
 
-    def iter_call_styles(self, options: Deque[Argument] = None, stack: List[Argument] = None):
+    def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
         if options is None:
             options = deque(self.arguments.values())
         if stack is None:
@@ -400,7 +399,7 @@ class Documentation:
             yield from self.iter_call_styles(options, stack)
             options.appendleft(stack.pop())
 
-    def format_examples(self, examples: List[Tuple[str, Optional[str]]], transform=strong) -> str:
+    def format_examples(self, examples: list[tuple[str, Optional[str]]], transform=strong) -> str:
         if not examples:
             return '(none)'
         lines = []
@@ -410,7 +409,7 @@ class Documentation:
                 lines.append(blockquote(explanation))
         return '\n'.join(lines)
 
-    def infer_arguments(self, args: Dict[str, Parameter]):
+    def infer_arguments(self, args: dict[str, Parameter]):
         # Cannot use ismethod
         # Always skip the first argument which is either self/cls or context
         # If it is self/cls, ignore subsequent ones
@@ -498,7 +497,7 @@ class Documentation:
         if sections['Description'] == '(no description)':
             log.warning(MissingDescription(self.call_sign))
 
-    def generate_help(self, style: str) -> Tuple[Embed, str]:
+    def generate_help(self, style: str) -> tuple[Embed, str]:
         title, chapters = self.HELP_STYLES[style]
         sections = [(k, self.sections.get(k)) for k in chapters]
         sections = [(k, v) for k, v in sections if v]
@@ -511,11 +510,11 @@ class Documentation:
         text_help = page_plaintext(**kwargs)
         return rich_help, text_help
 
-    def format_argument_highlight(self, args: List, kwargs: Dict, color='white') -> Tuple[str, Argument]:
-        args: Deque = deque(args)
-        kwargs: Deque = deque(kwargs.items())
-        arguments: Deque = deque([*split_at(sorted(self.arguments.items(), key=lambda t: t[1]), lambda t: t[1].is_hidden)][-1])
-        stack: List[str] = []
+    def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Argument]:
+        args: deque = deque(args)
+        kwargs: deque = deque(kwargs.items())
+        arguments: deque = deque([*split_at(sorted(self.arguments.items(), key=lambda t: t[1]), lambda t: t[1].is_hidden)][-1])
+        stack: list[str] = []
         while args:
             if isinstance(args.popleft(), (Circumstances, Cog)):
                 continue
@@ -584,8 +583,8 @@ def argument(arg: str, help: str = '', *, node: str = '',
 
 
 @deferred(1)
-def invocation(signature: Tuple[str, ...], desc: str | Literal[False]):
-    signature: FrozenSet[str] = frozenset(signature)
+def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
+    signature: frozenset[str] = frozenset(signature)
 
     def wrapper(f: Instruction):
         f.doc.ensure_signatures()
@@ -620,12 +619,10 @@ def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> Che
     return wrapper
 
 
-@deferred(1)
-def hidden():
-    def wrapper(f: Instruction):
-        f.doc.hidden = True
-        return f
-    return wrapper
+@deferred
+def hidden(f: Instruction):
+    f.doc.hidden = True
+    return f
 
 
 @deferred(1)
@@ -678,11 +675,11 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
 
 @attr.s
 class Manual:
-    commands: Dict[str, Documentation] = attr.ib(factory=dict)
-    sections: Dict[str, List[str]] = attr.ib(factory=lambda: defaultdict(list))
-    aliases: Dict[str, str] = attr.ib(factory=dict)
+    commands: dict[str, Documentation] = attr.ib(factory=dict)
+    sections: dict[str, list[str]] = attr.ib(factory=lambda: defaultdict(list))
+    aliases: dict[str, str] = attr.ib(factory=dict)
 
-    toc: Dict[str, str] = attr.ib(factory=dict)
+    toc: dict[str, str] = attr.ib(factory=dict)
     toc_embed: Embed = attr.ib(default=None)
     toc_text: str = attr.ib(default=None)
 
@@ -702,9 +699,9 @@ class Manual:
             man.sections[section].append(call)
         return man
 
-    def propagate_restrictions(self, tree: Dict[str, Documentation],
-                               stack: List[List[str]],
-                               seen: Set[str]):
+    def propagate_restrictions(self, tree: dict[str, Documentation],
+                               stack: list[list[str]],
+                               seen: set[str]):
         for call_sign, doc in tree.items():
             if call_sign in seen:
                 continue
@@ -716,7 +713,7 @@ class Manual:
             stack.pop()
 
     def register_aliases(self):
-        aliases: Dict[str, List[str]] = defaultdict(list)
+        aliases: dict[str, list[str]] = defaultdict(list)
         for call_sign, doc in self.commands.items():
             aliased_prefixes = [*aliases[doc.parent]]
             aliased_prefixes.append(doc.parent)
@@ -762,7 +759,7 @@ class Manual:
                 match = match[0]
             raise NoSuchCommand(query, match)
 
-    def hidden_commands(self) -> Dict[str, Documentation]:
+    def hidden_commands(self) -> dict[str, Documentation]:
         return {k: v for k, v in self.commands.items() if v.hidden}
 
     @instruction('help', aliases=['man', 'man:tty'])

@@ -17,10 +17,10 @@
 from __future__ import annotations
 
 from functools import wraps
-from typing import Callable, Coroutine, Dict, List
+from typing import Callable, Coroutine
 
 from asgiref.sync import sync_to_async
-from discord import Embed, Guild, Member, Message, User, AllowedMentions
+from discord import AllowedMentions, Embed, Guild, Member, Message, User
 from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
@@ -63,7 +63,7 @@ class Circumstances(Context):
         self.message: Message | Messageable
         self.command: Instruction
         self.invoked_with: str
-        self.invoked_parents: List[str]
+        self.invoked_parents: list[str]
         self.invoked_subcommand: Instruction | None
 
         self.author: Member | Messageable
@@ -85,7 +85,7 @@ class Circumstances(Context):
 
     @property
     @_guard('Context is missing server instance')
-    def log_config(self) -> Dict:
+    def log_config(self) -> dict:
         return self._logging_conf
 
     async def init(self):

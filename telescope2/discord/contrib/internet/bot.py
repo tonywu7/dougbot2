@@ -21,13 +21,13 @@ from typing import Literal, Optional
 import aiohttp
 from discord.ext.commands import BucketType, Greedy
 
+from telescope2.discord import documentation as doc
+from telescope2.discord.command import ensemble
+from telescope2.discord.context import Circumstances
+from telescope2.discord.converters import RegExp
+from telescope2.discord.extension import Gear
 from telescope2.utils.lang import pluralize
 
-from ... import documentation as doc
-from ...command import ensemble
-from ...context import Circumstances
-from ...converters import RegExp
-from ...extension import Gear
 from .utils import OEIS
 
 

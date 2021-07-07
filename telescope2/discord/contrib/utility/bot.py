@@ -24,14 +24,15 @@ from discord.ext.commands import Greedy, has_guild_permissions
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
-from ... import documentation as doc
-from ...bot import Robot
-from ...command import instruction
-from ...context import Circumstances
-from ...converters import PermissionName
-from ...extension import Gear
-from ...utils.markdown import code, strong, tag, traffic_light
-from ...utils.models import HypotheticalMember, HypotheticalRole
+from telescope2.discord import documentation as doc
+from telescope2.discord.bot import Robot
+from telescope2.discord.command import instruction
+from telescope2.discord.context import Circumstances
+from telescope2.discord.converters import PermissionName
+from telescope2.discord.extension import Gear
+from telescope2.discord.utils.markdown import code, strong, tag, traffic_light
+from telescope2.discord.utils.models import (HypotheticalMember,
+                                             HypotheticalRole)
 
 
 class Utilities(Gear):

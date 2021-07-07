@@ -17,9 +17,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Iterable
 from operator import itemgetter
-from typing import (Callable, Iterable, List, Literal, Optional, Tuple, Union,
-                    overload)
+from typing import Literal, Optional, Union, overload
 
 from discord import Member, Permissions, Role
 from discord.abc import GuildChannel
@@ -33,7 +33,7 @@ from .utils.markdown import code
 from .utils.models import HypotheticalRole
 
 
-def _unpack_varargs(item: Tuple, names: List[str], **defaults):
+def _unpack_varargs(item: tuple, names: list[str], **defaults):
     if not isinstance(item, tuple):
         item = (item,)
     unpacked = {**defaults, **dict(zip(names, item))}
@@ -106,7 +106,7 @@ class Constant(Converter):
 
 
 class Choice(Converter):
-    def __class_getitem__(cls, item: Tuple[Iterable[str], str, bool]):
+    def __class_getitem__(cls, item: tuple[Iterable[str], str, bool]):
         choices, concise_name, case_sensitive = _unpack_varargs(
             item, ('choices', 'concise_name', 'case_sensitive'),
             case_sensitive=False,
@@ -141,10 +141,10 @@ class CaseInsensitive(Converter):
 
 
 class RegExp(Converter):
-    def __class_getitem__(cls, item: Tuple[str, str, str]) -> None:
+    def __class_getitem__(cls, item: tuple[str, str, str]) -> None:
         pattern, name, predicative = _unpack_varargs(
             item, ('pattern', 'name', 'predicative'),
-            concise=None, predicative=None,
+            name=None, predicative=None,
         )
         pattern: re.Pattern = re.compile(pattern)
         name = name or 'pattern'

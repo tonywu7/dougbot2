@@ -26,7 +26,7 @@ from aiohttp import ClientSession
 from discord import Embed
 from discord.utils import escape_markdown
 
-from ...utils.markdown import a, strong, trunc_for_field
+from telescope2.discord.utils.markdown import a, strong, trunc_for_field
 
 
 @attr.s

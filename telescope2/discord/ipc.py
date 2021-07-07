@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import threading
 from collections import defaultdict
-from typing import Callable, Coroutine, Dict
+from collections.abc import Callable, Coroutine
 
 from django.core.cache import caches
 
@@ -28,7 +30,7 @@ AsyncCallback = Callable[[str], Coroutine]
 class EventTarget:
     def __init__(self):
         self._lock = threading.Lock()
-        self.listeners: Dict[str, Dict[AsyncCallback, None]] = defaultdict(dict)
+        self.listeners: dict[str, dict[AsyncCallback, None]] = defaultdict(dict)
 
     def add_event_listener(self, event: str, callback: Callable[[str], AsyncCallback]):
         with self._lock:

@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Callable, Coroutine, Dict, List, Optional, Tuple
+from typing import Optional
 from urllib.parse import urlencode, urlunsplit
 
 import aiohttp
@@ -76,24 +77,24 @@ def api_endpoint(endpoint: str) -> str:
     return f'{OAUTH2_PROTOCOL}://{OAUTH2_DOMAIN}/api{endpoint}'
 
 
-def app_auth_url(req: HttpRequest) -> Tuple[str, str]:
+def app_auth_url(req: HttpRequest) -> tuple[str, str]:
     return oauth_url(req, 'identify guilds', reverse('web:create_user'))
 
 
-def bot_invite_url(req: HttpRequest, guild_id: str | int) -> Tuple[str, str]:
+def bot_invite_url(req: HttpRequest, guild_id: str | int) -> tuple[str, str]:
     from .bot import Robot
     return oauth_url(req, 'bot', reverse('web:authorized'), guild_id=guild_id,
                      permissions=Robot.DEFAULT_PERMS.value, disable_guild_select='true')
 
 
 class DiscordRateLimiter:
-    rate_reset_time: Dict[Tuple[str, str], float] = {}
+    rate_reset_time: dict[tuple[str, str], float] = {}
 
-    def __setitem__(self, route: Tuple[str, str], timestamp: float):
+    def __setitem__(self, route: tuple[str, str], timestamp: float):
         self.rate_reset_time[route] = timestamp
 
     @asynccontextmanager
-    async def __call__(self, route: Tuple[str, str]):
+    async def __call__(self, route: tuple[str, str]):
         now = utctimestamp()
         timeout = self.rate_reset_time.get(route, 0) - now
         try:
@@ -119,7 +120,7 @@ class DiscordCache:
         method, url = endpoint
         return f'buffer:{self.user_id}:{method}:{url}'
 
-    def __setitem__(self, endpoint: Tuple[str, str], data: Dict):
+    def __setitem__(self, endpoint: tuple[str, str], data: dict):
         if self.nocache or self.user_id == -1:
             return
         key = self._key(endpoint)
@@ -127,7 +128,7 @@ class DiscordCache:
         if ttl:
             cache.set(key, data, timeout=ttl)
 
-    def __getitem__(self, endpoint: Tuple[str, str]) -> Optional[Dict]:
+    def __getitem__(self, endpoint: tuple[str, str]) -> Optional[dict]:
         if self.nocache or self.user_id == -1:
             return
         key = self._key(endpoint)
@@ -158,7 +159,7 @@ class DiscordFetch:
         self._refresh = refresh_token
         self._session = self._session or create_session()
 
-    async def request_token(self, form: aiohttp.FormData) -> Optional[Dict]:
+    async def request_token(self, form: aiohttp.FormData) -> Optional[dict]:
         async with self._session.post('https://discordapp.com/api/oauth2/token', data=form) as res:
             data = await res.json()
         if 'access_token' in data:
@@ -166,7 +167,7 @@ class DiscordFetch:
             return data
         return None
 
-    async def exchange_tokens(self, req: HttpRequest, code: str) -> Optional[Dict]:
+    async def exchange_tokens(self, req: HttpRequest, code: str) -> Optional[dict]:
         form = aiohttp.FormData()
         form.add_field('client_id', settings.DISCORD_CLIENT_ID)
         form.add_field('client_secret', settings.DISCORD_CLIENT_SECRET)
@@ -175,7 +176,7 @@ class DiscordFetch:
         form.add_field('redirect_uri', complete_endpoint(req, reverse('web:create_user')))
         return await self.request_token(form)
 
-    async def refresh_tokens(self, refresh_token: str) -> Optional[Dict]:
+    async def refresh_tokens(self, refresh_token: str) -> Optional[dict]:
         form = aiohttp.FormData()
         form.add_field('client_id', settings.DISCORD_CLIENT_ID)
         form.add_field('client_secret', settings.DISCORD_CLIENT_SECRET)
@@ -210,7 +211,7 @@ class DiscordFetch:
         await asyncio.sleep(sec)
         self._ratelimit.set()
 
-    async def _request(self, method: str, url: str, retry=5, **options) -> Optional[Dict]:
+    async def _request(self, method: str, url: str, retry=5, **options) -> Optional[dict]:
         cached = self._cache[method, url]
         if cached is not None:
             return cached
@@ -237,7 +238,7 @@ class DiscordFetch:
                     except Exception:
                         return None
 
-    async def get(self, endpoint: str) -> Optional[Dict]:
+    async def get(self, endpoint: str) -> Optional[dict]:
         return await self._request('GET', api_endpoint(endpoint), headers={'Authorization': f'Bearer {self._access}'})
 
     async def autorefresh(self, coro_func: Callable[[], Coroutine]):
@@ -251,7 +252,7 @@ class DiscordFetch:
             self._refresh = tokens['refresh_token']
             return await self.autorefresh(coro_func)
 
-    async def fetch_user_guilds(self) -> List[PartialGuild]:
+    async def fetch_user_guilds(self) -> list[PartialGuild]:
         guilds = await self.autorefresh(lambda: self.get('/users/@me/guilds'))
         if guilds is None:
             return None
@@ -277,7 +278,7 @@ class PartialUser:
     icon: str
 
     @classmethod
-    def from_dict(cls, data: Dict):
+    def from_dict(cls, data: dict):
         return cls(id=data['id'], name=data['username'], icon=data['avatar'])
 
     @property
@@ -296,7 +297,7 @@ class PartialGuild:
     perms: Optional[Permissions]
 
     @classmethod
-    def from_dict(cls, data: Dict):
+    def from_dict(cls, data: dict):
         return cls(id=data['id'], name=data['name'],
                    icon=data['icon'], perms=data['permissions'])
 

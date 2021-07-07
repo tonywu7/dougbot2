@@ -1,9 +1,8 @@
 from django.utils.functional import classproperty
 from django.utils.safestring import mark_safe
 
+from telescope2.discord.extension import Gear
 from telescope2.web.config import CommandAppConfig
-
-from ...extension import Gear
 
 
 class BotUtilityConfig(CommandAppConfig):

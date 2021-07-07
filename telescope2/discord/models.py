@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from operator import attrgetter, itemgetter
-from typing import Dict, Generic, Iterable, List, Protocol, TypeVar, Union
+from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
@@ -137,7 +138,7 @@ class ModelTranslator(Generic[T, U]):
         raise NotImplementedError
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         raise NotImplementedError
 
 
@@ -169,7 +170,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
         )
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         return ['name', 'discriminator']
 
 
@@ -189,10 +190,10 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
 
-    logging: Dict = models.JSONField(verbose_name='logging config', default=dict)
+    logging: dict = models.JSONField(verbose_name='logging config', default=dict)
 
     @property
-    def extensions(self) -> Dict[str, CommandAppConfig]:
+    def extensions(self) -> dict[str, CommandAppConfig]:
         if not self._extensions:
             return {}
         exts = self._extensions.split(',')
@@ -220,7 +221,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
         )
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         return ['perms']
 
 
@@ -240,7 +241,7 @@ class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
         )
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         return ['name', 'type']
 
 
@@ -260,7 +261,7 @@ class Member(Entity, ModelTranslator[discord.Member, 'Member']):
         )
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         return ['nickname']
 
 
@@ -282,7 +283,7 @@ class Role(Entity, ModelTranslator[discord.Role, 'Role']):
         )
 
     @classmethod
-    def updatable_fields(cls) -> List[str]:
+    def updatable_fields(cls) -> list[str]:
         return ['name', 'color', 'perms']
 
 
@@ -322,7 +323,7 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
     error_msg: str = models.TextField(blank=True, verbose_name='error message')
 
     @classmethod
-    def calc_specificity(cls, constraint_type: int, channels: List, commands: List):
+    def calc_specificity(cls, constraint_type: int, channels: list, commands: list):
         return (
             ((constraint_type == ConstraintType.NONE.value) << 2)
             + (bool(channels) << 1)
@@ -330,12 +331,12 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
         )
 
     @classmethod
-    def gen_error_message(cls, constraint_type: int, roles: List[Role]) -> str:
+    def gen_error_message(cls, constraint_type: int, roles: list[Role]) -> str:
         ctype = {0: 'none of', 1: 'any of', 2: 'all of'}[constraint_type]
         role_names = ' '.join([tag_literal('role', r.snowflake) for r in roles])
         return f'{strong(ctype)} {role_names}'
 
-    def from_dict(self, data: Dict):
+    def from_dict(self, data: dict):
         self.name = data['name']
         self.type = data['type']
         channels = data['channels']

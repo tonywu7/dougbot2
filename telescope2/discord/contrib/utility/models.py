@@ -17,7 +17,7 @@
 from django.db import models
 from django.db.models import CASCADE
 
-from ...models import Role, User
+from telescope2.discord.models import Role, User
 
 
 class Timezone(models.Model):
