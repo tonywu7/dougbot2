@@ -79,7 +79,7 @@ export function cloneNode<T extends Node>(node: T, arg: boolean = true): T {
 }
 
 export function getTemplate(id: string, rootElement: string): HTMLElement {
-    return cloneNode((document.querySelector(`template#${id}`) as HTMLTemplateElement).content).querySelector(
+    return cloneNode(document.querySelector<HTMLTemplateElement>(`template#${id}`)!.content).querySelector(
         rootElement
     ) as HTMLElement
 }

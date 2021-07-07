@@ -19,12 +19,12 @@ import { homepage } from './main'
 
 import * as util from './util'
 
-export var discord: DiscordClient
+export let discord: DiscordClient
 
 async function discordOAuth2() {
-    let authInfoContainer = document.querySelector('#discord-oauth2') as HTMLElement
+    let authInfoContainer = document.querySelector('#discord-oauth2')
     if (!authInfoContainer) return
-    let authInfo = authInfoContainer.querySelector('form') as HTMLFormElement
+    let authInfo = authInfoContainer.querySelector<HTMLFormElement>('form')!
     let loginForm: FormData
     try {
         loginForm = new FormData(authInfo)
@@ -58,7 +58,7 @@ async function discordOAuth2() {
 }
 
 async function initDiscord() {
-    let userInfoElem = document.querySelector('#user-info') as HTMLElement
+    let userInfoElem = document.querySelector<HTMLElement>('#user-info')
     if (!userInfoElem) return
 
     let accessToken = userInfoElem.dataset.accessToken

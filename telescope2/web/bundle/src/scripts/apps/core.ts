@@ -18,7 +18,7 @@ import { D3ItemList } from '../responsive'
 
 function widgetPrefixLiveUpdate() {
     let prefix: string = ''
-    let input = document.querySelector('input#id_prefix') as HTMLInputElement
+    let input = document.querySelector<HTMLInputElement>('input#id_prefix')!
     if (!input) return
     let updatePrefixes = () => {
         prefix = input.value

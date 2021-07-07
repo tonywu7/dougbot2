@@ -20,12 +20,11 @@ import { AsyncModelForm } from './form'
 
 import { BotData } from './bot'
 
-export var renderer: TemplateRenderer
-
-export var datasources: DataSources
+export let renderer: TemplateRenderer
+export let datasources: DataSources
 
 export function homepage(): string {
-    return (document.querySelector('#site-name a') as HTMLAnchorElement).href
+    return document.querySelector<HTMLAnchorElement>('#site-name a')!.href
 }
 
 function initTopMenu() {
@@ -47,7 +46,7 @@ function initWidgets() {
 }
 
 function initTemplates() {
-    renderer = new TemplateRenderer(document.querySelector('#template-container') as HTMLElement)
+    renderer = new TemplateRenderer(document.querySelector<HTMLElement>('#template-container')!)
 }
 
 function displayServerMessages() {

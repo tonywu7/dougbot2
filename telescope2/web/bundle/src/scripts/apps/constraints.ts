@@ -61,18 +61,18 @@ export class CommandConstraintForm extends AsyncModelForm {
         this.id = data.id
         this.guildId = data.guild
 
-        this.title = this.form?.querySelector('.constraint-title input') as HTMLInputElement
+        this.title = this.form?.querySelector<HTMLInputElement>('.constraint-title input')!
         this.title.value = data.name
 
-        this.type = this.form?.querySelector('.command-constraint-type') as HTMLSelectElement
+        this.type = this.form?.querySelector<HTMLSelectElement>('.command-constraint-type')!
         this.type.value = data.type.toString()
         createFlexSelect(this.type.parentElement as HTMLElement)
 
-        this.channels = new D3ItemList(this.form?.querySelector('.channel-list') as HTMLElement)
-        this.commands = new D3ItemList(this.form?.querySelector('.command-list') as HTMLElement)
-        this.roles = new D3ItemList(this.form?.querySelector('.role-list') as HTMLElement)
+        this.channels = new D3ItemList(this.form?.querySelector<HTMLElement>('.channel-list')!)
+        this.commands = new D3ItemList(this.form?.querySelector<HTMLElement>('.command-list')!)
+        this.roles = new D3ItemList(this.form?.querySelector<HTMLElement>('.role-list')!)
 
-        this.deleteButton = this.container.querySelector('.btn-delete') as HTMLButtonElement
+        this.deleteButton = this.container.querySelector<HTMLButtonElement>('.btn-delete')!
         this.deleteButton.addEventListener('click', this.deleteListener.bind(this))
 
         initTooltips(this.container)
@@ -210,11 +210,11 @@ export class CommandConstraintForm extends AsyncModelForm {
         this.channels.setInputId(`ccform-${this.id}-channels`)
         this.commands.setInputId(`ccform-${this.id}-commands`)
         this.roles.setInputId(`ccform-${this.id}-roles`)
-        let fields = this.form?.querySelector('.form-fields') as HTMLElement
+        let fields = this.form!.querySelector<HTMLElement>('.form-fields')!
         fields.id = `ccform-${this.id}--formfields`
-        ;(this.container.querySelector('.channels label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-channels`
-        ;(this.container.querySelector('.commands label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-commands`
-        ;(this.container.querySelector('.roles label') as HTMLLabelElement).htmlFor = `ccform-${this.id}-roles`
+        this.container.querySelector<HTMLLabelElement>('.channels label')!.htmlFor = `ccform-${this.id}-channels`
+        this.container.querySelector<HTMLLabelElement>('.commands label')!.htmlFor = `ccform-${this.id}-commands`
+        this.container.querySelector<HTMLLabelElement>('.roles label')!.htmlFor = `ccform-${this.id}-roles`
     }
 }
 
@@ -274,7 +274,7 @@ class CommandConstraintList extends AsyncModelForm {
     }
 
     protected getCSRF(): string {
-        let csrf = this.container.querySelector('input[type="hidden"][name="csrfmiddlewaretoken"]') as HTMLInputElement
+        let csrf = this.container.querySelector<HTMLInputElement>('input[type="hidden"][name="csrfmiddlewaretoken"]')!
         return csrf.value
     }
 
@@ -395,10 +395,10 @@ class CommandConstraintPreviewer {
         this.form = container.querySelector('form')!
         this.endpoint = this.form.action
 
-        this.channel = new D3ItemList(this.container.querySelector('.channel-list') as HTMLElement)
-        this.command = new D3ItemList(this.container.querySelector('.command-list') as HTMLElement)
-        this.roles = new D3ItemList(this.container.querySelector('.role-list') as HTMLElement)
-        this.result = this.container.querySelector('.test-result') as HTMLElement
+        this.channel = new D3ItemList(this.container.querySelector<HTMLElement>('.channel-list')!)
+        this.command = new D3ItemList(this.container.querySelector<HTMLElement>('.command-list')!)
+        this.roles = new D3ItemList(this.container.querySelector<HTMLElement>('.role-list')!)
+        this.result = this.container.querySelector<HTMLElement>('.test-result')!
 
         this.container.querySelector('.btn-submit')?.addEventListener('click', this.run.bind(this))
 
@@ -451,9 +451,9 @@ class CommandConstraintPreviewer {
 }
 
 export function init() {
-    let formlist = document.querySelector('#constraint-form-list') as HTMLElement
+    let formlist = document.querySelector<HTMLElement>('#constraint-form-list')
     if (!formlist) return
     let list = new CommandConstraintList(formlist)
-    let preview = document.querySelector('#constraint-inspector') as HTMLElement
+    let preview = document.querySelector<HTMLElement>('#constraint-inspector')!
     new CommandConstraintPreviewer(preview, list)
 }

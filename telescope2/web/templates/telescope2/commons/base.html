@@ -22,17 +22,13 @@
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://code.jquery.com">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500;700&family=Inter:wght@100;300;400;500;600;700;900&family=Zilla+Slab:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap"
         rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
-    <!-- <link rel="stylesheet" type="text/css" href="{% static '/bundle/styles/index.css' %}"> -->
     {% endblock %}
 
     {% block scripts %}
@@ -50,18 +46,13 @@
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/mustache@4.2.0/mustache.min.js"
         integrity="sha256-1/0GA1EkYejtvYFoa+rSq4LfM4m5zKI13Z1bQIhI4Co=" crossorigin="anonymous"></script>
-    <script src="{% static '/telescope2/index.js' %}">
-    </script>
+    <script src="{% static '/telescope2/index.js' %}"></script>
     {% endblock %}
 </head>
 
 <body data-viewname="{% viewname %}">
     <section class="masthead-container">
         {% include 'telescope2/commons/masthead.html' %}
-    </section>
-    <section class="top-container">
-        {% block top %}
-        {% endblock %}
     </section>
     <section class="main-container">
         <aside class="main-sidebar accordion accordion-flush" id="sidebar">

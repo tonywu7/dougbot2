@@ -1,5 +1,5 @@
 function setSocketStatus(connected: boolean) {
-    let indicator = document.querySelector('#socket-status') as HTMLSpanElement
+    let indicator = document.querySelector('#socket-status')
     if (!indicator) return
     indicator.innerHTML = `<i class="bi bi-circle-fill"></i>${connected ? 'connected' : 'disconnected'}`
     if (connected) {

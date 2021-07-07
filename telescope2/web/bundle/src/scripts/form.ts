@@ -80,7 +80,7 @@ export class AsyncModelForm extends ResponsiveForm {
     }
 
     protected initSubmitListener() {
-        let button = this.form?.querySelector('.async-form-submit') as HTMLButtonElement
+        let button = this.form?.querySelector('.async-form-submit')
         if (!button) return
         button.addEventListener('click', async () => {
             await this.submit()
@@ -88,7 +88,7 @@ export class AsyncModelForm extends ResponsiveForm {
     }
 
     protected getCSRF(): string {
-        let csrf = this.form?.querySelector('input[type="hidden"][name="csrfmiddlewaretoken"]') as HTMLInputElement
+        let csrf = this.form?.querySelector<HTMLInputElement>('input[type="hidden"][name="csrfmiddlewaretoken"]')
         if (!csrf) {
             throw new Error(`No CSRF token found for form ${this.form}`)
         }
@@ -188,7 +188,7 @@ export class AsyncModelForm extends ResponsiveForm {
 }
 
 export function getCSRF(elem: HTMLElement) {
-    let csrf = elem.querySelector('input[type="hidden"][name="csrfmiddlewaretoken"]') as HTMLInputElement
+    let csrf = elem.querySelector<HTMLInputElement>('input[type="hidden"][name="csrfmiddlewaretoken"]')
     if (!csrf) {
         throw new Error(`No CSRF token found for form ${elem}`)
     }
