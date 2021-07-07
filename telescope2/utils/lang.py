@@ -134,32 +134,32 @@ class QuantifiedNP:
         if self.definite:
             art = 'the'
         else:
-            art = inflection.a(self.attr_singular or self.nouns_singular).split(" ")[0]
+            art = inflection.a(self.attr_singular or self.nouns_singular).split(' ')[0]
         return f'{art} {term}{self.predicative}'
 
     def one(self):
-        return self._formatted('one ', self.attr_singular, self.nouns_singular, self.predicative)
+        return f'one {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def one_of(self):
-        return self._formatted('one of ', self.attr_singular, self.nouns_singular, self.predicative)
+        return f'one of {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def no(self):
-        return self._formatted('no ', self.attr_singular, self.nouns_singular, self.predicative)
+        return f'no {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def zero_or_more(self):
-        return self._formatted('zero or more ', self.attr_plural, self.nouns_plural, self.predicative)
+        return f'zero or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
 
     def one_or_more(self):
-        return self._formatted('one or more ', self.attr_plural, self.nouns_plural, self.predicative)
+        return f'one or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
 
     def some(self):
-        return self._formatted('some ', self.attr_singular, self.nouns_singular, self.predicative)
+        return f'some {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def bare(self):
-        return self._formatted('', self.attr_singular, self.nouns_singular, '')
+        return f'{self.attr_singular}{self.nouns_singular}'
 
     def bare_pl(self):
-        return self._formatted('', self.attr_plural, self.nouns_plural, '')
+        return f'{self.attr_plural}{self.nouns_plural}'
 
     def __or__(self, other: QuantifiedNP) -> QuantifiedNP:
         if not isinstance(other, QuantifiedNP):

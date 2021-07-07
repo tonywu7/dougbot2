@@ -19,6 +19,11 @@ from django.db import transaction
 
 
 class async_atomic:
+    """An async version of the `django.db.transaction.atomic` context manager.
+
+    Usage: `async with async_atomic(): ...`
+    """
+
     @sync_to_async
     def __aenter__(self):
         transaction.atomic().__enter__()

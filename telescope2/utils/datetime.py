@@ -14,19 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-import udatetime
 from django.utils.timezone import get_current_timezone
 
 
 def localnow() -> datetime:
+    """Return an aware `datetime` set to current local time, per Django settings."""
     return datetime.now(tz=get_current_timezone())
 
 
 def utcnow() -> datetime:
-    return udatetime.utcnow()
+    """Return an aware `datetime` set to current UTC time."""
+    return datetime.now(tz=timezone.utc)
 
 
 def utctimestamp() -> float:
-    return udatetime.utcnow().timestamp()
+    """Return the current POSIX UTC timestamp."""
+    return datetime.now(tz=timezone.utc).timestamp()
