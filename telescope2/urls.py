@@ -2,7 +2,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path
 from django.views.generic.base import RedirectView
 
-from telescope2_admin.site import create_admin_site
+from ts2admin.site import create_admin_site
 
 admin_site = create_admin_site('telescope2 console', [
     'telescope2.discord.admin',

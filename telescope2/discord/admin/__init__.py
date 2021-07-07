@@ -2,9 +2,9 @@ from pathlib import Path
 
 from django.contrib.admin import AdminSite
 
-from telescope2_admin.models import (BaseModelAdmin, register_all_default,
-                                     register_all_defined)
-from telescope2_admin.utils.registrar import AdminRegistrar
+from ts2admin.models import (BaseModelAdmin, register_all_default,
+                             register_all_defined)
+from ts2admin.utils.registrar import AdminRegistrar
 
 admin_ = AdminRegistrar()
 

@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'cacheops',
     'polymorphic',
     'rest_framework',
-    'telescope2_admin',
+    'ts2admin',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
