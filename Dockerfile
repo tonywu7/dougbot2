@@ -12,7 +12,7 @@ COPY environment.yml .
 RUN conda env create -f environment.yml
 
 # Run conda-pack
-RUN conda-pack -n telescope2 -o /tmp/env.tar && \
+RUN conda-pack -n ts2 -o /tmp/env.tar && \
     mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
     rm /tmp/env.tar
 RUN /venv/bin/conda-unpack
@@ -23,7 +23,7 @@ FROM node:14-alpine AS assets
 WORKDIR /application
 COPY . /application
 
-WORKDIR /application/telescope2/web/bundle
+WORKDIR /application/ts2/web/bundle
 RUN npm install -g npm@latest && npm i && NODE_ENV=production npm run build && npm prune --production
 
 # Initialize instance data
@@ -36,10 +36,10 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=telescope2.settings.production
+ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
 
 WORKDIR /application
 RUN NO_CACHE=true ./bin/setup
 
-RUN adduser -u 5555 --disabled-password --gecos "" telescope2 && chown -R telescope2 /application
-USER telescope2
+RUN adduser -u 5555 --disabled-password --gecos "" ts2 && chown -R ts2 /application
+USER ts2

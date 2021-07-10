@@ -3,7 +3,7 @@ source /venv/bin/activate
 
 if [[ $1 == "web" ]];
 then
-    daphne -b :: -p 8086 telescope2.asgi:application;
+    daphne -b :: -p 8086 ts2.asgi:application;
 elif [[ $1 == "bot" ]]
 then
     python3 manage.py runclient;
