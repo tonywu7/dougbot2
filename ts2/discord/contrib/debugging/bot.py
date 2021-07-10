@@ -128,7 +128,7 @@ class Debugging(Gear):
     async def _tokenizer(self, ctx: Circumstances, *args: str):
         await ctx.send('\n'.join([f'{idx}. {s}' for idx, s in enumerate(args)]))
 
-    # @instruction('444')
+    @instruction('444')
     @doc.description('Globally forbid a user from interacting with the bot.')
     @doc.discussion('Detail', (
         f'All command invocations are ignored and all events (including {code("on_message")})'

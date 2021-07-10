@@ -22,10 +22,10 @@ from urllib.parse import urlencode, urlunsplit
 
 import attr
 from aiohttp import ClientSession
-from discord import Embed
 from discord.utils import escape_markdown
 
-from ts2.discord.utils.markdown import a, strong, trunc_for_field
+from ts2.discord.utils.markdown import a, strong
+from ts2.discord.utils.pagination import Embed2, trunc_for_field
 
 
 @attr.s
@@ -54,17 +54,17 @@ class OEISEntry:
     def description(self) -> str:
         return trunc_for_field(', '.join([str(n) for n in self.data]))
 
-    def to_embed(self) -> Embed:
-        embed = (Embed(title=self.title, description=self.description)
-                 .add_field(name='Source', value=a(self.url, 'View on OEIS')))
+    def to_embed(self) -> Embed2:
+        embed = (
+            Embed2(title=self.title, description=self.description, timestamp=self.created)
+            .add_field(name='Source', value=a(self.url, 'View on OEIS'))
+            .set_author(name='The On-Line Encyclopedia of Integer Sequences®',
+                        icon_url='https://oeis.org/oeis_logo.png',
+                        url=self.url)
+            .set_footer(text='Created')
+        )
         if self.author:
-            embed.add_field(name='Author', value=self.author)
-        # if self.formula:
-        #     embed.add_field(name='Formula', value='\n'.join([code(f) for f in limit_results(self.formula, 3)]))
-        embed.set_author(name='The On-Line Encyclopedia of Integer Sequences®',
-                         icon_url='https://oeis.org/oeis_logo.png',
-                         url=self.url).set_footer(text='Created')
-        embed.timestamp = self.created
+            embed = embed.add_field(name='Author', value=self.author)
         return embed
 
     def to_text(self) -> str:

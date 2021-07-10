@@ -35,14 +35,14 @@ class Internet(Gear):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @ensemble('internet', aliases=['web', 'g'])
+    @ensemble('web', aliases=['internet', 'g'])
     @doc.description('Not Google.')
     @doc.invocation((), 'List all available sources.')
-    async def internet(self, ctx: Circumstances):
+    async def web(self, ctx: Circumstances):
         if not ctx.invoked_subcommand:
             await ctx.send_help()
 
-    @internet.instruction('oeis')
+    @web.instruction('oeis')
     @doc.description('Lookup a sequence from [OEIS](https://oeis.org/) '
                      'by its integers or by its A-number.')
     @doc.argument('integers', 'The sequence of integers to lookup, separated by space only.')
