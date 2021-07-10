@@ -47,9 +47,9 @@ from .command import Ensemble, Instruction
 from .context import Circumstances, CommandContextError
 from .documentation import Manual
 from .errors import explain_exception
-from .events import Events
 from .logging import log_command_errors
 from .models import Server
+from .utils import events
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
@@ -126,7 +126,6 @@ class Robot(Bot):
             self.add_cog(cog_cls(label, self))
 
     def _create_manual(self):
-        from .documentation import Manual
         self.manual = Manual.from_bot(self)
         self.manual.finalize()
 
@@ -284,9 +283,9 @@ def add_event_listeners(self: Robot):
             pass
 
     @self.listen('on_raw_reaction_add')
-    @Events.event_filter(Events.emote_added)
-    @Events.event_filter(Events.emote_no_bots)
-    @Events.event_filter(Events.emote_matches('🗑'))
+    @events.event_filter(sync_to_async(events.emote_added))
+    @events.event_filter(sync_to_async(events.emote_no_bots))
+    @events.event_filter(sync_to_async(events.emote_matches('🗑')))
     async def handle_reply_delete(evt: RawReactionActionEvent):
         channel: GuildChannel = self.get_channel(evt.channel_id)
         message: Message = await channel.fetch_message(evt.message_id)
@@ -320,6 +319,10 @@ def add_event_listeners(self: Robot):
     async def update_server(before: Guild, after: Guild):
         self.log.info(f'Updating server info for {after}')
         await self.sync_server(after, roles=False, channels=False, layout=False)
+
+    @self.listen('on_ready')
+    async def update_all_servers():
+        await asyncio.gather(*[self.sync_server(g) for g in self.guilds])
 
 
 def register_base_commands(self: Robot):

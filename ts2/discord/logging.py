@@ -31,7 +31,8 @@ from ts2.utils.datetime import localnow, utcnow
 
 from . import command, constraint, extension
 from .context import Circumstances, CommandContextError
-from .utils.markdown import tag, trunc_for_field, unmarked, untagged
+from .utils.markdown import tag, unmarked, untagged
+from .utils.pagination import trunc_for_field
 
 
 class _LoggingConf(TypedDict):

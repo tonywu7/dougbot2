@@ -37,8 +37,8 @@ from ts2.discord.context import Circumstances
 from ts2.discord.converters import Choice, InvalidSyntax
 from ts2.discord.documentation import NotAcceptable
 from ts2.discord.extension import Gear
-from ts2.discord.utils.markdown import (ParagraphStream, a, chapterize, strong,
-                                        tag, tag_literal)
+from ts2.discord.utils.markdown import a, strong, tag, tag_literal
+from ts2.discord.utils.pagination import ParagraphStream, chapterize
 from ts2.utils.datetime import utcnow
 from ts2.utils.db import async_atomic
 

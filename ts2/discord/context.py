@@ -20,7 +20,8 @@ from collections.abc import Callable, Coroutine
 from functools import wraps
 
 from asgiref.sync import sync_to_async
-from discord import AllowedMentions, Embed, Guild, Member, Message, User
+from discord import (AllowedMentions, Embed, Guild, Member, Message,
+                     TextChannel, User)
 from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
@@ -68,6 +69,7 @@ class Circumstances(Context):
 
         self.author: Member | Messageable
         self.guild: Guild
+        self.channel: TextChannel
 
         self.bot: Robot
         self.manual: Manual = self.bot.manual
@@ -117,12 +119,13 @@ class Circumstances(Context):
             await msg.add_reaction('🗑')
         except Forbidden:
             pass
+        return msg
 
-    async def reply_with_text_fallback(self, embed: Embed, text: str, **kwargs):
+    async def reply_with_text_fallback(self, embed: Embed, text: str, **kwargs) -> tuple[Message, bool]:
         try:
-            return await self.reply_with_delete(embed=embed, **kwargs)
+            return await self.reply_with_delete(embed=embed, **kwargs), True
         except Forbidden:
-            return await self.reply_with_delete(content=text, **kwargs)
+            return await self.reply_with_delete(content=text, **kwargs), False
 
     @property
     def full_invoked_with(self) -> str:

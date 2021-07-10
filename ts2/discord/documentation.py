@@ -26,7 +26,7 @@ from typing import Any, Callable, Literal, Optional, Protocol, Union
 
 import attr
 import discord
-from discord import Embed, MessageReference
+from discord import MessageReference
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Converter, Greedy
 from discord.ext.commands.errors import UserInputError
@@ -35,7 +35,6 @@ from django.utils.text import camel_case_to_spaces
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten, partition, split_at
 
-from ts2.utils.datetime import utcnow
 from ts2.utils.functional import deferred
 from ts2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
                             singularize, slugify)
@@ -44,8 +43,10 @@ from .command import (DocumentationMixin, Instruction, NoSuchCommand,
                       instruction)
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice, ReplyRequired
-from .utils.markdown import (a, blockquote, code, mta_arrow_bracket,
-                             page_embed, page_plaintext, pre, strong)
+from .utils.duckcord.embeds import Embed2, EmbedField
+from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
+from .utils.pagination import (EmbedPagination, TextPagination,
+                               chapterize_items, page_embed2, page_plaintext)
 
 _AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
@@ -74,14 +75,16 @@ TYPE_DESCRIPTIONS: dict[type, QuantifiedNP] = {
     Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
 }
 
+BucketType = commands.BucketType
+
 BUCKET_DESCRIPTIONS = {
-    commands.BucketType.default: 'globally',
-    commands.BucketType.user: 'for each user',
-    commands.BucketType.member: 'for each user',
-    commands.BucketType.guild: 'for each server',
-    commands.BucketType.channel: 'for each channel',
-    commands.BucketType.category: 'for each channel category',
-    commands.BucketType.role: 'for each role',
+    BucketType.default: 'globally',
+    BucketType.user: 'per user',
+    BucketType.member: 'per user',
+    BucketType.guild: 'per server',
+    BucketType.channel: 'per channel',
+    BucketType.category: 'per channel category',
+    BucketType.role: 'per role',
 }
 
 _Converter = Union[Converter, type[Converter]]
@@ -248,7 +251,7 @@ class Argument:
         if self.is_optional:
             accepts = f'{accepts}; optional'
             if self.default:
-                accepts = f'{accepts}, defaults to {self.default}'
+                accepts = f'{accepts}, default is {self.default}'
         if self.help:
             accepts = f'{self.help} Accepts {accepts}'
         else:
@@ -366,6 +369,9 @@ class Documentation:
 
     sections: dict[str, str] = attr.ib(factory=dict)
     frozen: bool = attr.ib(default=False)
+
+    text_helps: dict[str, str] = attr.ib(factory=dict)
+    rich_helps: dict[str, Embed2] = attr.ib(factory=dict)
 
     @classmethod
     def from_command(cls, cmd: Instruction) -> Documentation:
@@ -492,12 +498,15 @@ class Documentation:
 
         self.assert_documentations()
 
+        for s in self.HELP_STYLES:
+            self.rich_helps[s], self.text_helps[s] = self.generate_help(s)
+
     def assert_documentations(self):
         sections = self.sections
         if sections['Description'] == '(no description)':
             log.warning(MissingDescription(self.call_sign))
 
-    def generate_help(self, style: str) -> tuple[Embed, str]:
+    def generate_help(self, style: str) -> tuple[Embed2, str]:
         title, chapters = self.HELP_STYLES[style]
         sections = [(k, self.sections.get(k)) for k in chapters]
         sections = [(k, v) for k, v in sections if v]
@@ -506,7 +515,7 @@ class Documentation:
             'title': f'{title}: {self.call_sign}',
             'description': self.description,
         }
-        rich_help = page_embed(**kwargs)
+        rich_help = page_embed2(**kwargs)
         text_help = page_plaintext(**kwargs)
         return rich_help, text_help
 
@@ -533,7 +542,7 @@ class Documentation:
 
     HELP_STYLES = {
         'normal': ('Command', ['Syntax', 'Examples', 'Aliases']),
-        'syntax': ('Help', ['Syntax']),
+        'syntax': ('Syntax', ['Syntax']),
         'short': ('Help', ['Synopsis', 'Aliases']),
         'full': ('Documentation', ['Synopsis', 'Aliases', 'Syntax', 'Arguments', 'Examples', 'Restrictions', 'Discussions']),
         'examples': ('Examples', ['Examples']),
@@ -626,12 +635,12 @@ def hidden(f: Instruction):
 
 
 @deferred(1)
-def cooldown(rate: int, per: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
+def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
     def wrapper(f: Instruction):
-        commands.cooldown(rate, per, bucket)(f)
+        commands.cooldown(maxcalls, duration, bucket)(f)
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
-        cooldown = (f'Rate limited: {rate} {pluralize(rate, "call")} '
-                    f'every {per} {pluralize(per, "second")}')
+        cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "call")} '
+                    f'every {duration} {pluralize(duration, "second")}')
         if bucket_type is None:
             info = f'{cooldown}; dynamic.'
         else:
@@ -675,13 +684,15 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
 
 @attr.s
 class Manual:
+    MANPAGE_MAX_LEN = 1000
+
     commands: dict[str, Documentation] = attr.ib(factory=dict)
     sections: dict[str, list[str]] = attr.ib(factory=lambda: defaultdict(list))
     aliases: dict[str, str] = attr.ib(factory=dict)
 
     toc: dict[str, str] = attr.ib(factory=dict)
-    toc_embed: Embed = attr.ib(default=None)
-    toc_text: str = attr.ib(default=None)
+    toc_rich: EmbedPagination = attr.ib(default=None)
+    toc_text: TextPagination = attr.ib(default=None)
 
     frozen: bool = attr.ib(default=False)
 
@@ -742,8 +753,16 @@ class Manual:
             content = '\n'.join(lines)
             if content.strip():
                 self.toc[section] = content
-        self.toc_embed = page_embed(self.toc.items(), title='Command list')
-        self.toc_text = page_plaintext(self.toc.items(), title='Command list')
+
+        fields = [EmbedField(k, v, False) for k, v in self.toc.items()]
+        chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
+        embeds = [Embed2(fields=chapter) for chapter in chapters]
+        self.toc_rich = EmbedPagination(embeds, 'Command list', True)
+
+        fields = [f'{strong(k)}\n{v}' for k, v in self.toc.items()]
+        chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
+        texts = ['\n\n'.join(chapter) for chapter in chapters]
+        self.toc_text = TextPagination(texts, 'Command list')
 
     def lookup(self, query: str) -> Documentation:
         try:
@@ -762,7 +781,18 @@ class Manual:
     def hidden_commands(self) -> dict[str, Documentation]:
         return {k: v for k, v in self.commands.items() if v.hidden}
 
-    @instruction('help', aliases=['man', 'man:tty'])
+    async def send_toc(self, ctx: Circumstances):
+        front_embed = self.toc_rich[0][1]
+        front_text = self.toc_text[0][0]
+        msg, embed_sent = await ctx.reply_with_text_fallback(front_embed, front_text)
+        if not embed_sent:
+            pagination = self.toc_text
+        else:
+            pagination = self.toc_rich
+        paginator = pagination(ctx.bot, msg, 60, ctx.author.id)
+        await paginator.run()
+
+    @instruction('help', aliases=['man'])
     @description('Get help about commands.')
     @argument('category', 'What kind of help info to get.')
     @argument('query', 'A command name, such as "echo" or "prefix set".')
@@ -773,24 +803,14 @@ class Manual:
     @example('perms', f'Check help doc for {code("perms")}')
     @example('full perms', f'See detailed information about the command {code("perms")}')
     @example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
+    @cooldown(1, 1, BucketType.user)
     async def help_command(ctx: Circumstances,
                            category: Optional[Documentation.HelpFormat] = 'normal',
                            *, query: CaseInsensitive = ''):
         man = ctx.manual
-        use_plaintext = ctx.invoked_with == 'man:tty'
-
-        def set_embed_info(embed: Embed):
-            embed.set_author(name=ctx.me.display_name, icon_url=ctx.me.avatar_url)
-            embed.timestamp = utcnow()
 
         if not query:
-            toc_embed = man.toc_embed.copy()
-            set_embed_info(toc_embed)
-            toc_embed.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} [command]" to see help info for that command')
-            toc_text = man.toc_text
-            if use_plaintext:
-                return await ctx.send(toc_text)
-            return await ctx.reply_with_text_fallback(toc_embed, toc_text)
+            return await man.send_toc(ctx)
 
         if query[:len(ctx.prefix)] == ctx.prefix:
             query = query[len(ctx.prefix):]
@@ -800,13 +820,10 @@ class Manual:
         except NoSuchCommand as exc:
             return await ctx.send(str(exc), delete_after=60)
 
-        rich_help, text_help = doc.generate_help(category)
-        set_embed_info(rich_help)
+        rich_help, text_help = doc.rich_helps[category], doc.text_helps[category]
         if category == 'normal':
-            rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
+            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
 
-        if use_plaintext:
-            return await ctx.send(text_help)
         return await ctx.reply_with_text_fallback(rich_help, text_help)
 
 

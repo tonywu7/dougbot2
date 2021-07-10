@@ -23,6 +23,7 @@ from typing import Literal, Optional, Union
 
 from discord import AllowedMentions
 from discord.ext.commands import errors
+from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
 from pendulum import duration
 
@@ -35,14 +36,21 @@ from .converters import (InvalidChoices, InvalidSyntax, RegExpMismatch,
 from .documentation import (NoSuchCommand, NotAcceptable, SendHelp,
                             describe_concurrency, readable_perm_name)
 from .extension import ModuleDisabled
-from .utils.markdown import (code, indicate_eol, indicate_extra_text, strong,
-                             tag_literal)
+from .utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
 _ExceptionHandler = Callable[[Circumstances, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
 
 exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: dict[_ExceptionType, str] = {}
+
+
+def indicate_eol(s: StringView, color='white') -> str:
+    return f'{s.buffer[:s.index + 1]} {ARROWS_W[color]}'
+
+
+def indicate_extra_text(s: StringView, color='white') -> str:
+    return f'{s.buffer[:s.index]} {ARROWS_E[color]} {s.buffer[s.index:]} {ARROWS_W[color]}'
 
 
 def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):

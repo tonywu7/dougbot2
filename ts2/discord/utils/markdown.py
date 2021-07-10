@@ -16,23 +16,17 @@
 
 from __future__ import annotations
 
-import enum
 import re
-from collections.abc import Iterator
 from io import StringIO
-from textwrap import indent, shorten
+from textwrap import indent
 
-from discord import Embed, Role
+from discord import Role
 from discord.abc import GuildChannel, User
-from discord.ext.commands import Context
-from discord.ext.commands.view import StringView
 from markdown import Markdown
 
 RE_USER_MENTION = re.compile(r'<@(\d+)>')
 RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
 RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
-RE_BLOCKQUOTE = re.compile(r'^> ')
-RE_PRE_BORDER = re.compile(r'^```.*$')
 
 ARROWS_E = {
     'white': '<:mta_arrowE:856190628857249792>',
@@ -42,10 +36,6 @@ ARROWS_W = {
     'white': '<:mta_arrowW:856190628399153164>',
     'red': '<:mta_arrowW_red:856460793323323392>',
 }
-
-
-def trimmed_msg(ctx: Context) -> str:
-    return ctx.message.content[len(ctx.prefix) + len(ctx.command.name) + 1:]
 
 
 def tag(obj) -> str:
@@ -122,14 +112,6 @@ def mta_arrow_bracket(s: str, color='white') -> str:
     return f'{ARROWS_E[color]} {s} {ARROWS_W[color]}'
 
 
-def indicate_eol(s: StringView, color='white') -> str:
-    return f'{s.buffer[:s.index + 1]} {ARROWS_W[color]}'
-
-
-def indicate_extra_text(s: StringView, color='white') -> str:
-    return f'{s.buffer[:s.index]} {ARROWS_E[color]} {s.buffer[s.index:]} {ARROWS_W[color]}'
-
-
 def unmark_element(element, stream=None):
     # https://stackoverflow.com/a/54923798/10896407
     if stream is None:
@@ -141,93 +123,6 @@ def unmark_element(element, stream=None):
     if element.tail:
         stream.write(element.tail)
     return stream.getvalue()
-
-
-class ParagraphStream:
-
-    class BLOCK(enum.Enum):
-        PRESERVE = 0
-        INLINE = 2
-
-    def __init__(self, separator: str = ' ', pre: BLOCK = BLOCK.PRESERVE, blockquote: BLOCK = BLOCK.PRESERVE):
-        self.lines: list[str] = []
-        self.sep = separator
-        self.pre = pre
-        self.blockquote = blockquote
-
-    def append(self, text: str):
-        self.lines.extend(filter(None, text.split('\n')))
-
-    def __len__(self) -> int:
-        return sum(len(s) for s in self.lines)
-
-    def __iter__(self) -> Iterator[str]:
-        buffer = []
-        line_iter = iter(self.lines)
-
-        if self.blockquote is self.BLOCK.PRESERVE:
-            def blockquote(line: str):
-                nonlocal buffer
-                if buffer:
-                    yield self.sep.join(buffer)
-                    buffer = []
-                yield line
-        else:
-            def blockquote(line: str):
-                buffer.append(RE_BLOCKQUOTE.sub('', line))
-                return []
-
-        if self.pre is self.BLOCK.PRESERVE:
-            def pre(line: str):
-                nonlocal buffer
-                if buffer:
-                    yield self.sep.join(buffer)
-                    buffer = []
-                yield line
-                for line in line_iter:
-                    yield line
-                    if RE_PRE_BORDER.match(line):
-                        return
-        else:
-            def pre(line: str):
-                return []
-
-        while True:
-            try:
-                line = next(line_iter)
-            except StopIteration:
-                break
-
-            if RE_BLOCKQUOTE.match(line):
-                yield from blockquote(line)
-            elif RE_PRE_BORDER.match(line):
-                yield from pre(line)
-            else:
-                buffer.append(line)
-
-        if buffer:
-            yield self.sep.join(buffer)
-
-
-def chapterize(text: str, length: int = 1920, leeway=16,
-               closing=' ... ', opening='(continued) ') -> Iterator[str]:
-    if len(text) < length:
-        yield text
-        return
-    while True:
-        cutoff = text[length:length + 1]
-        if not cutoff:
-            yield text
-            return
-        for i in range(length - 1, length - leeway - 1, -1):
-            if text[i:i + 1].isspace():
-                break
-        else:
-            yield text[0:length - leeway] + '-' + closing
-            text = opening + text[length - leeway:]
-            continue
-        yield text[0:i] + closing
-        text = opening + text[i + 1:]
 
 
 Markdown.output_formats['plain'] = unmark_element
@@ -244,42 +139,3 @@ def untagged(text: str) -> str:
 
 def unmarked(text: str) -> str:
     return _md.convert(text)
-
-
-def trunc_for_field(text: str) -> str:
-    return shorten(text, width=960, placeholder='... (truncated)')
-
-
-def page_plaintext(sections: tuple[str, str], title=None, description=None, footer=None, divider='') -> str:
-    lines = []
-    if title:
-        lines.append(u(strong(title)))
-        if divider is not None:
-            lines.append(divider)
-    if description:
-        lines.append(description)
-        if divider is not None:
-            lines.append(divider)
-    for title, body in sections:
-        lines.append(strong(title))
-        lines.append(body)
-        if divider is not None:
-            lines.append(divider)
-    if footer:
-        lines.append(footer)
-    return '\n'.join(lines)
-
-
-def page_embed(sections: tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed:
-    embed = Embed(title=title, description=description)
-    for title, body in sections:
-        embed.add_field(name=title, value=body, inline=False)
-    if footer:
-        embed.set_footer(text=footer)
-    return embed
-
-
-def limit_results(results: list[str], limit: int) -> list[str]:
-    if len(results) <= limit:
-        return results
-    return results[:limit] + [f'({len(results) - limit} more)']

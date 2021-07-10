@@ -46,6 +46,8 @@ class Command(BaseCommand):
     @classmethod
     def insert_cmds(cls, cmds):
         from ...models import BotCommand
+        if not cmds:
+            return
         BotCommand.objects.bulk_create([
             BotCommand(identifier=name) for name in cmds
         ])
@@ -55,6 +57,8 @@ class Command(BaseCommand):
     @classmethod
     def remove_cmds(cls, cmds):
         from ...models import BotCommand
+        if not cmds:
+            return
         BotCommand.objects.filter(identifier__in=cmds).delete()
         log.info('The following commands are deleted from the database:')
         log.info(_(', '.join(cmds), 'red', attrs=['bold']))
@@ -62,6 +66,8 @@ class Command(BaseCommand):
     @classmethod
     def update_cmds(cls, cmds: dict[str, str]):
         from ...models import BotCommand
+        if not cmds:
+            return
         commands: dict[str, BotCommand] = {cmd.identifier: cmd for cmd in BotCommand.objects.filter(identifier__in=cmds)}
         for k, v in commands.items():
             v.identifier = cmds[k]
