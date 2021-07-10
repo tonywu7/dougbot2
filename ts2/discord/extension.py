@@ -19,6 +19,8 @@ import logging
 from discord.ext.commands import Bot, Cog
 from discord.ext.commands.errors import DisabledCommand
 
+from .errors import explains
+
 
 class Gear(Cog):
     def __init__(self, label: str, bot: Bot, *args, **kwargs):
@@ -41,3 +43,8 @@ class ModuleDisabled(DisabledCommand):
     def __init__(self, cog: Cog, *args):
         self.module = cog.qualified_name
         super().__init__(message=f'Attempted to use disabled module {cog.qualified_name}', *args)
+
+
+@explains(ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20

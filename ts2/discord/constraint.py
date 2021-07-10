@@ -29,6 +29,7 @@ from more_itertools import bucket
 from ts2.utils.lang import either_or
 
 from .context import Circumstances
+from .errors import explains
 from .models import CommandConstraint, ConstraintType, id_dot
 from .utils.markdown import strong, tag
 
@@ -133,3 +134,8 @@ class ConstraintFailure(CheckFailure):
 
     def __str__(self) -> str:
         return self.message
+
+
+@explains(ConstraintFailure, 'Missing roles', 0)
+async def on_constraint_failure(ctx, exc):
+    return exc.reply, 30

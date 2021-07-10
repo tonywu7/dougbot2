@@ -25,11 +25,13 @@ from discord import Member, Permissions, Role
 from discord.abc import GuildChannel
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
+from discord.utils import escape_markdown
 
 from ts2.utils.lang import QuantifiedNP, coord_conj
 
 from .context import Circumstances
-from .utils.markdown import code
+from .errors import explains, prepend_argument_hint
+from .utils.markdown import code, strong
 from .utils.models import HypotheticalRole
 
 
@@ -193,3 +195,25 @@ class RegExpMismatch(BadArgument):
 class InvalidSyntax(BadArgument):
     def __init__(self, message, *args):
         super().__init__(message=message, *args)
+
+
+@explains(RegExpMismatch, 'Pattern mismatch', priority=5)
+@prepend_argument_hint(True, sep='\n⚠️ ')
+async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> tuple[str, int]:
+    return f'Got {strong(escape_markdown(exc.received))} instead.', 30
+
+
+@explains(InvalidChoices, 'Invalid choices', priority=5)
+@prepend_argument_hint(True, sep='\n⚠️ ')
+async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> tuple[str, int]:
+    return f'Got {strong(escape_markdown(exc.received))} instead.', 45
+
+
+@explains(InvalidSyntax, 'Usage Error', priority=5)
+async def explains_usage_error(ctx: Circumstances, exc) -> tuple[str, int]:
+    return str(exc), 30
+
+
+@explains(ReplyRequired, 'Message reference required', priority=5)
+async def explains_required_reply(ctx: Circumstances, exc) -> tuple[str, int]:
+    return str(exc), 20
