@@ -36,6 +36,13 @@ class DocumentationMixin:
         return cmd
 
 
+class OptionsMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .parse import build_parser
+        build_parser(self)
+
+
 class Instruction(DocumentationMixin, Command):
     dm_command = False
 

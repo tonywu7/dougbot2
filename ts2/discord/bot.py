@@ -42,7 +42,7 @@ from . import constraint
 from . import documentation as doc
 from . import extension, ipc, models
 from .apps import DiscordBotConfig
-from .command import Ensemble, Instruction
+from .command import Ensemble, Instruction, instruction
 from .context import Circumstances, CommandContextError
 from .documentation import Manual
 from .errors import explain_exception
@@ -454,4 +454,4 @@ def register_base_commands(self: Robot):
 
         await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
-    self.add_command(Manual.help_command)
+    self.add_command(instruction('help', aliases=['man'])(Manual.help_command))

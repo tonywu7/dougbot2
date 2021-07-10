@@ -52,7 +52,8 @@ class Circumstances(Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
         from .bot import Robot
-        from .documentation import Instruction, Manual
+        from .command import Instruction
+        from .documentation import Manual
         from .logging import ContextualLogger
         from .models import Server
 

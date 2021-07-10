@@ -25,7 +25,6 @@ from operator import or_
 from typing import Any, Callable, Literal, Optional, Protocol, Union
 
 import attr
-import click
 import discord
 from discord import MessageReference
 from discord.ext import commands
@@ -42,12 +41,10 @@ from ts2.utils.functional import memoize
 from ts2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
                             singularize, slugify)
 
-from .command import (DocumentationMixin, Instruction, NoSuchCommand,
-                      instruction)
+from .command import DocumentationMixin, NoSuchCommand
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice, ReplyRequired
 from .errors import explain_exception, explains
-from .parse import option
 from .utils.duckcord.embeds import Embed2, EmbedField
 from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
 from .utils.pagination import (EmbedPagination, TextPagination,
@@ -379,7 +376,7 @@ class Documentation:
     rich_helps: dict[str, Embed2] = attr.ib(factory=dict)
 
     @classmethod
-    def from_command(cls, cmd: Instruction) -> Documentation:
+    def from_command(cls, cmd: Command) -> Documentation:
         doc = cls(name=cmd.name, parent=cmd.full_parent_name,
                   call_sign=cmd.qualified_name,
                   standalone=getattr(cmd, 'invoke_without_command', True),
@@ -391,7 +388,7 @@ class Documentation:
         return doc
 
     @classmethod
-    def retrieve_memo(cls, cmd: Instruction) -> list[Callable[[Instruction], Instruction]]:
+    def retrieve_memo(cls, cmd: Command) -> list[Callable[[Command], Command]]:
         memo = getattr(cmd, '__command_doc__', [])
         if not memo:
             memo = getattr(cmd._callback, '__command_doc__', [])
@@ -468,7 +465,7 @@ class Documentation:
         if self.invocations is None:
             self.invocations = self.build_signatures()
 
-    def add_subcommand(self, command: Instruction):
+    def add_subcommand(self, command: Command):
         self.subcommands[command.qualified_name] = command.doc
 
     def add_restriction(self, wrapper: CheckWrapper, *args, **kwargs):
@@ -567,7 +564,7 @@ class Documentation:
 
 
 def example(invocation: str, explanation: str):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.examples[f'{doc.call_sign} {invocation}'] = explanation
 
     def deco(obj):
@@ -576,7 +573,7 @@ def example(invocation: str, explanation: str):
 
 
 def description(desc: str):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.description = desc
 
     def deco(obj):
@@ -585,7 +582,7 @@ def description(desc: str):
 
 
 def discussion(title: str, body: str):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.discussions[title] = body
 
     def deco(obj):
@@ -595,7 +592,7 @@ def discussion(title: str, body: str):
 
 def argument(arg: str, help: str = '', *, node: str = '',
              signature: str = '', term: Optional[str | QuantifiedNP] = None):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         argument = doc.arguments[arg]
         argument.help = help
         argument.node = node
@@ -613,7 +610,7 @@ def argument(arg: str, help: str = '', *, node: str = '',
 def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
     signature: frozenset[str] = frozenset(signature)
 
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.ensure_signatures()
         if desc:
             doc.invocations[signature].description = desc
@@ -630,14 +627,14 @@ def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
 
 
 def use_syntax_whitelist(f):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.ensure_signatures()
         doc.invalid_syntaxes |= doc.invocations.keys()
     return memoize(f, '__command_doc__', wrapper)
 
 
 def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> CheckWrapper:
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         if callable(deco_func_or_desc):
             doc.add_restriction(deco_func_or_desc, *args, **kwargs)
         else:
@@ -651,13 +648,13 @@ def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> Che
 
 
 def hidden(f):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.hidden = True
     return memoize(f, '__command_doc__', wrapper)
 
 
 def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
         cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "call")} '
                     f'every {duration} {pluralize(duration, "second")}')
@@ -674,7 +671,7 @@ def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Calla
 
 
 def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
 
     def deco(f):
@@ -694,7 +691,7 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
             raise ReplyRequired()
         ctx.kwargs['reply'] = reply
 
-    def wrapper(doc: Documentation, f: Instruction):
+    def wrapper(doc: Documentation, f: Command):
         f.before_invoke(inject_reply)
         arg = doc.arguments['reply']
         arg.description = desc
@@ -817,11 +814,9 @@ class Manual:
         paginator = pagination(ctx.bot, msg, 60, ctx.author.id)
         await paginator.run()
 
-    @instruction('help', aliases=['man'])
     @description('Get help about commands.')
     @argument('category', 'What kind of help info to get.')
     @argument('query', 'A command name, such as "echo" or "prefix set".')
-    @option('-v', '--category', type_=click.Choice(Documentation.HELP_STYLES), default='normal')
     @invocation((), 'See all commands.')
     @invocation(('query',), 'See help for a command.')
     @invocation(('category',), False)

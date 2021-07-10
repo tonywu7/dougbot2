@@ -64,3 +64,13 @@ def option(
         cmd.params.append(opt)
         return f
     return wrapper
+
+
+def build_parser(f: Command):
+    cmd: click.Command = getattr(f, '__click__', None)
+    if not cmd:
+        cmd = getattr(f._callback, '__click__', None)
+    if not cmd:
+        return
+    for opt in cmd.params:
+        del f.params[opt.name]
