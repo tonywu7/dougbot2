@@ -29,9 +29,13 @@ class Command(StartAppCommand):
     missing_args_message = 'You must provide an application name.'
 
     def handle(self, **options):
-        app_name = options['name']
         options['template'] = str((Path(__file__).with_name('templates') / 'app.tar.gz').resolve(strict=True))
-        options['directory'] = target = str(Path(__file__).parent.parent.with_name('contrib') / app_name)
-        os.makedirs(target, exist_ok=False)
+        options['qual_name'] = qual_name = options['name']
+        options['name'] = qual_name.split('.')[-1]
+        qual_name: str
+        target = Path('.') / qual_name.replace('.', '/')
+        if target.parent != Path('.'):
+            options['directory'] = str(target.resolve())
+            os.makedirs(target, exist_ok=False)
         super().handle(**options)
         logging.getLogger(__name__).info('\nRemember to add the app to INSTALLED_APPS.')
