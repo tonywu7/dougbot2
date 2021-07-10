@@ -1,6 +1,6 @@
 [submodule "telescope2-admin"]
-	path = telescope2-admin
+	path = vendors/telescope2-admin
 	url = ../telescope2-admin
 [submodule "duckcord.py"]
-	path = duckcord.py
+	path = vendors/duckcord.py
 	url = ./../duckcord.py
