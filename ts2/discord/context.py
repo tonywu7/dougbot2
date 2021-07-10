@@ -28,8 +28,6 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import CommandError
 from django.db import transaction
 
-from .models import Server
-
 
 def _guard(err: str):
     def wrapper(f):
@@ -56,6 +54,7 @@ class Circumstances(Context):
         from .bot import Robot
         from .documentation import Instruction, Manual
         from .logging import ContextualLogger
+        from .models import Server
 
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server
@@ -82,7 +81,7 @@ class Circumstances(Context):
 
     @property
     @_guard('Context is missing server instance')
-    def server(self) -> Server:
+    def server(self):
         return self._server
 
     @property
@@ -95,6 +94,7 @@ class Circumstances(Context):
 
     @sync_to_async
     def _get_server(self):
+        from .models import Server
         try:
             self._server = (
                 Server.objects.prefetch_related('channels', 'roles')
@@ -108,6 +108,7 @@ class Circumstances(Context):
 
     @sync_to_async
     def set_prefix(self, prefix: str):
+        from .models import Server
         Server.validate_prefix(prefix)
         with transaction.atomic():
             self.server.prefix = prefix

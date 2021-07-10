@@ -29,13 +29,7 @@ from pendulum import duration
 
 from ts2.utils.lang import pl_cat_predicative
 
-from .constraint import ConstraintFailure
 from .context import Circumstances
-from .converters import (InvalidChoices, InvalidSyntax, RegExpMismatch,
-                         ReplyRequired)
-from .documentation import (NoSuchCommand, NotAcceptable, SendHelp,
-                            describe_concurrency, readable_perm_name)
-from .extension import ModuleDisabled
 from .utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
@@ -94,26 +88,6 @@ async def on_cooldown(ctx, exc):
     return f'Try again in {duration(seconds=exc.retry_after).in_words()}', 10
 
 
-@explains(errors.MaxConcurrencyReached, 'Too many instances of this command running', 0)
-async def on_max_concurrent(ctx, exc):
-    return f'This command allows {describe_concurrency(exc.number, exc.per)}', 10
-
-
-@explains(errors.CommandNotFound, 'Command not found', 0)
-async def on_not_found(ctx: Circumstances, exc):
-    try:
-        ctx.bot.manual.lookup(ctx.invoked_with)
-    except NoSuchCommand as no_command:
-        return str(no_command), 30
-
-
-@explains(errors.MissingPermissions, 'Missing permissions', 0)
-async def on_missing_perms(ctx, exc):
-    perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
-    explanation = f'You are missing the {perms}.'
-    return explanation, 20
-
-
 @explains(errors.MissingRole, 'Missing roles', 0)
 async def on_missing_role(ctx, exc):
     explanation = f'You are missing the {tag_literal("role", exc.missing_role)} role.'
@@ -125,19 +99,6 @@ async def on_missing_any_role(ctx, exc):
     roles = pl_cat_predicative('role', [tag_literal('role', r) for r in exc.missing_roles], conj='or')
     explanation = f'You are missing the {roles}.'
     return explanation, 20
-
-
-@explains(ConstraintFailure, 'Missing roles', 0)
-async def on_constraint_failure(ctx, exc):
-    return exc.reply, 30
-
-
-@explains(SendHelp, priority=50)
-async def send_help(ctx: Circumstances, exc: SendHelp):
-    await ctx.send_help(ctx.command.qualified_name, exc.category)
-    if isinstance(exc.__cause__, Exception):
-        await explain_exception(ctx, exc.__cause__)
-    return False
 
 
 def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
@@ -187,9 +148,9 @@ def append_quotation_hint():
             if not should_log:
                 return
             msg, autodelete = should_log
-            msg = (f"{msg}\n\nThis could happen because the bot couldn't find members/roles by name. Make sure "
-                   'you spelled them correctly.\n\nIf some of the arguments have spaces in them '
-                   f"(e.g. role names or nicknames), {strong('you will need to quote them in double quotes')}:\n"
+            msg = (f'{msg}\n\nMake sure you spelled arguments correctly.'
+                   '\n\nIf some of the arguments have spaces in them '
+                   '(e.g. role names or nicknames), you will need to quote them in double quotes:\n'
                    f'✅ {example_correct}\n🔴 {example_incorrect}')
             return msg, autodelete
         return handler
@@ -224,34 +185,7 @@ async def on_missing_args(ctx, exc):
 @explains(errors.TooManyArguments, 'Too many arguments')
 @append_quotation_hint()
 async def on_too_many_args(ctx, exc: errors.TooManyArguments):
-    return f'\n> {indicate_extra_text(ctx.view, "red")} ⚠️ {strong("Extra text found.")}', 60
-
-
-@explains(RegExpMismatch, 'Pattern mismatch', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> tuple[str, int]:
-    return f'Got {strong(escape_markdown(exc.received))} instead.', 30
-
-
-@explains(InvalidChoices, 'Invalid choices', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> tuple[str, int]:
-    return f'Got {strong(escape_markdown(exc.received))} instead.', 45
-
-
-@explains(ReplyRequired, 'Message reference required', priority=5)
-async def explains_required_reply(ctx: Circumstances, exc) -> tuple[str, int]:
-    return str(exc), 20
-
-
-@explains(NotAcceptable, 'Item not acceptable', priority=5)
-async def explains_not_acceptable(ctx: Circumstances, exc) -> tuple[str, int]:
-    return str(exc), 30
-
-
-@explains(InvalidSyntax, 'Usage Error', priority=5)
-async def explains_usage_error(ctx: Circumstances, exc) -> tuple[str, int]:
-    return str(exc), 30
+    return f'\n> {indicate_extra_text(ctx.view, "red")} ⚠️ {strong("Unrecognized argument found.")}', 60
 
 
 @explains((
@@ -313,11 +247,6 @@ async def on_bad_union(ctx, exc: errors.BadUnionArgument):
 @prepend_argument_hint(True, sep='\n⚠️ ')
 async def on_bad_args(ctx, exc):
     return strong(escape_markdown(str(exc))), 30
-
-
-@explains(ModuleDisabled, 'Command disabled')
-async def on_disabled(ctx, exc: ModuleDisabled):
-    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
 @explains(errors.NotOwner, 'Not owner', priority=100)
