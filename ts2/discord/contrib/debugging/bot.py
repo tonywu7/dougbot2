@@ -29,7 +29,7 @@ from discord.ext.commands import BucketType, Converter, has_role, is_owner
 from ts2.discord import documentation as doc
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.converters import RegExp
+from ts2.discord.converters import Constant, RegExp
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import E, a, code, strong
 
@@ -137,5 +137,9 @@ class Debugging(Gear):
         ' status code.'
     ))
     @doc.restriction(is_owner)
-    async def _blacklist(self, ctx: Circumstances, user: User):
-        pass
+    @doc.hidden
+    async def _blacklist(self, ctx: Circumstances, user: User, remove: Optional[Constant[Literal['free']]]):
+        if remove:
+            await ctx.bot.gatekeeper.discard(user)
+        else:
+            await ctx.bot.gatekeeper.add(user)

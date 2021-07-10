@@ -188,7 +188,7 @@ def append_quotation_hint():
                 return
             msg, autodelete = should_log
             msg = (f"{msg}\n\nThis could happen because the bot couldn't find members/roles by name. Make sure "
-                   'you spelled them correctly. If some of the arguments have spaces in them '
+                   'you spelled them correctly.\n\nIf some of the arguments have spaces in them '
                    f"(e.g. role names or nicknames), {strong('you will need to quote them in double quotes')}:\n"
                    f'✅ {example_correct}\n🔴 {example_incorrect}')
             return msg, autodelete
@@ -263,14 +263,12 @@ async def explains_usage_error(ctx: Circumstances, exc) -> tuple[str, int]:
     errors.EmojiNotFound,
 ), 'Not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-@append_quotation_hint()
 async def explains_not_found(ctx: Circumstances, exc) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.PartialEmojiConversionFailure, 'Emote not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-@append_quotation_hint()
 async def explains_emote_not_found(ctx: Circumstances, exc: errors.PartialEmojiConversionFailure) -> tuple[str, int]:
     return strong(f'{escape_markdown(exc.argument)} is not an emote or is not in a valid Discord emote format.'), 30
 
@@ -320,6 +318,11 @@ async def on_bad_args(ctx, exc):
 @explains(ModuleDisabled, 'Command disabled')
 async def on_disabled(ctx, exc: ModuleDisabled):
     return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+
+
+@explains(errors.NotOwner, 'Not owner', priority=100)
+async def on_not_owner(ctx, exc):
+    return False
 
 
 @explains(Exception, 'Error', -100)

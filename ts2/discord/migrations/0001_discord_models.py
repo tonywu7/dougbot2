@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'server',
                 'verbose_name_plural': 'servers',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model, ts2.discord.models.ModelTranslator),
+            bases=(ts2.discord.models.NamingMixin, models.Model, ts2.discord.models.ModelTranslator),
         ),
         migrations.CreateModel(
             name='User',
@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'user',
                 'verbose_name_plural': 'users',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model, ts2.discord.models.ModelTranslator),
+            bases=(ts2.discord.models.NamingMixin, models.Model, ts2.discord.models.ModelTranslator),
         ),
         migrations.CreateModel(
             name='Member',
@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'member',
                 'verbose_name_plural': 'members',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model, ts2.discord.models.ModelTranslator),
+            bases=(ts2.discord.models.NamingMixin, models.Model, ts2.discord.models.ModelTranslator),
         ),
         migrations.CreateModel(
             name='Channel',
@@ -85,7 +85,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'channel',
                 'verbose_name_plural': 'channels',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model, ts2.discord.models.ModelTranslator),
+            bases=(ts2.discord.models.NamingMixin, models.Model, ts2.discord.models.ModelTranslator),
         ),
         migrations.CreateModel(
             name='Role',
@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'role',
                 'verbose_name_plural': 'roles',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model, ts2.discord.models.ModelTranslator),
+            bases=(ts2.discord.models.NamingMixin, models.Model, ts2.discord.models.ModelTranslator),
         ),
         migrations.CreateModel(
             name='CommandConstraintList',
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'command constraint list',
             },
-            bases=(ts2.discord.models.NamingMixin, ts2.discord.models.SubclassMetaMixin, models.Model),
+            bases=(ts2.discord.models.NamingMixin, models.Model),
         ),
         migrations.CreateModel(
             name='CommandConstraint',

@@ -70,29 +70,7 @@ DiscordChannels = Union[
 ]
 
 
-class SubclassMetaMixin:
-    def __init_subclass__(cls, **kwargs) -> None:
-        super().__init_subclass__(**kwargs)
-        try:
-            if cls.Meta is super().Meta:
-                __dict__ = {}
-            else:
-                __dict__ = cls.Meta.__dict__
-        except AttributeError:
-            __dict__ = {}
-        else:
-            __dict__ = {k: v for k, v in __dict__.items() if k[0] != '_' and k != 'abstract'}
-        cls.Meta = type('Meta', (object,), __dict__)
-
-
 class NamingMixin:
-    def __init_subclass__(cls, **kwargs) -> None:
-        super().__init_subclass__(**kwargs)
-        if not hasattr(cls.Meta, 'verbose_name'):
-            cls.Meta.verbose_name = cls.__name__.lower()
-        if not hasattr(cls.Meta, 'verbose_name_plural'):
-            cls.Meta.verbose_name_plural = inflection.plural(cls.Meta.verbose_name)
-
     def discriminator(self, sep='#') -> str:
         return f'{type(self).__name__}{sep}{self.pk}'
 
@@ -150,7 +128,7 @@ class ServerScoped(ORMAccess):
     guild: Server
 
 
-class Entity(NamingMixin, SubclassMetaMixin, models.Model):
+class Entity(NamingMixin, models.Model):
     snowflake: int = models.BigIntegerField(verbose_name='id', primary_key=True, db_index=True)
 
     class Meta:
@@ -287,7 +265,7 @@ class Role(Entity, ModelTranslator[discord.Role, 'Role']):
         return ['name', 'color', 'perms']
 
 
-class BotCommand(NamingMixin, SubclassMetaMixin, models.Model):
+class BotCommand(NamingMixin, models.Model):
     identifier: str = models.CharField(max_length=120, unique=True)
 
     class Meta:
@@ -303,14 +281,14 @@ class ConstraintType(models.IntegerChoices):
     ALL = 2
 
 
-class CommandConstraintList(NamingMixin, SubclassMetaMixin, models.Model):
+class CommandConstraintList(NamingMixin, models.Model):
     guild: Server = models.OneToOneField(Server, on_delete=CASCADE, primary_key=True, related_name='command_constraints')
 
     class Meta:
         verbose_name = 'command constraint list'
 
 
-class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
+class CommandConstraint(NamingMixin, models.Model):
     collection: CommandConstraintList = models.ForeignKey(CommandConstraintList, on_delete=CASCADE, related_name='constraints')
 
     commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
@@ -353,3 +331,9 @@ class CommandConstraint(NamingMixin, SubclassMetaMixin, models.Model):
 
     class Meta:
         verbose_name = 'command constraint'
+
+
+class Blacklisted(Entity):
+    class Meta:
+        verbose_name = 'blacklisted entity'
+        verbose_name_plural = 'blacklisted entities'

@@ -24,7 +24,7 @@ from typing import Optional, Protocol, TypeVar
 import aiohttp
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Message, MessageReference,
-                     Permissions, RawReactionActionEvent)
+                     Object, Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, has_guild_permissions
 from discord.utils import escape_markdown
@@ -48,7 +48,7 @@ from .context import Circumstances, CommandContextError
 from .documentation import Manual
 from .errors import explain_exception
 from .logging import log_command_errors
-from .models import Server
+from .models import Blacklisted, Server
 from .utils import events
 from .utils.markdown import code, em, strong
 
@@ -64,6 +64,58 @@ class DiscordModel(Protocol):
 
 class CommandIterator(Protocol):
     commands: Iterable[Command]
+
+
+class Gatekeeper:
+    def __init__(self):
+        self.log = logging.getLogger('discord.gatekeeper')
+        self._query = Blacklisted.objects.values_list('snowflake', flat=True)
+
+    @sync_to_async
+    def add(self, obj: Object):
+        try:
+            blacklisted = Blacklisted(snowflake=obj.id)
+            blacklisted.save()
+        except IntegrityError:
+            return
+
+    @sync_to_async
+    def discard(self, obj: Object):
+        try:
+            blacklisted = Blacklisted.objects.get(snowflake=obj.id)
+            blacklisted.delete()
+        except Blacklisted.DoesNotExist:
+            return
+
+    async def match(self, *entities: Object) -> bool:
+        blacklisted = await self.blacklisted()
+        return any(o.id in blacklisted for o in entities)
+
+    @sync_to_async
+    def blacklisted(self) -> set[int]:
+        return set(self._query.all())
+
+    async def on_message(self, message: Message):
+        return not await self.match(message, message.guild, message.channel, message.author)
+
+    async def on_reaction_add(self, reaction, member):
+        return not await self.match(member)
+
+    async def on_raw_reaction_add(self, evt: RawReactionActionEvent):
+        entities = [Object(id_) for id_ in (evt.guild_id, evt.channel_id,
+                                            evt.message_id, evt.user_id)]
+        return not await self.match(*entities)
+
+    async def handle(self, event_name: str, *args, **kwargs) -> bool:
+        handler = getattr(self, f'on_{event_name}', None)
+        if not handler:
+            return True
+        try:
+            return await handler(*args, **kwargs)
+        except Exception as e:
+            self.log.error('Error while evaluating gatekeeper '
+                           f'criteria for {event_name}', exc_info=e)
+            return True
 
 
 class Robot(Bot):
@@ -89,6 +141,8 @@ class Robot(Bot):
         self._init_ipc()
         self._load_extensions()
         self._create_manual()
+
+        self.gatekeeper = Gatekeeper()
 
     @finalizer(1)
     def instruction(self, *args, **kwargs):
@@ -249,6 +303,21 @@ class Robot(Bot):
                 return await log_command_errors(ctx, exc)
         await log_command_errors(ctx, exc)
 
+    def dispatch(self, event_name, *args, **kwargs):
+        task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
+
+        def callback(task: asyncio.Task):
+            try:
+                should_dispatch = task.result()
+            except Exception:
+                pass
+            else:
+                if not should_dispatch:
+                    return
+            return super(type(self), self).dispatch(event_name, *args, **kwargs)
+
+        task.add_done_callback(callback)
+
 
 def add_event_listeners(self: Robot):
 
@@ -320,9 +389,9 @@ def add_event_listeners(self: Robot):
         self.log.info(f'Updating server info for {after}')
         await self.sync_server(after, roles=False, channels=False, layout=False)
 
-    @self.listen('on_ready')
-    async def update_all_servers():
-        await asyncio.gather(*[self.sync_server(g) for g in self.guilds])
+    @self.listen('on_guild_available')
+    async def update_server_initial(guild: Guild):
+        await self.sync_server(guild)
 
 
 def register_base_commands(self: Robot):
