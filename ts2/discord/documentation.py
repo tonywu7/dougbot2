@@ -25,17 +25,20 @@ from operator import or_
 from typing import Any, Callable, Literal, Optional, Protocol, Union
 
 import attr
+import click
 import discord
 from discord import MessageReference
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Converter, Greedy
-from discord.ext.commands.errors import UserInputError
+from discord.ext.commands.errors import (CommandNotFound,
+                                         MaxConcurrencyReached,
+                                         MissingPermissions, UserInputError)
 from discord.utils import escape_markdown
 from django.utils.text import camel_case_to_spaces
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten, partition, split_at
 
-from ts2.utils.functional import deferred
+from ts2.utils.functional import memoize
 from ts2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
                             singularize, slugify)
 
@@ -43,6 +46,8 @@ from .command import (DocumentationMixin, Instruction, NoSuchCommand,
                       instruction)
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice, ReplyRequired
+from .errors import explain_exception, explains
+from .parse import option
 from .utils.duckcord.embeds import Embed2, EmbedField
 from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
 from .utils.pagination import (EmbedPagination, TextPagination,
@@ -380,7 +385,17 @@ class Documentation:
                   standalone=getattr(cmd, 'invoke_without_command', True),
                   aliases=cmd.aliases)
         doc.infer_arguments(cmd.params)
+        memo = cls.retrieve_memo(cmd)
+        for f in reversed(memo):
+            f(doc, cmd)
         return doc
+
+    @classmethod
+    def retrieve_memo(cls, cmd: Instruction) -> list[Callable[[Instruction], Instruction]]:
+        memo = getattr(cmd, '__command_doc__', [])
+        if not memo:
+            memo = getattr(cmd._callback, '__command_doc__', [])
+        return memo
 
     def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
         if options is None:
@@ -551,35 +566,37 @@ class Documentation:
     HelpFormat = Choice[HELP_STYLES.keys(), 'info category']
 
 
-@deferred(1)
 def example(invocation: str, explanation: str):
-    def wrapper(f: Instruction):
-        f.doc.examples[f'{f.doc.call_sign} {invocation}'] = explanation
-        return f
-    return wrapper
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.examples[f'{doc.call_sign} {invocation}'] = explanation
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def description(desc: str):
-    def wrapper(f: Instruction):
-        f.doc.description = desc
-        return f
-    return wrapper
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.description = desc
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def discussion(title: str, body: str):
-    def wrapper(f: Instruction):
-        f.doc.discussions[title] = body
-        return f
-    return wrapper
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.discussions[title] = body
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def argument(arg: str, help: str = '', *, node: str = '',
              signature: str = '', term: Optional[str | QuantifiedNP] = None):
-    def wrapper(f: Instruction):
-        argument = f.doc.arguments[arg]
+    def wrapper(doc: Documentation, f: Instruction):
+        argument = doc.arguments[arg]
         argument.help = help
         argument.node = node
         argument.signature = signature
@@ -587,57 +604,60 @@ def argument(arg: str, help: str = '', *, node: str = '',
             argument.accepts = term
         elif isinstance(term, str):
             argument.accepts = QuantifiedNP(term)
-        return f
-    return wrapper
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
     signature: frozenset[str] = frozenset(signature)
 
-    def wrapper(f: Instruction):
-        f.doc.ensure_signatures()
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.ensure_signatures()
         if desc:
-            f.doc.invocations[signature].description = desc
-            f.doc.invocations.move_to_end(signature, last=True)
-            f.doc.invalid_syntaxes.discard(signature)
+            doc.invocations[signature].description = desc
+            doc.invocations.move_to_end(signature, last=True)
+            doc.invalid_syntaxes.discard(signature)
         else:
-            if signature not in f.doc.invocations:
+            if signature not in doc.invocations:
                 raise KeyError(signature)
-            f.doc.invalid_syntaxes.add(signature)
-        return f
-    return wrapper
+            doc.invalid_syntaxes.add(signature)
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred
-def use_syntax_whitelist(f: Instruction):
-    f.doc.ensure_signatures()
-    f.doc.invalid_syntaxes |= f.doc.invocations.keys()
-    return f
+def use_syntax_whitelist(f):
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.ensure_signatures()
+        doc.invalid_syntaxes |= doc.invocations.keys()
+    return memoize(f, '__command_doc__', wrapper)
 
 
-@deferred(1)
 def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> CheckWrapper:
-    def wrapper(f: Instruction):
+    def wrapper(doc: Documentation, f: Instruction):
         if callable(deco_func_or_desc):
-            f.doc.add_restriction(deco_func_or_desc, *args, **kwargs)
-            deco_func_or_desc(*args, **kwargs)(f)
+            doc.add_restriction(deco_func_or_desc, *args, **kwargs)
         else:
-            f.doc.restrictions.append(deco_func_or_desc)
-        return f
-    return wrapper
+            doc.restrictions.append(deco_func_or_desc)
+
+    def deco(f):
+        if callable(deco_func_or_desc):
+            deco_func_or_desc(*args, **kwargs)(f)
+        return memoize(f, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred
-def hidden(f: Instruction):
-    f.doc.hidden = True
-    return f
+def hidden(f):
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.hidden = True
+    return memoize(f, '__command_doc__', wrapper)
 
 
-@deferred(1)
 def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
-    def wrapper(f: Instruction):
-        commands.cooldown(maxcalls, duration, bucket)(f)
+    def wrapper(doc: Documentation, f: Instruction):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
         cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "call")} '
                     f'every {duration} {pluralize(duration, "second")}')
@@ -645,21 +665,24 @@ def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Calla
             info = f'{cooldown}; dynamic.'
         else:
             info = f'{cooldown} {bucket_type}'
-        f.doc.restrictions.append(info)
-        return f
-    return wrapper
+        doc.restrictions.append(info)
+
+    def deco(f):
+        commands.cooldown(maxcalls, duration, bucket)(f)
+        return memoize(f, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
-    def wrapper(f: Instruction):
+    def wrapper(doc: Documentation, f: Instruction):
+        doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
+
+    def deco(f):
         commands.max_concurrency(number, bucket, wait=wait)(f)
-        f.doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
-        return f
-    return wrapper
+        return memoize(f, '__command_doc__', wrapper)
+    return deco
 
 
-@deferred(1)
 def accepts_reply(desc: str = 'Reply to a message', required=False):
     async def inject_reply(self_or_ctx: Cog | Circumstances, *args):
         if not isinstance(self_or_ctx, Circumstances):
@@ -671,15 +694,17 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
             raise ReplyRequired()
         ctx.kwargs['reply'] = reply
 
-    def wrapper(f: Instruction):
+    def wrapper(doc: Documentation, f: Instruction):
         f.before_invoke(inject_reply)
-        arg = f.doc.arguments['reply']
+        arg = doc.arguments['reply']
         arg.description = desc
         arg.signature = '(with reply)'
         arg.node = '┌ (while replying to a message)\n'
         arg.order = -2
-        return f
-    return wrapper
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
 @attr.s
@@ -796,6 +821,7 @@ class Manual:
     @description('Get help about commands.')
     @argument('category', 'What kind of help info to get.')
     @argument('query', 'A command name, such as "echo" or "prefix set".')
+    @option('-v', '--category', type_=click.Choice(Documentation.HELP_STYLES), default='normal')
     @invocation((), 'See all commands.')
     @invocation(('query',), 'See help for a command.')
     @invocation(('category',), False)
@@ -804,8 +830,7 @@ class Manual:
     @example('full perms', f'See detailed information about the command {code("perms")}')
     @example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
     @cooldown(1, 1, BucketType.user)
-    async def help_command(ctx: Circumstances,
-                           category: Optional[Documentation.HelpFormat] = 'normal',
+    async def help_command(ctx: Circumstances, category: Optional[Documentation.HelpFormat] = 'normal',
                            *, query: CaseInsensitive = ''):
         man = ctx.manual
 
@@ -851,3 +876,36 @@ class SendHelp(UserInputError):
 class NotAcceptable(UserInputError):
     def __init__(self, message, *args):
         super().__init__(message=message, *args)
+
+
+@explains(CommandNotFound, 'Command not found', 0)
+async def on_not_found(ctx: Circumstances, exc):
+    try:
+        ctx.bot.manual.lookup(ctx.invoked_with)
+    except NoSuchCommand as no_command:
+        return str(no_command), 30
+
+
+@explains(NotAcceptable, 'Item not acceptable', priority=5)
+async def explains_not_acceptable(ctx: Circumstances, exc) -> tuple[str, int]:
+    return str(exc), 30
+
+
+@explains(SendHelp, priority=50)
+async def send_help(ctx: Circumstances, exc: SendHelp):
+    await ctx.send_help(ctx.command.qualified_name, exc.category)
+    if isinstance(exc.__cause__, Exception):
+        await explain_exception(ctx, exc.__cause__)
+    return False
+
+
+@explains(MaxConcurrencyReached, 'Too many instances of this command running', 0)
+async def on_max_concurrent(ctx, exc):
+    return f'This command allows {describe_concurrency(exc.number, exc.per)}', 10
+
+
+@explains(MissingPermissions, 'Missing permissions', 0)
+async def on_missing_perms(ctx, exc):
+    perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
+    explanation = f'You are missing the {perms}.'
+    return explanation, 20

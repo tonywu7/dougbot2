@@ -22,7 +22,7 @@ from functools import wraps
 from hashlib import sha256
 from inspect import isfunction
 from types import MethodType
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.core.cache import caches
 
@@ -141,3 +141,14 @@ def finalizer(deco_func: Decorator[T, U]) -> Decorator[ReverseDecorator[T, U], U
     if not is_final_deco:
         return make_decorator
     return make_decorator(deco_func)()
+
+
+def memoize(obj: object, k: str, v: Any):
+    memo: list
+    try:
+        memo = getattr(obj, k)
+    except AttributeError:
+        memo = []
+        setattr(obj, k, memo)
+    memo.append(v)
+    return obj

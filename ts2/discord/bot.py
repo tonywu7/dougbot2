@@ -36,7 +36,6 @@ from more_itertools import always_reversible
 
 from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.db import async_atomic
-from ts2.utils.functional import finalizer
 from ts2.utils.importutil import objpath
 
 from . import constraint
@@ -144,11 +143,9 @@ class Robot(Bot):
 
         self.gatekeeper = Gatekeeper()
 
-    @finalizer(1)
     def instruction(self, *args, **kwargs):
         return super().command(*args, cls=Instruction, **kwargs)
 
-    @finalizer(1)
     def ensemble(self, *args, invoke_without_command=False, **kwargs):
         return super().group(
             *args, cls=Ensemble,

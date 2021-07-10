@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from discord.ext.commands import CheckFailure, Command, Group, command, group
 
-from ts2.utils.functional import deferred, finalizer
+from ts2.utils.functional import memoize
 
 from .context import Circumstances
 from .utils.markdown import strong
@@ -44,11 +44,9 @@ class Ensemble(DocumentationMixin, Group):
     def __init__(self, *args, case_insensitive=None, **kwargs):
         super().__init__(*args, case_insensitive=True, **kwargs)
 
-    @finalizer(1)
     def instruction(self, *args, **kwargs):
         return super().command(*args, cls=Instruction, **kwargs)
 
-    @finalizer(1)
     def ensemble(self, *args, cls=None, **kwargs):
         return super().group(*args, cls=type(self), **kwargs)
 
@@ -58,12 +56,14 @@ class Ensemble(DocumentationMixin, Group):
         return command
 
 
-@deferred(1)
 def dm_command():
     def wrapper(f: Instruction):
         f.dm_command = True
         return f
-    return wrapper
+
+    def deco(obj):
+        return memoize(obj, '__command_doc__', wrapper)
+    return deco
 
 
 async def command_environment_check(ctx: Circumstances):
@@ -71,12 +71,10 @@ async def command_environment_check(ctx: Circumstances):
         raise EnvironmentMismatch()
 
 
-@finalizer(1)
 def instruction(name: str, **kwargs) -> Instruction:
     return command(name, cls=Instruction, **kwargs)
 
 
-@finalizer(1)
 def ensemble(name: str, invoke_without_command=False, **kwargs) -> Ensemble:
     return group(name, cls=Ensemble, invoke_without_command=invoke_without_command, **kwargs)
 
