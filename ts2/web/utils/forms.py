@@ -131,8 +131,7 @@ class D3SelectWidget(widgets.Widget):
     template_name = 'telescope2/web/elements/item-list.html'
 
     def __init__(self, endpoint: str, selection: str, container_id='', classes='',
-                 prefix='-',
-                 placeholder='Start typing ...', attrs: Optional[dict] = None):
+                 prefix='-', placeholder='Start typing ...', attrs: Optional[dict] = None):
         super().__init__(attrs=attrs)
         self.id = container_id
         self.classes = classes
