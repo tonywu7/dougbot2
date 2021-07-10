@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Iterable
 from operator import attrgetter, itemgetter
@@ -25,6 +26,7 @@ import discord
 import inflect
 from discord.abc import ChannelType
 from django.apps import apps
+from django.conf.locale import LANG_INFO
 from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
@@ -48,8 +50,10 @@ snowflake_dot = attrgetter('snowflake')
 id_key = itemgetter('id')
 id_dot = attrgetter('id')
 
+log = logging.getLogger('discord.models')
 
-def convert_channel_type() -> models.IntegerChoices:
+
+def make_channel_type() -> models.IntegerChoices:
     class ClassDict(dict):
         _member_names = []
 
@@ -61,7 +65,24 @@ def convert_channel_type() -> models.IntegerChoices:
     return type('ChannelKind', (models.IntegerChoices,), classdict)
 
 
-ChannelKind = convert_channel_type()
+def make_locale_type() -> models.TextChoices:
+    class ClassDict(dict):
+        _member_names = []
+
+    classdict = ClassDict()
+    for k, v in LANG_INFO.items():
+        name = v.get('name')
+        if not name:
+            continue
+        attr = k.replace('-', '_')
+        classdict[attr] = (k, name)
+        classdict._member_names.append(attr)
+
+    return type('LocaleType', (models.TextChoices,), classdict)
+
+
+ChannelKind = make_channel_type()
+LocaleType = make_locale_type()
 DiscordChannels = Union[
     discord.CategoryChannel,
     discord.TextChannel,
@@ -139,6 +160,11 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     name: str = models.CharField(max_length=120, verbose_name='username')
     discriminator: int = models.IntegerField()
 
+    timezone: str = models.CharField(max_length=120, blank=True)
+    datefmt: str = models.TextField(blank=True)
+    timefmt: str = models.TextField(blank=True)
+    locale: str = models.CharField(max_length=120, blank=True, choices=LocaleType.choices)
+
     @classmethod
     def from_discord(cls, user: discord.User):
         return cls(
@@ -150,6 +176,10 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['name', 'discriminator']
+
+    @classmethod
+    def defaultuser(cls):
+        return cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en')
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
@@ -175,7 +205,13 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
         if not self._extensions:
             return {}
         exts = self._extensions.split(',')
-        return {label: apps.get_app_config(label) for label in exts}
+        configs = {}
+        for label in exts:
+            try:
+                configs[label] = apps.get_app_config(label)
+            except LookupError:
+                log.warning(f'No such extension {label}')
+        return configs
 
     @extensions.setter
     def extensions(self, configs: Iterable[str | CommandAppConfig]):

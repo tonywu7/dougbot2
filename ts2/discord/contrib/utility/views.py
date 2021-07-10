@@ -17,5 +17,9 @@
 from django.http import HttpRequest, HttpResponse
 
 
-async def timezone_index(req: HttpRequest, **kwargs) -> HttpResponse:
+async def suggestions_view(req: HttpRequest, **kwargs) -> HttpResponse:
+    return HttpResponse(status=204)
+
+
+async def polling_view(req: HttpRequest, **kwargs) -> HttpResponse:
     return HttpResponse(status=204)

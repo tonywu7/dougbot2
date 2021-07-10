@@ -318,6 +318,9 @@ class Robot(Bot):
 
         task.add_done_callback(callback)
 
+    async def fetch_raw_member(self, guild_id: int, user_id: int) -> dict:
+        return await self._get_state().http.get_member(guild_id, user_id)
+
 
 def add_event_listeners(self: Robot):
 

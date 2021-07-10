@@ -23,7 +23,7 @@ from typing import Literal, Optional, Union
 
 import psutil
 from discord import (Color, Emoji, Invite, Member, Message, PartialEmoji,
-                     PartialMessage, Role, TextChannel, User)
+                     PartialMessage, Role, TextChannel)
 from discord.ext.commands import BucketType, Converter, has_role, is_owner
 
 from ts2.discord import documentation as doc
@@ -129,7 +129,7 @@ class Debugging(Gear):
         await ctx.send('\n'.join([f'{idx}. {s}' for idx, s in enumerate(args)]))
 
     @instruction('444')
-    @doc.description('Globally forbid a user from interacting with the bot.')
+    @doc.description('Globally forbid an entity from interacting with the bot.')
     @doc.discussion('Detail', (
         f'All command invocations are ignored and all events (including {code("on_message")})'
         " are silently dropped.\nThe name of this command comes from nginx's"
@@ -138,8 +138,9 @@ class Debugging(Gear):
     ))
     @doc.restriction(is_owner)
     @doc.hidden
-    async def _blacklist(self, ctx: Circumstances, user: User, remove: Optional[Constant[Literal['free']]]):
-        if remove:
-            await ctx.bot.gatekeeper.discard(user)
+    async def _blacklist(self, ctx: Circumstances, entity: Union[Member, Role, TextChannel],
+                         free: Optional[Constant[Literal['free']]]):
+        if free:
+            await ctx.bot.gatekeeper.discard(entity)
         else:
-            await ctx.bot.gatekeeper.add(user)
+            await ctx.bot.gatekeeper.add(entity)
