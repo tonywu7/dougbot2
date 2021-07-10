@@ -22,7 +22,7 @@ import aiohttp
 from discord.ext.commands import BucketType, Greedy
 
 from ts2.discord import documentation as doc
-from ts2.discord.command import ensemble
+from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.converters import RegExp
 from ts2.discord.extension import Gear
@@ -35,14 +35,7 @@ class Internet(Gear):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @ensemble('web', aliases=['internet', 'g'])
-    @doc.description('Not Google.')
-    @doc.invocation((), 'List all available sources.')
-    async def web(self, ctx: Circumstances):
-        if not ctx.invoked_subcommand:
-            await ctx.send_help()
-
-    @web.instruction('oeis')
+    @instruction('oeis')
     @doc.description('Lookup a sequence from [OEIS](https://oeis.org/) '
                      'by its integers or by its A-number.')
     @doc.argument('integers', 'The sequence of integers to lookup, separated by space only.')
