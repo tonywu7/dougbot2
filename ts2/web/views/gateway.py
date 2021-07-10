@@ -30,7 +30,7 @@ from django.views.generic import View
 
 from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
-                                      bot_invite_url, create_session)
+                               bot_invite_url, create_session)
 from ts2.discord.models import Server
 
 from ..forms import ServerCreationForm, UserCreationForm

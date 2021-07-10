@@ -240,15 +240,18 @@ class Robot(Bot):
 
     @classmethod
     @sync_to_async(thread_sensitive=False)
-    def sync_server(cls, guild: Guild, name=True, roles=True, channels=True, layout=True):
-        server: Server = (
-            Server.objects
-            .prefetch_related('channels', 'roles')
-            .get(pk=guild.id)
-        )
-        if name:
-            server.name = guild.name
-            server.save()
+    def sync_server(cls, guild: Guild, *, roles=True, channels=True, layout=True):
+        try:
+            server: Server = (
+                Server.objects
+                .prefetch_related('channels', 'roles')
+                .get(pk=guild.id)
+            )
+        except Server.DoesNotExist:
+            server = Server(snowflake=guild.id)
+        server.name = guild.name
+        server.perms = guild.default_role.permissions.value
+        server.save()
         if roles:
             cls._sync_models(models.Role, guild.roles, server.roles)
         if channels:

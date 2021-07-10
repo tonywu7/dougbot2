@@ -13,7 +13,7 @@ module.exports = {
   context: path.resolve(__dirname),
   entry: path.resolve(SOURCE, 'index.ts'),
 
-  devtool: 'source-map',
+  devtool: devMode ? 'source-map' : false,
   watch: devMode,
 
   module: {
