@@ -26,7 +26,7 @@ from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.converters import RegExp
 from ts2.discord.extension import Gear
-from ts2.utils.lang import pluralize
+from ts2.discord.utils.lang import pluralize
 
 from .utils import OEIS
 

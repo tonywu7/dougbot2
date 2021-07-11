@@ -26,11 +26,10 @@ from discord.ext.commands.errors import CheckFailure
 from django.db.models.query import Q
 from more_itertools import bucket
 
-from ts2.utils.lang import either_or
-
 from .context import Circumstances
 from .errors import explains
 from .models import CommandConstraint, ConstraintType, id_dot
+from .utils.lang import either_or
 from .utils.markdown import strong, tag
 
 

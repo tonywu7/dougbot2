@@ -33,10 +33,9 @@ from discord.ext.commands.errors import (BadArgument, CommandError,
                                          MissingRequiredArgument)
 from discord.utils import escape_markdown
 
-from ts2.utils.lang import QuantifiedNP, coord_conj
-
 from .context import Circumstances
 from .errors import explains, prepend_argument_hint
+from .utils.lang import QuantifiedNP, coord_conj
 from .utils.markdown import a, code, strong
 from .utils.models import HypotheticalRole
 

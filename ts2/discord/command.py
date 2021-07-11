@@ -21,7 +21,6 @@ from discord.ext.commands import CheckFailure, Command, Group, command, group
 from ts2.utils.functional import memoize
 
 from .context import Circumstances
-from .utils.markdown import strong
 
 
 class DocumentationMixin:
@@ -84,18 +83,6 @@ def instruction(name: str, **kwargs) -> Instruction:
 
 def ensemble(name: str, invoke_without_command=False, **kwargs) -> Ensemble:
     return group(name, cls=Ensemble, invoke_without_command=invoke_without_command, **kwargs)
-
-
-class NoSuchCommand(ValueError):
-    def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
-        super().__init__(*args)
-        if potential_match:
-            self.message = f'No command named {strong(query)}. Did you mean {strong(potential_match)}?'
-        else:
-            self.message = f'No command named {strong(query)}.'
-
-    def __str__(self) -> str:
-        return self.message
 
 
 class EnvironmentMismatch(CheckFailure):

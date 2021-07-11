@@ -27,9 +27,8 @@ from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
 from pendulum import duration
 
-from ts2.utils.lang import pl_cat_predicative
-
 from .context import Circumstances
+from .utils.lang import pl_cat_predicative
 from .utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]

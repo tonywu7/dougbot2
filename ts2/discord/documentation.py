@@ -18,12 +18,13 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict, defaultdict, deque
+from collections.abc import Callable
 from fractions import Fraction
 from functools import cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
-from typing import (Any, Callable, Literal, Optional, Protocol, Union,
-                    get_args, get_origin)
+from typing import (Any, Literal, Optional, Protocol, Union, get_args,
+                    get_origin)
 
 import attr
 import discord
@@ -39,14 +40,13 @@ from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten, partition, split_at
 
 from ts2.utils.functional import memoize
-from ts2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
-                            singularize, slugify)
 
-from .command import NoSuchCommand
 from .context import Circumstances
 from .converters import CaseInsensitive, Choice, ReplyRequired, RetainsError
 from .errors import explain_exception, explains
 from .utils.duckcord.embeds import Embed2, EmbedField
+from .utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
+                         singularize, slugify)
 from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
 from .utils.pagination import (EmbedPagination, TextPagination,
                                chapterize_items, page_embed2, page_plaintext)
@@ -867,6 +867,18 @@ class SendHelp(UserInputError):
 class NotAcceptable(UserInputError):
     def __init__(self, message, *args):
         super().__init__(message=message, *args)
+
+
+class NoSuchCommand(ValueError):
+    def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
+        super().__init__(*args)
+        if potential_match:
+            self.message = f'No command named {strong(query)}. Did you mean {strong(potential_match)}?'
+        else:
+            self.message = f'No command named {strong(query)}.'
+
+    def __str__(self) -> str:
+        return self.message
 
 
 @explains(CommandNotFound, 'Command not found', 0)
