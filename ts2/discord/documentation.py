@@ -814,6 +814,7 @@ class Manual:
         paginator = pagination(ctx.bot, msg, 60, ctx.author.id)
         await paginator.run()
 
+    @staticmethod
     @description('Get help about commands.')
     @argument('category', 'What kind of help info to get.')
     @argument('query', 'A command name, such as "echo" or "prefix set".')
