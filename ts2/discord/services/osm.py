@@ -13,3 +13,47 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+from __future__ import annotations
+
+from typing import Optional
+
+from aiohttp import ClientSession
+from discord.ext.commands import BucketType, cooldown
+from django.conf import settings
+from geopy import Location
+from geopy.adapters import AioHTTPAdapter
+from geopy.geocoders import Nominatim
+
+from ..command import instruction
+from ..context import Circumstances
+
+
+class ManagedAioHTTPAdapter(AioHTTPAdapter):
+    @property
+    def session(self):
+        return super().session
+
+    @session.setter
+    def session(self, ses: ClientSession):
+        self.__dict__['session'] = ses
+
+    @session.deleter
+    def session(self):
+        self.__dict__.pop('session', None)
+
+
+def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
+    locator = Nominatim(
+        user_agent=settings.USER_AGENT,
+        adapter_factory=ManagedAioHTTPAdapter,
+    )
+    locator.adapter.session = session
+    return locator
+
+
+@instruction('!tzlocation', unreachable=True)
+@cooldown(1, 5, BucketType.default)
+async def get_location(ctx: Circumstances, **kwargs) -> Location | list[Location]:
+    geolocator = make_geolocator(ctx.session)
+    return await geolocator.geocode(**kwargs)
