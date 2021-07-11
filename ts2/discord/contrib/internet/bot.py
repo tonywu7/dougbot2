@@ -30,7 +30,10 @@ from ts2.discord.services.oeis import OEIS
 from ts2.discord.utils.lang import pluralize
 
 
-class Internet(Gear):
+class Internet(
+    Gear, name='Internet', order=10,
+    description='Not Google.',
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

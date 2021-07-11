@@ -16,13 +16,20 @@
 
 import logging
 
-from discord.ext.commands import Bot, Cog
+from discord.ext.commands import Bot, Cog, CogMeta
 from discord.ext.commands.errors import DisabledCommand
 
 from .errors import explains
 
 
-class Gear(Cog):
+class GearMeta(CogMeta):
+    def __new__(cls, *args, order: int = 50, **kwargs):
+        new_cls = super().__new__(cls, *args, **kwargs)
+        new_cls.sort_order = order
+        return new_cls
+
+
+class Gear(Cog, metaclass=GearMeta):
     def __init__(self, label: str, bot: Bot, *args, **kwargs):
         super().__init__()
         self.bot = bot

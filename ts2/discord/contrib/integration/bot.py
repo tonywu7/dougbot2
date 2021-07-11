@@ -17,6 +17,9 @@
 from ts2.discord.extension import Gear
 
 
-class Integration(Gear):
+class Integration(
+    Gear, name='Integration', order=20,
+    description='',
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

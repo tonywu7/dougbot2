@@ -47,7 +47,8 @@ from .errors import explain_exception, explains
 from .utils.duckcord.embeds import Embed2, EmbedField
 from .utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
                          singularize, slugify)
-from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
+from .utils.markdown import (a, blockquote, code, em, mta_arrow_bracket, pre,
+                             strong)
 from .utils.pagination import (EmbedPagination, TextPagination,
                                chapterize_items, page_embed2, page_plaintext)
 
@@ -706,6 +707,7 @@ class Manual:
 
     commands: dict[str, Documentation] = attr.ib(factory=dict)
     sections: dict[str, list[str]] = attr.ib(factory=lambda: defaultdict(list))
+    descriptions: dict[str, str] = attr.ib(factory=lambda: defaultdict(str))
     aliases: dict[str, str] = attr.ib(factory=dict)
 
     toc: dict[str, str] = attr.ib(factory=dict)
@@ -717,16 +719,25 @@ class Manual:
     @classmethod
     def from_bot(cls, bot):
         man = Manual()
+        sections: dict[tuple[int, str], list[str]] = defaultdict(list)
+        descriptions = {}
         for call, cmd in bot.iter_commands():
             if getattr(cmd, 'unreachable', False):
                 continue
             call: str
             man.commands[call] = cmd.doc
             if cmd.cog:
-                section = cmd.cog.qualified_name
+                cog = cmd.cog
+                section = (getattr(cog, 'sort_order', 0), cog.qualified_name)
+                desc = cmd.cog.description
             else:
-                section = 'Miscellaneous'
-            man.sections[section].append(call)
+                section = (99, 'Miscellaneous')
+                desc = ''
+            sections[section].append(call)
+            descriptions[section] = desc
+        for (idx, k), calls in sorted(sections.items(), key=lambda t: t[0]):
+            man.sections[k] = calls
+            man.descriptions[k] = descriptions[idx, k]
         return man
 
     def propagate_restrictions(self, tree: dict[str, Documentation],
@@ -762,8 +773,11 @@ class Manual:
         self.register_aliases()
         for doc in self.commands.values():
             doc.finalize()
-        for section, calls in sorted(self.sections.items(), key=lambda t: t[0]):
+        for section, calls in self.sections.items():
             lines = []
+            desc = self.descriptions[section]
+            if desc:
+                lines.append(em(desc))
             for call in sorted(calls):
                 doc = self.commands[call]
                 if doc.hidden or not doc.standalone:
@@ -771,7 +785,7 @@ class Manual:
                 lines.append(f'{strong(call)}: {doc.description}')
             content = '\n'.join(lines)
             if content.strip():
-                self.toc[section] = content
+                self.toc[section] = blockquote(content)
 
         fields = [EmbedField(k, v, False) for k, v in self.toc.items()]
         chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)

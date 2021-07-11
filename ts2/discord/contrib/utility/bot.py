@@ -34,7 +34,10 @@ from ts2.discord.utils.markdown import code, strong, tag, traffic_light
 from ts2.discord.utils.models import HypotheticalMember, HypotheticalRole
 
 
-class Utilities(Gear):
+class Utilities(
+    Gear, name='Utilities', order=50,
+    description='',
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

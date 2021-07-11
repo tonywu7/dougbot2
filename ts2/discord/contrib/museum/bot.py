@@ -51,7 +51,10 @@ RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)')
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
 
 
-class Museum(Gear):
+class Museum(
+    Gear, name='Museum', order=10,
+    description='Curation & archival',
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

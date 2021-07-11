@@ -42,7 +42,10 @@ class LoggingLevel(Converter):
         return arg
 
 
-class Debugging(Gear):
+class Debugging(
+    Gear, name='Debugging', order=95,
+    description='',
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
