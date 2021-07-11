@@ -27,6 +27,7 @@ from discord.errors import Forbidden
 from discord.ext.commands import Context
 from discord.ext.commands.errors import CommandError
 from django.db import transaction
+from .command import Instruction
 
 
 def _guard(err: str):
@@ -138,6 +139,11 @@ class Circumstances(Context):
     async def send_help(self, query: str = None, category='normal'):
         query = query or self.command.qualified_name
         return await self.bot.manual.help_command(self, category, query=query)
+
+    async def invoke_with_restrictions(self, cmd: Instruction, *args, **kwargs):
+        async with cmd.acquire_concurrency(self):
+            cmd.trigger_cooldowns(self)
+            return await self.invoke(cmd, *args, **kwargs)
 
 
 class CommandContextError(CommandError):

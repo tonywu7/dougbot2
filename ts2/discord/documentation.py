@@ -718,6 +718,8 @@ class Manual:
     def from_bot(cls, bot):
         man = Manual()
         for call, cmd in bot.iter_commands():
+            if getattr(cmd, 'unreachable', False):
+                continue
             call: str
             man.commands[call] = cmd.doc
             if cmd.cog:

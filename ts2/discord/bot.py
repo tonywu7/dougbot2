@@ -26,7 +26,8 @@ from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Message, MessageReference,
                      Object, Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import Bot, Command, has_guild_permissions
+from discord.ext.commands import (Bot, BucketType, Command, cooldown,
+                                  has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.core.cache import caches
@@ -182,11 +183,6 @@ class Robot(Bot):
         self.manual = Manual.from_bot(self)
         self.manual.finalize()
 
-    async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
-        ctx: Circumstances = await super().get_context(message, cls=cls)
-        await ctx.init()
-        return ctx
-
     def iter_commands(
         self, root: Optional[CommandIterator] = None, prefix: str = '',
     ) -> Generator[tuple[str, Command], None, None]:
@@ -258,6 +254,9 @@ class Robot(Bot):
         if layout:
             cls._sync_layouts(server, guild)
 
+    async def fetch_raw_member(self, guild_id: int, user_id: int) -> dict:
+        return await self._get_state().http.get_member(guild_id, user_id)
+
     @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
         @sync_to_async
@@ -278,6 +277,29 @@ class Robot(Bot):
     @classmethod
     def schedule_refresh(cls):
         caches['discord'].set('ts2.discord.bot.refresh', True)
+
+    async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
+        ctx: Circumstances = await super().get_context(message, cls=cls)
+        if ctx.command.unreachable:
+            ctx.command = None
+            return ctx
+        await ctx.init()
+        return ctx
+
+    def dispatch(self, event_name, *args, **kwargs):
+        task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
+
+        def callback(task: asyncio.Task):
+            try:
+                should_dispatch = task.result()
+            except Exception:
+                pass
+            else:
+                if not should_dispatch:
+                    return
+            return super(type(self), self).dispatch(event_name, *args, **kwargs)
+
+        task.add_done_callback(callback)
 
     async def on_ready(self):
         self.log.info('Bot ready')
@@ -304,24 +326,6 @@ class Robot(Bot):
             except CommandContextError as exc:
                 return await log_command_errors(ctx, exc)
         await log_command_errors(ctx, exc)
-
-    def dispatch(self, event_name, *args, **kwargs):
-        task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
-
-        def callback(task: asyncio.Task):
-            try:
-                should_dispatch = task.result()
-            except Exception:
-                pass
-            else:
-                if not should_dispatch:
-                    return
-            return super(type(self), self).dispatch(event_name, *args, **kwargs)
-
-        task.add_done_callback(callback)
-
-    async def fetch_raw_member(self, guild_id: int, user_id: int) -> dict:
-        return await self._get_state().http.get_member(guild_id, user_id)
 
 
 def add_event_listeners(self: Robot):
@@ -400,6 +404,9 @@ def add_event_listeners(self: Robot):
 
 
 def register_base_commands(self: Robot):
+
+    self.add_command(instruction('help', aliases=['man'])(Manual.help_command))
+
     @self.instruction('echo')
     @doc.description('Send the command arguments back.')
     @doc.argument('text', 'Message to send back.')
@@ -414,6 +421,29 @@ def register_base_commands(self: Robot):
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances):
         await ctx.send(f':PONG {utctimestamp()}')
+
+    @self.listen('on_message')
+    async def on_ping(msg: Message):
+        gateway_dst = utctimestamp()
+
+        if not self.user:
+            return
+        if self.user.id != msg.author.id:
+            return
+        if msg.content[:6] != ':PONG ':
+            return
+
+        try:
+            msg_created = float(msg.content[6:])
+        except ValueError:
+            return
+
+        gateway_latency = 1000 * (gateway_dst - msg_created)
+        edit_start = utcnow()
+        await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
+        edit_latency = (utcnow() - edit_start).total_seconds() * 1000
+
+        await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
     @self.ensemble('prefix', invoke_without_command=True)
     @doc.description('Get the command prefix for the bot in this server.')
@@ -436,7 +466,7 @@ def register_base_commands(self: Robot):
             await ctx.send(f'{strong("Error:")} {e}')
             raise
 
-    @self.ensemble('conf', alias=('my',), invoke_without_command=True)
+    @self.ensemble('conf', aliases=('my',), invoke_without_command=True)
     @doc.description('Print your settings within the bot.')
     async def conf(ctx: Circumstances):
         profile: User = await User.aget(ctx.author.id)
@@ -455,7 +485,7 @@ def register_base_commands(self: Robot):
             res = res.add_field(name=k, value=code(v or '(none)'), inline=True)
         return await ctx.reply(embed=res)
 
-    @conf.instruction('timezone', alias=('tz',))
+    @conf.instruction('timezone', aliases=('tz',))
     @doc.description('Set timezone preference.')
     @doc.argument('tz', 'Timezone to set.')
     @doc.argument('latitude', 'Latitude of the location whose timezone to use.')
@@ -498,29 +528,9 @@ def register_base_commands(self: Robot):
         elif long is not None and lat is None:
             return await ctx.send('Missing latitude')
         query = values['location']
+        return await ctx.invoke_with_restrictions(_get_location, query=query)
+
+    @self.instruction('!tzlocation', unreachable=True)
+    @cooldown(2, 10, BucketType.guild)
+    async def _get_location(ctx: Circumstances, *, query='test'):
         return await ctx.send(query)
-
-    @self.listen('on_message')
-    async def on_ping(msg: Message):
-        gateway_dst = utctimestamp()
-
-        if not self.user:
-            return
-        if self.user.id != msg.author.id:
-            return
-        if msg.content[:6] != ':PONG ':
-            return
-
-        try:
-            msg_created = float(msg.content[6:])
-        except ValueError:
-            return
-
-        gateway_latency = 1000 * (gateway_dst - msg_created)
-        edit_start = utcnow()
-        await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
-        edit_latency = (utcnow() - edit_start).total_seconds() * 1000
-
-        await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
-
-    self.add_command(instruction('help', aliases=['man'])(Manual.help_command))

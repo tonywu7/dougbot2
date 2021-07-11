@@ -16,37 +16,42 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from discord.ext.commands import CheckFailure, Command, Group, command, group
 
 from ts2.utils.functional import memoize
 
-from .context import Circumstances
 
+class Instruction(Command):
+    dm_command = False
 
-class DocumentationMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, unreachable: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
-        from .documentation import Documentation
-        self.doc = Documentation.from_command(self)
+        self.unreachable = unreachable
+        if not unreachable:
+            from .documentation import Documentation
+            self.doc = Documentation.from_command(self)
 
     def _ensure_assignment_on_copy(self, copied_command):
         cmd = super()._ensure_assignment_on_copy(copied_command)
         cmd.doc = self.doc
         return cmd
 
+    @asynccontextmanager
+    async def acquire_concurrency(self, ctx):
+        try:
+            if self._max_concurrency is not None:
+                await self._max_concurrency.acquire(ctx)
+            yield
+        finally:
+            if self._max_concurrency is not None:
+                await self._max_concurrency.release(ctx)
 
-class OptionsMixin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        from .parse import build_parser
-        build_parser(self)
+    def trigger_cooldowns(self, ctx):
+        self._prepare_cooldowns(ctx)
 
 
-class Instruction(DocumentationMixin, Command):
-    dm_command = False
-
-
-class Ensemble(DocumentationMixin, Group):
+class Ensemble(Instruction, Group):
     def __init__(self, *args, case_insensitive=None, **kwargs):
         super().__init__(*args, case_insensitive=True, **kwargs)
 
@@ -72,7 +77,7 @@ def dm_command():
     return deco
 
 
-async def command_environment_check(ctx: Circumstances):
+async def command_environment_check(ctx):
     if not (ctx.command.dm_command ^ bool(ctx.guild)):
         raise EnvironmentMismatch()
 

@@ -197,7 +197,7 @@ class Fallback:
         return Union[item, Literal[False], str, None]
 
 
-class RetainsError(Generic[T, U]):
+class RetainsError(Converter, Generic[T, U]):
     name = '<param>'
 
     def __init__(self, result: T = Parameter.empty,
@@ -271,7 +271,7 @@ class RetainsError(Generic[T, U]):
                 return cls(default=default, argument=arg, error=e)
 
         __dict__ = {'convert': convert, 'default': default, '_converter': converter}
-        return Union[type(cls.__name__, (RetainsError, Converter), __dict__), None]
+        return Union[type(cls.__name__, (RetainsError,), __dict__), None]
 
     @classmethod
     def asdict(cls, **items: RetainsError) -> dict:
