@@ -24,6 +24,7 @@ from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
+from asgiref.sync import sync_to_async
 from discord.abc import ChannelType
 from django.apps import apps
 from django.conf.locale import LANG_INFO
@@ -160,10 +161,12 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     name: str = models.CharField(max_length=120, verbose_name='username')
     discriminator: int = models.IntegerField()
 
-    timezone: str = models.CharField(max_length=120, blank=True)
-    datefmt: str = models.TextField(blank=True)
-    timefmt: str = models.TextField(blank=True)
-    locale: str = models.CharField(max_length=120, blank=True, choices=LocaleType.choices)
+    timezone: str = models.CharField('timezone', max_length=120, blank=True)
+    datefmt: str = models.TextField('date format', blank=True)
+    timefmt: str = models.TextField('time format', blank=True)
+    locale: str = models.CharField('language', max_length=120, blank=True, choices=LocaleType.choices)
+
+    _default: bool = False
 
     @classmethod
     def from_discord(cls, user: discord.User):
@@ -179,7 +182,35 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
     @classmethod
     def defaultuser(cls):
-        return cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en')
+        instance = cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en')
+        instance._default = True
+        return instance
+
+    @classmethod
+    @sync_to_async
+    def aget(cls, id: int) -> User:
+        try:
+            return cls.objects.get(snowflake=id)
+        except cls.DoesNotExist:
+            return cls.defaultuser()
+
+    @sync_to_async
+    def asave(self, *args, **kwargs):
+        return self.save(*args, **kwargs)
+
+    @property
+    def isdefault(self):
+        return self._default
+
+    def format_prefs(self) -> dict[str, str]:
+        info = {}
+        for field_name in ('timezone', 'datefmt', 'timefmt', 'locale'):
+            field = self._meta.get_field(field_name)
+            val = getattr(self, field_name)
+            if field.choices:
+                val = dict(field.choices)[val]
+            info[field.verbose_name] = val
+        return info
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
@@ -373,3 +404,27 @@ class Blacklisted(Entity):
     class Meta:
         verbose_name = 'blacklisted entity'
         verbose_name_plural = 'blacklisted entities'
+
+
+class BaseTemplate(models.Model):
+    class Meta:
+        abstract = True
+
+    source: str = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        meta = self._meta
+        return f'{meta.app_label}/{meta.model_name}/{self.id}.html'
+
+
+class StringTemplate(BaseTemplate):
+    server: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='templates')
+    name: str = models.CharField(max_length=120)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['server_id', 'name'],
+                name='uq_%(app_label)s_%(class)s_server_id_name',
+            ),
+        ]

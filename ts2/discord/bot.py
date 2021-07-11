@@ -47,8 +47,9 @@ from .context import Circumstances, CommandContextError
 from .documentation import Manual
 from .errors import explain_exception
 from .logging import log_command_errors
-from .models import Blacklisted, Server
+from .models import Blacklisted, Server, User
 from .utils import events
+from .utils.duckcord.embeds import Embed2
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
@@ -433,6 +434,42 @@ def register_base_commands(self: Robot):
         except ValueError as e:
             await ctx.send(f'{strong("Error:")} {e}')
             raise
+
+    @self.ensemble('conf', alias=('my',), invoke_without_command=True)
+    @doc.description('Print your settings within the bot.')
+    async def my(ctx: Circumstances):
+        profile: User = await User.aget(ctx.author.id)
+
+        footer = ('No preference set, showing default values'
+                  if profile.isdefault else None)
+        info = profile.format_prefs()
+        lines = []
+        res = (
+            Embed2(title='Settings', description='\n'.join(lines))
+            .set_footer(text=footer)
+            .set_timestamp()
+            .personalized(ctx.author)
+        )
+        for k, v in info.items():
+            res = res.add_field(name=k, value=code(v or '(none)'), inline=True)
+        return await ctx.reply(embed=res)
+
+    @my.instruction('timezone', alias=('tz',))
+    @doc.description('Set timezone preference for yourself.')
+    @doc.argument('tz', 'Timezone to set.')
+    @doc.invocation((), 'Print your current timezone setting.')
+    @doc.invocation(('tz',), 'Set your timezone for all servers the bot is in.')
+    async def timezone(ctx: Circumstances, *, tz: Optional[str] = None):
+        profile: User = await User.aget(ctx.author.id)
+        if not tz:
+            if profile.timezone:
+                body = code(profile.timezone)
+            else:
+                body = 'No timezone preference set.'
+            return await ctx.reply(embed=Embed2(
+                title='Timezone',
+                description=body,
+            ).personalized(ctx.author))
 
     @self.listen('on_message')
     async def on_ping(msg: Message):

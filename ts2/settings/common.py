@@ -161,6 +161,10 @@ def config_caches(redis_host):
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             },
         },
+        'jinja2': {
+            'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+            'LOCATION': '127.0.0.1:11211',
+        },
     }
 
     CACHEOPS_REDIS = f'redis://{redis_host}:6379/2'
