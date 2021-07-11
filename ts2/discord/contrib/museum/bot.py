@@ -34,7 +34,7 @@ from pendulum import DateTime, instance
 from ts2.discord import documentation as doc
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.converters import Choice, InvalidSyntax
+from ts2.discord.converters.patterns import Choice
 from ts2.discord.documentation import NotAcceptable
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal
@@ -73,7 +73,7 @@ class Museum(
         *, reply: Optional[MessageReference],
     ):
         if message is None and reply is None:
-            raise InvalidSyntax(
+            raise NotAcceptable(
                 'Either you did not specify a message, '
                 'or the message is not found, '
                 'or is not readable by the bot.',

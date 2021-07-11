@@ -27,6 +27,7 @@ from discord.errors import Forbidden
 from discord.ext.commands import Context
 from discord.ext.commands.errors import CommandError
 from django.db import transaction
+
 from .command import Instruction
 
 
@@ -136,11 +137,15 @@ class Circumstances(Context):
             return f'{self.prefix}{" ".join(self.invoked_parents)} {self.invoked_with}'
         return f'{self.prefix}{self.invoked_with}'
 
+    @property
+    def raw_input(self) -> str:
+        return self.view.buffer[len(self.full_invoked_with):].strip()
+
     async def send_help(self, query: str = None, category='normal'):
         query = query or self.command.qualified_name
         return await self.bot.manual.help_command(self, category, query=query)
 
-    async def invoke_with_restrictions(self, cmd: Instruction, *args, **kwargs):
+    async def call(self, cmd: Instruction, *args, **kwargs):
         async with cmd.acquire_concurrency(self):
             cmd.trigger_cooldowns(self)
             return await self.invoke(cmd, *args, **kwargs)

@@ -31,7 +31,7 @@ import discord
 from discord import MessageReference
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Converter, Greedy
-from discord.ext.commands.errors import (CommandNotFound,
+from discord.ext.commands.errors import (BadArgument, CommandNotFound,
                                          MaxConcurrencyReached,
                                          MissingPermissions, UserInputError)
 from discord.utils import escape_markdown
@@ -42,7 +42,8 @@ from more_itertools import flatten, partition, split_at
 from ts2.utils.functional import memoize
 
 from .context import Circumstances
-from .converters import CaseInsensitive, Choice, ReplyRequired, RetainsError
+from .converters.functional import RetainsError
+from .converters.patterns import CaseInsensitive, Choice
 from .errors import explain_exception, explains
 from .utils.duckcord.embeds import Embed2, EmbedField
 from .utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
@@ -897,6 +898,16 @@ class NoSuchCommand(ValueError):
         return self.message
 
 
+class ReplyRequired(BadArgument):
+    def __call__(self):
+        return super().__call__(message='You need to call this command while replying to a message.')
+
+
+@explains(ReplyRequired, 'Message reference required', priority=5)
+async def explains_required_reply(ctx: Circumstances, exc) -> tuple[str, int]:
+    return str(exc), 20
+
+
 @explains(CommandNotFound, 'Command not found', 0)
 async def on_not_found(ctx: Circumstances, exc):
     try:
@@ -928,3 +939,10 @@ async def on_missing_perms(ctx, exc):
     perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
     explanation = f'You are missing the {perms}.'
     return explanation, 20
+
+
+def accepts(*args, **kwargs):
+    def wrapper(obj: Any):
+        obj.__accept__ = QuantifiedNP(*args, **kwargs)
+        return obj
+    return wrapper

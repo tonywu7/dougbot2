@@ -24,6 +24,7 @@ from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
+import pytz
 from asgiref.sync import sync_to_async
 from discord.abc import ChannelType
 from django.apps import apps
@@ -181,22 +182,28 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
         return ['name', 'discriminator']
 
     @classmethod
-    def defaultuser(cls):
-        instance = cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en')
+    def defaultuser(cls, **kwargs):
+        instance = cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en', **kwargs)
         instance._default = True
         return instance
 
     @classmethod
     @sync_to_async
-    def aget(cls, id: int) -> User:
+    def aget(cls, user: discord.User) -> User:
         try:
-            return cls.objects.get(snowflake=id)
+            return cls.objects.get(snowflake=user.id)
         except cls.DoesNotExist:
-            return cls.defaultuser()
+            return cls.defaultuser(snowflake=user.id, name=user.name,
+                                   discriminator=user.discriminator)
 
     @sync_to_async
     def asave(self, *args, **kwargs):
         return self.save(*args, **kwargs)
+
+    @sync_to_async
+    def save_timezone(self, tz: pytz.BaseTzInfo):
+        self.timezone = tz.zone
+        self.save()
 
     @property
     def isdefault(self):

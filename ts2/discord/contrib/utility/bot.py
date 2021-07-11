@@ -28,7 +28,7 @@ from ts2.discord import documentation as doc
 from ts2.discord.bot import Robot
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.converters import PermissionName
+from ts2.discord.converters.models import PermissionName
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import code, strong, tag, traffic_light
 from ts2.discord.utils.models import HypotheticalMember, HypotheticalRole
