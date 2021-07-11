@@ -82,24 +82,6 @@ async def explain_exception(ctx: Circumstances, exc: Exception):
         return await reply_command_failure(ctx, title, msg, autodelete)
 
 
-@explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
-async def on_cooldown(ctx, exc):
-    return f'Try again in {duration(seconds=exc.retry_after).in_words()}', 10
-
-
-@explains(errors.MissingRole, 'Missing roles', 0)
-async def on_missing_role(ctx, exc):
-    explanation = f'You are missing the {tag_literal("role", exc.missing_role)} role.'
-    return explanation, 20
-
-
-@explains(errors.MissingAnyRole, 'Missing roles', 0)
-async def on_missing_any_role(ctx, exc):
-    roles = pl_cat_predicative('role', [tag_literal('role', r) for r in exc.missing_roles], conj='or')
-    explanation = f'You are missing the {roles}.'
-    return explanation, 20
-
-
 def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
@@ -154,6 +136,24 @@ def append_quotation_hint():
             return msg, autodelete
         return handler
     return wrapper
+
+
+@explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
+async def on_cooldown(ctx, exc):
+    return f'Try again in {duration(seconds=exc.retry_after).in_words()}', 10
+
+
+@explains(errors.MissingRole, 'Missing roles', 0)
+async def on_missing_role(ctx, exc):
+    explanation = f'You are missing the {tag_literal("role", exc.missing_role)} role.'
+    return explanation, 20
+
+
+@explains(errors.MissingAnyRole, 'Missing roles', 0)
+async def on_missing_any_role(ctx, exc):
+    roles = pl_cat_predicative('role', [tag_literal('role', r) for r in exc.missing_roles], conj='or')
+    explanation = f'You are missing the {roles}.'
+    return explanation, 20
 
 
 @explains(errors.ExpectedClosingQuoteError, 'No closing quote found')

@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Iterable
+from datetime import datetime
 from operator import attrgetter, itemgetter
 from typing import Generic, Protocol, TypeVar, Union
 
@@ -163,8 +164,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     discriminator: int = models.IntegerField()
 
     timezone: str = models.CharField('timezone', max_length=120, blank=True)
-    datefmt: str = models.TextField('date format', blank=True)
-    timefmt: str = models.TextField('time format', blank=True)
+    datetimefmt: str = models.TextField('datetime format', blank=True)
     locale: str = models.CharField('language', max_length=120, blank=True, choices=LocaleType.choices)
 
     _default: bool = False
@@ -183,7 +183,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
     @classmethod
     def defaultuser(cls, **kwargs):
-        instance = cls(datefmt='%d %b %Y', timefmt='%H:%M:%S', locale='en', **kwargs)
+        instance = cls(datetimefmt='%d %b %Y %H:%M:%S', locale='en', **kwargs)
         instance._default = True
         return instance
 
@@ -211,13 +211,16 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
     def format_prefs(self) -> dict[str, str]:
         info = {}
-        for field_name in ('timezone', 'datefmt', 'timefmt', 'locale'):
+        for field_name in ('timezone', 'datetimefmt', 'locale'):
             field = self._meta.get_field(field_name)
             val = getattr(self, field_name)
             if field.choices:
                 val = dict(field.choices)[val]
             info[field.verbose_name] = val
         return info
+
+    def format_datetime(self, dt: datetime):
+        return dt.strftime(self.datetimefmt)
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):

@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'ts2.web.apps.WebConfig',
     'ts2.discord.apps.DiscordBotConfig',
-    'ts2.discord.conf.apps.ConfConfig',
+    'ts2.discord.preferences.apps.ConfConfig',
     'ts2.discord.contrib.internet.apps.InternetConfig',
     'ts2.discord.contrib.utility.apps.BotUtilityConfig',
     'ts2.discord.contrib.museum.apps.MuseumConfig',

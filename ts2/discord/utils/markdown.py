@@ -22,6 +22,7 @@ from textwrap import indent
 
 from discord import Role
 from discord.abc import GuildChannel, User
+from discord.utils import escape_markdown
 from markdown import Markdown
 
 RE_USER_MENTION = re.compile(r'<@(\d+)>')
@@ -97,6 +98,10 @@ def E(s: str) -> str:
 
 def a(href: str, text: str) -> str:
     return f'[{text}]({href})'
+
+
+def verbatim(text: str) -> str:
+    return code(escape_markdown(text))
 
 
 def traffic_light(val: bool | None, strict=False):

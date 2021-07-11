@@ -287,6 +287,9 @@ def make_logging_config(
             'django.template': {
                 'level': logging.INFO,
             },
+            'numba.core.ssa': {
+                'level': logging.INFO,
+            },
         },
         'root': {
             'level': level,

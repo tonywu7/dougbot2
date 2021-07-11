@@ -7,7 +7,7 @@ from ts2.web.config import CommandAppConfig
 
 class ConfConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ts2.discord.conf'
+    name = 'ts2.discord.preferences'
 
     title = 'Settings'
     icon = mark_safe('<i class="bi bi-sliders"></i>')

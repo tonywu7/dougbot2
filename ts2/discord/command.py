@@ -37,6 +37,7 @@ class Instruction(Command):
         cmd = super()._ensure_assignment_on_copy(copied_command)
         if hasattr(self, 'doc'):
             cmd.doc = self.doc
+        cmd.unreachable = self.unreachable
         return cmd
 
     @asynccontextmanager

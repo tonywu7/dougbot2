@@ -29,6 +29,7 @@ from discord.ext.commands.errors import CommandError
 from django.db import transaction
 
 from .command import Instruction
+from .utils.markdown import tag
 
 
 def _guard(err: str):
@@ -116,6 +117,11 @@ class Circumstances(Context):
         with transaction.atomic():
             self.server.prefix = prefix
             self.server.save()
+
+    async def pingback(self, content=None, *args, **kwargs):
+        content = content or ''
+        content = f'{tag(self.author)} {content}'
+        return await self.send(content=content, *args, **kwargs)
 
     async def reply_with_delete(self, *args, **kwargs):
         msg = await self.reply(*args, **kwargs)

@@ -1,5 +1,5 @@
 # osm.py
-# Copyright (C) 2021  Tony Wu +https://github.com/tonywu7/
+# Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord.ext.commands import BucketType, cooldown
+from discord.ext.commands import BucketType, cooldown, max_concurrency
 from django.conf import settings
 from geopy import Location
 from geopy.adapters import AioHTTPAdapter
@@ -45,7 +45,7 @@ class ManagedAioHTTPAdapter(AioHTTPAdapter):
 
 def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
     locator = Nominatim(
-        user_agent=settings.USER_AGENT,
+        timeout=10, user_agent=settings.USER_AGENT,
         adapter_factory=ManagedAioHTTPAdapter,
     )
     locator.adapter.session = session
@@ -53,6 +53,7 @@ def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
 
 
 @instruction('!tzlocation', unreachable=True)
+@max_concurrency(1, BucketType.guild, wait=True)
 @cooldown(1, 5, BucketType.default)
 async def get_location(ctx: Circumstances, **kwargs) -> Location | list[Location]:
     geolocator = make_geolocator(ctx.session)
