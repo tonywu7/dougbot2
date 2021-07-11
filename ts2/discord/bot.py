@@ -26,8 +26,7 @@ from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Message, MessageReference,
                      Object, Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import (Bot, BucketType, Command, cooldown,
-                                  has_guild_permissions)
+from discord.ext.commands import Bot, Command, has_guild_permissions
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.core.cache import caches
@@ -45,13 +44,11 @@ from . import extension, ipc, models
 from .apps import DiscordBotConfig
 from .command import Ensemble, Instruction, instruction
 from .context import Circumstances, CommandContextError
-from .converters import RetainsError, Timezone
 from .documentation import Manual
 from .errors import explain_exception
 from .logging import log_command_errors
-from .models import Blacklisted, Server, User
+from .models import Blacklisted, Server
 from .utils import events
-from .utils.duckcord.embeds import Embed2
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
@@ -465,72 +462,3 @@ def register_base_commands(self: Robot):
         except ValueError as e:
             await ctx.send(f'{strong("Error:")} {e}')
             raise
-
-    @self.ensemble('conf', aliases=('my',), invoke_without_command=True)
-    @doc.description('Print your settings within the bot.')
-    async def conf(ctx: Circumstances):
-        profile: User = await User.aget(ctx.author.id)
-
-        footer = ('No preference set, showing default values'
-                  if profile.isdefault else None)
-        info = profile.format_prefs()
-        lines = []
-        res = (
-            Embed2(title='Settings', description='\n'.join(lines))
-            .set_footer(text=footer)
-            .set_timestamp()
-            .personalized(ctx.author)
-        )
-        for k, v in info.items():
-            res = res.add_field(name=k, value=code(v or '(none)'), inline=True)
-        return await ctx.reply(embed=res)
-
-    @conf.instruction('timezone', aliases=('tz',))
-    @doc.description('Set timezone preference.')
-    @doc.argument('tz', 'Timezone to set.')
-    @doc.argument('latitude', 'Latitude of the location whose timezone to use.')
-    @doc.argument('longitude', 'Longitude of the location whose timezone to use.')
-    @doc.argument('location', 'Name of a location to search for.')
-    @doc.use_syntax_whitelist
-    @doc.invocation((), 'Print your current timezone setting.')
-    @doc.invocation(('tz',), 'Set your timezone using an IANA timezone code.')
-    @doc.invocation(('latitude', 'longitude'), 'Set your timezone using a coordinate.')
-    @doc.invocation(('location',), 'Set your timezone by looking up a location.')
-    @RetainsError.ensure
-    async def timezone(
-        ctx: Circumstances, tz: RetainsError[Timezone, None],
-        latitude: RetainsError[float, None],
-        longitude: RetainsError[float, None],
-        *, location: RetainsError[str, None],
-    ):
-        values, errors = RetainsError.unpack(
-            tz=tz, latitude=latitude,
-            longitude=longitude, location=location,
-        )
-        if not errors and not values:
-            profile: User = await User.aget(ctx.author.id)
-            if profile.timezone:
-                body = code(profile.timezone)
-            else:
-                body = 'No timezone preference set.'
-            return await ctx.reply(embed=Embed2(
-                title='Timezone',
-                description=body,
-            ).personalized(ctx.author))
-        tz = values['tz']
-        if tz is not None:
-            return await ctx.send(tz)
-        lat, long = values['latitude'], values['longitude']
-        if lat is not None and long is not None:
-            return await ctx.send((lat, long))
-        elif lat is not None and long is None:
-            return await ctx.send('Missing longitude')
-        elif long is not None and lat is None:
-            return await ctx.send('Missing latitude')
-        query = values['location']
-        return await ctx.invoke_with_restrictions(_get_location, query=query)
-
-    @self.instruction('!tzlocation', unreachable=True)
-    @cooldown(2, 10, BucketType.guild)
-    async def _get_location(ctx: Circumstances, *, query='test'):
-        return await ctx.send(query)

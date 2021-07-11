@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+
 from discord.ext.commands import CheckFailure, Command, Group, command, group
 
 from ts2.utils.functional import memoize
@@ -34,7 +35,8 @@ class Instruction(Command):
 
     def _ensure_assignment_on_copy(self, copied_command):
         cmd = super()._ensure_assignment_on_copy(copied_command)
-        cmd.doc = self.doc
+        if hasattr(self, 'doc'):
+            cmd.doc = self.doc
         return cmd
 
     @asynccontextmanager
