@@ -22,7 +22,8 @@ from fractions import Fraction
 from functools import cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
-from typing import Any, Callable, Literal, Optional, Protocol, Union
+from typing import (Any, Callable, Literal, Optional, Protocol, Union,
+                    get_args, get_origin)
 
 import attr
 import discord
@@ -41,9 +42,9 @@ from ts2.utils.functional import memoize
 from ts2.utils.lang import (QuantifiedNP, pl_cat_predicative, pluralize,
                             singularize, slugify)
 
-from .command import DocumentationMixin, NoSuchCommand
+from .command import NoSuchCommand
 from .context import Circumstances
-from .converters import CaseInsensitive, Choice, ReplyRequired
+from .converters import CaseInsensitive, Choice, ReplyRequired, RetainsError
 from .errors import explain_exception, explains
 from .utils.duckcord.embeds import Embed2, EmbedField
 from .utils.markdown import a, blockquote, code, mta_arrow_bracket, pre, strong
@@ -53,7 +54,7 @@ from .utils.pagination import (EmbedPagination, TextPagination,
 _AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
 
-TYPE_DESCRIPTIONS: dict[type, QuantifiedNP] = {
+TYPE_DESCRIPTIONS: dict[type, QuantifiedNP | Callable] = {
     int: QuantifiedNP('whole number'),
     float: QuantifiedNP('number', attributive='whole or decimal'),
     Fraction: QuantifiedNP('number', attributive='whole, decimal, or fractional'),
@@ -75,7 +76,13 @@ TYPE_DESCRIPTIONS: dict[type, QuantifiedNP] = {
     Optional[_AllChannelTypes]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     _TextAndVCs: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+
+    RetainsError: lambda t: t._converter,
 }
+
+TYPE_CONVERTERS: list[tuple[type, Callable[[type], type]]] = [
+    (RetainsError, lambda t: t._converter),
+]
 
 BucketType = commands.BucketType
 
@@ -170,24 +177,15 @@ CHECK_TRANSLATOR: dict[CheckDecorator, Callable[..., list[str]]] = {
 
 
 def _is_type_union(annotation) -> bool:
-    try:
-        return annotation.__origin__ is Union
-    except AttributeError:
-        return False
+    return get_origin(annotation) is Union
 
 
 def _is_literal_type(annotation) -> bool:
-    try:
-        return annotation.__origin__ is Literal
-    except AttributeError:
-        return False
+    return get_origin(annotation) is Literal
 
 
 def _is_optional_type(annotation) -> bool:
-    try:
-        return type(None) in annotation.__args__
-    except AttributeError:
-        return False
+    return type(None) in get_args(annotation)
 
 
 def _is_converter(annotation: _Converter) -> bool:
@@ -197,13 +195,6 @@ def _is_converter(annotation: _Converter) -> bool:
         return issubclass(annotation, Converter)
     except TypeError:
         return False
-
-
-def _constituent_types(annotation) -> tuple[type, ...]:
-    try:
-        return annotation.__args__
-    except AttributeError:
-        return ()
 
 
 @attr.s(eq=True, hash=True)
@@ -308,6 +299,11 @@ class Argument:
     def infer_accepts(cls, annotation: type | DescribedConverter) -> QuantifiedNP:
         if _is_type_union(annotation):
             return cls.infer_union_type(annotation)
+        for t, c in TYPE_CONVERTERS:
+            if (isinstance(annotation, t)
+                    or isinstance(annotation, type)
+                    and issubclass(annotation, t)):
+                return cls.infer_accepts(c(annotation))
         defined = TYPE_DESCRIPTIONS.get(annotation)
         if defined:
             return defined
@@ -325,7 +321,7 @@ class Argument:
         defined = TYPE_DESCRIPTIONS.get(annotation)
         if defined:
             return defined
-        constituents = filter(lambda t: t is not type(None), _constituent_types(annotation))  # noqa: E721
+        constituents = filter(lambda t: t is not type(None), get_args(annotation))  # noqa: E721
         constituents = [*split_at(constituents, _is_literal_type)][0]
         if len(constituents) == 1:
             return cls.infer_accepts(constituents[0])
@@ -723,7 +719,6 @@ class Manual:
         man = Manual()
         for call, cmd in bot.iter_commands():
             call: str
-            cmd: DocumentationMixin
             man.commands[call] = cmd.doc
             if cmd.cog:
                 section = cmd.cog.qualified_name

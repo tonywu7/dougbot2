@@ -17,22 +17,31 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from collections.abc import Callable, Iterable
+from functools import wraps
+from inspect import Parameter, signature
 from operator import itemgetter
-from typing import Literal, Optional, Union, overload
+from typing import (Any, Generic, Literal, Optional, Protocol, TypeVar, Union,
+                    get_args, get_origin, overload)
 
+import pytz
 from discord import Member, Permissions, Role
 from discord.abc import GuildChannel
 from discord.ext.commands import Converter
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import (BadArgument, CommandError,
+                                         MissingRequiredArgument)
 from discord.utils import escape_markdown
 
 from ts2.utils.lang import QuantifiedNP, coord_conj
 
 from .context import Circumstances
 from .errors import explains, prepend_argument_hint
-from .utils.markdown import code, strong
+from .utils.markdown import a, code, strong
 from .utils.models import HypotheticalRole
+
+T = TypeVar('T')
+U = TypeVar('U')
 
 
 def _unpack_varargs(item: tuple, names: list[str], **defaults):
@@ -41,12 +50,15 @@ def _unpack_varargs(item: tuple, names: list[str], **defaults):
     unpacked = {**defaults, **dict(zip(names, item))}
     for k in unpacked:
         v = unpacked[k]
-        try:
-            if v.__origin__ is Literal:
-                unpacked[k] = v.__args__[0]
-        except AttributeError:
-            pass
+        if get_origin(v) is Literal:
+            unpacked[k] = get_args(v)[0]
     return itemgetter(*names)(unpacked)
+
+
+class DoesConversion(Protocol[T]):
+    @classmethod
+    async def convert(ctx: Circumstances, arg: str) -> T:
+        ...
 
 
 class PermissionName(Converter):
@@ -165,9 +177,122 @@ class RegExp(Converter):
         return type(cls.__name__, (Converter,), __dict__)
 
 
+class Timezone(Converter, pytz.BaseTzInfo):
+    __accept__ = QuantifiedNP(
+        'IANA tz code', predicative=(
+            f'see {a("https://en.wikipedia.org/wiki/List_of_tz_database_time_zones", "list of timezones")}'
+        ))
+
+    def __init__(self) -> None:
+        pass
+
+    async def convert(self, ctx: Circumstances, argument: str) -> pytz.BaseTzInfo:
+        try:
+            return pytz.timezone(argument)
+        except pytz.UnknownTimeZoneError:
+            raise BadArgument(f'Unknown timezone {code(escape_markdown(argument))}')
+
+
 class Fallback:
     def __class_getitem__(cls, item):
         return Union[item, Literal[False], str, None]
+
+
+class RetainsError(Generic[T, U]):
+    name = '<param>'
+
+    def __init__(self, result: T = Parameter.empty,
+                 default: U = Parameter.empty,
+                 argument: Optional[str] = None,
+                 error: Optional[Exception] = None):
+        self.result = result
+        self.default = default
+        self.argument = argument
+        self.error = error
+
+    @property
+    def value(self):
+        if self.result is not Parameter.empty:
+            return self.result
+        elif self.default is not Parameter.empty:
+            return self.default
+        raise ValueError
+
+    @classmethod
+    def ensure(cls, f):
+        sig = signature(f)
+        paramlist = [*sig.parameters.values()]
+        defaults = {}
+        defaultslist = []
+        for k, v in sig.parameters.items():
+            if isinstance(v.annotation, str):
+                annotation = eval(v.annotation, f.__globals__)
+            else:
+                annotation = v.annotation
+            try:
+                converter: cls = get_args(annotation)[0]
+                defaults[k] = converter.default
+            except (AttributeError, IndexError):
+                defaults[k] = v.default
+        defaultslist = [*defaults.values()]
+
+        @wraps(f)
+        async def wrapped(*args, **kwargs):
+            args_ = []
+            for i, arg in enumerate(args):
+                if arg is None:
+                    default_ = defaultslist[i]
+                    if default_ is Parameter.empty:
+                        raise MissingRequiredArgument(paramlist[i])
+                    args_.append(cls(default=default_))
+                else:
+                    args_.append(arg)
+            kwargs_ = {}
+            for k, v in kwargs.items():
+                if v is None:
+                    default_ = defaults[k]
+                    if default_ is Parameter.empty:
+                        raise MissingRequiredArgument(sig.parameters[k])
+                    kwargs_[k] = cls(default=default_)
+                else:
+                    kwargs_[k] = v
+            return await f(*args_, **kwargs_)
+        return wrapped
+
+    def __class_getitem__(cls, item: tuple[DoesConversion[T], Any]):
+        converter, default = _unpack_varargs(item, ('converter', 'default'), default=None)
+
+        @classmethod
+        async def convert(_, ctx: Circumstances, arg: str):
+            try:
+                result = await ctx.command._actual_conversion(ctx, converter, arg, cls)
+                return cls(result)
+            except CommandError as e:
+                ctx.view.undo()
+                return cls(default=default, argument=arg, error=e)
+
+        __dict__ = {'convert': convert, 'default': default, '_converter': converter}
+        return Union[type(cls.__name__, (RetainsError, Converter), __dict__), None]
+
+    @classmethod
+    def asdict(cls, **items: RetainsError) -> dict:
+        return defaultdict(lambda: None, {k: v.value for k, v in items.items() if v.value is not None})
+
+    @classmethod
+    def astuple(cls, *items: RetainsError) -> tuple:
+        return tuple(v.value for v in items)
+
+    @classmethod
+    def errordict(cls, **items: RetainsError) -> dict:
+        errors = {}
+        for k, v in items.items():
+            if v.error is not None:
+                errors[k] = v.error
+        return errors
+
+    @classmethod
+    def unpack(cls, **items: RetainsError) -> tuple[dict, dict]:
+        return cls.asdict(**items), cls.errordict(**items)
 
 
 class ReplyRequired(BadArgument):
