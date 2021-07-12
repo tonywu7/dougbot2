@@ -37,7 +37,7 @@ class DoesConversion(Protocol[T]):
         ...
 
 
-class RetainsError(Converter, Generic[T, U]):
+class Maybe(Converter, Generic[T, U]):
     name = '<param>'
 
     def __init__(self, result: T = Parameter.empty,
@@ -111,18 +111,18 @@ class RetainsError(Converter, Generic[T, U]):
                 return cls(default=default, argument=arg, error=e)
 
         __dict__ = {'convert': convert, 'default': default, '_converter': converter}
-        return Union[type(cls.__name__, (RetainsError,), __dict__), None]
+        return Union[type(cls.__name__, (Maybe,), __dict__), None]
 
     @classmethod
-    def asdict(cls, **items: RetainsError) -> dict:
+    def asdict(cls, **items: Maybe) -> dict:
         return defaultdict(lambda: None, {k: v.value for k, v in items.items() if v.value is not None})
 
     @classmethod
-    def astuple(cls, *items: RetainsError) -> tuple:
+    def astuple(cls, *items: Maybe) -> tuple:
         return tuple(v.value for v in items)
 
     @classmethod
-    def errordict(cls, **items: RetainsError) -> dict:
+    def errordict(cls, **items: Maybe) -> dict:
         errors = {}
         for k, v in items.items():
             if v.error is not None:
@@ -130,9 +130,9 @@ class RetainsError(Converter, Generic[T, U]):
         return errors
 
     @classmethod
-    def unpack(cls, **items: RetainsError) -> tuple[dict, dict]:
+    def unpack(cls, **items: Maybe) -> tuple[dict, dict]:
         return cls.asdict(**items), cls.errordict(**items)
 
     @classmethod
-    def reconstruct(cls, *items: RetainsError) -> str:
+    def reconstruct(cls, *items: Maybe) -> str:
         return ' '.join(v.argument for v in items if v.argument)

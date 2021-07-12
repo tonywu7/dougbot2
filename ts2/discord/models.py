@@ -34,6 +34,7 @@ from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
+from timezone_field import TimeZoneField
 
 from ts2.web.config import CommandAppConfig
 from ts2.web.models import User as SystemUser
@@ -134,6 +135,7 @@ class ColorField(models.IntegerField):
         return super().get_prep_value(value)
 
 
+
 class ModelTranslator(Generic[T, U]):
     @classmethod
     def from_discord(cls, discord_model: T) -> U:
@@ -163,7 +165,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     name: str = models.CharField(max_length=120, verbose_name='username')
     discriminator: int = models.IntegerField()
 
-    timezone: str = models.CharField('timezone', max_length=120, blank=True)
+    timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
     datetimefmt: str = models.TextField('datetime format', blank=True)
     locale: str = models.CharField('language', max_length=120, blank=True, choices=LocaleType.choices)
 
@@ -201,8 +203,8 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
         return self.save(*args, **kwargs)
 
     @sync_to_async
-    def save_timezone(self, tz: pytz.BaseTzInfo):
-        self.timezone = tz.zone
+    def save_timezone(self, tz: pytz.BaseTzInfo | str):
+        self.timezone = tz
         self.save()
 
     @property
@@ -215,7 +217,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
             field = self._meta.get_field(field_name)
             val = getattr(self, field_name)
             if field.choices:
-                val = dict(field.choices)[val]
+                val = dict(field.choices).get(val)
             info[field.verbose_name] = val
         return info
 

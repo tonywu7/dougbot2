@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional
+from typing import Literal, Optional
 
 import pytz
 from discord import Member
@@ -26,7 +26,8 @@ from ts2.utils.datetime import utcnow
 from .. import documentation as doc
 from ..command import ensemble, instruction
 from ..context import Circumstances
-from ..converters.functional import RetainsError
+from ..converters.functional import Maybe
+from ..converters.patterns import Constant
 from ..documentation import NotAcceptable
 from ..extension import Gear
 from ..models import User
@@ -76,31 +77,38 @@ class Conf(
 
     @conf.instruction('timezone', aliases=('tz',))
     @doc.description('Set timezone preference.')
+    @doc.argument('delete', signature='-delete', node='-delete')
     @doc.argument('tz', 'Timezone to set.')
     @doc.argument('latitude', 'Latitude of the location whose timezone to use.')
     @doc.argument('longitude', 'Longitude of the location whose timezone to use.')
     @doc.argument('location', 'Name of a location to search for.')
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Print your current timezone setting.')
+    @doc.invocation(('delete',), 'Remove your timezone setting.')
     @doc.invocation(('tz',), 'Set your timezone using an IANA timezone code.')
     @doc.invocation(('latitude', 'longitude'), 'Set your timezone using a coordinate.')
     @doc.invocation(('location',), 'Set your timezone by searching for a location.')
     @doc.discussion('Privacy', ('When setting timezones using lat/long or a location query,'
                                 ' your message will be immediately deleted.\n'
                                 'The bot does not keep your location info.'))
-    @RetainsError.ensure
+    @Maybe.ensure
     async def timezone(
         self, ctx: Circumstances,
-        tz: RetainsError[Timezone, None],
-        latitude: RetainsError[Latitude, None],
-        longitude: RetainsError[Longitude, None],
-        *, location: RetainsError[str, None],
+        delete: Maybe[Constant[Literal['-delete']], None],
+        tz: Maybe[Timezone, None],
+        latitude: Maybe[Latitude, None],
+        longitude: Maybe[Longitude, None],
+        *, location: Maybe[str, None],
     ):
         author = ctx.author
-        values, errors = RetainsError.unpack(
+        values, errors = Maybe.unpack(
             tz=tz, latitude=latitude,
             longitude=longitude, location=location,
         )
+
+        if delete.value:
+            await self.set_tz(author, '')
+            return await ctx.reply('Your timezone setting has been reset.')
 
         if not errors and not values:
             profile: User = await User.aget(author)

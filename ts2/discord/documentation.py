@@ -42,7 +42,7 @@ from more_itertools import flatten, partition, split_at
 from ts2.utils.functional import memoize
 
 from .context import Circumstances
-from .converters.functional import RetainsError
+from .converters.functional import Maybe
 from .converters.patterns import CaseInsensitive, Choice
 from .errors import explain_exception, explains
 from .utils.duckcord.embeds import Embed2, EmbedField
@@ -79,11 +79,11 @@ TYPE_DESCRIPTIONS: dict[type, QuantifiedNP | Callable] = {
     _TextAndVCs: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
 
-    RetainsError: lambda t: t._converter,
+    Maybe: lambda t: t._converter,
 }
 
 TYPE_CONVERTERS: list[tuple[type, Callable[[type], type]]] = [
-    (RetainsError, lambda t: t._converter),
+    (Maybe, lambda t: t._converter),
 ]
 
 BucketType = commands.BucketType
@@ -190,13 +190,9 @@ def _is_optional_type(annotation) -> bool:
     return type(None) in get_args(annotation)
 
 
-def _is_converter(annotation: _Converter) -> bool:
-    if isinstance(annotation, Converter):
-        return True
-    try:
-        return issubclass(annotation, Converter)
-    except TypeError:
-        return False
+def _get_constituents(annotation) -> list[type | _Converter]:
+    constituents = filter(lambda t: t is not type(None), get_args(annotation))  # noqa: E721
+    return [*split_at(constituents, _is_literal_type)][0]
 
 
 @attr.s(eq=True, hash=True)
@@ -323,8 +319,7 @@ class Argument:
         defined = TYPE_DESCRIPTIONS.get(annotation)
         if defined:
             return defined
-        constituents = filter(lambda t: t is not type(None), get_args(annotation))  # noqa: E721
-        constituents = [*split_at(constituents, _is_literal_type)][0]
+        constituents = _get_constituents(annotation)
         if len(constituents) == 1:
             return cls.infer_accepts(constituents[0])
         return reduce(or_, [cls.infer_accepts(t) for t in constituents])

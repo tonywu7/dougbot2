@@ -46,7 +46,8 @@ class Constant(Converter):
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg
 
-        __dict__ = {'convert': convert, '__accept__': __accept__}
+        __dict__ = {'convert': convert, '__accept__': __accept__,
+                    'const': const}
         return type(cls.__name__, (Converter,), __dict__)
 
 
