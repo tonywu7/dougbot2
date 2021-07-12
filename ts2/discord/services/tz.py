@@ -29,7 +29,14 @@ from ..context import Circumstances
 from ..documentation import accepts
 from ..utils.markdown import a, code, verbatim
 
-tzfinder = TimezoneFinder(in_memory=True)
+tzfinder = None
+
+
+def get_tzfinder() -> TimezoneFinder:
+    global tzfinder
+    if tzfinder is None:
+        tzfinder = TimezoneFinder(in_memory=True)
+    return tzfinder
 
 
 @accepts('IANA tz code', predicative=(
