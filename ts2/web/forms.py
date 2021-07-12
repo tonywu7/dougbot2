@@ -33,7 +33,7 @@ from .utils.forms import (AsyncFormMixin, D3SelectWidget, FormConstants,
 
 class PreferenceForms:
     def __init__(self, context):
-        from .contexts import DiscordContext
+        from .middleware import DiscordContext
         self.context: DiscordContext = context
 
     def prefix(self):

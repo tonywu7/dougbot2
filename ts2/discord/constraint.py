@@ -28,7 +28,7 @@ from more_itertools import bucket
 
 from .context import Circumstances
 from .errors import explains
-from .models import CommandConstraint, ConstraintType, id_dot
+from .models import CommandConstraint, ConstraintTypeEnum, id_dot
 from .utils.lang import either_or
 from .utils.markdown import strong, tag
 
@@ -63,7 +63,7 @@ def _int_set(s):
 
 @attr.s
 class CommandCondition:
-    type: ConstraintType = attr.ib()
+    type: ConstraintTypeEnum = attr.ib()
     specificity: int = attr.ib()
     roles: set[int] = attr.ib(converter=_int_set)
 
@@ -75,11 +75,11 @@ class CommandCondition:
         return self.test({id_dot(r) for r in member.roles})
 
     def test(self, roles: set[int]) -> bool:
-        if self.type is ConstraintType.NONE.value:
+        if self.type is ConstraintTypeEnum.NONE.value:
             return not (self.roles & roles)
-        elif self.type is ConstraintType.ANY.value:
+        elif self.type is ConstraintTypeEnum.ANY.value:
             return bool(self.roles & roles)
-        elif self.type is ConstraintType.ALL.value:
+        elif self.type is ConstraintTypeEnum.ALL.value:
             return (self.roles & roles) == self.roles
 
     @classmethod

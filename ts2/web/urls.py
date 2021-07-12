@@ -1,7 +1,8 @@
 from django.urls import include, re_path
 from django.views.generic.base import RedirectView
+from graphene_django.views import GraphQLView
 
-from . import views
+from . import schema, views
 
 
 class IndexRedirectView(RedirectView):
@@ -61,11 +62,6 @@ urlpatterns = [
         name='api.guild.roles',
     ),
     re_path(
-        r'^api/v1/guild/(?P<guild_id>[0-9]+)/core/constraints$',
-        views.data.CommandConstraintListView.as_view(),
-        name='api.guild.core.constraints',
-    ),
-    re_path(
         r'^api/v1/guild/(?P<guild_id>[0-9]+)/core/constraints/(?P<pk>[0-9]+)$',
         views.data.CommandConstraintDetailsView.as_view(),
         name='api.guild.core.constraints.details',
@@ -73,4 +69,13 @@ urlpatterns = [
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('ts2.discord.urls')),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
+
+    re_path(
+        r'api/v1/guild/(?P<guild_id>[0-9]+)/graphql$', name='api.guild',
+        view=GraphQLView.as_view(graphiql=True, schema=schema.server_schema),
+    ),
+    re_path(
+        r'graphql$', name='api',
+        view=GraphQLView.as_view(graphiql=True, schema=schema.public_schema),
+    ),
 ]

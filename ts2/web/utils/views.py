@@ -25,7 +25,7 @@ from rest_framework.serializers import ModelSerializer
 
 from ts2.discord.models import ServerScoped
 
-from ..contexts import DiscordContext
+from ..middleware import DiscordContext
 
 RequestHandler = Callable[[HttpRequest], HttpResponse]
 InstanceRequestHandler = Callable[[Any, HttpRequest], HttpResponse]

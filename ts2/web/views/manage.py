@@ -30,8 +30,8 @@ from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.logging import PRIVILEGED_EXCEPTIONS
 
 from ..config import CommandAppConfig
-from ..contexts import DiscordContext
 from ..forms import LoggingConfigFormset, ModelSyncActionForm
+from ..middleware import DiscordContext
 from ..models import write_access_required
 from .mutation import error_response
 

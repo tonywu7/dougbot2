@@ -19,18 +19,16 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework.generics import GenericAPIView
-from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
-                                   ListModelMixin, RetrieveModelMixin,
-                                   UpdateModelMixin)
+from rest_framework.mixins import (DestroyModelMixin, ListModelMixin,
+                                   RetrieveModelMixin)
 from rest_framework.response import Response
 
 from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.constraint import CommandCondition, CommandCriteria
-from ts2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                CommandConstraintList, Role, Server)
+from ts2.discord.models import (BotCommand, Channel, CommandConstraint, Role,
+                                Server)
 
 from ..serializers import (BotCommandSerializer, ChannelSerializer,
-                           CommandConstraintListSerializer,
                            CommandConstraintSerializer, RoleSerializer,
                            ServerDataSerializer)
 from ..utils.http import HTTPBadRequest
@@ -71,24 +69,6 @@ class BotCommandListView(ListModelMixin, GenericAPIView):
             queryset = self.queryset.all()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
-class CommandConstraintListView(
-    CreateModelMixin, RetrieveModelMixin,
-    UpdateModelMixin, DiscordServerModelListView,
-):
-    model = CommandConstraintList
-    serializer_class = CommandConstraintListSerializer
-    lookup_url_kwarg = 'guild_id'
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
 
 
 class CommandConstraintDetailsView(

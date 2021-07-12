@@ -14,8 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
+from typing import Optional
+
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
+from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.exceptions import PermissionDenied
@@ -25,10 +29,11 @@ from django.urls import reverse
 from more_itertools import partition
 
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
-                               PartialGuild)
+                               PartialGuild, PartialUser)
 from ts2.discord.models import Server
 
-from .contexts import DiscordContext
+from .config import CommandAppConfig, Extensions
+from .forms import PreferenceForms
 from .models import User
 
 
@@ -119,6 +124,55 @@ async def load_servers(req: HttpRequest, guilds: list[PartialGuild]):
     server_ids = {s.snowflake for s in servers}
 
     return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
+
+
+@dataclass
+class DiscordContext:
+    access_token: str
+
+    user_id: int
+    username: str
+    is_staff: bool
+    is_superuser: bool
+
+    user_profile: PartialUser
+
+    available_servers: dict[int, PartialGuild]
+    joined_servers: dict[int, PartialGuild]
+    server_id: Optional[int] = None
+    server: Optional[Server] = None
+
+    forms: PreferenceForms = None
+
+    def __post_init__(self):
+        try:
+            self.server_id = int(self.server_id)
+        except (TypeError, ValueError):
+            self.server_id = None
+        self.forms = PreferenceForms(self)
+
+    def accessible(self, server_id: int) -> bool:
+        return server_id in self.servers
+
+    @property
+    def servers(self) -> dict[int, PartialGuild]:
+        return {**self.available_servers, **self.joined_servers}
+
+    @property
+    def server_joined(self) -> bool:
+        return self.current.id in self.joined_servers
+
+    @property
+    def current(self) -> Optional[PartialGuild]:
+        return self.servers.get(self.server_id)
+
+    @property
+    def extension_state(self) -> dict[str, tuple[bool, CommandAppConfig]]:
+        extensions: Extensions = apps.get_app_config('discord').extensions
+        if not self.server:
+            return {label: (False, conf) for label, conf in extensions.items()}
+        enabled = self.server.extensions
+        return {label: (label in enabled, conf) for label, conf in extensions.items()}
 
 
 class DiscordContextMiddleware:

@@ -66,7 +66,7 @@ def make_channel_type() -> models.IntegerChoices:
         classdict[t.name] = t.value
         classdict._member_names.append(t.name)
 
-    return type('ChannelKind', (models.IntegerChoices,), classdict)
+    return type('ChannelEnum', (models.IntegerChoices,), classdict)
 
 
 def make_locale_type() -> models.TextChoices:
@@ -85,7 +85,7 @@ def make_locale_type() -> models.TextChoices:
     return type('LocaleType', (models.TextChoices,), classdict)
 
 
-ChannelKind = make_channel_type()
+ChannelTypeEnum = make_channel_type()
 LocaleType = make_locale_type()
 DiscordChannels = Union[
     discord.CategoryChannel,
@@ -109,7 +109,7 @@ class NamingMixin:
         return f'<{self.discriminator()} at {hex(id(self))}>'
 
 
-class PermissionField(models.IntegerField):
+class PermissionField(models.BigIntegerField):
     def to_python(self, value) -> discord.Permissions | None:
         number = super().to_python(value)
         if number is None:
@@ -284,7 +284,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
 
 class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
     name: str = models.CharField(max_length=120)
-    type: int = models.IntegerField(choices=ChannelKind.choices)
+    type: int = models.IntegerField(choices=ChannelTypeEnum.choices)
     guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='channels')
     order: int = models.IntegerField(default=0)
 
@@ -354,35 +354,27 @@ class BotCommand(NamingMixin, models.Model):
         return self.identifier
 
 
-class ConstraintType(models.IntegerChoices):
+class ConstraintTypeEnum(models.IntegerChoices):
     NONE = 0
     ANY = 1
     ALL = 2
 
 
-class CommandConstraintList(NamingMixin, models.Model):
-    guild: Server = models.OneToOneField(Server, on_delete=CASCADE, primary_key=True, related_name='command_constraints')
-
-    class Meta:
-        verbose_name = 'command constraint list'
-
-
 class CommandConstraint(NamingMixin, models.Model):
-    collection: CommandConstraintList = models.ForeignKey(CommandConstraintList, on_delete=CASCADE, related_name='constraints')
-
+    guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='command_constraints')
     commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
     channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
     roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
 
     name: str = models.TextField(blank=False)
-    type: int = models.IntegerField(choices=ConstraintType.choices)
+    type: int = models.IntegerField(choices=ConstraintTypeEnum.choices)
     specificity: int = models.IntegerField(default=0)
     error_msg: str = models.TextField(blank=True, verbose_name='error message')
 
     @classmethod
     def calc_specificity(cls, constraint_type: int, channels: list, commands: list):
         return (
-            ((constraint_type == ConstraintType.NONE.value) << 2)
+            ((constraint_type == ConstraintTypeEnum.NONE.value) << 2)
             + (bool(channels) << 1)
             + bool(commands)
         )

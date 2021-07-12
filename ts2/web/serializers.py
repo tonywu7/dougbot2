@@ -16,13 +16,12 @@
 
 from __future__ import annotations
 
-from more_itertools import partition
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import (CharField, ModelSerializer,
                                         ReadOnlyField)
 
-from ts2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                CommandConstraintList, Role, Server)
+from ts2.discord.models import (BotCommand, Channel, CommandConstraint, Role,
+                                Server)
 
 from .utils.serializer import Int64StringRelatedField
 
@@ -89,32 +88,3 @@ class CommandConstraintSerializer(ModelSerializer):
         if not roles:
             raise ValidationError(detail='Roles cannot be empty.')
         return roles
-
-
-class CommandConstraintListSerializer(ModelSerializer):
-    guild = Int64StringRelatedField(queryset=Server.objects.all())
-    constraints = CommandConstraintSerializer(many=True)
-
-    class Meta:
-        model = CommandConstraintList
-        fields = ['guild', 'constraints']
-
-    def create(self, validated_data: dict[str, str]):
-        cc_list = CommandConstraintList(guild=validated_data['guild'])
-        cc_list.save()
-        return cc_list
-
-    def update(self, instance: CommandConstraintList, validated_data: dict):
-        serializer = CommandConstraintSerializer()
-
-        cc_list: list[dict] = validated_data['constraints']
-        to_create, to_update = partition(lambda c: c.get('id'), cc_list)
-
-        to_create = [{**d, 'collection_id': instance.guild_id} for d in to_create]
-        for cc in to_create:
-            serializer.create(cc)
-
-        for item in to_update:
-            serializer.update(instance.constraints.get(pk=item['id']), item)
-
-        return instance

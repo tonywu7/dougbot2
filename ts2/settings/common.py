@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.museum.apps.MuseumConfig',
     'ts2.discord.contrib.integration.apps.IntegrationConfig',
     'ts2.discord.contrib.debugging.apps.DebuggingConfig',
+    'graphene_django',
     'channels',
 ]
 
