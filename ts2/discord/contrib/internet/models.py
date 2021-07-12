@@ -14,12 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import pytz
 from django.db import models
 from django.db.models import CASCADE
+from timezone_field import TimeZoneField
 
 from ts2.discord.models import Role
 
 
 class RoleTimezone(models.Model):
-    tz: str = models.CharField(max_length=128)
-    role: Role = models.ForeignKey(Role, on_delete=CASCADE, related_name='+')
+    timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
+    role: Role = models.OneToOneField(Role, on_delete=CASCADE, related_name='+')
