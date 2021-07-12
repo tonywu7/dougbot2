@@ -165,6 +165,7 @@ class Robot(Bot):
             loop=asyncio.get_running_loop(),
             headers={'User-Agent': settings.USER_AGENT},
         )
+        self.log.info('Started an aiohttp.ClientSession')
 
     def _register_commands(self):
         register_base_commands(self)
@@ -277,7 +278,7 @@ class Robot(Bot):
 
     async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=cls)
-        if ctx.command.unreachable:
+        if ctx.command and ctx.command.unreachable:
             ctx.command = None
             return ctx
         await ctx.init()
@@ -298,11 +299,13 @@ class Robot(Bot):
 
         task.add_done_callback(callback)
 
+    async def before_identify_hook(self, shard_id, *, initial=False):
+        await self._init_client_session()
+        return await super().before_identify_hook(shard_id, initial=initial)
+
     async def on_ready(self):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
-        await self._init_client_session()
-        self.log.info('Started an aiohttp.ClientSession')
 
     async def on_message(self, message):
         try:
