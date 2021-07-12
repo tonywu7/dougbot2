@@ -18,17 +18,13 @@ from __future__ import annotations
 
 from more_itertools import partition
 from rest_framework.exceptions import ValidationError
-from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import (CharField, ModelSerializer,
                                         ReadOnlyField)
 
 from ts2.discord.models import (BotCommand, Channel, CommandConstraint,
                                 CommandConstraintList, Role, Server)
 
-
-class Int64StringRelatedField(PrimaryKeyRelatedField):
-    def to_representation(self, value):
-        return str(super().to_representation(value))
+from .utils.serializer import Int64StringRelatedField
 
 
 class ChannelSerializer(ModelSerializer):

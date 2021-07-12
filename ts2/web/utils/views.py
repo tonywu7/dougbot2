@@ -19,6 +19,13 @@ from functools import wraps
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
+from rest_framework.generics import GenericAPIView
+from rest_framework.mixins import ListModelMixin
+from rest_framework.serializers import ModelSerializer
+
+from ts2.discord.models import ServerScoped
+
+from ..contexts import DiscordContext
 
 RequestHandler = Callable[[HttpRequest], HttpResponse]
 InstanceRequestHandler = Callable[[Any, HttpRequest], HttpResponse]
@@ -37,3 +44,16 @@ def with_self(*decorators: RequestHandler) -> Callable[[InstanceRequestHandler],
             return f(self, req, *args, **kwargs)
         return wrapped
     return wrapper
+
+
+class DiscordServerModelListView(ListModelMixin, GenericAPIView):
+    model: type[ServerScoped]
+    serializer_class: type[ModelSerializer]
+
+    @property
+    def queryset(self):
+        ctx: DiscordContext = self.request.get_ctx()
+        return self.model.objects.filter(guild_id__exact=ctx.server.snowflake)
+
+    def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
+        return self.list(req, *args, **kwargs)

@@ -23,33 +23,18 @@ from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin, RetrieveModelMixin,
                                    UpdateModelMixin)
 from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer
 
 from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.constraint import CommandCondition, CommandCriteria
 from ts2.discord.models import (BotCommand, Channel, CommandConstraint,
-                                CommandConstraintList, Role, Server,
-                                ServerScoped)
+                                CommandConstraintList, Role, Server)
 
-from ..contexts import DiscordContext
 from ..serializers import (BotCommandSerializer, ChannelSerializer,
                            CommandConstraintListSerializer,
                            CommandConstraintSerializer, RoleSerializer,
                            ServerDataSerializer)
 from ..utils.http import HTTPBadRequest
-
-
-class DiscordServerModelListView(ListModelMixin, GenericAPIView):
-    model: type[ServerScoped]
-    serializer_class: type[ModelSerializer]
-
-    @property
-    def queryset(self):
-        ctx: DiscordContext = self.request.get_ctx()
-        return self.model.objects.filter(guild_id__exact=ctx.server.snowflake)
-
-    def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self.list(req, *args, **kwargs)
+from ..utils.views import DiscordServerModelListView
 
 
 class ChannelListView(DiscordServerModelListView):
