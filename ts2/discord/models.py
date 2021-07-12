@@ -185,7 +185,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
     @classmethod
     def defaultuser(cls, **kwargs):
-        instance = cls(datetimefmt='%d %b %Y %H:%M:%S', locale='en', **kwargs)
+        instance = cls(datetimefmt='%d %b %Y %l:%M:%S %p', locale='en', **kwargs)
         instance._default = True
         return instance
 

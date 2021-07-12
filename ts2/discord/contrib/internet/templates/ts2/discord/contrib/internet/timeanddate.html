@@ -1,0 +1,30 @@
+{% extends 'telescope2/web/manage/base.html' %}
+{% load element async_form discord_list %}
+
+{% block title %}Time & date - {{ discord.server.name|default:'server' }}{% endblock %}
+
+{% block main_title %}Time & date{% endblock %}
+
+{% block sections %}
+
+<!-- <div class="paragraph grid-span-all">
+    <p class="large-icon"><span><i class="bi bi-calendar-date"></i></span></p>
+</div> -->
+
+{% section id='role-timezone' title='role timezones' classes='grid-span-all' %}
+
+<div class="actions paragraph">
+    <button id="role-timezone-form-new" type="button" class="btn btn-success async-form-submit">Create new
+        timezone</button>
+    <button id="role-timezone-form-submit" type="button" class="btn btn-primary async-form-submit">Save all</button>
+</div>
+
+<div class="form role-timezone-form">
+    <div id="role-timezone-form-list" class="role-timezone-form-list paragraph"
+        data-src="{% url 'web:api.guild.core.constraints' guild_id=discord.server_id %}">
+        <form>{% csrf_token %}</form>
+    </div>
+</div>
+{% endsection %}
+
+{% endblock %}

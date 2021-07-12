@@ -37,7 +37,7 @@ from discord.ext.commands.errors import (BadArgument, CommandNotFound,
 from discord.utils import escape_markdown
 from django.utils.text import camel_case_to_spaces
 from fuzzywuzzy import process as fuzzy
-from more_itertools import flatten, partition, split_at
+from more_itertools import always_iterable, flatten, partition, split_at
 
 from ts2.utils.functional import memoize
 
@@ -349,7 +349,7 @@ class Documentation:
     description: str = attr.ib(default='(no description)')
     synopsis: tuple[str, ...] = attr.ib(converter=tuple, default=('(no synopsis)',))
 
-    examples: dict[str, str] = attr.ib(factory=dict)
+    examples: dict[tuple[str, ...], str] = attr.ib(factory=dict)
     discussions: dict[str, str] = attr.ib(factory=dict)
 
     invocations: OrderedDict[frozenset[str], CommandSignature] = attr.ib(default=None)
@@ -415,6 +415,8 @@ class Documentation:
             return '(none)'
         lines = []
         for invocation, explanation in examples:
+            if isinstance(invocation, tuple):
+                invocation = '\n'.join(invocation)
             lines.append(transform(escape_markdown(invocation)))
             if explanation:
                 lines.append(blockquote(explanation))
@@ -556,9 +558,10 @@ class Documentation:
     HelpFormat = Choice[HELP_STYLES.keys(), 'info category']
 
 
-def example(invocation: str, explanation: str):
+def example(invocation: str | tuple[str, ...], explanation: str):
     def wrapper(doc: Documentation, f: Command):
-        doc.examples[f'{doc.call_sign} {invocation}'] = explanation
+        key = tuple(f'{doc.call_sign} {inv}' for inv in always_iterable(invocation))
+        doc.examples[key] = explanation
 
     def deco(obj):
         return memoize(obj, '__command_doc__', wrapper)
