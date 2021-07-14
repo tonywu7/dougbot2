@@ -331,7 +331,7 @@ class Robot(Bot):
     @doc.example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
     async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = 'normal',
                         *, query: str = ''):
-        man = ctx.manual
+        man = ctx.bot.manual
         query = query.lower()
 
         if not query:

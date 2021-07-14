@@ -24,6 +24,7 @@ from typing import Any, Generic, Optional, Protocol, TypeVar, Union, get_args
 from discord.ext.commands import Context, Converter
 from discord.ext.commands.errors import CommandError, MissingRequiredArgument
 
+from ..autodoc.decorators import convert_with
 from . import unpack_varargs
 
 T = TypeVar('T')
@@ -36,6 +37,7 @@ class DoesConversion(Protocol[T]):
         ...
 
 
+@convert_with(lambda t: t._converter)
 class Maybe(Converter, Generic[T, U]):
     name = '<param>'
 

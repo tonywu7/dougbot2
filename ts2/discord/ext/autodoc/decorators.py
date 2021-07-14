@@ -27,7 +27,8 @@ from more_itertools import always_iterable
 
 from ts2.utils.functional import memoize
 
-from .documentation import CheckDecorator, CheckWrapper, Documentation
+from .documentation import (CheckDecorator, CheckWrapper, Documentation,
+                            add_type_converter, add_type_description)
 from .exceptions import ReplyRequired
 from .explanation import BUCKET_DESCRIPTIONS, describe_concurrency
 from .lang import QuantifiedNP, pluralize
@@ -177,6 +178,13 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
 
 def accepts(*args, **kwargs):
     def wrapper(obj: Any):
-        obj.__accept__ = QuantifiedNP(*args, **kwargs)
+        add_type_description(obj, QuantifiedNP(*args, **kwargs))
+        return obj
+    return wrapper
+
+
+def convert_with(c: Callable):
+    def wrapper(obj: Any):
+        add_type_converter(obj, c)
         return obj
     return wrapper

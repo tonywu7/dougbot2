@@ -24,15 +24,16 @@ from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown
 
 from ...utils.markdown import code, strong
-from ..doc.explanation import explains, prepend_argument_hint
-from ..doc.lang import QuantifiedNP, coord_conj
+from ..autodoc.documentation import add_type_description
+from ..autodoc.explanation import explains, prepend_argument_hint
+from ..autodoc.lang import QuantifiedNP, coord_conj
 from . import unpack_varargs
 
 
 class Constant(Converter):
     def __class_getitem__(cls, const: str):
         const = unpack_varargs(const, ['const'])
-        __accept__ = QuantifiedNP(
+        desc = QuantifiedNP(
             f'exact text "{const}"',
             concise=f'{const}',
             predicative='without the quotes',
@@ -45,9 +46,10 @@ class Constant(Converter):
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg
 
-        __dict__ = {'convert': convert, '__accept__': __accept__,
-                    'const': const}
-        return type(cls.__name__, (Converter,), __dict__)
+        __dict__ = {'convert': convert, 'const': const}
+        t = type(cls.__name__, (Converter,), __dict__)
+        add_type_description(t, desc)
+        return t
 
 
 class Choice(Converter):
@@ -63,7 +65,7 @@ class Choice(Converter):
             choices = {c.lower(): None for c in choices}
 
         fullname = concise_name + ': ' + coord_conj(*[f'"{w}"' for w in choices], conj='or')
-        __accept__ = QuantifiedNP(
+        desc = QuantifiedNP(
             fullname, concise=concise_name,
             predicative='case sensitive' if case_sensitive else '',
         )
@@ -74,10 +76,12 @@ class Choice(Converter):
                 arg = arg.lower()
             if arg in choices:
                 return arg
-            raise InvalidChoices(__accept__, arg)
+            raise InvalidChoices(desc, arg)
 
-        __dict__ = {'convert': convert, '__accept__': __accept__}
-        return type(cls.__name__, (Converter,), __dict__)
+        __dict__ = {'convert': convert}
+        t = type(cls.__name__, (Converter,), __dict__)
+        add_type_description(t, desc)
+        return t
 
 
 class CaseInsensitive(Converter):
@@ -95,17 +99,19 @@ class RegExp(Converter):
         name = name or 'pattern'
         predicative = predicative or ('matching the regular expression '
                                       f'{code(pattern.pattern)}')
-        __accept__ = QuantifiedNP(name, predicative=predicative)
+        desc = QuantifiedNP(name, predicative=predicative)
 
         @classmethod
         async def convert(cls, ctx, arg: str):
             matched = pattern.fullmatch(arg)
             if not matched:
-                raise RegExpMismatch(__accept__, arg, pattern)
+                raise RegExpMismatch(desc, arg, pattern)
             return matched
 
-        __dict__ = {'convert': convert, '__accept__': __accept__}
-        return type(cls.__name__, (Converter,), __dict__)
+        __dict__ = {'convert': convert}
+        t = type(cls.__name__, (Converter,), __dict__)
+        add_type_description(t, desc)
+        return t
 
 
 class InvalidChoices(BadArgument):

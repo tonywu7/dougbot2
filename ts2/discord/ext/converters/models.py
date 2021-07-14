@@ -25,7 +25,7 @@ from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 
 from ...utils.models import HypotheticalRole
-from ..doc import accepts
+from ..autodoc import accepts
 
 
 @accepts('permission name', predicative=('see [this page](https://discordpy.readthedocs.io/en/'

@@ -40,6 +40,7 @@ from .explanation import readable_perm_name
 from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
 
 _Converter = Union[Converter, type[Converter]]
+_Annotation = Union[type, _Converter]
 
 _AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
@@ -51,7 +52,7 @@ CheckDecorator = Callable[..., CheckWrapper]
 log = logging.getLogger('discord.commands')
 
 
-_type_descriptions: dict[type, QuantifiedNP | Callable] = {
+_type_descriptions: dict[_Annotation, QuantifiedNP] = {
     int: QuantifiedNP('whole number'),
     float: QuantifiedNP('number', attributive='whole or decimal'),
 
@@ -74,7 +75,7 @@ _type_descriptions: dict[type, QuantifiedNP | Callable] = {
     Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
 }
 
-_type_converters: list[tuple[type, Callable[[type], type]]] = []
+_type_converters: list[tuple[_Annotation, Callable[[_Annotation], _Annotation]]] = []
 
 
 def _record_perm_check(place: str, **perms: bool) -> list[str]:
@@ -115,12 +116,12 @@ def _is_optional_type(annotation) -> bool:
     return type(None) in get_args(annotation)
 
 
-def _get_constituents(annotation) -> list[type | _Converter]:
+def _get_constituents(annotation) -> list[_Annotation]:
     constituents = filter(lambda t: t is not type(None), get_args(annotation))  # noqa: E721
     return [*split_at(constituents, _is_literal_type)][0]
 
 
-def _get_description(t: type | _Converter):
+def _get_description(t: _Annotation):
     return _type_descriptions.get(t)
 
 
@@ -132,10 +133,18 @@ def _get_type_converter(t: type):
             return v
 
 
+def add_type_description(t: _Annotation, np: QuantifiedNP):
+    _type_descriptions[t] = np
+
+
+def add_type_converter(t: _Annotation, c: Callable[[_Annotation], _Annotation]):
+    _type_converters.append((t, c))
+
+
 @attr.s(eq=True, hash=True)
 class Argument:
     key: str = attr.ib(order=False)
-    annotation: type | _Converter = attr.ib(order=False)
+    annotation: _Annotation = attr.ib(order=False)
     accepts: QuantifiedNP = attr.ib(order=False)
     greedy: bool = attr.ib(order=False)
     final: bool = attr.ib(order=False)
@@ -231,7 +240,7 @@ class Argument:
         return argument
 
     @classmethod
-    def infer_accepts(cls, annotation: type | _Converter) -> QuantifiedNP:
+    def infer_accepts(cls, annotation: _Annotation) -> QuantifiedNP:
         if _is_type_union(annotation):
             return cls.infer_union_type(annotation)
         conv = _get_type_converter(annotation)
@@ -240,11 +249,6 @@ class Argument:
         defined = _get_description(annotation)
         if defined:
             return defined
-        try:
-            if isinstance(annotation.__accept__, QuantifiedNP):
-                return annotation.__accept__
-        except AttributeError:
-            pass
         if not isinstance(annotation, type):
             annotation = type(annotation)
         return QuantifiedNP(camel_case_to_spaces(annotation.__name__))

@@ -195,8 +195,8 @@ class ContextualLogger:
 async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
     if isinstance(exc, BYPASSED):
         return
-    for types, info in EXCEPTIONS.items():
-        if isinstance(exc, types):
+    for conf in EXCEPTIONS.values():
+        if isinstance(exc, conf['exc']):
             break
     else:
         _log.warning('Uncaught exception while handling command:\n'
@@ -207,8 +207,8 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
         exc_info = exc.__cause__
     else:
         exc_info = None
-    title = info['name']
-    level = info['level']
+    title = conf['name']
+    level = conf['level']
     embed = Embed(
         title=title,
         description=str(exc),
@@ -221,7 +221,7 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
     embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
-    return await ctx.log.log(info['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
+    return await ctx.log.log(conf['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 
 def censor_paths(tb: str):

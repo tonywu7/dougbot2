@@ -56,7 +56,6 @@ class Circumstances(Context):
         super().__init__(**attrs)
         from .bot import Robot
         from .command import Instruction
-        from .ext.autodoc import Manual
         from .logging import ContextualLogger
         from .models import Server
 
@@ -75,7 +74,6 @@ class Circumstances(Context):
         self.channel: TextChannel
 
         self.bot: Robot
-        self.manual: Manual = self.bot.manual
         self.prefix: str
 
         try:
