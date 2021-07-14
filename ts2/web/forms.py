@@ -20,11 +20,12 @@ from operator import itemgetter
 
 from asgiref.sync import async_to_sync
 from django import forms
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 
 from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.logging import EXCEPTIONS, LOGGING_CLASSES
+from ts2.discord.logging import iter_logging_conf
 from ts2.discord.models import Server
 
 from .utils.forms import (AsyncFormMixin, D3SelectWidget, FormConstants,
@@ -46,7 +47,7 @@ class PreferenceForms:
         return ModelSyncActionForm(instance=self.context.server)
 
     def logging(self):
-        return LoggingConfigFormset.get_form(self.context.server, self.context.is_superuser)
+        return LoggingConfigFormset.get_form(self.context.server, self.context.web_user)
 
 
 class UserCreationForm(forms.Form):
@@ -79,14 +80,6 @@ class CommandPrefixForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
         fields = ['prefix']
         labels = gen_labels(Server)
         widgets = {**find_widgets(Server)}
-
-    def clean_prefix(self):
-        data = self.cleaned_data['prefix']
-        try:
-            Server.validate_prefix(data)
-        except ValueError as e:
-            raise forms.ValidationError(str(e), code='forbidden_chars')
-        return data
 
 
 class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
@@ -162,26 +155,21 @@ class LoggingConfigForm(FormConstants, forms.Form):
 
 class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
     @classmethod
-    def get_form(cls, server: Server, is_superuser: bool) -> LoggingConfigFormset:
-        items = []
-        for item in EXCEPTIONS.values():
-            require_superuser = item.get('superuser')
-            if not require_superuser or require_superuser and is_superuser:
-                items.append(item)
-        for item in LOGGING_CLASSES:
-            items.append(item)
+    def get_form(cls, server: Server, user: User) -> LoggingConfigFormset:
+        available = {k: v for k, v in iter_logging_conf(user)}
 
         config = server.logging
-        for row in items:
-            key = row['key']
-            err_type = config.get(key, {})
-            if not err_type:
-                continue
-            try:
-                row['channel'] = err_type.get('channel', '')
-                row['role'] = err_type.get('role', '')
-            except AttributeError:
-                continue
+        items = []
+        for k, v in available.items():
+            settings = {'key': k, **v}
+            err_type = config.get(k, {})
+            if err_type:
+                try:
+                    settings['channel'] = err_type.get('channel', '')
+                    settings['role'] = err_type.get('role', '')
+                except AttributeError:
+                    continue
+            items.append(settings)
 
         return cls(initial=items)
 

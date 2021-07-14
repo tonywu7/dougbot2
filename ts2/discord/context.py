@@ -112,8 +112,8 @@ class Circumstances(Context):
 
     @sync_to_async
     def set_prefix(self, prefix: str):
-        from .models import Server
-        Server.validate_prefix(prefix)
+        from .models import validate_prefix
+        validate_prefix(prefix)
         with transaction.atomic():
             self.server.prefix = prefix
             self.server.save()

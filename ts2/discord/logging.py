@@ -20,36 +20,29 @@ import io
 import logging
 import sys
 import traceback
+from collections.abc import Iterator
 from functools import partialmethod
 from typing import Optional, TypedDict
 
 from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
 from discord.ext.commands import errors
 from discord.utils import escape_markdown
+from django.contrib.auth.models import User
 
 from ts2.utils.datetime import localnow, utcnow
 
-from . import command, constraint, extension
+from . import command, constraint, extension, models
 from .context import Circumstances, CommandContextError
 from .utils.markdown import tag, unmarked, untagged
 from .utils.pagination import trunc_for_field
 
 
-class _LoggingConf(TypedDict):
-    key: str
-    name: str
-    channel: int
-    role: Optional[int]
-
-
 class _ErrorConf(TypedDict):
-    key: str
+    exc: tuple[type[Exception], ...]
     name: str
     level: int
     superuser: Optional[bool]
 
-
-LOGGING_CLASSES: list[_LoggingConf] = []
 
 UNCAUGHT_EXCEPTIONS = (
     errors.CommandInvokeError,
@@ -66,7 +59,7 @@ BYPASSED = (
     errors.UserInputError,
 )
 
-EXCEPTIONS: dict[tuple[type[Exception], ...], _ErrorConf] = {
+EXCEPTIONS = {
     (errors.MaxConcurrencyReached,
      errors.CommandOnCooldown): {
         'name': 'Command throttling hit',
@@ -107,7 +100,11 @@ EXCEPTIONS: dict[tuple[type[Exception], ...], _ErrorConf] = {
     },
 }
 
-PRIVILEGED_EXCEPTIONS = {d['key'] for d in EXCEPTIONS.values() if d.get('superuser')}
+EXCEPTIONS: dict[str, _ErrorConf] = {v['key']: {'exc': k, **v} for k, v in EXCEPTIONS.items()}
+
+PRIVILEGED_EXCEPTIONS = {k for k, v in EXCEPTIONS.items() if v.get('superuser')}
+
+logging_classes: dict[str, str] = {k: v['name'] for k, v in EXCEPTIONS.items()}
 
 COLORS = {
     logging.DEBUG: Color(0x6610f2),
@@ -118,6 +115,32 @@ COLORS = {
 }
 
 _log = logging.getLogger('discord.logging.exceptions')
+
+
+def can_change(user: User, key: str) -> bool:
+    return (key not in PRIVILEGED_EXCEPTIONS
+            or user.is_superuser)  # Material conditional
+
+
+def iter_logging_conf(user: User) -> Iterator[tuple[str, _ErrorConf]]:
+    for k, v in EXCEPTIONS.items():
+        if can_change(user, k):
+            yield k, v
+    for k in logging_classes.keys() - EXCEPTIONS.keys():
+        yield k, {'name': logging_classes[k]}
+
+
+def get_name(key: str) -> str:
+    return logging_classes[key]
+
+
+def register_logger(key: str, name: str):
+    if key in logging_classes:
+        raise ValueError(
+            f'A logger for {key} named "{logging_classes[key]}"'
+            ' has already been defined.',
+        )
+    logging_classes[key] = name
 
 
 class ContextualLogger:
@@ -135,7 +158,7 @@ class ContextualLogger:
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
-        config: _LoggingConf = self.ctx.log_config[msg_class]
+        config: models.LoggingConfig = self.ctx.log_config[msg_class]
         channel = config['channel']
         channel: TextChannel = self.ctx.guild.get_channel(channel)
         if not isinstance(channel, TextChannel):

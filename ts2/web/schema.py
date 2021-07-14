@@ -14,46 +14,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Protocol
-
-from django.urls import ResolverMatch
-from django.utils.datastructures import MultiValueDict
 from graphene import Field, ObjectType, Schema
 from graphene_django import DjangoListField
 
+from ts2.discord import schema as discord_schema
 from ts2.discord.models import Server
-from ts2.discord.schema import BotCommandType, ServerType
-
-from .middleware import DiscordContext
-from .models import User
-
-
-class RequestContext(Protocol):
-    GET: MultiValueDict
-    POST: MultiValueDict
-    META: MultiValueDict
-    user: User
-    resolver_match: ResolverMatch
-
-    def get_ctx() -> DiscordContext:
-        ...
-
-
-class HasContext(Protocol):
-    context: RequestContext
 
 
 class ServerQuery(ObjectType):
-    server = Field(ServerType)
+    server = Field(discord_schema.ServerType)
 
     def resolve_server(self, info):
         snowflake = info.context.resolver_match.kwargs['guild_id']
         return Server.objects.get(snowflake=snowflake)
 
 
+class ServerMutation(ObjectType):
+    create = discord_schema.ServerCreateMutation.Field()
+    update_prefix = discord_schema.ServerPrefixMutation.Field()
+    update_extensions = discord_schema.ServerExtensionsMutation.Field()
+    update_models = discord_schema.ServerModelSyncMutation.Field()
+    update_logging = discord_schema.ServerLoggingMutation.Field()
+
+
 class PublicQuery(ObjectType):
-    commands = DjangoListField(BotCommandType)
+    commands = DjangoListField(discord_schema.BotCommandType)
 
 
-server_schema = Schema(query=ServerQuery)
+server_schema = Schema(query=ServerQuery, mutation=ServerMutation)
 public_schema = Schema(query=PublicQuery)

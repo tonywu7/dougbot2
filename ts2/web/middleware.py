@@ -130,11 +130,7 @@ async def load_servers(req: HttpRequest, guilds: list[PartialGuild]):
 class DiscordContext:
     access_token: str
 
-    user_id: int
-    username: str
-    is_staff: bool
-    is_superuser: bool
-
+    web_user: User
     user_profile: PartialUser
 
     available_servers: dict[int, PartialGuild]
@@ -174,6 +170,22 @@ class DiscordContext:
         enabled = self.server.extensions
         return {label: (label in enabled, conf) for label, conf in extensions.items()}
 
+    @property
+    def user_id(self):
+        return self.web_user.snowflake
+
+    @property
+    def username(self):
+        return self.web_user.username
+
+    @property
+    def is_staff(self):
+        return self.web_user.is_staff
+
+    @property
+    def is_superuser(self):
+        return self.web_user.is_superuser
+
 
 class DiscordContextMiddleware:
     def __init__(self, get_response):
@@ -206,9 +218,9 @@ class DiscordContextMiddleware:
         joined = dict(joined)
 
         context = DiscordContext(
-            token, request.user.snowflake, request.user.username,
-            request.user.is_staff, request.user.is_superuser,
-            profile, available, joined, server_id=guild_id,
+            token, request.user,
+            profile, available, joined,
+            server_id=guild_id,
         )
         if context.server_id and context.current is None:
             return redirect(reverse('web:index'))
