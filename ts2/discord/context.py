@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
+from contextlib import asynccontextmanager
 from functools import wraps
 
 from asgiref.sync import sync_to_async
@@ -24,11 +25,10 @@ from discord import (AllowedMentions, Embed, Guild, Member, Message,
                      TextChannel, User)
 from discord.abc import Messageable
 from discord.errors import Forbidden
-from discord.ext.commands import Context
+from discord.ext.commands import Command, Context
 from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
-from .command import Instruction
 from .ext.logging import ContextualLogger
 from .models import Server
 from .utils.markdown import tag
@@ -63,10 +63,10 @@ class Circumstances(Context):
 
         self.me: Member | User
         self.message: Message | Messageable
-        self.command: Instruction
+        self.command: Command
         self.invoked_with: str
         self.invoked_parents: list[str]
-        self.invoked_subcommand: Instruction | None
+        self.invoked_subcommand: Command | None
 
         self.author: Member | Messageable
         self.guild: Guild
@@ -146,10 +146,23 @@ class Circumstances(Context):
         query = query or self.command.qualified_name
         return await self.bot.send_help(self, category, query=query)
 
-    async def call(self, cmd: Instruction, *args, **kwargs):
-        async with cmd.acquire_concurrency(self):
-            cmd.trigger_cooldowns(self)
+    async def call(self, cmd: Command, *args, **kwargs):
+        async with self.acquire_concurrency(cmd):
+            self.trigger_cooldowns(cmd)
             return await self.invoke(cmd, *args, **kwargs)
+
+    @asynccontextmanager
+    async def acquire_concurrency(self, cmd: Command):
+        try:
+            if cmd._max_concurrency is not None:
+                await cmd._max_concurrency.acquire(self)
+            yield
+        finally:
+            if cmd._max_concurrency is not None:
+                await cmd._max_concurrency.release(self)
+
+    def trigger_cooldowns(self, cmd: Command):
+        cmd._prepare_cooldowns(self)
 
 
 class CommandContextError(CommandInvokeError):

@@ -24,10 +24,10 @@ from typing import Literal, Optional, Union
 import psutil
 from discord import (Color, Emoji, Invite, Member, Message, PartialEmoji,
                      PartialMessage, Role, TextChannel)
-from discord.ext.commands import BucketType, Converter, has_role, is_owner
+from discord.ext.commands import (BucketType, Converter, command, has_role,
+                                  is_owner)
 
 from ts2.discord.cog import Gear
-from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.patterns import Constant, RegExp
@@ -49,7 +49,7 @@ class Debugging(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @instruction('log')
+    @command('log')
     @doc.description("Send a message into the bot's log file.")
     @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
     @doc.argument('text', 'The message to log.')
@@ -67,7 +67,7 @@ class Debugging(
             msg = text
         await ctx.log.log(f'{self.app_label}.log', level, msg)
 
-    @instruction('throw')
+    @command('throw')
     @doc.description('Throw an exception inside the command handler.')
     @doc.restriction(is_owner)
     @doc.cooldown(1, 10, BucketType.user)
@@ -75,14 +75,14 @@ class Debugging(
     async def _throw(self, ctx: Circumstances, *, args: str = None):
         return {}[None]
 
-    @instruction('overflow')
+    @command('overflow')
     @doc.description(f'Throw a {code("RecursionError")}.')
     @doc.restriction(is_owner)
     @doc.hidden
     async def _overflow(self, ctx: Circumstances, *, args: str = None):
         return await self._overflow(ctx, args=args)
 
-    @instruction('kill')
+    @command('kill')
     @doc.description('Try to kill the bot by attempting an irrecoverable stack overflow.')
     @doc.argument('sig', f'If equals {code(-9)}, {strong("send SIGKILL instead")} {E("gun")}.')
     @doc.restriction(is_owner)
@@ -96,7 +96,7 @@ class Debugging(
     async def _do_kill(self, ctx, *args, **kwargs):
         return await self._do_kill(ctx, *args, **kwargs)
 
-    @instruction('sleep')
+    @command('sleep')
     @doc.description('Suspend the handler coroutine for some duration.')
     @doc.concurrent(2, BucketType.user, wait=False)
     @doc.hidden
@@ -104,14 +104,14 @@ class Debugging(
         async with ctx.typing():
             await asyncio.sleep(duration)
 
-    @instruction('isnotinthesudoersfile')
+    @command('isnotinthesudoersfile')
     @doc.description('[Incident](https://xkcd.com/838/)')
     @doc.restriction(has_role, 0)
     @doc.hidden
     async def _sudo(self, ctx: Circumstances, *, args: str = None):
         await ctx.send(f'{ctx.me} is in the sudoers file!')
 
-    @instruction('parse', ignore_extra=False)
+    @command('parse', ignore_extra=False)
     @doc.description('Test converters.')
     @doc.hidden
     async def _parse(
@@ -125,13 +125,13 @@ class Debugging(
     ):
         await ctx.send('All conversions succeeded.')
 
-    @instruction('sep')
+    @command('sep')
     @doc.description('Test tokenizer.')
     @doc.hidden
     async def _tokenizer(self, ctx: Circumstances, *args: str):
         await ctx.send('\n'.join([f'{idx}. {s}' for idx, s in enumerate(args)]))
 
-    @instruction('444')
+    @command('444')
     @doc.description('Globally forbid an entity from interacting with the bot.')
     @doc.discussion('Detail', (
         f'All command invocations are ignored and all events (including {code("on_message")})'

@@ -38,7 +38,6 @@ from ts2.utils.importutil import objpath
 
 from . import cog, constraint, ipc, models
 from .apps import DiscordBotConfig
-from .command import Ensemble, Instruction
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
@@ -139,16 +138,6 @@ class Robot(Bot):
         self._create_manual()
 
         self.gatekeeper = Gatekeeper()
-
-    def instruction(self, *args, **kwargs):
-        return super().command(*args, cls=Instruction, **kwargs)
-
-    def ensemble(self, *args, invoke_without_command=False, **kwargs):
-        return super().group(
-            *args, cls=Ensemble,
-            invoke_without_command=invoke_without_command,
-            **kwargs,
-        )
 
     def _init_ipc(self):
         thread = ipc.CachePollingThread('discord')
@@ -431,9 +420,9 @@ def add_event_listeners(self: Robot):
 
 def register_base_commands(self: Robot):
 
-    self.instruction('help')(self.send_help)
+    self.command('help')(self.send_help)
 
-    @self.instruction('echo')
+    @self.command('echo')
     @doc.description('Send the command arguments back.')
     @doc.argument('text', 'Message to send back.')
     @doc.example('The quick brown fox', em('sends back "The quick brown fox"'))
@@ -443,7 +432,7 @@ def register_base_commands(self: Robot):
         else:
             await ctx.send(text)
 
-    @self.instruction('ping')
+    @self.command('ping')
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances):
         await ctx.send(f':PONG {utctimestamp()}')
@@ -471,7 +460,7 @@ def register_base_commands(self: Robot):
 
         await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
-    @self.ensemble('prefix', invoke_without_command=True)
+    @self.group('prefix', invoke_without_command=True)
     @doc.description('Get the command prefix for the bot in this server.')
     @doc.invocation((), 'Print the prefix.')
     async def get_prefix(ctx: Circumstances):
@@ -479,7 +468,7 @@ def register_base_commands(self: Robot):
         example = f'Example: {strong(f"{prefix}echo")}'
         await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
 
-    @get_prefix.instruction('set')
+    @get_prefix.command('set')
     @doc.description('Set a new prefix for this server.')
     @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
     @doc.example('?', f'Set the command prefix to {code("?")}')

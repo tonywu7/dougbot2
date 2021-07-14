@@ -19,13 +19,11 @@ from __future__ import annotations
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord.ext.commands import BucketType, cooldown, max_concurrency
+from discord.ext.commands import BucketType, command, cooldown, max_concurrency
 from django.conf import settings
 from geopy import Location
 from geopy.adapters import AioHTTPAdapter
 from geopy.geocoders import Nominatim
-
-from ...command import instruction
 
 
 class ManagedAioHTTPAdapter(AioHTTPAdapter):
@@ -51,7 +49,7 @@ def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
     return locator
 
 
-@instruction('!tzlocation', hidden=True)
+@command('!tzlocation', hidden=True)
 @max_concurrency(1, BucketType.guild, wait=True)
 @cooldown(1, 5, BucketType.default)
 async def get_location(ctx, **kwargs) -> Location | list[Location]:

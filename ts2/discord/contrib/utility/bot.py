@@ -20,13 +20,12 @@ from typing import Optional, Union
 
 from discord import (CategoryChannel, Member, Role, StageChannel, TextChannel,
                      VoiceChannel)
-from discord.ext.commands import Greedy, has_guild_permissions
+from discord.ext.commands import Greedy, command, has_guild_permissions
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
 from ts2.discord.bot import Robot
 from ts2.discord.cog import Gear
-from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
@@ -41,7 +40,7 @@ class Utilities(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @instruction('channels')
+    @command('channels')
     @doc.description('List all channels in the server.')
     @doc.restriction(has_guild_permissions, manage_channels=True)
     async def channels(self, ctx: Circumstances):
@@ -57,7 +56,7 @@ class Utilities(
                 lines.append(tag(c))
         await ctx.send('\n'.join(lines))
 
-    @instruction('roles')
+    @command('roles')
     @doc.description('List all roles in the server, including the color codes.')
     @doc.restriction(has_guild_permissions, manage_roles=True)
     async def roles(self, ctx: Circumstances):
@@ -66,7 +65,7 @@ class Utilities(
             lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
         await ctx.send('\n'.join(lines))
 
-    @instruction('perms', ignore_extra=False)
+    @command('perms', ignore_extra=False)
     @doc.description('Survey role permissions.')
     @doc.argument('permission', ('The permission to check.'))
     @doc.argument('roles', 'The role or member whose perms to check.')

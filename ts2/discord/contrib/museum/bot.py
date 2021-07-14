@@ -26,13 +26,12 @@ import nltk
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Embed, Message, MessageReference, Object,
                      TextChannel)
-from discord.ext.commands import BucketType
+from discord.ext.commands import BucketType, command
 from django.conf import settings
 from nltk.corpus import stopwords
 from pendulum import DateTime, instance
 
 from ts2.discord.cog import Gear
-from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
@@ -58,7 +57,7 @@ class Museum(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @instruction('story')
+    @command('story')
     @doc.description('Join multiple messages into a story.')
     @doc.argument('begin_or_end', node='begin/end')
     @doc.accepts_reply('Use the replied-to message as the start/end of the story.')

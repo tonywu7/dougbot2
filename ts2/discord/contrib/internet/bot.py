@@ -19,10 +19,9 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 import aiohttp
-from discord.ext.commands import BucketType, Greedy
+from discord.ext.commands import BucketType, Greedy, command
 
 from ts2.discord.cog import Gear
-from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc.lang import pluralize
@@ -37,7 +36,7 @@ class Internet(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @instruction('oeis')
+    @command('oeis')
     @doc.description('Lookup a sequence from [OEIS](https://oeis.org/) '
                      'by its integers or by its A-number.')
     @doc.argument('integers', 'The sequence of integers to lookup, separated by space only.')

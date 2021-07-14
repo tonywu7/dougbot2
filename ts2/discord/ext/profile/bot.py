@@ -18,13 +18,13 @@ from typing import Literal, Optional
 
 import pytz
 from discord import Member
+from discord.ext.commands import command, group
 from geopy import Location, Point
 from geopy.exc import GeocoderTimedOut
 
 from ts2.utils.datetime import utcnow
 
 from ...cog import Gear
-from ...command import ensemble, instruction
 from ...context import Circumstances
 from ...ext import autodoc as doc
 from ...ext.autodoc import NotAcceptable
@@ -45,12 +45,12 @@ class Personalize(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @instruction('gdpr', aliases=('export',))
+    @command('gdpr', aliases=('export',))
     @doc.description('Get a copy of everything the bot knows about you via DM.')
     async def gdpr(self, ctx: Circumstances):
         pass
 
-    @instruction('me', invoke_without_command=True)
+    @command('me', invoke_without_command=True)
     @doc.description('Print your settings within the bot.')
     async def me(self, ctx: Circumstances):
         profile: User = await User.aget(ctx.author)
@@ -69,13 +69,13 @@ class Personalize(
             res = res.add_field(name=k, value=code(v or '(none)'), inline=True)
         return await ctx.reply(embed=res)
 
-    @ensemble('my', aliases=('conf',))
+    @group('my', aliases=('conf',))
     @doc.description('Configure various preferences.')
     @doc.hidden
     async def conf(self, ctx: Circumstances):
         pass
 
-    @conf.instruction('timezone', aliases=('tz',))
+    @conf.command('timezone', aliases=('tz',))
     @doc.description('Set timezone preference.')
     @doc.argument('delete', signature='-delete', node='-delete')
     @doc.argument('tz', 'Timezone to set.')
