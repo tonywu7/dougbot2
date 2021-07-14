@@ -17,8 +17,10 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from io import StringIO
 from textwrap import indent
+from typing import Literal
 
 from discord import Role
 from discord.abc import GuildChannel, User
@@ -128,6 +130,27 @@ def unmark_element(element, stream=None):
     if element.tail:
         stream.write(element.tail)
     return stream.getvalue()
+
+
+_TIMESTAMP_FORMATS = Literal[
+    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
+    'full', 'long', 'date', 'relative',
+]
+TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
+    'yy/mm/dd': 'd',
+    'hh:mm:ss': 'T',
+    'hh:mm': 't',
+    'full': 'F',
+    'long': 'f',
+    'date': 'D',
+    'relative': 'R',
+}
+
+
+def timestamp(t: datetime | float | int, f: _TIMESTAMP_FORMATS) -> str:
+    if isinstance(t, datetime):
+        t = t.timestamp()
+    return f'<t:{t}:{TIMESTAMP_PROCESSOR[f]}>'
 
 
 Markdown.output_formats['plain'] = unmark_element
