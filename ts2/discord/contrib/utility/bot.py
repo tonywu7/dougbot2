@@ -27,7 +27,7 @@ from more_itertools import split_before
 from ts2.discord.bot import Robot
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import doc
+from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.converters.models import PermissionName
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import code, strong, tag, traffic_light

@@ -25,8 +25,8 @@ from geopy import Location
 from geopy.adapters import AioHTTPAdapter
 from geopy.geocoders import Nominatim
 
-from ..command import instruction
-from ..context import Circumstances
+from ...command import instruction
+from ...context import Circumstances
 
 
 class ManagedAioHTTPAdapter(AioHTTPAdapter):

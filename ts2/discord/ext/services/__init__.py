@@ -16,7 +16,7 @@
 
 from discord.ext.commands import CommandError
 
-from ..ext.doc import explains
+from ...ext.autodoc import explains
 
 
 class ServiceUnavailable(CommandError):

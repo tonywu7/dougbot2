@@ -25,10 +25,10 @@ from ts2.utils.datetime import utcnow
 
 from ..command import ensemble, instruction
 from ..context import Circumstances
-from ..ext import doc
+from ..ext import autodoc as doc
+from ..ext.autodoc import NotAcceptable
 from ..ext.converters.functional import Maybe
 from ..ext.converters.patterns import Constant
-from ..ext.doc import NotAcceptable
 from ..ext.services import ServiceUnavailable
 from ..ext.services.osm import get_location
 from ..ext.services.tz import Latitude, Longitude, Timezone, get_tzfinder
@@ -88,9 +88,11 @@ class Conf(
     @doc.invocation(('tz',), 'Set your timezone using an IANA timezone code.')
     @doc.invocation(('latitude', 'longitude'), 'Set your timezone using a coordinate (latitude first).')
     @doc.invocation(('location',), 'Set your timezone by searching for a location.')
-    @doc.discussion('Privacy', 'When setting timezones using lat/long or a location query,'
-                    ' your message will be immediately deleted.\n'
-                    'The bot does not keep your location info.')
+    @doc.discussion('Privacy', (
+        'When setting timezones using lat/long or a location query,'
+        ' your message will be immediately deleted.\n'
+        'The bot does not keep your location info.'
+    ))
     @doc.example('America/New_York', 'Directly using an IANA timezone.')
     @doc.example(('40 -74', '52.3676° N, 4.9041° E'), 'Using the geographical coordinate of your location.')
     @doc.example(('Seattle WA', 'Straße des 17. Juni', '国会議事堂前駅'), 'Or search for a place directly.')

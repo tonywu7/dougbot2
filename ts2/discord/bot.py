@@ -40,9 +40,10 @@ from . import constraint, extension, ipc, models
 from .apps import DiscordBotConfig
 from .command import Ensemble, Instruction
 from .context import Circumstances, CommandContextError
-from .ext import doc
+from .ext import autodoc as doc
+from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
+                          explain_exception)
 from .ext.converters.patterns import Choice
-from .ext.doc import Documentation, Manual, NoSuchCommand, explain_exception
 from .logging import log_command_errors
 from .models import Blacklisted, Server
 from .utils import events

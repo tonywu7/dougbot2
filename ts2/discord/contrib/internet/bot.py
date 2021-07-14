@@ -23,9 +23,9 @@ from discord.ext.commands import BucketType, Greedy
 
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import doc
+from ts2.discord.ext import autodoc as doc
+from ts2.discord.ext.autodoc.lang import pluralize
 from ts2.discord.ext.converters.patterns import RegExp
-from ts2.discord.ext.doc.lang import pluralize
 from ts2.discord.ext.services.oeis import OEIS
 from ts2.discord.extension import Gear
 

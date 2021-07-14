@@ -33,9 +33,9 @@ from pendulum import DateTime, instance
 
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import doc
+from ts2.discord.ext import autodoc as doc
+from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.converters.patterns import Choice
-from ts2.discord.ext.doc.exceptions import NotAcceptable
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal
 from ts2.discord.utils.pagination import ParagraphStream, chapterize
@@ -63,8 +63,13 @@ class Museum(
     @doc.argument('begin_or_end', node='begin/end')
     @doc.accepts_reply('Use the replied-to message as the start/end of the story.')
     @doc.use_syntax_whitelist
-    @doc.invocation(('reply', 'begin_or_end'), 'Mark the replied-to message as the start/end of the story.')
-    @doc.invocation(('begin_or_end', 'message'), 'Set the passed message as the start/end of the story. The message must be in the current channel.')
+    @doc.invocation(('reply', 'begin_or_end'), (
+        'Mark the replied-to message as the start/end of the story.'
+    ))
+    @doc.invocation(('begin_or_end', 'message'), (
+        'Set the passed message as the start/end of the story.'
+        ' The message must be in the current channel.'
+    ))
     @doc.concurrent(1, BucketType.channel)
     async def story(
         self, ctx: Circumstances,

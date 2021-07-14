@@ -25,9 +25,9 @@ from discord.utils import escape_markdown
 from geopy import Point
 from timezonefinder import TimezoneFinder
 
-from ..context import Circumstances
-from ..ext.doc import accepts
-from ..utils.markdown import a, code, verbatim
+from ...context import Circumstances
+from ...ext.autodoc import accepts
+from ...utils.markdown import a, code, verbatim
 
 tzfinder = None
 
