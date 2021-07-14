@@ -44,7 +44,7 @@ from .ext import autodoc as doc
 from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
                           explain_exception)
 from .ext.converters.patterns import Choice
-from .logging import log_command_errors
+from .ext.logger import log_command_errors
 from .models import Blacklisted, Server
 from .utils import events
 from .utils.markdown import code, em, strong
@@ -298,10 +298,12 @@ class Robot(Bot):
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
 
-    async def on_message(self, message):
+    async def on_message(self, message: Message):
         try:
             return await super().on_message(message)
         except Exception as exc:
+            if message.author.bot:
+                raise
             ctx = await self.get_context(message)
             try:
                 raise CommandContextError(exc) from exc

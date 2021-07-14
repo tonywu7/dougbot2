@@ -25,16 +25,13 @@ from functools import partialmethod
 from typing import Optional, TypedDict
 
 from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
-from discord.ext.commands import errors
+from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
-from django.contrib.auth.models import User
 
 from ts2.utils.datetime import localnow, utcnow
 
-from . import constraint, extension, models
-from .context import Circumstances, CommandContextError
-from .utils.markdown import tag, unmarked, untagged
-from .utils.pagination import trunc_for_field
+from ...utils.markdown import tag, unmarked, untagged
+from ...utils.pagination import trunc_for_field
 
 
 class _ErrorConf(TypedDict):
@@ -49,13 +46,6 @@ UNCAUGHT_EXCEPTIONS = (
     errors.ConversionError,
     errors.ExtensionError,
     errors.ClientException,
-    CommandContextError,
-)
-
-BYPASSED = (
-    errors.CommandNotFound,
-    errors.ArgumentParsingError,
-    errors.UserInputError,
 )
 
 EXCEPTIONS = {
@@ -74,16 +64,10 @@ EXCEPTIONS = {
     },
     (errors.MissingPermissions,
      errors.MissingAnyRole,
-     errors.MissingRole,
-     constraint.ConstraintFailure): {
+     errors.MissingRole): {
         'name': 'Unauthorized invocations',
         'key': 'MissingPerms',
         'level': logging.DEBUG,
-    },
-    (extension.ModuleDisabled,): {
-        'name': 'Disabled module called',
-        'key': 'ModuleDisabled',
-        'level': logging.INFO,
     },
     UNCAUGHT_EXCEPTIONS: {
         'name': 'Uncaught exceptions',
@@ -99,12 +83,6 @@ EXCEPTIONS = {
     },
 }
 
-EXCEPTIONS: dict[str, _ErrorConf] = {v['key']: {'exc': k, **v} for k, v in EXCEPTIONS.items()}
-
-PRIVILEGED_EXCEPTIONS = {k for k, v in EXCEPTIONS.items() if v.get('superuser')}
-
-logging_classes: dict[str, str] = {k: v['name'] for k, v in EXCEPTIONS.items()}
-
 COLORS = {
     logging.DEBUG: Color(0x6610f2),
     logging.INFO: Color(0x0d6efd),
@@ -113,19 +91,36 @@ COLORS = {
     logging.CRITICAL: Color(0xd63384),
 }
 
+exceptions: dict[str, _ErrorConf] = {v['key']: {'exc': k, **v} for k, v in EXCEPTIONS.items()}
+privileged = {k for k, v in exceptions.items() if v.get('superuser')}
+logging_classes: dict[str, str] = {k: v['name'] for k, v in exceptions.items()}
+bypassed = {
+    errors.CommandNotFound,
+    errors.ArgumentParsingError,
+    errors.UserInputError,
+}
+
+
+class LoggingEntry(TypedDict):
+    name: str
+    channel: int
+    role: Optional[int]
+
+
+LoggingConfig = dict[str, LoggingEntry]
+
 _log = logging.getLogger('discord.logging.exceptions')
 
 
-def can_change(user: User, key: str) -> bool:
-    return (key not in PRIVILEGED_EXCEPTIONS
-            or user.is_superuser)  # Material conditional
+def can_change(user, key: str) -> bool:
+    return (key not in privileged or user.is_superuser)  # Material conditional
 
 
-def iter_logging_conf(user: User) -> Iterator[tuple[str, _ErrorConf]]:
-    for k, v in EXCEPTIONS.items():
+def iter_logging_conf(user) -> Iterator[tuple[str, _ErrorConf]]:
+    for k, v in exceptions.items():
         if can_change(user, k):
             yield k, v
-    for k in logging_classes.keys() - EXCEPTIONS.keys():
+    for k in logging_classes.keys() - exceptions.keys():
         yield k, {'name': logging_classes[k]}
 
 
@@ -143,7 +138,7 @@ def register_logger(key: str, name: str):
 
 
 class ContextualLogger:
-    def __init__(self, prefix: str, ctx: Circumstances):
+    def __init__(self, prefix: str, ctx: Context):
         self.prefix = prefix
         self.ctx = ctx
 
@@ -157,7 +152,7 @@ class ContextualLogger:
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
-        config: models.LoggingConfig = self.ctx.log_config[msg_class]
+        config: LoggingConfig = self.ctx.log_config[msg_class]
         channel = config['channel']
         channel: TextChannel = self.ctx.guild.get_channel(channel)
         if not isinstance(channel, TextChannel):
@@ -192,10 +187,10 @@ class ContextualLogger:
     critical = partialmethod(log, level=logging.CRITICAL)
 
 
-async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
-    if isinstance(exc, BYPASSED):
+async def log_command_errors(ctx: Context, exc: errors.CommandError):
+    if isinstance(exc, tuple(bypassed)):
         return
-    for conf in EXCEPTIONS.values():
+    for conf in exceptions.values():
         if isinstance(exc, conf['exc']):
             break
     else:
@@ -221,7 +216,8 @@ async def log_command_errors(ctx: Circumstances, exc: errors.CommandError):
     embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
-    return await ctx.log.log(conf['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
+    logger = ContextualLogger('discord.exception', ctx)
+    return await logger.log(conf['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 
 def censor_paths(tb: str):

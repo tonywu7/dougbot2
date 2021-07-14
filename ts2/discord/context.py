@@ -25,10 +25,12 @@ from discord import (AllowedMentions, Embed, Guild, Member, Message,
 from discord.abc import Messageable
 from discord.errors import Forbidden
 from discord.ext.commands import Context
-from discord.ext.commands.errors import CommandError
+from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
 from .command import Instruction
+from .ext.logger import ContextualLogger
+from .models import Server
 from .utils.markdown import tag
 
 
@@ -55,9 +57,6 @@ class Circumstances(Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
         from .bot import Robot
-        from .command import Instruction
-        from .logging import ContextualLogger
-        from .models import Server
 
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server
@@ -76,10 +75,7 @@ class Circumstances(Context):
         self.bot: Robot
         self.prefix: str
 
-        try:
-            self.session = self.bot.request
-        except AttributeError:
-            pass
+        self.session = self.bot.request
 
     @property
     @_guard('Context is missing server instance')
@@ -99,7 +95,8 @@ class Circumstances(Context):
         from .models import Server
         try:
             self._server = (
-                Server.objects.prefetch_related('channels', 'roles')
+                Server.objects
+                .prefetch_related('channels', 'roles')
                 .get(pk=self.message.guild.id)
             )
             self._logging_conf = self._server.logging
@@ -155,7 +152,7 @@ class Circumstances(Context):
             return await self.invoke(cmd, *args, **kwargs)
 
 
-class CommandContextError(CommandError):
+class CommandContextError(CommandInvokeError):
     def __init__(self, exc: Exception):
         self.original = exc
         super().__init__('Command context raised an exception: {0.__class__.__name__}: {0}'.format(exc))

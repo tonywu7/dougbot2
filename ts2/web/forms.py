@@ -25,7 +25,7 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 
 from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.logging import iter_logging_conf
+from ts2.discord.ext.logger import iter_logging_conf
 from ts2.discord.models import Server
 
 from .utils.forms import (AsyncFormMixin, D3SelectWidget, FormConstants,

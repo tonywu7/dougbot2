@@ -27,7 +27,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import View
 
 from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.logging import PRIVILEGED_EXCEPTIONS
+from ts2.discord.ext.logger import can_change
 
 from ..config import CommandAppConfig
 from ..forms import LoggingConfigFormset, ModelSyncActionForm
@@ -84,8 +84,7 @@ class LoggingConfigView(View):
             context['errors'] = True
         else:
             for form in formset:
-                if (form.cleaned_data['key'] in PRIVILEGED_EXCEPTIONS
-                        and not req.user.is_superuser):
+                if not can_change(req.user, form.cleaned_data['key']):
                     raise PermissionDenied()
             formset.save(ctx.server)
         return render(req, 'telescope2/web/manage/logging.html', context)

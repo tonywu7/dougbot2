@@ -21,7 +21,7 @@ import re
 from collections.abc import Iterable
 from datetime import datetime
 from operator import attrgetter, itemgetter
-from typing import Generic, Optional, Protocol, TypedDict, TypeVar, Union
+from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
@@ -40,6 +40,7 @@ from timezone_field import TimeZoneField
 from ts2.web.config import CommandAppConfig
 from ts2.web.models import User as SystemUser
 
+from .ext.logger.logging import LoggingConfig
 from .utils.markdown import strong, tag_literal
 
 inflection = inflect.engine()
@@ -164,15 +165,6 @@ class ORMAccess(Protocol):
 
 class ServerScoped(ORMAccess):
     guild: Server
-
-
-class LoggingEntry(TypedDict):
-    name: str
-    channel: int
-    role: Optional[int]
-
-
-LoggingConfig = dict[str, LoggingEntry]
 
 
 class Entity(NamingMixin, models.Model):
