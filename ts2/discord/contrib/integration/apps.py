@@ -1,9 +1,8 @@
 from django.utils.functional import classproperty
 from django.utils.safestring import mark_safe
 
+from ts2.discord.cog import Gear
 from ts2.web.config import CommandAppConfig
-
-from ...extension import Gear
 
 
 class IntegrationConfig(CommandAppConfig):

@@ -27,7 +27,7 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc.lang import pluralize
 from ts2.discord.ext.converters.patterns import RegExp
 from ts2.discord.ext.services.oeis import OEIS
-from ts2.discord.extension import Gear
+from ts2.discord.cog import Gear
 
 
 class Internet(
