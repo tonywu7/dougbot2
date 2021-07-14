@@ -29,11 +29,11 @@ from ..ext import doc
 from ..ext.converters.functional import Maybe
 from ..ext.converters.patterns import Constant
 from ..ext.doc import NotAcceptable
+from ..ext.services import ServiceUnavailable
+from ..ext.services.osm import get_location
+from ..ext.services.tz import Latitude, Longitude, Timezone, get_tzfinder
 from ..extension import Gear
 from ..models import User
-from ..services import ServiceUnavailable
-from ..services.osm import get_location
-from ..services.tz import Latitude, Longitude, Timezone, get_tzfinder
 from ..utils.duckcord.embeds import Embed2
 from ..utils.markdown import code, verbatim
 
