@@ -14,31 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from contextlib import asynccontextmanager
 
-from discord.ext.commands import CheckFailure, Command, Group, command, group
-
-from ts2.utils.functional import memoize
+from discord.ext.commands import Command, Group, command, group
 
 
 class Instruction(Command):
-    dm_command = False
-
     def __init__(self, *args, unreachable: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.unreachable = unreachable
-        if not unreachable:
-            from .documentation import Documentation
-            self.doc = Documentation.from_command(self)
-
-    def _ensure_assignment_on_copy(self, copied_command):
-        cmd = super()._ensure_assignment_on_copy(copied_command)
-        if hasattr(self, 'doc'):
-            cmd.doc = self.doc
-        cmd.unreachable = self.unreachable
-        return cmd
 
     @asynccontextmanager
     async def acquire_concurrency(self, ctx):
@@ -64,26 +48,6 @@ class Ensemble(Instruction, Group):
     def ensemble(self, *args, cls=None, **kwargs):
         return super().group(*args, cls=type(self), **kwargs)
 
-    def add_command(self, command: Instruction):
-        super().add_command(command)
-        self.doc.add_subcommand(command)
-        return command
-
-
-def dm_command():
-    def wrapper(f: Instruction):
-        f.dm_command = True
-        return f
-
-    def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
-    return deco
-
-
-async def command_environment_check(ctx):
-    if not (ctx.command.dm_command ^ bool(ctx.guild)):
-        raise EnvironmentMismatch()
-
 
 def instruction(name: str, **kwargs) -> Instruction:
     return command(name, cls=Instruction, **kwargs)
@@ -91,8 +55,3 @@ def instruction(name: str, **kwargs) -> Instruction:
 
 def ensemble(name: str, invoke_without_command=False, **kwargs) -> Ensemble:
     return group(name, cls=Ensemble, invoke_without_command=invoke_without_command, **kwargs)
-
-
-class EnvironmentMismatch(CheckFailure):
-    def __init__(self, message=None, *args):
-        super().__init__(message='Server vs. DM commands misused', *args)

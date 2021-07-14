@@ -27,9 +27,9 @@ from django.db.models.query import Q
 from more_itertools import bucket
 
 from .context import Circumstances
-from .errors import explains
+from .ext.doc import explains
+from .ext.doc.lang import either_or
 from .models import CommandConstraint, ConstraintTypeEnum, id_dot
-from .utils.lang import either_or
 from .utils.markdown import strong, tag
 
 

@@ -101,7 +101,7 @@ def check_command_paths(app_configs: list[AppConfig], **kwargs) -> list[CheckMes
     with BotRunner.instanstiate(Robot, {}) as bot:
 
         bot: Robot
-        cmds = {identifier for identifier, cmd in bot.iter_commands()}
+        cmds = {cmd.qualified_name for cmd in bot.walk_commands()}
 
         try:
             registered = {v['identifier'] for v in BotCommand.objects.values('identifier')}

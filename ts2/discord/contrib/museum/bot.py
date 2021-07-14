@@ -31,11 +31,11 @@ from django.conf import settings
 from nltk.corpus import stopwords
 from pendulum import DateTime, instance
 
-from ts2.discord import documentation as doc
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.converters.patterns import Choice
-from ts2.discord.documentation import NotAcceptable
+from ts2.discord.ext import doc
+from ts2.discord.ext.converters.patterns import Choice
+from ts2.discord.ext.doc.exceptions import NotAcceptable
 from ts2.discord.extension import Gear
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal
 from ts2.discord.utils.pagination import ParagraphStream, chapterize

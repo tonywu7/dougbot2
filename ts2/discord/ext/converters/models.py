@@ -24,9 +24,8 @@ from discord.abc import GuildChannel
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 
-from ..context import Circumstances
-from ..documentation import accepts
-from ..utils.models import HypotheticalRole
+from ...utils.models import HypotheticalRole
+from ..doc import accepts
 
 
 @accepts('permission name', predicative=('see [this page](https://discordpy.readthedocs.io/en/'
@@ -34,7 +33,7 @@ from ..utils.models import HypotheticalRole
 class PermissionName(Converter):
     perm_name: str
 
-    async def convert(self, ctx: Circumstances, arg: str) -> Callable[[Role], bool]:
+    async def convert(self, ctx, arg: str) -> Callable[[Role], bool]:
         if not hasattr(Permissions, arg):
             if not hasattr(Permissions, arg.replace('server', 'guild')):
                 raise BadArgument(f'No such permission {arg}')

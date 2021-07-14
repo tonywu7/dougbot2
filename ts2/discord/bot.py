@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from collections.abc import Generator, Iterable
@@ -38,14 +36,13 @@ from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.db import async_atomic
 from ts2.utils.importutil import objpath
 
-from . import constraint
-from . import documentation as doc
-from . import extension, ipc, models
+from . import constraint, extension, ipc, models
 from .apps import DiscordBotConfig
-from .command import Ensemble, Instruction, instruction
+from .command import Ensemble, Instruction
 from .context import Circumstances, CommandContextError
-from .documentation import Manual
-from .errors import explain_exception
+from .ext import doc
+from .ext.converters.patterns import Choice
+from .ext.doc import Documentation, Manual, NoSuchCommand, explain_exception
 from .logging import log_command_errors
 from .models import Blacklisted, Server
 from .utils import events
@@ -55,6 +52,8 @@ T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
 
 AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
+
+HelpFormat = Choice[Documentation.HELP_STYLES.keys(), 'info category']
 
 
 class DiscordModel(Protocol):
@@ -124,11 +123,8 @@ class Robot(Bot):
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
 
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
-        super().__init__(
-            loop=loop, command_prefix=self.which_prefix,
-            help_command=None, case_insensitive=True,
-            **options,
-        )
+        super().__init__(loop=loop, command_prefix=self.which_prefix,
+                         help_command=None, case_insensitive=True, **options)
 
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual
@@ -180,12 +176,6 @@ class Robot(Bot):
     def _create_manual(self):
         self.manual = Manual.from_bot(self)
         self.manual.finalize()
-
-    def iter_commands(
-        self, root: Optional[CommandIterator] = None, prefix: str = '',
-    ) -> Generator[tuple[str, Command], None, None]:
-        for cmd in self.walk_commands():
-            yield (cmd.qualified_name, cmd)
 
     @classmethod
     def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
@@ -327,6 +317,39 @@ class Robot(Bot):
                 return await log_command_errors(ctx, exc)
         await log_command_errors(ctx, exc)
 
+    @staticmethod
+    @doc.description('Get help about commands.')
+    @doc.argument('category', 'What kind of help info to get.')
+    @doc.argument('query', 'A command name, such as "echo" or "prefix set".')
+    @doc.invocation((), 'See all commands.')
+    @doc.invocation(('query',), 'See help for a command.')
+    @doc.invocation(('category',), False)
+    @doc.invocation(('category', 'query'), 'See specific info about a command, such as argument types.')
+    @doc.example('perms', f'Check help doc for {code("perms")}')
+    @doc.example('full perms', f'See detailed information about the command {code("perms")}')
+    @doc.example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
+    async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = 'normal',
+                        *, query: str = ''):
+        man = ctx.manual
+        query = query.lower()
+
+        if not query:
+            return await man.send_toc(ctx)
+
+        if query[:len(ctx.prefix)] == ctx.prefix:
+            query = query[len(ctx.prefix):]
+
+        try:
+            doc = man.lookup(query)
+        except NoSuchCommand as exc:
+            return await ctx.send(str(exc), delete_after=60)
+
+        rich_help, text_help = doc.rich_helps[category], doc.text_helps[category]
+        if category == 'normal':
+            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
+
+        return await ctx.reply_with_text_fallback(rich_help, text_help)
+
 
 def add_event_listeners(self: Robot):
 
@@ -405,7 +428,7 @@ def add_event_listeners(self: Robot):
 
 def register_base_commands(self: Robot):
 
-    self.add_command(instruction('help', aliases=['man'])(Manual.help_command))
+    self.instruction('help')(self.send_help)
 
     @self.instruction('echo')
     @doc.description('Send the command arguments back.')

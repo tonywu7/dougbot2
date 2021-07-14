@@ -1,4 +1,4 @@
-# errors.py
+# explanation.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,20 +22,30 @@ from functools import wraps
 from typing import Literal, Optional, Union
 
 from discord import AllowedMentions
-from discord.ext.commands import errors
+from discord.ext.commands import BucketType, Context, errors
 from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
 from pendulum import duration
 
-from .context import Circumstances
-from .utils.lang import pl_cat_predicative
-from .utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
+from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
+from . import exceptions
+from .lang import pl_cat_predicative, pluralize
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
-_ExceptionHandler = Callable[[Circumstances, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
+_ExceptionHandler = Callable[[Context, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
 
 exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: dict[_ExceptionType, str] = {}
+
+BUCKET_DESCRIPTIONS = {
+    BucketType.default: 'globally',
+    BucketType.user: 'per user',
+    BucketType.member: 'per user',
+    BucketType.guild: 'per server',
+    BucketType.channel: 'per channel',
+    BucketType.category: 'per channel category',
+    BucketType.role: 'per role',
+}
 
 
 def indicate_eol(s: StringView, color='white') -> str:
@@ -58,7 +68,7 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
     return wrapper
 
 
-async def reply_command_failure(ctx: Circumstances, title: str, msg: str,
+async def reply_command_failure(ctx: Context, title: str, msg: str,
                                 autodelete=60, ping=False):
     message = f'⚠️ {strong(title)}\n{msg}'
     if ping:
@@ -68,7 +78,7 @@ async def reply_command_failure(ctx: Circumstances, title: str, msg: str,
     return await ctx.reply(message, delete_after=autodelete, allowed_mentions=allowed_mentions)
 
 
-async def explain_exception(ctx: Circumstances, exc: Exception):
+async def explain_exception(ctx: Context, exc: Exception):
     for _, _, exc_t, handler in reversed(exception_handlers):
         if not isinstance(exc, exc_t):
             continue
@@ -85,7 +95,7 @@ async def explain_exception(ctx: Circumstances, exc: Exception):
 def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
-        async def handler(ctx: Circumstances, exc: errors.UserInputError):
+        async def handler(ctx: Context, exc: errors.UserInputError):
             should_log = await f(ctx, exc)
             if not should_log:
                 return
@@ -106,7 +116,7 @@ def append_matching_quotes_hint():
 
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
-        async def handler(ctx: Circumstances, exc: errors.UserInputError):
+        async def handler(ctx: Context, exc: errors.UserInputError):
             should_log = await f(ctx, exc)
             if not should_log:
                 return
@@ -124,7 +134,7 @@ def append_quotation_hint():
 
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
-        async def handler(ctx: Circumstances, exc: errors.UserInputError):
+        async def handler(ctx: Context, exc: errors.UserInputError):
             should_log = await f(ctx, exc)
             if not should_log:
                 return
@@ -136,6 +146,17 @@ def append_quotation_hint():
             return msg, autodelete
         return handler
     return wrapper
+
+
+def describe_concurrency(number: int, bucket: BucketType):
+    bucket_type = BUCKET_DESCRIPTIONS[bucket]
+    info = (f'maximum {number} {pluralize(number, "call")} '
+            f'running at the same time {bucket_type}')
+    return info
+
+
+def readable_perm_name(p: str) -> str:
+    return p.replace('_', ' ').replace('guild', 'server').title()
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
@@ -196,25 +217,25 @@ async def on_too_many_args(ctx, exc: errors.TooManyArguments):
     errors.EmojiNotFound,
 ), 'Not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_not_found(ctx: Circumstances, exc) -> tuple[str, int]:
+async def explains_not_found(ctx: Context, exc) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.PartialEmojiConversionFailure, 'Emote not found', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_emote_not_found(ctx: Circumstances, exc: errors.PartialEmojiConversionFailure) -> tuple[str, int]:
+async def explains_emote_not_found(ctx: Context, exc: errors.PartialEmojiConversionFailure) -> tuple[str, int]:
     return strong(f'{escape_markdown(exc.argument)} is not an emote or is not in a valid Discord emote format.'), 30
 
 
 @explains(errors.BadInviteArgument, 'Invalid invite')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_invite(ctx: Circumstances, exc: errors.BadInviteArgument) -> tuple[str, int]:
+async def explains_bad_invite(ctx: Context, exc: errors.BadInviteArgument) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.BadBoolArgument, 'Incorrect value to a true/false argument')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_boolean(ctx: Circumstances, exc: errors.BadBoolArgument) -> tuple[str, int]:
+async def explains_bad_boolean(ctx: Context, exc: errors.BadBoolArgument) -> tuple[str, int]:
     return ((strong(escape_markdown(exc.argument)) + ' is not an acceptable answer to a true/false question in English.\n\n')
             + ('The following are considered to be true: '
                'yes, y, true, t, 1, enable, on\n'
@@ -224,13 +245,13 @@ async def explains_bad_boolean(ctx: Circumstances, exc: errors.BadBoolArgument) 
 
 @explains(errors.ChannelNotReadable, 'No access to channel')
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_channel_not_readable(ctx: Circumstances, exc) -> tuple[str, int]:
+async def explains_channel_not_readable(ctx: Context, exc) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.BadColourArgument, 'Incorrect color format', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_bad_color(ctx: Circumstances, exc: errors.BadColourArgument) -> tuple[str, int]:
+async def explains_bad_color(ctx: Context, exc: errors.BadColourArgument) -> tuple[str, int]:
     example = code('"rgb(255, 255, 255)"')
     return (f'{strong(escape_markdown(str(exc)))}\n\nTo provide a color in the RGB format that also contains '
             f'spaces, be sure to quote it in double quotes: {example}'), 30
@@ -253,6 +274,36 @@ async def on_not_owner(ctx, exc):
     return False
 
 
+@explains(errors.MaxConcurrencyReached, 'Too many instances of this command running', 0)
+async def on_max_concurrent(ctx, exc):
+    return f'This command allows {describe_concurrency(exc.number, exc.per)}', 10
+
+
+@explains(errors.MissingPermissions, 'Missing permissions', 0)
+async def on_missing_perms(ctx, exc):
+    perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
+    explanation = f'You are missing the {perms}.'
+    return explanation, 20
+
+
 @explains(Exception, 'Error', -100)
 async def on_exception(ctx, exc):
     return 'Error while processing the command.', 20
+
+
+@explains(exceptions.ReplyRequired, 'Message reference required', priority=5)
+async def explains_required_reply(ctx, exc) -> tuple[str, int]:
+    return str(exc), 20
+
+
+@explains(exceptions.NotAcceptable, 'Item not acceptable', priority=5)
+async def explains_not_acceptable(ctx, exc) -> tuple[str, int]:
+    return str(exc), 30
+
+
+@explains(exceptions.SendHelp, priority=50)
+async def send_help(ctx, exc: exceptions.SendHelp):
+    await ctx.send_help(ctx.command.qualified_name, exc.category)
+    if isinstance(exc.__cause__, Exception):
+        await explain_exception(ctx, exc.__cause__)
+    return False

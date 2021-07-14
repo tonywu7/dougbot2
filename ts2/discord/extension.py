@@ -19,7 +19,7 @@ import logging
 from discord.ext.commands import Bot, Cog, CogMeta
 from discord.ext.commands.errors import DisabledCommand
 
-from .errors import explains
+from .ext.doc import explains
 
 
 class GearMeta(CogMeta):

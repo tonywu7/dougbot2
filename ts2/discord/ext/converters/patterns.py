@@ -23,10 +23,9 @@ from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown
 
-from ..context import Circumstances
-from ..errors import explains, prepend_argument_hint
-from ..utils.lang import QuantifiedNP, coord_conj
-from ..utils.markdown import code, strong
+from ...utils.markdown import code, strong
+from ..doc.explanation import explains, prepend_argument_hint
+from ..doc.lang import QuantifiedNP, coord_conj
 from . import unpack_varargs
 
 
@@ -41,7 +40,7 @@ class Constant(Converter):
         )
 
         @classmethod
-        async def convert(cls, ctx: Circumstances, arg: str):
+        async def convert(cls, ctx, arg: str):
             if arg != const:
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg
@@ -70,7 +69,7 @@ class Choice(Converter):
         )
 
         @classmethod
-        async def convert(cls, ctx: Circumstances, arg: str):
+        async def convert(cls, ctx, arg: str):
             if not case_sensitive:
                 arg = arg.lower()
             if arg in choices:
@@ -82,7 +81,7 @@ class Choice(Converter):
 
 
 class CaseInsensitive(Converter):
-    async def convert(self, ctx: Circumstances, arg: str):
+    async def convert(self, ctx, arg: str):
         return arg.lower()
 
 
@@ -99,7 +98,7 @@ class RegExp(Converter):
         __accept__ = QuantifiedNP(name, predicative=predicative)
 
         @classmethod
-        async def convert(cls, ctx: Circumstances, arg: str):
+        async def convert(cls, ctx, arg: str):
             matched = pattern.fullmatch(arg)
             if not matched:
                 raise RegExpMismatch(__accept__, arg, pattern)
@@ -128,11 +127,11 @@ class RegExpMismatch(BadArgument):
 
 @explains(RegExpMismatch, 'Pattern mismatch', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_regexp(ctx: Circumstances, exc: RegExpMismatch) -> tuple[str, int]:
+async def explains_regexp(ctx, exc: RegExpMismatch) -> tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 30
 
 
 @explains(InvalidChoices, 'Invalid choices', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
-async def explains_invalid_choices(ctx: Circumstances, exc: InvalidChoices) -> tuple[str, int]:
+async def explains_invalid_choices(ctx, exc: InvalidChoices) -> tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 45

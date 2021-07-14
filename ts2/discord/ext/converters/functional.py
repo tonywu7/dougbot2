@@ -21,10 +21,9 @@ from functools import wraps
 from inspect import Parameter, signature
 from typing import Any, Generic, Optional, Protocol, TypeVar, Union, get_args
 
-from discord.ext.commands import Converter
+from discord.ext.commands import Context, Converter
 from discord.ext.commands.errors import CommandError, MissingRequiredArgument
 
-from ..context import Circumstances
 from . import unpack_varargs
 
 T = TypeVar('T')
@@ -33,7 +32,7 @@ U = TypeVar('U')
 
 class DoesConversion(Protocol[T]):
     @classmethod
-    async def convert(ctx: Circumstances, arg: str) -> T:
+    async def convert(ctx: Context, arg: str) -> T:
         ...
 
 
@@ -102,7 +101,7 @@ class Maybe(Converter, Generic[T, U]):
         converter, default = unpack_varargs(item, ('converter', 'default'), default=None)
 
         @classmethod
-        async def convert(_, ctx: Circumstances, arg: str):
+        async def convert(_, ctx: Context, arg: str):
             try:
                 result = await ctx.command._actual_conversion(ctx, converter, arg, cls)
                 return cls(result, argument=arg)

@@ -23,12 +23,12 @@ from geopy.exc import GeocoderTimedOut
 
 from ts2.utils.datetime import utcnow
 
-from .. import documentation as doc
 from ..command import ensemble, instruction
 from ..context import Circumstances
-from ..converters.functional import Maybe
-from ..converters.patterns import Constant
-from ..documentation import NotAcceptable
+from ..ext import doc
+from ..ext.converters.functional import Maybe
+from ..ext.converters.patterns import Constant
+from ..ext.doc import NotAcceptable
 from ..extension import Gear
 from ..models import User
 from ..services import ServiceUnavailable

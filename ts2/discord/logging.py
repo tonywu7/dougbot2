@@ -31,7 +31,7 @@ from django.contrib.auth.models import User
 
 from ts2.utils.datetime import localnow, utcnow
 
-from . import command, constraint, extension, models
+from . import constraint, extension, models
 from .context import Circumstances, CommandContextError
 from .utils.markdown import tag, unmarked, untagged
 from .utils.pagination import trunc_for_field
@@ -53,7 +53,6 @@ UNCAUGHT_EXCEPTIONS = (
 )
 
 BYPASSED = (
-    command.EnvironmentMismatch,
     errors.CommandNotFound,
     errors.ArgumentParsingError,
     errors.UserInputError,

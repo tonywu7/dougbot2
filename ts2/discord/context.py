@@ -56,7 +56,7 @@ class Circumstances(Context):
         super().__init__(**attrs)
         from .bot import Robot
         from .command import Instruction
-        from .documentation import Manual
+        from .ext.doc import Manual
         from .logging import ContextualLogger
         from .models import Server
 
@@ -149,7 +149,7 @@ class Circumstances(Context):
 
     async def send_help(self, query: str = None, category='normal'):
         query = query or self.command.qualified_name
-        return await self.bot.manual.help_command(self, category, query=query)
+        return await self.bot.send_help(self, category, query=query)
 
     async def call(self, cmd: Instruction, *args, **kwargs):
         async with cmd.acquire_concurrency(self):

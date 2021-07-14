@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         with BotRunner.instanstiate(Robot, {}) as bot:
             bot: Robot
-            designated = {identifier for identifier, cmd in bot.iter_commands()}
+            designated = {cmd.qualified_name for cmd in bot.walk_commands()}
             registered = {v['identifier'] for v in BotCommand.objects.values('identifier')}
 
         missing = designated - registered

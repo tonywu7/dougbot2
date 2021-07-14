@@ -26,7 +26,7 @@ from geopy import Point
 from timezonefinder import TimezoneFinder
 
 from ..context import Circumstances
-from ..documentation import accepts
+from ..ext.doc import accepts
 from ..utils.markdown import a, code, verbatim
 
 tzfinder = None

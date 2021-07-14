@@ -21,13 +21,13 @@ from typing import Literal, Optional
 import aiohttp
 from discord.ext.commands import BucketType, Greedy
 
-from ts2.discord import documentation as doc
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
-from ts2.discord.converters.patterns import RegExp
+from ts2.discord.ext import doc
+from ts2.discord.ext.converters.patterns import RegExp
+from ts2.discord.ext.doc.lang import pluralize
 from ts2.discord.extension import Gear
 from ts2.discord.services.oeis import OEIS
-from ts2.discord.utils.lang import pluralize
 
 
 class Internet(
