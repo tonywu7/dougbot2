@@ -36,7 +36,7 @@ from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.db import async_atomic
 from ts2.utils.importutil import objpath
 
-from . import cog, constraint, ipc, models
+from . import cog, constraint, models
 from .apps import DiscordBotConfig
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
@@ -45,7 +45,7 @@ from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
 from .ext.logging import log_command_errors
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
-from .utils import events
+from .utils import events, ipc
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
