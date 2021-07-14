@@ -269,7 +269,7 @@ class Robot(Bot):
 
     async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=cls)
-        if ctx.command and ctx.command.unreachable:
+        if ctx.command and ctx.command.hidden:
             ctx.command = None
             return ctx
         await ctx.init()

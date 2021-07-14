@@ -20,10 +20,6 @@ from discord.ext.commands import Command, Group, command, group
 
 
 class Instruction(Command):
-    def __init__(self, *args, unreachable: bool = False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.unreachable = unreachable
-
     @asynccontextmanager
     async def acquire_concurrency(self, ctx):
         try:

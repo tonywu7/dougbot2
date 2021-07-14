@@ -26,7 +26,6 @@ from geopy.adapters import AioHTTPAdapter
 from geopy.geocoders import Nominatim
 
 from ...command import instruction
-from ...context import Circumstances
 
 
 class ManagedAioHTTPAdapter(AioHTTPAdapter):
@@ -52,9 +51,9 @@ def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
     return locator
 
 
-@instruction('!tzlocation', unreachable=True)
+@instruction('!tzlocation', hidden=True)
 @max_concurrency(1, BucketType.guild, wait=True)
 @cooldown(1, 5, BucketType.default)
-async def get_location(ctx: Circumstances, **kwargs) -> Location | list[Location]:
+async def get_location(ctx, **kwargs) -> Location | list[Location]:
     geolocator = make_geolocator(ctx.session)
     return await geolocator.geocode(**kwargs)
