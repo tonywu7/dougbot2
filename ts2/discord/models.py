@@ -19,23 +19,18 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Iterable
-from datetime import datetime
 from operator import attrgetter, itemgetter
 from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
-import pytz
-from asgiref.sync import sync_to_async
 from discord.abc import ChannelType
 from django.apps import apps
-from django.conf.locale import LANG_INFO
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
-from timezone_field import TimeZoneField
 
 from ts2.web.config import CommandAppConfig
 from ts2.web.models import User as SystemUser
@@ -71,24 +66,7 @@ def make_channel_type() -> models.IntegerChoices:
     return type('ChannelEnum', (models.IntegerChoices,), classdict)
 
 
-def make_locale_type() -> models.TextChoices:
-    class ClassDict(dict):
-        _member_names = []
-
-    classdict = ClassDict()
-    for k, v in LANG_INFO.items():
-        name = v.get('name')
-        if not name:
-            continue
-        attr = k.replace('-', '_')
-        classdict[attr] = (k, name)
-        classdict._member_names.append(attr)
-
-    return type('LocaleType', (models.TextChoices,), classdict)
-
-
 ChannelTypeEnum = make_channel_type()
-LocaleType = make_locale_type()
 DiscordChannels = Union[
     discord.CategoryChannel,
     discord.TextChannel,
@@ -174,70 +152,6 @@ class Entity(NamingMixin, models.Model):
         abstract = True
 
 
-class User(Entity, ModelTranslator[discord.User, 'User']):
-    name: str = models.CharField(max_length=120, verbose_name='username')
-    discriminator: int = models.IntegerField()
-
-    timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
-    datetimefmt: str = models.TextField('datetime format', blank=True)
-    locale: str = models.CharField('language', max_length=120, blank=True, choices=LocaleType.choices)
-
-    _default: bool = False
-
-    @classmethod
-    def from_discord(cls, user: discord.User):
-        return cls(
-            snowflake=user.id,
-            name=user.name,
-            discriminator=user.discriminator,
-        )
-
-    @classmethod
-    def updatable_fields(cls) -> list[str]:
-        return ['name', 'discriminator']
-
-    @classmethod
-    def defaultuser(cls, **kwargs):
-        instance = cls(datetimefmt='%d %b %Y %l:%M:%S %p', locale='en', **kwargs)
-        instance._default = True
-        return instance
-
-    @classmethod
-    @sync_to_async
-    def aget(cls, user: discord.User) -> User:
-        try:
-            return cls.objects.get(snowflake=user.id)
-        except cls.DoesNotExist:
-            return cls.defaultuser(snowflake=user.id, name=user.name,
-                                   discriminator=user.discriminator)
-
-    @sync_to_async
-    def asave(self, *args, **kwargs):
-        return self.save(*args, **kwargs)
-
-    @sync_to_async
-    def save_timezone(self, tz: pytz.BaseTzInfo | str):
-        self.timezone = tz
-        self.save()
-
-    @property
-    def isdefault(self):
-        return self._default
-
-    def format_prefs(self) -> dict[str, str]:
-        info = {}
-        for field_name in ('timezone', 'datetimefmt', 'locale'):
-            field = self._meta.get_field(field_name)
-            val = getattr(self, field_name)
-            if field.choices:
-                val = dict(field.choices).get(val)
-            info[field.verbose_name] = val
-        return info
-
-    def format_datetime(self, dt: datetime):
-        return dt.strftime(self.datetimefmt)
-
-
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     invited_by: SystemUser = models.ForeignKey(SystemUser, on_delete=SET_NULL, null=True, related_name='invited_servers')
     disabled: bool = models.BooleanField(default=False)
@@ -247,7 +161,6 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
 
     channels: QuerySet[Channel]
     roles: QuerySet[Role]
-    members: QuerySet[Member]
 
     name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
@@ -302,25 +215,6 @@ class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['name', 'type']
-
-
-class Member(Entity, ModelTranslator[discord.Member, 'Member']):
-    nickname: str = models.CharField(max_length=64, blank=True)
-    guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='members')
-    profile: User = models.ForeignKey(User, on_delete=CASCADE, related_name='memberships')
-
-    @classmethod
-    def from_discord(cls, member: discord.Member) -> Member:
-        return cls(
-            snowflake=member.id,
-            guild_id=member.guild.id,
-            nickname=member.nick,
-            profile_id=member.id,
-        )
-
-    @classmethod
-    def updatable_fields(cls) -> list[str]:
-        return ['nickname']
 
 
 class Role(Entity, ModelTranslator[discord.Role, 'Role']):

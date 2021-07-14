@@ -5,14 +5,14 @@ from ts2.discord.extension import Gear
 from ts2.web.config import CommandAppConfig
 
 
-class ConfConfig(CommandAppConfig):
+class PersonalizeConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ts2.discord.preferences'
+    name = 'ts2.discord.ext.personalize'
 
     title = 'Settings'
     icon = mark_safe('<i class="bi bi-sliders"></i>')
 
     @classproperty
     def target(cls) -> Gear:
-        from .bot import Conf
-        return Conf
+        from .bot import Personalize
+        return Personalize

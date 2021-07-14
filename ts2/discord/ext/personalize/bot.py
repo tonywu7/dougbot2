@@ -23,22 +23,22 @@ from geopy.exc import GeocoderTimedOut
 
 from ts2.utils.datetime import utcnow
 
-from ..command import ensemble, instruction
-from ..context import Circumstances
-from ..ext import autodoc as doc
-from ..ext.autodoc import NotAcceptable
-from ..ext.converters.functional import Maybe
-from ..ext.converters.patterns import Constant
-from ..ext.services import ServiceUnavailable
-from ..ext.services.osm import get_location
-from ..ext.services.tz import Latitude, Longitude, Timezone, get_tzfinder
-from ..extension import Gear
-from ..models import User
-from ..utils.duckcord.embeds import Embed2
-from ..utils.markdown import code, verbatim
+from ...command import ensemble, instruction
+from ...context import Circumstances
+from ...ext import autodoc as doc
+from ...ext.autodoc import NotAcceptable
+from ...ext.converters.functional import Maybe
+from ...ext.converters.patterns import Constant
+from ...extension import Gear
+from ...utils.duckcord.embeds import Embed2
+from ...utils.markdown import code, verbatim
+from ..services import ServiceUnavailable
+from ..services.osm import get_location
+from ..services.tz import Latitude, Longitude, Timezone, get_tzfinder
+from .models import User
 
 
-class Conf(
+class Personalize(
     Gear, name='Settings', order=30,
     description='Commands for personalization',
 ):
