@@ -126,14 +126,14 @@ class Conf(
 
         if not errors and not values:
             profile: User = await User.aget(author)
+            embed = Embed2(title='Timezone').personalized(author)
             if profile.timezone:
-                body = code(profile.timezone)
+                dt = utcnow().astimezone(profile.timezone)
+                embed = (embed.set_description(code(profile.timezone))
+                         .add_field(name='Local time', value=profile.format_datetime(dt)))
             else:
-                body = 'No timezone preference set.'
-            return await ctx.reply(embed=Embed2(
-                title='Timezone',
-                description=body,
-            ).personalized(author))
+                embed = embed.set_description('No timezone preference set.')
+            return await ctx.reply(embed=embed)
 
         tz = values['tz']
         if tz is not None:
