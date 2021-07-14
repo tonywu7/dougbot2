@@ -21,7 +21,7 @@ import re
 from collections.abc import Iterable
 from datetime import datetime
 from operator import attrgetter, itemgetter
-from typing import Generic, Protocol, TypeVar, Union
+from typing import Generic, Optional, Protocol, TypedDict, TypeVar, Union
 
 import discord
 import inflect
@@ -30,6 +30,7 @@ from asgiref.sync import sync_to_async
 from discord.abc import ChannelType
 from django.apps import apps
 from django.conf.locale import LANG_INFO
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
@@ -93,6 +94,18 @@ DiscordChannels = Union[
     discord.VoiceChannel,
     discord.StageChannel,
 ]
+FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
+
+
+def validate_prefix(prefix: str):
+    if FORBIDDEN_PREFIXES.match(prefix):
+        raise ValidationError(
+            '* _ | ~ ` > are markdown characters. '
+            '%(prefix)s as a prefix will cause messages with markdowns '
+            'to trigger bot commands.',
+            params={'prefix': prefix},
+            code='forbidden_chars',
+        )
 
 
 class NamingMixin:
@@ -135,7 +148,6 @@ class ColorField(models.IntegerField):
         return super().get_prep_value(value)
 
 
-
 class ModelTranslator(Generic[T, U]):
     @classmethod
     def from_discord(cls, discord_model: T) -> U:
@@ -152,6 +164,15 @@ class ORMAccess(Protocol):
 
 class ServerScoped(ORMAccess):
     guild: Server
+
+
+class LoggingEntry(TypedDict):
+    name: str
+    channel: int
+    role: Optional[int]
+
+
+LoggingConfig = dict[str, LoggingEntry]
 
 
 class Entity(NamingMixin, models.Model):
@@ -226,12 +247,10 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
-    FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
-
     invited_by: SystemUser = models.ForeignKey(SystemUser, on_delete=SET_NULL, null=True, related_name='invited_servers')
     disabled: bool = models.BooleanField(default=False)
 
-    prefix: str = models.CharField(max_length=16, default='t;')
+    prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
     _extensions: str = models.TextField(blank=True)
 
     channels: QuerySet[Channel]
@@ -241,7 +260,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
 
-    logging: dict = models.JSONField(verbose_name='logging config', default=dict)
+    logging: LoggingConfig = models.JSONField(verbose_name='logging config', default=dict)
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
@@ -260,15 +279,6 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     def extensions(self, configs: Iterable[str | CommandAppConfig]):
         self._extensions = ','.join([conf.label if isinstance(conf, CommandAppConfig) else conf
                                      for conf in configs])
-
-    @classmethod
-    def validate_prefix(cls, prefix: str):
-        if cls.FORBIDDEN_PREFIXES.match(prefix):
-            raise ValueError(
-                '* _ | ~ ` > are markdown characters. '
-                '%(prefix)s as a prefix will cause messages with markdowns '
-                'to trigger bot commands.' % {'prefix': prefix},
-            )
 
     @classmethod
     def from_discord(cls, guild: discord.Guild):
@@ -300,7 +310,6 @@ class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['name', 'type']
-
 
 
 class Member(Entity, ModelTranslator[discord.Member, 'Member']):
