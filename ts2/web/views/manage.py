@@ -27,7 +27,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import View
 
 from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.ext.logger import can_change
+from ts2.discord.ext.logging import can_change
 
 from ..config import CommandAppConfig
 from ..forms import LoggingConfigFormset, ModelSyncActionForm

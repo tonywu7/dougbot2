@@ -28,8 +28,8 @@ from ...command import ensemble, instruction
 from ...context import Circumstances
 from ...ext import autodoc as doc
 from ...ext.autodoc import NotAcceptable
-from ...ext.converters.functional import Maybe
-from ...ext.converters.patterns import Constant
+from ...ext.types.functional import Maybe
+from ...ext.types.patterns import Constant
 from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import code, verbatim
 from ..services import ServiceUnavailable

@@ -5,11 +5,11 @@ from ts2.discord.cog import Gear
 from ts2.web.config import CommandAppConfig
 
 
-class PersonalizeConfig(CommandAppConfig):
+class ProfileConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ts2.discord.ext.personalize'
+    name = 'ts2.discord.ext.profile'
 
-    title = 'Settings'
+    title = 'Customization'
     icon = mark_safe('<i class="bi bi-sliders"></i>')
 
     @classproperty

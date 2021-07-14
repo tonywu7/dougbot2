@@ -31,7 +31,7 @@ from ts2.web.middleware import DiscordContext
 from ts2.web.models import User as WebUser
 
 from . import forms, models
-from .ext.logger import can_change, get_name
+from .ext.logging import can_change, get_name
 
 convert_django_field.register(BigIntegerField, convert_field_to_string)
 

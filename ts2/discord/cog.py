@@ -19,8 +19,8 @@ import logging
 from discord.ext.commands import Bot, Cog, CogMeta
 from discord.ext.commands.errors import DisabledCommand
 
-from .ext import logger
 from .ext.autodoc import explains
+from .ext.logging import log_exception
 
 
 class GearMeta(CogMeta):
@@ -47,7 +47,7 @@ async def cog_enabled_check(ctx) -> bool:
     return True
 
 
-@logger.log('Disabled module called', level=logging.INFO)
+@log_exception('Disabled module called', level=logging.INFO)
 class ModuleDisabled(DisabledCommand):
     def __init__(self, cog: Cog, *args):
         self.module = cog.qualified_name

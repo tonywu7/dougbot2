@@ -35,7 +35,7 @@ from django.db.models.query import QuerySet
 from ts2.web.config import CommandAppConfig
 from ts2.web.models import User as SystemUser
 
-from .ext.logger.logging import LoggingConfig
+from .ext.logging.logging import LoggingConfig
 from .utils.markdown import strong, tag_literal
 
 inflection = inflect.engine()

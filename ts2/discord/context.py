@@ -29,7 +29,7 @@ from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
 from .command import Instruction
-from .ext.logger import ContextualLogger
+from .ext.logging import ContextualLogger
 from .models import Server
 from .utils.markdown import tag
 

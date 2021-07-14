@@ -26,11 +26,11 @@ from discord import (Color, Emoji, Invite, Member, Message, PartialEmoji,
                      PartialMessage, Role, TextChannel)
 from discord.ext.commands import BucketType, Converter, has_role, is_owner
 
+from ts2.discord.cog import Gear
 from ts2.discord.command import instruction
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
-from ts2.discord.ext.converters.patterns import Constant, RegExp
-from ts2.discord.cog import Gear
+from ts2.discord.ext.types.patterns import Constant, RegExp
 from ts2.discord.utils.markdown import E, a, code, strong
 
 

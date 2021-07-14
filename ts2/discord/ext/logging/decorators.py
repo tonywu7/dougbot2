@@ -20,7 +20,7 @@ from typing import Optional
 from .logging import bypassed, exceptions, privileged
 
 
-def log(
+def log_exception(
     name: str, key: Optional[str] = None,
     level: int = logging.ERROR,
     superuser: bool = False,
@@ -41,6 +41,6 @@ def log(
     return wrapper
 
 
-def ignore(exc: type[Exception]):
+def ignore_exception(exc: type[Exception]):
     bypassed.add(exc)
     return exc
