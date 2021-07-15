@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'ts2.web.apps.WebConfig',
     'ts2.discord.apps.DiscordBotConfig',
     'ts2.discord.ext.profile.apps.ProfileConfig',
+    'ts2.discord.ext.acl.apps.CommandACLConfig',
     'ts2.discord.contrib.internet.apps.InternetConfig',
     'ts2.discord.contrib.utility.apps.BotUtilityConfig',
     'ts2.discord.contrib.museum.apps.MuseumConfig',
@@ -181,6 +182,8 @@ def config_caches(redis_host):
         'auth.*': {'ops': ('fetch', 'get')},
         'auth.permission': {'ops': 'all'},
         'discord.*': {'ops': {'fetch', 'get'}},
+        'acl.*': {'ops': {'fetch', 'get'}},
+        'profile.*': {'ops': {'fetch', 'get'}},
     }
 
     CACHE_MIDDLEWARE_ALIAS = 'default'

@@ -16,12 +16,10 @@
 
 from typing import Generic, Protocol, TypeVar
 
-from django.core.exceptions import PermissionDenied
 from django.db.models import BigIntegerField, Model
 from django.urls import ResolverMatch
 from django.utils.datastructures import MultiValueDict
-from graphene import (Enum, Field, InputObjectType, List, Mutation, ObjectType,
-                      String)
+from graphene import Enum, Field, List, String
 from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
@@ -31,7 +29,9 @@ from ts2.web.middleware import DiscordContext
 from ts2.web.models import User as WebUser
 
 from . import forms, models
-from .ext.logging import can_change, get_name
+from .ext.acl.schema import (AccessControlType, ACLDeleteMutation,
+                             ACLUpdateMutation)
+from .ext.logging import LoggingEntryType, LoggingMutation, can_change
 
 convert_django_field.register(BigIntegerField, convert_field_to_string)
 
@@ -76,12 +76,6 @@ class PathScopedDjangoModelMixin(Generic[T]):
         return kwargs
 
 
-class BotCommandType(DjangoObjectType):
-    class Meta:
-        model = models.BotCommand
-        fields = ('id', 'identifier')
-
-
 class RoleType(DjangoObjectType):
     class Meta:
         model = models.Role
@@ -89,7 +83,6 @@ class RoleType(DjangoObjectType):
 
 
 ChannelTypeEnum = Enum.from_enum(models.ChannelTypeEnum)
-ConstraintTypeEnum = Enum.from_enum(models.ConstraintTypeEnum)
 
 
 class ChannelType(DjangoObjectType):
@@ -100,24 +93,10 @@ class ChannelType(DjangoObjectType):
         fields = ('snowflake', 'name', 'guild', 'order')
 
 
-class CommandConstraintType(DjangoObjectType):
-    type = ConstraintTypeEnum(source='type')
-
-    class Meta:
-        model = models.CommandConstraint
-        fields = ('commands', 'channels', 'type', 'roles', 'name', 'specificity')
-
-
-class LoggingEntryType(ObjectType):
-    key: str = String()
-    name: str = String()
-    channel: str = String()
-    role: str = String()
-
-
 class ServerType(DjangoObjectType):
     extensions = List(String)
     logging = List(LoggingEntryType)
+    acl = List(AccessControlType)
 
     class Meta:
         model = models.Server
@@ -125,7 +104,6 @@ class ServerType(DjangoObjectType):
             'snowflake', 'prefix', 'disabled',
             'name', 'perms',
             'channels', 'roles',
-            'command_constraints',
         )
 
     @staticmethod
@@ -138,6 +116,10 @@ class ServerType(DjangoObjectType):
     @staticmethod
     def resolve_extensions(obj: models.Server, *args, **kwargs):
         return obj._extensions.split(',')
+
+    @staticmethod
+    def resolve_acl(obj: models.Server, *args, **kwargs):
+        return AccessControlType.serialize([*obj.acl.all()])
 
 
 class StringTemplateType(DjangoObjectType):
@@ -176,44 +158,69 @@ class ServerModelSyncMutation(PathScopedDjangoModelMixin, DjangoModelFormMutatio
         model_operations = ('update',)
 
 
-class LoggingEntryInput(InputObjectType):
-    key: str = String()
-    name: str = String()
-    channel: str = String()
-    role: str = String()
-
-
-class ServerLoggingMutation(PathScopedDjangoModelMixin[models.Server], Mutation):
+class ServerLoggingMutation(PathScopedDjangoModelMixin[models.Server], LoggingMutation):
     pk_source = 'guild_id'
     server = Field(ServerType)
 
     class Meta:
         pass
 
-    class Arguments:
-        changes = List(LoggingEntryInput)
+    @classmethod
+    def get_manager(cls):
+        return models.Server.objects
+
+    @classmethod
+    def mutate(cls, root, info: HasContext, input):
+        user = info.context.user
+        instance = cls.get_instance(info)
+        logging = instance.logging
+        cls.validate_permission(user, input)
+        instance.logging = cls.apply(logging, input)
+        instance.save()
+        return ServerModelSyncMutation(server=instance)
+
+
+class ServerACLDeleteMutation(PathScopedDjangoModelMixin[models.Server], ACLDeleteMutation):
+    pk_source = 'guild_id'
+
+    class Meta:
+        pass
 
     @classmethod
     def get_manager(cls):
         return models.Server.objects
 
     @classmethod
-    def mutate(cls, root, info: HasContext, changes: list[LoggingEntryType]):
-        user = info.context.user
-        instance = cls.get_instance(info)
-        logging = instance.logging
-        for change in changes:
-            key = change.key
-            if not can_change(user, key):
-                raise PermissionDenied()
-            if not change.channel:
-                logging.pop(key, None)
-                continue
-            name = get_name(key)
-            logging[change.key] = {
-                'name': name,
-                'channel': int(change.channel),
-                'role': int(change.role),
-            }
-        instance.save()
-        return ServerModelSyncMutation(server=instance)
+    def get_queryset(cls, info):
+        return cls.get_server(info).acl.all()
+
+    @classmethod
+    def get_server(cls, info):
+        return cls.get_instance(info)
+
+
+class ServerACLUpdateMutation(PathScopedDjangoModelMixin[models.Server], ACLUpdateMutation):
+    pk_source = 'guild_id'
+    acl = List(AccessControlType)
+
+    class Meta:
+        pass
+
+    @classmethod
+    def get_manager(cls):
+        return models.Server.objects
+
+    @classmethod
+    def get_server(cls, info):
+        return cls.get_instance(info)
+
+    @classmethod
+    def get_queryset(cls, info):
+        return cls.get_server(info).acl.all()
+
+    @classmethod
+    def mutate(cls, root, info: HasContext, input):
+        cls.delete(info, input)
+        instances = cls.create(info, input)
+        acl = AccessControlType.serialize(instances)
+        return cls(acl=acl)

@@ -36,10 +36,11 @@ from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.db import async_atomic
 from ts2.utils.importutil import objpath
 
-from . import cog, constraint, models
+from . import cog, models
 from .apps import DiscordBotConfig
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
+from .ext.acl import acl
 from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
                           explain_exception)
 from .ext.logging import log_command_errors
@@ -349,7 +350,15 @@ def add_event_listeners(self: Robot):
     async def command_global_check(ctx: Circumstances) -> bool:
         for check in asyncio.as_completed([
             cog.cog_enabled_check(ctx),
-            constraint.command_constraints_check(ctx),
+        ]):
+            if not await check:
+                return False
+        return True
+
+    @self.check
+    async def command_check(ctx: Circumstances) -> bool:
+        for check in asyncio.as_completed([
+            acl.acl_check(ctx),
         ]):
             if not await check:
                 return False

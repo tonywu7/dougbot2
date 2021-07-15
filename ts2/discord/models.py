@@ -36,7 +36,6 @@ from ts2.web.config import CommandAppConfig
 from ts2.web.models import User as SystemUser
 
 from .ext.logging.logging import LoggingConfig
-from .utils.markdown import strong, tag_literal
 
 inflection = inflect.engine()
 
@@ -237,66 +236,6 @@ class Role(Entity, ModelTranslator[discord.Role, 'Role']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['name', 'color', 'perms']
-
-
-class BotCommand(NamingMixin, models.Model):
-    identifier: str = models.CharField(max_length=120, unique=True)
-
-    class Meta:
-        verbose_name = 'bot command'
-
-    def __str__(self) -> str:
-        return self.identifier
-
-
-class ConstraintTypeEnum(models.IntegerChoices):
-    NONE = 0
-    ANY = 1
-    ALL = 2
-
-
-class CommandConstraint(NamingMixin, models.Model):
-    guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='command_constraints')
-    commands: QuerySet[BotCommand] = models.ManyToManyField(BotCommand, related_name='constraints')
-    channels: QuerySet[Channel] = models.ManyToManyField(Channel, related_name='+')
-    roles: QuerySet[Role] = models.ManyToManyField(Role, related_name='+')
-
-    name: str = models.TextField(blank=False)
-    type: int = models.IntegerField(choices=ConstraintTypeEnum.choices)
-    specificity: int = models.IntegerField(default=0)
-    error_msg: str = models.TextField(blank=True, verbose_name='error message')
-
-    @classmethod
-    def calc_specificity(cls, constraint_type: int, channels: list, commands: list):
-        return (
-            ((constraint_type == ConstraintTypeEnum.NONE.value) << 2)
-            + (bool(channels) << 1)
-            + bool(commands)
-        )
-
-    @classmethod
-    def gen_error_message(cls, constraint_type: int, roles: list[Role]) -> str:
-        ctype = {0: 'none of', 1: 'any of', 2: 'all of'}[constraint_type]
-        role_names = ' '.join([tag_literal('role', r.snowflake) for r in roles])
-        return f'{strong(ctype)} {role_names}'
-
-    def from_dict(self, data: dict):
-        self.name = data['name']
-        self.type = data['type']
-        channels = data['channels']
-        commands = data['commands']
-        roles = data['roles']
-        specificity = self.calc_specificity(self.type, channels, commands)
-        error_message = self.gen_error_message(self.type, roles)
-        self.specificity = specificity
-        self.error_msg = error_message
-        self.save()
-        self.channels.set(channels)
-        self.commands.set(commands)
-        self.roles.set(roles)
-
-    class Meta:
-        verbose_name = 'command constraint'
 
 
 class Blacklisted(Entity):

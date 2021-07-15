@@ -43,9 +43,6 @@ urlpatterns = [
     re_path(r'^api/v1/guild/(?P<guild_id>[0-9]+)/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)/mutate$',
             views.mutation.async_form_save, name='api.mutation'),
 
-    re_path(r'^api/v1/bot/commands$', views.data.BotCommandListView.as_view(), name='api.bot.commands'),
-    re_path(r'^api/v1/bot/constraint-test$', views.data.constraint_test, name='api.bot.constraint_test'),
-
     re_path(
         r'^api/v1/guild/(?P<guild_id>[0-9]+)$',
         views.data.ServerDataView.as_view(),
@@ -61,11 +58,6 @@ urlpatterns = [
         views.data.RoleListView.as_view(),
         name='api.guild.roles',
     ),
-    re_path(
-        r'^api/v1/guild/(?P<guild_id>[0-9]+)/core/constraints/(?P<pk>[0-9]+)$',
-        views.data.CommandConstraintDetailsView.as_view(),
-        name='api.guild.core.constraints.details',
-    ),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('ts2.discord.urls')),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
@@ -74,8 +66,8 @@ urlpatterns = [
         r'api/v1/guild/(?P<guild_id>[0-9]+)/graphql$', name='api.guild',
         view=GraphQLView.as_view(graphiql=True, schema=schema.server_schema),
     ),
-    re_path(
-        r'graphql$', name='api',
-        view=GraphQLView.as_view(graphiql=True, schema=schema.public_schema),
-    ),
+    # re_path(
+    #     r'graphql$', name='api',
+    #     view=GraphQLView.as_view(graphiql=True, schema=schema.public_schema),
+    # ),
 ]

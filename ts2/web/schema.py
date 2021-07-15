@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graphene import Field, ObjectType, Schema
-from graphene_django import DjangoListField
 
 from ts2.discord import schema as discord_schema
 from ts2.discord.models import Server
@@ -35,11 +34,8 @@ class ServerMutation(ObjectType):
     update_extensions = discord_schema.ServerExtensionsMutation.Field()
     update_models = discord_schema.ServerModelSyncMutation.Field()
     update_logging = discord_schema.ServerLoggingMutation.Field()
-
-
-class PublicQuery(ObjectType):
-    commands = DjangoListField(discord_schema.BotCommandType)
+    delete_acl = discord_schema.ServerACLDeleteMutation.Field(name='deleteACL')
+    update_acl = discord_schema.ServerACLUpdateMutation.Field(name='updateACL')
 
 
 server_schema = Schema(query=ServerQuery, mutation=ServerMutation)
-public_schema = Schema(query=PublicQuery)

@@ -217,6 +217,7 @@ async def log_command_errors(ctx: Context, exc: errors.CommandError):
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
     logger = ContextualLogger('discord.exception', ctx)
+    print(conf)
     return await logger.log(conf['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 

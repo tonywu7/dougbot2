@@ -16,14 +16,9 @@
 
 from __future__ import annotations
 
-from rest_framework.exceptions import ValidationError
-from rest_framework.serializers import (CharField, ModelSerializer,
-                                        ReadOnlyField)
+from rest_framework.serializers import CharField, ModelSerializer
 
-from ts2.discord.models import (BotCommand, Channel, CommandConstraint, Role,
-                                Server)
-
-from .utils.serializer import Int64StringRelatedField
+from ts2.discord.models import Channel, Role, Server
 
 
 class ChannelSerializer(ModelSerializer):
@@ -50,41 +45,3 @@ class ServerDataSerializer(ModelSerializer):
     class Meta:
         model = Server
         fields = ['id', 'name', 'channels', 'roles']
-
-
-class BotCommandSerializer(ModelSerializer):
-    name = CharField(source='identifier')
-    color = ReadOnlyField(default=0xffffff)
-
-    class Meta:
-        model = BotCommand
-        fields = ['id', 'name', 'color']
-
-
-class CommandConstraintSerializer(ModelSerializer):
-    class Meta:
-        model = CommandConstraint
-        fields = ['id', 'name', 'type', 'channels', 'commands', 'roles']
-
-    channels = Int64StringRelatedField(queryset=Channel.objects.all(), many=True, required=False)
-    commands = Int64StringRelatedField(queryset=BotCommand.objects.all(), many=True, required=False)
-    roles = Int64StringRelatedField(queryset=Role.objects.all(), many=True, required=True)
-
-    def to_internal_value(self, data: dict):
-        value = super().to_internal_value(data)
-        value['id'] = data.get('id')
-        return value
-
-    def create(self, validated_data: dict):
-        instance = CommandConstraint()
-        instance.collection_id = validated_data['collection_id']
-        return self.update(instance, validated_data)
-
-    def update(self, instance: CommandConstraint, validated_data: dict):
-        instance.from_dict(validated_data)
-        return instance
-
-    def validate_roles(self, roles: list):
-        if not roles:
-            raise ValidationError(detail='Roles cannot be empty.')
-        return roles

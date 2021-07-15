@@ -18,13 +18,11 @@ from __future__ import annotations
 
 import logging
 
-from cacheops import invalidate_model
 from django.apps import AppConfig, apps
 from django.conf import settings
-from django.core.checks import CheckMessage, Error, Warning, register
+from django.core.checks import CheckMessage, Error, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
-from redis.exceptions import ConnectionError
 
 from ts2.web.config import AnnotatedPattern, CommandAppConfig
 
@@ -83,51 +81,3 @@ def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[Ch
                       hint='Run the init command to supply them.',
                       id='discord.E010')]
     return []
-
-
-@register('discord')
-def check_command_paths(app_configs: list[AppConfig], **kwargs) -> list[CheckMessage]:
-    from .bot import Robot
-    from .models import BotCommand
-    from .runner import BotRunner
-
-    try:
-        invalidate_model(BotCommand)
-    except ConnectionError:
-        pass
-
-    errors = []
-
-    with BotRunner.instanstiate(Robot, {}) as bot:
-
-        bot: Robot
-        cmds = {cmd.qualified_name for cmd in bot.walk_commands()}
-
-        try:
-            registered = {v['identifier'] for v in BotCommand.objects.values('identifier')}
-        except Exception as e:
-            return [Warning(
-                ('Cannot fetch command registry from the database, '
-                 f'check cannot continue. Reason: {e}'),
-                id='discord.E100',
-            )]
-
-        missing = cmds - registered
-        deleted = registered - cmds
-
-        if missing:
-            errors.append(Error(
-                ('The following commands are registered in the bot but '
-                 f'not in the database: {", ".join(missing)}'),
-                hint='Run the synccmds command to synchronize.',
-                id='discord.E001',
-            ))
-        if deleted:
-            errors.append(Error(
-                ('The following commands are found in the database but '
-                 f'are no longer available in the bot: {", ".join(deleted)}'),
-                hint='Run the synccmds command to synchronize.',
-                id='discord.E002',
-            ))
-
-    return errors
