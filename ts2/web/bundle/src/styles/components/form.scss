@@ -1,0 +1,131 @@
+@use "../colors.scss";
+@use "sass:color";
+
+.form {
+    padding: 0.75rem;
+    border-radius: 6pt;
+    border: 1px solid color.scale($color-text, $alpha: -75%);
+
+    display: flex;
+    flex-flow: column nowrap;
+
+    h4 {
+        margin-bottom: 0.8rem;
+    }
+
+    &.form-text-large {
+        label,
+        li,
+        p {
+            font-size: 1.2rem;
+        }
+    }
+
+    p {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    ul {
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        display: flex;
+        flex-flow: column nowrap;
+
+        margin-top: 6pt;
+        margin-bottom: 6pt;
+
+        &:first-child {
+            margin-top: 0;
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 400;
+            font-size: 0.8rem;
+        }
+    }
+
+    .btn {
+        margin: 0.5rem 0.25rem;
+    }
+}
+
+.columnized-form {
+    label {
+        font-weight: 600;
+    }
+}
+
+.checkbox-text-toggle {
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        display: none;
+    }
+}
+
+.form-switch-theme-red-green {
+    .form-switch {
+        .form-check-input {
+            background-color: $red;
+            border-color: $red;
+
+            &:focus {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e");
+            }
+
+            &:checked {
+                background-color: $green-400;
+                border-color: $green-400;
+            }
+
+            &:focus:checked {
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+            }
+        }
+    }
+}
+
+.input-group {
+    border-radius: 0.5rem;
+
+    .form-control {
+        background-color: $bw-grey-2;
+        border-width: 1px;
+    }
+
+    .input-group-text,
+    .form-control {
+        border: 1px solid;
+    }
+
+    .input-group-text,
+    .form-control {
+        border-color: color.scale($color-text, $alpha: -50%);
+    }
+
+    &
+        > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+        border-left-color: #00000000;
+    }
+
+    .input-group-text {
+        font-weight: 700;
+        color: $bw-grey-15;
+        background-color: $bw-grey-4;
+    }
+}
+
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d3d3d3' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}

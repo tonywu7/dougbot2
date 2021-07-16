@@ -1,0 +1,17 @@
+.identity-control {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+
+    figure.profile-picture {
+        width: 32px;
+        height: 32px;
+
+        margin: 0 0.5rem 0 0;
+
+        img {
+            height: 32px;
+            object-fit: contain;
+        }
+    }
+}

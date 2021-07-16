@@ -1,8 +1,10 @@
 @use 'styles';
 
 @import "colors";
-@import "layout";
 @import "typefaces";
+
+@import "regions/index";
+@import "components/index";
 
 .main-title {
     margin-bottom: 2rem;

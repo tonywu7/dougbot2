@@ -1,0 +1,24 @@
+@mixin flex-select {
+    display: block;
+    position: relative;
+    overflow-x: hidden;
+
+    > span.actionable {
+        pointer-events: none;
+    }
+
+    > select {
+        position: absolute;
+        cursor: pointer;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        opacity: 0;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+.flex-select {
+    @include flex-select();
+}

@@ -1,0 +1,67 @@
+@mixin flex-token-list($direction, $wrap, $gap: .25rem) {
+    display: inline-flex;
+    flex-flow: $direction $wrap;
+
+    .token-label {
+        font-weight: 700;
+    }
+
+    &>* {
+        --token-gap: #{$gap};
+        @if $wrap == wrap {
+            white-space: normal;
+        } @else {
+            white-space: nowrap;
+        }
+    }
+
+    @if $direction==row {
+        align-items: center;
+
+        &>*:not(:last-child) {
+            margin-inline-end: #{var(--token-gap)};
+            margin-bottom: 0;
+        }
+    }
+
+    @else if $direction==column {
+        align-items: flex-start;
+
+        &>* {
+            width: 100%;
+        }
+
+        &>*:not(:last-child) {
+            margin-inline-end: 0;
+            margin-bottom: #{var(--token-gap)};
+        }
+    }
+}
+
+.token-list {
+    @include flex-token-list(row, wrap);
+
+    &.tk-centered {
+        justify-content: center;
+    }
+
+    &.tk-horizontal {
+        flex-direction: row;
+    }
+
+    &.tk-vertical {
+        flex-direction: column;
+    }
+
+    &.tk-wrap {
+        flex-wrap: wrap;
+    }
+
+    &.tk-wrap-reverse {
+        flex-wrap: wrap-reverse;
+    }
+
+    &.tk-nowrap {
+        flex-wrap: nowrap;
+    }
+}
