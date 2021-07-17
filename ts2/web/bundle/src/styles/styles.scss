@@ -149,32 +149,6 @@ h1 .http-status code {
     top: -1px;
 }
 
-input.form-control {
-    &[type="text"],
-    &[type="number"] {
-        background-color: #00000000;
-        color: inherit;
-
-        padding: 0.5rem 0 0.5rem;
-
-        border-radius: 0;
-        border: none;
-        border-bottom: 2px solid $bw-grey-13;
-
-        &:focus,
-        &:active {
-            box-shadow: none;
-            border-color: var(--accent);
-        }
-
-        &::placeholder {
-            font-size: 0.9rem;
-            font-weight: 500;
-            font-family: $ui-fonts;
-        }
-    }
-}
-
 .text-on {
     color: $teal-500;
     font-weight: 600;
