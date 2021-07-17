@@ -33,7 +33,6 @@ from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
 from ts2.discord.models import Server
 
 from .config import CommandAppConfig, Extensions
-from .forms import PreferenceForms
 from .models import User
 
 
@@ -41,7 +40,7 @@ def _http_safe_method(req: HttpRequest) -> bool:
     return req.method in ('GET', 'HEAD', 'OPTIONS')
 
 
-async def fetch_discord_info(req: HttpRequest):
+async def fetch_discord_info(req: HttpRequest, view_func):
     user: User = req.user
 
     @sync_to_async
@@ -55,7 +54,13 @@ async def fetch_discord_info(req: HttpRequest):
     if not token:
         raise Logout
 
-    fetch = DiscordFetch(user_id=user.snowflake, nocache=not _http_safe_method(req))
+    fetch = DiscordFetch(
+        user_id=user.snowflake,
+        nocache=(
+            not getattr(view_func, 'csrf_exempt', False)
+            and not _http_safe_method(req)
+        ),
+    )
     await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
 
     try:
@@ -138,14 +143,11 @@ class DiscordContext:
     server_id: Optional[int] = None
     server: Optional[Server] = None
 
-    forms: PreferenceForms = None
-
     def __post_init__(self):
         try:
             self.server_id = int(self.server_id)
         except (TypeError, ValueError):
             self.server_id = None
-        self.forms = PreferenceForms(self)
 
     def accessible(self, server_id: int) -> bool:
         return server_id in self.servers
@@ -204,7 +206,7 @@ class DiscordContextMiddleware:
         request.get_ctx = get_ctx
 
         try:
-            token, profile, guilds = await fetch_discord_info(request)
+            token, profile, guilds = await fetch_discord_info(request, view_func)
         except Logout:
             return await logout_current_user(request)
 
