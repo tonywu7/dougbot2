@@ -34,8 +34,9 @@ def discord_info(req: HttpRequest):
 
 def application_info(req: HttpRequest):
     return {
-        'branding_full': settings.BRANDING_FULL,
-        'branding_short': settings.BRANDING_SHORT,
+        'BRANDING_FULL': settings.BRANDING_FULL,
+        'BRANDING_SHORT': settings.BRANDING_SHORT,
+        'DEBUG': settings.DEBUG,
     }
 
 

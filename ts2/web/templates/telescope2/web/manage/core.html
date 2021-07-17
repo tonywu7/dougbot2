@@ -1,5 +1,9 @@
 {% extends 'telescope2/web/manage/base.html' %}
-{% load inspect element async_form %}
+{% load static inspect element responsive %}
+
+{% block apps %}
+<script defer src="{% static '/telescope2/core.bundle.js' %}"></script>
+{% endblock %}
 
 {% block title %}Core settings - {{ discord.server.name|default:'server' }}{% endblock %}
 
@@ -7,30 +11,21 @@
 
 {% block sections %}
 
+{% csrf_token %}
+
 {% section id='global' title='global' %}
 
-{% asyncform discord.forms.prefix id='global-settings' %}
-<ul class="form-fields">{{ discord.forms.prefix.as_ul }}</ul>
-{% csrf_token %}
-<p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
-{% asyncsubmit 'Save' 'primary' %}
-{% endform %}
+<div id="global-settings">
+    {% bsform %}
+    {% bsfields form_update_prefix %}
+    <p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
+    {% bsbutton 'Save' 'primary' action='savePrefix' %}
+    {% endform %}
+</div>
 
 {% endsection %}
 
 {% section id='extensions' title='modules' classes='grid-span-2' %}
-
-{% asyncform discord.forms.extensions id='extension-toggles' %}
-{% with discord.forms.extensions as form %}
-<div class="form-fields key-value-pair kvp-left form-switch-theme-red-green">
-    {% for input in form %}
-    {% bs5switch input %}
-    {% endfor %}
-</div>
-{% endwith %}
-{% csrf_token %}
-{% asyncsubmit 'Update settings' 'primary' %}
-{% endform %}
 
 {% endsection %}
 
@@ -39,8 +34,8 @@
 {% section id='server-access' title='access control' %}
 
 <div class="form">
-    <a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">Remove bot from
-        server</a>
+    <a href="{% url 'web:leave' guild_id=discord.current.id %}" class="btn btn-outline-danger">
+        Remove bot from server</a>
 </div>
 
 {% endsection %}
@@ -50,13 +45,12 @@
 {% if user_superuser or access_control %}
 {% section id='server-debug' title='debug' %}
 
-<form class="form" method="POST" action="{% url 'web:manage.sync' guild_id=discord.current.id %}">
-    <ul class="form-fields">{{ discord.forms.sync_models.as_ul }}</ul>
-    {% csrf_token %}
-    <button type="submit" class="btn btn-outline-warning btn-submit">Synchronize models</button>
-    <a href="{% url 'web:reset' guild_id=discord.current.id %}" class="btn btn-outline-danger">Reset
-        server settings</a>
-</form>
+<div class="form">
+    <a class="btn btn-outline-warning btn-submit">Synchronize models</a>
+    <a href="{% url 'web:reset' guild_id=discord.current.id %}" class="btn btn-outline-danger">
+        Reset server settings
+    </a>
+</div>
 
 {% endsection %}
 {% endif %}

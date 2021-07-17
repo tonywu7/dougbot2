@@ -1,16 +1,22 @@
 {% if user_authenticated %}
-<div id="server-select" class="nav-control interactive-text align-middle">
+<div id="server-select" class="nav-control interactive-text">
     <div class="dropdown">
         <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
             {% if discord.current %}
-            <figure class="profile-picture guild-profile" data-server-id="{{ discord.server_id }}">
+            <figure class="profile-picture guild-profile">
                 <img src="{{ discord.current.icon_url }}" class="rounded-circle"
                     alt="icon for server {{ discord.current.name }}">
             </figure>
             {% endif %}
-            <div id="server-select" class="align-middle">
-                {% if discord.current %}<span>{{ discord.current.name }}</span>{% else %}<span>Select
-                    server</span>{% endif %} <i class="bi bi-chevron-down"></i>
+            <div id="server-select">
+                {% if discord.current %}
+                <span data-server-endpoint="{% url 'web:api.guild' guild_id=discord.server_id %}"
+                    data-server-id="{{ discord.server_id }}">
+                    {{ discord.current.name }}
+                </span>
+                {% else %}
+                <span>Select server</span>{% endif %}
+                <i class="bi bi-chevron-down"></i>
             </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -34,7 +40,7 @@
     </div>
 </div>
 {% endif %}
-<div id="discord-login" class="nav-control interactive-text align-middle">
+<div id="discord-login" class="nav-control interactive-text">
     {% if user_authenticated %}
     <div class="dropdown">
         <a class="login-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
@@ -42,7 +48,7 @@
                 <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
                     alt="icon for user {{ discord.username }}">
             </figure>
-            <div id="user-info" data-access-token="{{ discord.access_token }}" class="align-middle">
+            <div id="user-info">
                 <span>{{ discord.username }}</span> <i class="bi bi-chevron-down"></i>
             </div>
         </a>

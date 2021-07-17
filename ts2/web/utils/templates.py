@@ -231,11 +231,11 @@ def create_tag_parser(library: template.Library, start: str, end: Optional[str] 
 
 
 def domtokenlist(*tokens: str):
-    return ' '.join(itertools.chain.from_iterable(t.split(' ') for t in filter(None, tokens) if t))
+    return ' '.join(itertools.chain.from_iterable(t.split(' ') for t in filter(None, tokens) if t)).strip()
 
 
 def domtokenstr(tokens: str):
-    return ' '.join([t for t in tokens.split(' ') if t])
+    return ' '.join([t for t in tokens.split(' ') if t]).strip()
 
 
 def unwrap(context: template.Context, maybe_var: T) -> T:

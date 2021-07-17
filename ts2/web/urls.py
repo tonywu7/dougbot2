@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.urls import include, re_path
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import RedirectView
 from graphene_django.views import GraphQLView
 
@@ -36,38 +38,17 @@ urlpatterns = [
     re_path(r'^guild/(?P<guild_id>[0-9]+)/index$', views.manage.index, name='manage.index'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='manage.core'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/constraints$', views.manage.constraints, name='manage.constraints'),
-    re_path(r'^guild/(?P<guild_id>[0-9]+)/logging$', views.manage.LoggingConfigView.as_view(), name='manage.logging'),
-
-    re_path(r'^guild/(?P<guild_id>[0-9]+)/sync$', views.manage.model_synchronization_view, name='manage.sync'),
-
-    re_path(r'^api/v1/guild/(?P<guild_id>[0-9]+)/(?P<schema>(?:[A-Za-z_][A-Za-z0-9]*\.)*[A-Za-z_][A-Za-z0-9]*)/(?P<item_id>[0-9]+)/mutate$',
-            views.mutation.async_form_save, name='api.mutation'),
-
-    re_path(
-        r'^api/v1/guild/(?P<guild_id>[0-9]+)$',
-        views.data.ServerDataView.as_view(),
-        name='api.guild.server',
-    ),
-    re_path(
-        r'^api/v1/guild/(?P<guild_id>[0-9]+)/channels$',
-        views.data.ChannelListView.as_view(),
-        name='api.guild.channels',
-    ),
-    re_path(
-        r'^api/v1/guild/(?P<guild_id>[0-9]+)/roles$',
-        views.data.RoleListView.as_view(),
-        name='api.guild.roles',
-    ),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/logging$', views.manage.logging_config, name='manage.logging'),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('ts2.discord.urls')),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
 
     re_path(
-        r'api/v1/guild/(?P<guild_id>[0-9]+)/graphql$', name='api.guild',
-        view=GraphQLView.as_view(graphiql=True, schema=schema.server_schema),
+        r'^guild/(?P<guild_id>[0-9]+)/graphql$', name='api.guild',
+        view=GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.server_schema),
     ),
-    # re_path(
-    #     r'graphql$', name='api',
-    #     view=GraphQLView.as_view(graphiql=True, schema=schema.public_schema),
-    # ),
+    re_path(
+        r'^graphql$', name='api',
+        view=csrf_exempt(GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.public_schema)),
+    ),
 ]

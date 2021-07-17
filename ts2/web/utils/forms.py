@@ -17,16 +17,13 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Callable
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from django.db import models
 from django.forms import fields, widgets
-from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from ts2.utils.collection import merge_collections
-from ts2.utils.importutil import objpath
 
 from .templates import domtokenlist, optional_attr
 
@@ -79,24 +76,6 @@ class TextInput(AttributeInject, widgets.TextInput, WidgetSubstitute):
 
 class SwitchInput(AttributeInject, widgets.CheckboxInput):
     base_attrs = {'class': 'form-check-input'}
-
-
-class AsyncFormMixin(Generic[T]):
-    instance: T
-
-    async_writable: bool = False
-
-    def mutation_endpoint(self, server_id: str):
-        return reverse('web:api.mutation', kwargs={
-            'schema': objpath(type(self)),
-            'guild_id': server_id,
-            'item_id': self.instance.pk,
-        })
-
-    def user_tests(self, req) -> bool:
-        return True
-
-    save: Callable[[bool], T]
 
 
 def find_widgets(model: type[models.Model]) -> dict[str, WidgetType]:

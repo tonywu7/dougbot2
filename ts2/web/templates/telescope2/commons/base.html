@@ -12,11 +12,11 @@
 
     {% block meta_security %}
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com data:">
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com data:">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     {% endblock %}
 
-    <title>{% block title %}{% basefilename %}{% endblock %} | {{ branding_full }}</title>
+    <title>{% block title %}{% basefilename %}{% endblock %} | {{ BRANDING_FULL }}</title>
 
     {% block styles %}
     <link rel="icon" href="{% static 'favicon.ico' %}">
@@ -26,17 +26,18 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500;700&family=Inter:wght@100;300;400;500;600;700;900&family=Zilla+Slab:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap"
         rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        integrity="sha256-djO3wMl9GeaC/u6K+ic4Uj/LKhRUSlUFcsruzS7v5ms=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
     {% endblock %}
 
     {% block scripts %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/js/bootstrap.bundle.min.js"
-        integrity="sha512-sH8JPhKJUeA9PWk3eOcOl8U+lfZTgtBXD41q6cO/slwxGHCxKcW45K4oPCUhHG7NMB4mbKEddVmPuTXtpbCbFA=="
+    {% if not DEBUG %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.2/js/bootstrap.bundle.min.js"
+        integrity="sha512-72WD92hLs7T5FAXn3vkNZflWG6pglUDDpm87TeQmfSg8KnrymL2G30R7as4FmTwhgu9H7eSzDCX3mjitSecKnw=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.0.0/d3.min.js"
-        integrity="sha512-0x7/VCkKLLt4wnkFqI8Cgv6no+AaS1TDgmHLOoU3hy/WVtYta2J6gnOIHhYYDJlDxPqEqAYLPS4gzVex4mGJLw=="
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.1.4/vue.runtime.global.prod.min.js"
+        integrity="sha512-WDlFvrGw3AWbrhCSAYnBT9++yGLUMeTypMzm61FQa+Jlin7vnC9cQ5gEgUoVTxc2nbEeiKEIeDewsd6lj4gf+A=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"
         integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ=="
@@ -44,13 +45,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js"
         integrity="sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mustache@4.2.0/mustache.min.js"
-        integrity="sha256-1/0GA1EkYejtvYFoa+rSq4LfM4m5zKI13Z1bQIhI4Co=" crossorigin="anonymous"></script>
-    <script src="{% static '/telescope2/index.js' %}"></script>
+    {% endif %}
+    <script src="{% static '/telescope2/runtime.bundle.js' %}"></script>
+    <script src="{% static '/telescope2/vendor.bundle.js' %}"></script>
+    <script src="{% static '/telescope2/index.bundle.js' %}"></script>
+    {% block apps %}
+    {% endblock %}
     {% endblock %}
 </head>
 
-<body data-viewname="{% viewname %}">
+<body data-public-endpoint="{% url 'web:api' %}">
     <section class="masthead-container">
         {% include 'telescope2/commons/masthead.html' %}
     </section>

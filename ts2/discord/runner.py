@@ -53,8 +53,11 @@ class BotRunner(threading.Thread, Generic[T]):
         self._request: Coroutine
         self._data: Any
 
-    def get_client(self) -> T:
-        return self._client_cls(**self._client_options)
+    def get_client(self) -> Optional[T]:
+        try:
+            return self.client
+        except AttributeError:
+            return None
 
     def run_client(self):
         with self.bot_init:

@@ -4,10 +4,10 @@
 {% block title %}Home{% endblock %}
 
 {% block main %}
-<h1 class="main-title ui-text-no-select"><span class="bot-name">{{ branding_full }}</span></h1>
+<h1 class="main-title ui-text-no-select"><span class="bot-name">{{ BRANDING_FULL }}</span></h1>
 <section class="section-container">
     {% section id='general-info' title='general' %}
-    <p><span class="sentence-topic">version</span> {% pkg_version_string %}</p>
+    <p><span>version</span> {% pkg_version_string %}</p>
     {% endsection %}
 </section>
 {% endblock %}

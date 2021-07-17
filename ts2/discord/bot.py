@@ -343,6 +343,12 @@ class Robot(Bot):
 
         return await ctx.reply_with_text_fallback(rich_help, text_help)
 
+    def is_hidden(self, cmd: Command):
+        return self.manual.commands[cmd.qualified_name].hidden
+
+    def is_unreachable(self, cmd: Command):
+        return cmd.hidden
+
 
 def add_event_listeners(self: Robot):
 

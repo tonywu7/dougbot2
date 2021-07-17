@@ -16,24 +16,14 @@
 
 from __future__ import annotations
 
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_POST
-from django.views.generic import View
-
-from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.ext.logging import can_change
+from django.shortcuts import render
 
 from ..config import CommandAppConfig
-from ..forms import LoggingConfigFormset, ModelSyncActionForm
+from ..forms import ServerPrefixForm
 from ..middleware import DiscordContext
 from ..models import write_access_required
-from .mutation import error_response
 
 Extensions = dict[str, CommandAppConfig]
 
@@ -56,8 +46,14 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
         access_control = True
     else:
         access_control = False
-    return render(req, 'telescope2/web/manage/core.html',
-                  context={'access_control': access_control})
+    update_prefix = ServerPrefixForm({'prefix': ctx.server.prefix})
+    return render(
+        req, 'telescope2/web/manage/core.html',
+        context={
+            'access_control': access_control,
+            'form_update_prefix': update_prefix,
+        },
+    )
 
 
 @login_required
@@ -66,51 +62,7 @@ def constraints(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'telescope2/web/manage/constraints.html')
 
 
-@method_decorator(login_required, 'dispatch')
-@method_decorator(write_access_required, 'dispatch')
-class LoggingConfigView(View):
-    def get(self, req: HttpRequest, **kwargs) -> HttpResponse:
-        ctx: DiscordContext = req.get_ctx()
-        formset = ctx.forms.logging()
-        return render(req, 'telescope2/web/manage/logging.html', {'formset': formset})
-
-    def post(self, req: HttpRequest, **kwargs) -> HttpResponse:
-        ctx: DiscordContext = req.get_ctx()
-        formset = LoggingConfigFormset(data=req.POST)
-        context = {
-            'formset': formset,
-        }
-        if not formset.is_valid():
-            context['errors'] = True
-        else:
-            for form in formset:
-                if not can_change(req.user, form.cleaned_data['key']):
-                    raise PermissionDenied()
-            formset.save(ctx.server)
-        return render(req, 'telescope2/web/manage/logging.html', context)
-
-
-@require_POST
 @login_required
 @write_access_required
-@user_passes_test(lambda u: u.is_superuser)
-def model_synchronization_view(req: HttpRequest, guild_id: str) -> HttpResponse:
-    item = get_object_or_404(ModelSyncActionForm._meta.model, pk=guild_id)
-    form = ModelSyncActionForm(data=req.POST, instance=item)
-
-    if not form.is_valid():
-        return error_response(form.errors)
-
-    app = DiscordBotConfig.get()
-    thread = app.bot_thread
-
-    async def task(bot):
-        guild = await bot.fetch_guild(form.cleaned_data['snowflake'])
-        guild._channels = {c.id: c for c in await guild.fetch_channels()}
-        guild._roles = {r.id: r for r in await guild.fetch_roles()}
-        await bot.sync_server(guild)
-
-    thread.run_coroutine(task(thread.client))
-
-    messages.info(req, 'Models synchronized.', extra_tags='success')
-    return redirect(reverse('web:manage.core', kwargs={'guild_id': guild_id}))
+def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'telescope2/web/manage/logging.html')

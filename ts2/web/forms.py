@@ -18,36 +18,11 @@ from __future__ import annotations
 
 from operator import itemgetter
 
-from asgiref.sync import async_to_sync
 from django import forms
-from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.http import HttpRequest
 
-from ts2.discord.apps import DiscordBotConfig
-from ts2.discord.ext.logging import iter_logging_conf
 from ts2.discord.models import Server
 
-from .utils.forms import (AsyncFormMixin, D3SelectWidget, FormConstants,
-                          SwitchInput, find_widgets, gen_labels)
-
-
-class PreferenceForms:
-    def __init__(self, context):
-        from .middleware import DiscordContext
-        self.context: DiscordContext = context
-
-    def prefix(self):
-        return CommandPrefixForm(instance=self.context.server)
-
-    def extensions(self):
-        return ExtensionToggleForm(instance=self.context.server)
-
-    def sync_models(self):
-        return ModelSyncActionForm(instance=self.context.server)
-
-    def logging(self):
-        return LoggingConfigFormset.get_form(self.context.server, self.context.web_user)
+from .utils.forms import FormConstants, TextInput
 
 
 class UserCreationForm(forms.Form):
@@ -72,117 +47,5 @@ class ServerCreationForm(forms.ModelForm):
         fields = ['snowflake', 'invited_by', 'disabled']
 
 
-class CommandPrefixForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
-    async_writable = True
-
-    class Meta:
-        model = Server
-        fields = ['prefix']
-        labels = gen_labels(Server)
-        widgets = {**find_widgets(Server)}
-
-
-class ExtensionToggleForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
-    async_writable = True
-
-    class Meta:
-        model = Server
-        fields = []
-
-    def __init__(self, instance: Server, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.instance = instance
-        conf = DiscordBotConfig.get()
-        options = {}
-        enabled = instance.extensions
-        for label, ext in conf.extensions.items():
-            options[label] = forms.BooleanField(
-                required=False, label=ext.icon_and_title,
-                initial=label in enabled, widget=SwitchInput,
-            )
-        self.fields.update(options)
-
-    def save(self, commit=True):
-        enabled = [k for k, v in self.cleaned_data.items() if v]
-        self.instance.extensions = enabled
-        super().save(commit=commit)
-
-
-class ModelSyncActionForm(FormConstants, AsyncFormMixin[Server], forms.ModelForm):
-    async_writable = True
-
-    class Meta:
-        model = Server
-        fields = ['snowflake']
-
-    snowflake = forms.IntegerField(required=True, widget=forms.HiddenInput)
-
-    @async_to_sync
-    async def save(self, commit=True):
-        app = DiscordBotConfig.get()
-        thread = app.bot_thread
-
-        async def task(bot):
-            guild = await bot.fetch_guild(self.cleaned_data['snowflake'])
-            guild._channels = {c.id: c for c in await guild.fetch_channels()}
-            guild._roles = {r.id: r for r in await guild.fetch_roles()}
-            await bot.sync_server(guild)
-
-        thread.run_coroutine(task(thread.client))
-
-    def user_tests(self, req: HttpRequest) -> bool:
-        return req.user.is_superuser
-
-
-channel_select_single = D3SelectWidget('discord:channels', 'single', prefix='#', classes='channel-list', placeholder='Select channel')
-role_select_single = D3SelectWidget('discord:roles', 'single', prefix='@', classes='role-list', placeholder='Select role')
-
-
-class LoggingConfigForm(FormConstants, forms.Form):
-    key = forms.CharField(widget=forms.HiddenInput)
-    name = forms.CharField(widget=forms.HiddenInput, required=False)
-    channel = forms.IntegerField(required=False, label='Send logs to this channel', widget=channel_select_single)
-    role = forms.IntegerField(required=False, label='Notify this role for every log message', widget=role_select_single)
-    superuser = forms.BooleanField(widget=forms.HiddenInput, required=False)
-
-    def clean(self):
-        data = super().clean()
-        channel = data.get('channel')
-        role = data.get('role')
-        if role and not channel:
-            raise ValidationError('To set a role to notify, you must also specify a channel.')
-
-
-class LoggingConfigFormset(forms.formset_factory(LoggingConfigForm, extra=0)):
-    @classmethod
-    def get_form(cls, server: Server, user: User) -> LoggingConfigFormset:
-        available = {k: v for k, v in iter_logging_conf(user)}
-
-        config = server.logging
-        items = []
-        for k, v in available.items():
-            settings = {'key': k, **v}
-            err_type = config.get(k, {})
-            if err_type:
-                try:
-                    settings['channel'] = err_type.get('channel', '')
-                    settings['role'] = err_type.get('role', '')
-                except AttributeError:
-                    continue
-            items.append(settings)
-
-        return cls(initial=items)
-
-    def save(self, server: Server):
-        conf = {}
-        for row in self.cleaned_data:
-            channel = row['channel']
-            if not channel:
-                continue
-            conf[row['key']] = {
-                'name': row['name'],
-                'channel': channel,
-                'role': row['role'],
-            }
-        server.logging = conf
-        server.save()
+class ServerPrefixForm(FormConstants, forms.Form):
+    prefix = forms.CharField(widget=TextInput)

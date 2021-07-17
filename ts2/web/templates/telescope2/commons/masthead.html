@@ -2,15 +2,15 @@
     <section id="branding">
         <header>
             <h1 id="site-name" class="bot-name">
-                <a href="{% url 'web:index' %}" tabindex="0">{{ branding_short }}</a>
+                <a href="{% url 'web:index' %}" tabindex="0">{{ BRANDING_SHORT }}</a>
             </h1>
         </header>
     </section>
-    <section id="auth-control" class="auth-control masthead-opt-group align-middle">
+    <section id="auth-control" class="auth-control masthead-opt-group">
         {% include 'telescope2/elements/identities.html' %}
     </section>
     <section id="top-menu-toggle">
-        <span class="interactive-text align-middle">
+        <span class="interactive-text top-menu-toggle-content">
             {% if user_authenticated %}
             <span class="identity-control">
                 {% if discord.current %}

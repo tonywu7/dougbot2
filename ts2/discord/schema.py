@@ -19,7 +19,7 @@ from typing import Generic, Protocol, TypeVar
 from django.db.models import BigIntegerField, Model
 from django.urls import ResolverMatch
 from django.utils.datastructures import MultiValueDict
-from graphene import Enum, Field, List, String
+from graphene import Enum, Field, List, ObjectType, String
 from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
@@ -29,6 +29,7 @@ from ts2.web.middleware import DiscordContext
 from ts2.web.models import User as WebUser
 
 from . import forms, models
+from .apps import DiscordBotConfig
 from .ext.acl.schema import (AccessControlType, ACLDeleteMutation,
                              ACLUpdateMutation)
 from .ext.logging import LoggingEntryType, LoggingMutation, can_change
@@ -83,6 +84,22 @@ class RoleType(DjangoObjectType):
 
 
 ChannelTypeEnum = Enum.from_enum(models.ChannelTypeEnum)
+
+
+class BotType(ObjectType):
+    commands = List(String)
+
+    @staticmethod
+    def resolve_commands(root, info: HasContext, **kwargs):
+        superuser = info.context.user.is_superuser
+        instance = DiscordBotConfig.get().bot_thread.get_client()
+        if not instance:
+            return None
+        return [*sorted(
+            c.qualified_name for c
+            in instance.walk_commands()
+            if not instance.is_hidden(c) or superuser
+        )]
 
 
 class ChannelType(DjangoObjectType):

@@ -17,18 +17,16 @@
 from django.template import Context, Library, Node, NodeList, Variable
 from django.utils.safestring import mark_safe
 
-from ..utils.forms import AsyncFormMixin
 from ..utils.templates import (create_tag_parser, domtokenlist, optional_attr,
                                unwrap)
 
 register = Library()
 
 
-@create_tag_parser(register, 'asyncform', 'endform')
-class AsyncFormNode(Node):
-    def __init__(self, nodelist: NodeList, form: Variable, id: Variable = None, classes: Variable = None):
+@create_tag_parser(register, 'bsform', 'endform')
+class BootstrapFormNode(Node):
+    def __init__(self, nodelist: NodeList, id: Variable = None, classes: Variable = None):
         self.nodelist = nodelist
-        self.form = form
         self.id = id
         self.classes = classes
 
@@ -36,20 +34,19 @@ class AsyncFormNode(Node):
         return context['discord'].server_id
 
     def render(self, context: Context) -> str:
-        form = self.form.resolve(context)
-        if not isinstance(form, AsyncFormMixin):
-            raise TypeError(f'{repr(form)} must be a subclass of {AsyncFormMixin}')
-        try:
-            endpoint = form.mutation_endpoint(self.get_server_id(context))
-        except (KeyError, AttributeError):
-            raise ValueError('Cannot render an async form in a view not tied to a Discord server.')
         form_html = self.nodelist.render(context)
         section_id = optional_attr('id', unwrap(context, self.id))
-        classes = optional_attr('class', domtokenlist('form async-form', unwrap(context, self.classes)))
-        return mark_safe(f'<form {section_id} {classes} data-endpoint="{endpoint}">{form_html}</form>')
+        classes = optional_attr('class', domtokenlist('form', unwrap(context, self.classes)))
+        return mark_safe(f'<form {section_id} {classes}>{form_html}</form>')
 
 
 @register.simple_tag
-def asyncsubmit(name: str, color: str, classes: str = ''):
-    classes = domtokenlist(f'btn btn-{color} async-form-submit {classes}')
-    return mark_safe(f'<button type="button" class="{classes}">{name}</button>')
+def bsfields(form):
+    return mark_safe(f'<ul class="form-fields">{form.as_ul()}</ul>')
+
+
+@register.simple_tag
+def bsbutton(name: str, color: str, classes: str = '', action: str = ''):
+    classes = domtokenlist('btn', f'btn-{color}', classes)
+    action = optional_attr('v-on:click', action)
+    return mark_safe(f'<button type="button" {action} class="{classes}">{name}</button>')
