@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { D3DataSource, D3Datum } from './responsive'
-
 const API_ENDPOINT = 'https://discord.com/api/v9'
 const CDN_PREFIX = 'https://cdn.discordapp.com'
 
@@ -117,7 +115,9 @@ export class DiscordClient {
         return `${API_ENDPOINT}${endpoint}`
     }
 
-    async get(endpoint: string): Promise<Record<string, any> | Promise<Record<string, any>[]> | null> {
+    async get(
+        endpoint: string
+    ): Promise<Record<string, any> | Promise<Record<string, any>[]> | null> {
         let res: Response
         try {
             res = await fetch(this.url(endpoint), {
@@ -136,7 +136,10 @@ export class DiscordClient {
         }
         let data: Record<string, any> = await res.json()
         if ('errors' in data) {
-            console.error(`API error accessing Discord resource ${endpoint}`, data)
+            console.error(
+                `API error accessing Discord resource ${endpoint}`,
+                data
+            )
             return null
         }
         return data
@@ -166,7 +169,9 @@ export class DiscordClient {
 
     async fetchGuilds(): Promise<Guild[]> {
         if (this._guilds.length) return [...this._guilds]
-        let data: Record<string, any>[] = (await this.get('/users/@me/guilds')) as Record<string, any>[]
+        let data: Record<string, any>[] = (await this.get(
+            '/users/@me/guilds'
+        )) as Record<string, any>[]
         if (!data) return []
         this._guilds = data.map((d) => new Guild(d))
         return [...this._guilds]
@@ -175,89 +180,5 @@ export class DiscordClient {
     async managedGuilds(): Promise<Guild[]> {
         let guilds = await this.fetchGuilds()
         return guilds.filter((g) => g.permissions?.hasPerms(Perms.MANAGE_GUILD))
-    }
-}
-
-export class Channel implements D3Datum {
-    id: string
-    type?: string | number
-    name?: string
-    order?: number
-
-    constructor(data: any) {
-        Object.assign(this, data)
-        this.id = data.id.toString()
-    }
-}
-
-export class Role implements D3Datum {
-    id: string
-    color?: number
-    name?: string
-    order?: number
-
-    constructor(data: any) {
-        Object.assign(this, data)
-        this.id = data.id.toString()
-    }
-}
-
-export class DiscordServer implements D3DataSource {
-    readonly id: string
-
-    private _name: string = ''
-
-    private readonly channels: Channel[] = []
-    private readonly roles: Role[] = []
-
-    private initialFetch: Promise<void>
-
-    constructor(id: string) {
-        this.id = id
-        this.initialFetch = this.fetchData()
-    }
-
-    get endpoint(): string {
-        return `/web/api/v1/guild/${this.id}`
-    }
-
-    get name() {
-        return this._name
-    }
-
-    async fetchData(): Promise<void> {
-        let res = await fetch(this.endpoint, {
-            method: 'GET',
-            mode: 'same-origin',
-            headers: { Accept: 'application/json' },
-        })
-        if (res.status != 200) return
-        let data = await res.json()
-
-        this._name = data.name
-        for (let c of data.channels) this.channels.push(new Channel(c))
-        for (let r of data.roles) this.roles.push(new Role(r))
-    }
-
-    async getChannels(): Promise<Channel[]> {
-        await this.initialFetch
-        return this.channels
-    }
-
-    async getRoles(): Promise<Role[]> {
-        await this.initialFetch
-        return this.roles
-    }
-
-    async data(dtype: string): Promise<D3Datum[]> {
-        await this.initialFetch
-        switch (dtype) {
-            case 'channels':
-                return this.channels
-            case 'roles':
-                return this.roles
-            default:
-                throw new Error(`No such data ${dtype} available`)
-        }
     }
 }

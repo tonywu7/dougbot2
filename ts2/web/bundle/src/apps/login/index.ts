@@ -15,9 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { DiscordClient } from './discord'
-import { homepage } from './main'
-
-import * as util from './util'
+import { homepage } from '../../utils/site'
+import { serializeFormData } from '../../utils/data'
 
 export let discord: DiscordClient
 
@@ -36,7 +35,7 @@ async function discordOAuth2() {
     if (!accessToken) return
 
     discord = new DiscordClient(accessToken)
-    let userCreateInfo = util.serializeFormData(loginForm)
+    let userCreateInfo = serializeFormData(loginForm)
     userCreateInfo.username = await discord.userTag()
     userCreateInfo.snowflake = await discord.userId()
 
@@ -62,19 +61,22 @@ async function initDiscord() {
     if (!userInfoElem) return
 
     let accessToken = userInfoElem.dataset.accessToken
-    if (accessToken === undefined || accessToken === 'None') window.location.href = '/web/logout'
+    if (accessToken === undefined || accessToken === 'None')
+        window.location.href = '/web/logout'
 
     discord = new DiscordClient(accessToken!)
 }
 
 function discordJoinServer() {
-    let form = document.querySelector('#discord-join-server form') as HTMLFormElement
+    let form = document.querySelector(
+        '#discord-join-server form'
+    ) as HTMLFormElement
     if (!form) return
     form.submit()
 }
 
-export async function init() {
+window.addEventListener('DOMContentLoaded', async () => {
     await discordOAuth2()
     await initDiscord()
     discordJoinServer()
-}
+})

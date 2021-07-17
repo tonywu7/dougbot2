@@ -1,13 +1,9 @@
-import * as main from './scripts/main'
-import * as login from './scripts/login'
-import * as coreSettings from './scripts/apps/core'
-import * as constraintSettings from './scripts/apps/constraints'
+import * as main from './main'
+import * as server from './server'
 
 import './styles/index.scss'
 
-window.addEventListener('DOMContentLoaded', async () => {
-    await login.init()
+window.addEventListener('DOMContentLoaded', () => {
     main.init()
-    coreSettings.init()
-    constraintSettings.init()
+    server.init()
 })

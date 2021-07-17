@@ -1,4 +1,4 @@
-// core.ts
+// app.ts
 // Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,27 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { D3ItemList } from '../responsive'
+import { createApp } from 'vue'
+import CoreSettings from './CoreSettings.vue'
 
-function widgetPrefixLiveUpdate() {
-    let prefix: string = ''
-    let input = document.querySelector<HTMLInputElement>('input#id_prefix')!
-    if (!input) return
-    let updatePrefixes = () => {
-        prefix = input.value
-        document.querySelectorAll('.data-command-prefix').forEach((e) => (e.textContent = prefix))
-    }
-    input?.addEventListener('input', () => {
-        updatePrefixes()
-    })
-    updatePrefixes()
-}
-
-function initLoggingView() {
-    document.querySelectorAll('#logging .d3-item-list').forEach((e) => new D3ItemList(e as HTMLElement))
-}
-
-export function init() {
-    widgetPrefixLiveUpdate()
-    initLoggingView()
-}
+window.addEventListener('DOMContentLoaded', () => {
+    createApp(CoreSettings).mount('#global-settings')
+})

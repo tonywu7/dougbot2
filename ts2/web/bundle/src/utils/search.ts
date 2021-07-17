@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import * as lunr from 'lunr'
-import { slugify } from './util'
+import { slugify } from './data'
 
 type Configurator = (a: lunr.Builder) => void
 
@@ -32,7 +32,10 @@ export class TextSearch<T extends Indexable> {
     private index: lunr.Index
     private items: Record<string, T> = {}
 
-    constructor(collection: Iterable<T>, configurator: Configurator = () => {}) {
+    constructor(
+        collection: Iterable<T>,
+        configurator: Configurator = () => {}
+    ) {
         let documents: Array<SearchIndex> = []
         let schema: Set<string> = new Set()
         for (let item of collection) {
