@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.urls import include, re_path
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import RedirectView
 from graphene_django.views import GraphQLView
 
@@ -44,11 +43,7 @@ urlpatterns = [
     re_path(r'^guild/(?P<guild_id>[0-9]+)/?$', ManageRedirectView.as_view()),
 
     re_path(
-        r'^guild/(?P<guild_id>[0-9]+)/graphql$', name='api.guild',
-        view=GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.server_schema),
-    ),
-    re_path(
         r'^graphql$', name='api',
-        view=csrf_exempt(GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.public_schema)),
+        view=GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.schema),
     ),
 ]

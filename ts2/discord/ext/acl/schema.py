@@ -17,12 +17,12 @@
 from itertools import product
 
 from django.db.models import QuerySet
-from graphene import (Boolean, Enum, Field, Int, List, Mutation, ObjectType,
+from graphene import (Argument, Boolean, Enum, Field, Int, List, ObjectType,
                       String)
 from more_itertools import bucket, first
 
 from ...models import Server
-from ...utils.schema import input_from_type
+from ...utils.graphql import ModelMutation, input_from_type
 from .models import AccessControl, ACLAction, ACLRoleModifier
 
 
@@ -63,48 +63,42 @@ AccessControlInput = input_from_type(AccessControlType, specificity=False)
 
 class AccessControlMutation:
     @classmethod
-    def get_server(cls, info=None) -> Server:
-        raise NotImplementedError
-
-    @classmethod
-    def get_queryset(cls, info=None) -> QuerySet[AccessControl]:
-        raise NotImplementedError
+    def get_acls(cls, arguments: dict) -> QuerySet[AccessControl]:
+        return cls.get_instance(arguments).acl.all()
 
 
-class ACLDeleteMutation(AccessControlMutation, Mutation):
-    class Meta:
-        pass
-
+class ACLDeleteMutation(AccessControlMutation, ModelMutation[Server], model=Server):
     class Arguments:
-        name = String()
+        name = Argument(String, required=True)
 
     success: bool = Boolean()
 
     @classmethod
-    def mutate(cls, root, info, name: str):
-        instances = cls.get_queryset(info).filter(name__exact=name)
+    def mutate(cls, root, info, **arguments):
+        instances = cls.get_acls(arguments).filter(name__exact=arguments['name'])
         instances.delete()
         return cls(success=True)
 
 
-class ACLUpdateMutation(AccessControlMutation, Mutation):
-    class Meta:
-        pass
-
+class ACLUpdateMutation(AccessControlMutation, ModelMutation[Server], model=Server):
     class Arguments:
-        input = List(AccessControlInput)
+        changes = List(AccessControlInput)
+
+    acl = List(AccessControlType)
 
     @classmethod
-    def delete(cls, info, input: list[AccessControlInput]):
-        names = [acl.name for acl in input]
-        existing = cls.get_queryset(info).filter(name__in=names)
+    def delete(cls, info, **arguments):
+        changes: list[AccessControlInput] = arguments['changes']
+        names = [acl.name for acl in changes]
+        existing = cls.get_acls(arguments).filter(name__in=names)
         existing.delete()
 
     @classmethod
-    def create(cls, info, input: list[AccessControlInput]) -> list[AccessControl]:
+    def create(cls, info, **arguments) -> list[AccessControl]:
+        changes: list[AccessControlInput] = arguments['changes']
         instances = []
-        server = cls.get_server(info)
-        for acl in input:
+        server = cls.get_instance(arguments)
+        for acl in changes:
             roles = [int(s) for s in acl.roles]
             commands = acl.commands or ['']
             channels = acl.channels or [0]
@@ -123,5 +117,8 @@ class ACLUpdateMutation(AccessControlMutation, Mutation):
         return instances
 
     @classmethod
-    def mutate(cls, *args, **kwargs):
-        return None
+    def mutate(cls, root, info, **arguments):
+        cls.delete(info, **arguments)
+        instances = cls.create(info, **arguments)
+        acl = AccessControlType.serialize(instances)
+        return cls(acl=acl)

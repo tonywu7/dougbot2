@@ -15,9 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.core.exceptions import PermissionDenied
-from graphene import List, Mutation, ObjectType, String
+from graphene import List, ObjectType, String
 
-from ...utils.schema import input_from_type
+from ...models import Server
+from ...utils.graphql import ModelMutation, input_from_type
 from .logging import LoggingConfig, can_change, get_name
 
 
@@ -31,12 +32,11 @@ class LoggingEntryType(ObjectType):
 LoggingEntryInput = input_from_type(LoggingEntryType)
 
 
-class LoggingMutation(Mutation):
-    class Meta:
-        pass
-
+class LoggingMutation(ModelMutation[Server], model=Server):
     class Arguments:
-        input = List(LoggingEntryInput)
+        config = List(LoggingEntryInput)
+
+    logging = List(LoggingEntryType)
 
     @classmethod
     def validate_permission(cls, user, changes: list[LoggingEntryInput]):
@@ -61,5 +61,19 @@ class LoggingMutation(Mutation):
         return logging
 
     @classmethod
-    def mutate(cls, *args, **kwargs):
-        return None
+    def mutate(cls, root, info, **arguments):
+        user = info.context.user
+        with cls.instance(arguments) as server:
+            logging = server.logging
+            conf = arguments['config']
+            cls.validate_permission(user, conf)
+            server.logging = cls.apply(logging, conf)
+            server.save()
+        return cls(logging=resolve_logging(server, info))
+
+
+def resolve_logging(server: Server, info):
+    user = info.context.user
+    return [LoggingEntryType(key=k, **v)
+            for k, v in server.logging.items()
+            if can_change(user, k)]

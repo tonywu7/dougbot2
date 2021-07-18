@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Union
+
 from asgiref.sync import async_to_sync
 from django import forms
 from django.apps import apps
@@ -38,15 +40,19 @@ class ServerPrefixForm(forms.ModelForm):
 
 
 class ServerExtensionsForm(forms.ModelForm):
-    extensions = forms.CharField(required=False)
+    extensions = forms.JSONField(required=False)
 
     class Meta:
         model = Server
         fields = ()
 
     def clean_extensions(self):
-        data = self.cleaned_data['extensions']
-        data = set(data.split(','))
+        data: Union[str, list[str]] = self.cleaned_data['extensions']
+        if isinstance(data, str):
+            data = set(data.split(','))
+        else:
+            data = set(data)
+        data: set[str]
         exts = {c.label for c in apps.get_app_configs()
                 if isinstance(c, CommandAppConfig)}
         data = data & exts

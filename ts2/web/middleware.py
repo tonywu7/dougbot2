@@ -26,7 +26,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from more_itertools import partition
 
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
                                PartialGuild, PartialUser)
@@ -78,7 +77,7 @@ async def fetch_discord_info(req: HttpRequest, view_func):
 
 
 def invalidate_cache(req: HttpRequest):
-    ctx: DiscordContext = req.get_ctx()
+    ctx = get_ctx(req)
     user_id = ctx.user_id
     cache = DiscordCache(user_id)
     cache.invalidate()
@@ -104,14 +103,14 @@ def message_server_disabled(req):
 async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
     message_server_disabled(req)
     invalidate_cache(req)
-    ctx: DiscordContext = req.get_ctx()
+    ctx = get_ctx(req)
     await disable_server(ctx.server)
     return redirect(reverse('web:manage.index', kwargs={'guild_id': ctx.server_id}))
 
 
 def handle_server_disabled(req: HttpRequest) -> HttpResponse:
     message_server_disabled(req)
-    ctx: DiscordContext = req.get_ctx()
+    ctx = get_ctx(req)
     redirect_url = reverse('web:manage.index', kwargs={'guild_id': ctx.server_id})
     if redirect_url == req.path:
         return render(req, 'telescope2/web/manage/index.html')
@@ -128,7 +127,10 @@ async def load_servers(req: HttpRequest, guilds: list[PartialGuild]):
     servers: list[Server] = await get_servers()
     server_ids = {s.snowflake for s in servers}
 
-    return partition(lambda g: g[1].id in server_ids, managed_guilds.items())
+    for v in managed_guilds.values():
+        v.joined = v.id in server_ids
+
+    return managed_guilds
 
 
 @dataclass
@@ -138,8 +140,7 @@ class DiscordContext:
     web_user: User
     user_profile: PartialUser
 
-    available_servers: dict[int, PartialGuild]
-    joined_servers: dict[int, PartialGuild]
+    servers: dict[int, PartialGuild]
     server_id: Optional[int] = None
     server: Optional[Server] = None
 
@@ -150,22 +151,26 @@ class DiscordContext:
             self.server_id = None
 
     def accessible(self, server_id: int) -> bool:
-        return server_id in self.servers
+        return int(server_id) in self.servers
 
     @property
-    def servers(self) -> dict[int, PartialGuild]:
-        return {**self.available_servers, **self.joined_servers}
-
-    @property
-    def server_joined(self) -> bool:
-        return self.current.id in self.joined_servers
-
-    @property
-    def current(self) -> Optional[PartialGuild]:
+    def info(self) -> Optional[PartialGuild]:
         return self.servers.get(self.server_id)
 
     @property
-    def extension_state(self) -> dict[str, tuple[bool, CommandAppConfig]]:
+    def joined(self) -> bool:
+        return self.server_id in self.joined_servers
+
+    @property
+    def joined_servers(self) -> dict[int, PartialGuild]:
+        return {k: v for k, v in self.servers.items() if v.joined}
+
+    @property
+    def pending_servers(self) -> dict[int, PartialGuild]:
+        return {k: v for k, v in self.servers.items() if not v.joined}
+
+    @property
+    def extensions(self) -> dict[str, tuple[bool, CommandAppConfig]]:
         extensions: Extensions = apps.get_app_config('discord').extensions
         if not self.server:
             return {label: (False, conf) for label, conf in extensions.items()}
@@ -198,13 +203,6 @@ class DiscordContextMiddleware:
 
     async def process_view(self, request: HttpRequest, view_func,
                            view_args: tuple, view_kwargs: dict):
-        def get_ctx():
-            try:
-                return request.discord
-            except AttributeError:
-                raise PermissionDenied('Bad credentials')
-        request.get_ctx = get_ctx
-
         try:
             token, profile, guilds = await fetch_discord_info(request, view_func)
         except Logout:
@@ -215,16 +213,14 @@ class DiscordContextMiddleware:
 
         guild_id: str = view_kwargs.get('guild_id')
 
-        available, joined = await load_servers(request, guilds)
-        available = dict(available)
-        joined = dict(joined)
+        servers = await load_servers(request, guilds)
 
         context = DiscordContext(
             token, request.user,
-            profile, available, joined,
+            profile, servers,
             server_id=guild_id,
         )
-        if context.server_id and context.current is None:
+        if context.server_id and context.info is None:
             return redirect(reverse('web:index'))
 
         request.discord = context
@@ -234,7 +230,7 @@ class DiscordContextMiddleware:
             if context.server_id is None:
                 return None
             try:
-                return Server.objects.get(snowflake=context.current.id)
+                return Server.objects.get(snowflake=context.server_id)
             except Server.DoesNotExist:
                 return None
 
@@ -257,3 +253,12 @@ class Logout(Exception):
 
 class ServerDisabled(Exception):
     pass
+
+
+def get_ctx(req: HttpRequest, logout: bool = True) -> DiscordContext:
+    try:
+        return req.discord
+    except AttributeError:
+        if logout:
+            raise PermissionDenied('Bad credentials')
+        return None

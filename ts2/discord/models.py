@@ -33,9 +33,6 @@ from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 
 from ts2.web.config import CommandAppConfig
-from ts2.web.models import User as SystemUser
-
-from .ext.logging.logging import LoggingConfig
 
 inflection = inflect.engine()
 
@@ -152,7 +149,7 @@ class Entity(NamingMixin, models.Model):
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
-    invited_by: SystemUser = models.ForeignKey(SystemUser, on_delete=SET_NULL, null=True, related_name='invited_servers')
+    invited_by = models.ForeignKey('web.User', on_delete=SET_NULL, null=True, related_name='invited_servers')
     disabled: bool = models.BooleanField(default=False)
 
     prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
@@ -164,7 +161,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     name: str = models.TextField()
     perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
 
-    logging: LoggingConfig = models.JSONField(verbose_name='logging config', default=dict)
+    logging = models.JSONField(verbose_name='logging config', default=dict)
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:

@@ -42,8 +42,8 @@ from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext.acl import acl
 from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
-                          explain_exception)
-from .ext.logging import log_command_errors
+                          explain_exception, explains)
+from .ext.logging import log_command_errors, log_exception
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
 from .utils import events, ipc
@@ -495,3 +495,11 @@ def register_base_commands(self: Robot):
         except ValueError as e:
             await ctx.send(f'{strong("Error:")} {e}')
             raise
+
+
+@explains(cog.ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: cog.ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+
+
+log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)

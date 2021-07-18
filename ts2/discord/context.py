@@ -29,7 +29,6 @@ from discord.ext.commands import Command, Context
 from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
-from .ext.logging import ContextualLogger
 from .models import Server
 from .utils.markdown import tag
 
@@ -57,6 +56,7 @@ class Circumstances(Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
         from .bot import Robot
+        from .ext.logging import ContextualLogger
 
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server

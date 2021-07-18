@@ -294,11 +294,12 @@ class PartialGuild:
     id: int
     name: str
     icon: str
+    joined: bool
     perms: Optional[Permissions]
 
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(id=data['id'], name=data['name'],
+        return cls(id=data['id'], name=data['name'], joined=False,
                    icon=data['icon'], perms=data['permissions'])
 
     @property

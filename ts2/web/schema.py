@@ -14,40 +14,51 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import Field, ObjectType, Schema
+from django.core.exceptions import PermissionDenied
+from graphene import Field, List, ObjectType, Schema, String
 
 from ts2.discord import schema as discord
+from ts2.discord.ext import schema as discord_ext
 from ts2.discord.models import Server
 
-
-class ServerQuery(ObjectType):
-    server = Field(discord.ServerType)
-
-    def resolve_server(self, info):
-        snowflake = info.context.resolver_match.kwargs['guild_id']
-        return Server.objects.get(snowflake=snowflake)
+from .middleware import get_ctx
 
 
-class PublicQuery(ObjectType):
-    server = Field(discord.ServerType)
+class Query(ObjectType):
     bot = Field(discord.BotType)
+    server = Field(discord.ServerType, id=String(required=True))
+    logging = List(discord_ext.LoggingEntryType, server=String(required=True))
+    acl = List(discord_ext.AccessControlType, server=String(required=True))
 
-    def resolve_server(self, info):
-        return None
-
-    def resolve_bot(self, info):
+    @classmethod
+    def resolve_bot(cls, root, info):
         return discord.BotType()
 
+    @classmethod
+    def resolve_server(cls, root, info, id) -> Server:
+        ctx = get_ctx(info.context)
+        if not ctx.accessible(id):
+            raise PermissionDenied('Missing query permission.')
+        return Server.objects.get(snowflake=id)
 
-class ServerMutation(ObjectType):
-    create = discord.ServerCreateMutation.Field()
+    @classmethod
+    def resolve_logging(cls, root, info, server):
+        server = cls.resolve_server(root, info, server)
+        return discord_ext.resolve_logging(server, info)
+
+    @classmethod
+    def resolve_acl(cls, root, info, server):
+        server = cls.resolve_server(root, info, server)
+        return discord_ext.AccessControlType.serialize([*server.acl.all()])
+
+
+class Mutation(ObjectType):
     update_prefix = discord.ServerPrefixMutation.Field()
     update_extensions = discord.ServerExtensionsMutation.Field()
     update_models = discord.ServerModelSyncMutation.Field()
-    update_logging = discord.ServerLoggingMutation.Field()
-    delete_acl = discord.ServerACLDeleteMutation.Field(name='deleteACL')
-    update_acl = discord.ServerACLUpdateMutation.Field(name='updateACL')
+    update_logging = discord_ext.LoggingMutation.Field()
+    delete_acl = discord_ext.ACLDeleteMutation.Field(name='deleteACL')
+    update_acl = discord_ext.ACLUpdateMutation.Field(name='updateACL')
 
 
-server_schema = Schema(query=ServerQuery, mutation=ServerMutation)
-public_schema = Schema(query=PublicQuery)
+schema = Schema(query=Query, mutation=Mutation)

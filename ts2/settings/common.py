@@ -26,7 +26,6 @@ INSTALLED_APPS = [
     'polymorphic',
     'rest_framework',
     'timezone_field',
-    'ts2admin',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,6 +44,7 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.debugging.apps.DebuggingConfig',
     'graphene_django',
     'channels',
+    'ts2admin',
 ]
 
 ROOT_URLCONF = 'ts2.urls'
@@ -147,6 +147,10 @@ JWT_DEFAULT_EXP = 300
 USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonyzbf/telescope2)'
 
 APPEND_SLASH = True
+
+GRAPHENE = {
+    'ATOMIC_MUTATIONS': True,
+}
 
 
 def config_caches(redis_host):
