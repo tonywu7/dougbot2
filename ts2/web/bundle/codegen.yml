@@ -1,6 +1,6 @@
-schema: http://localhost:8000/web/graphql
+schema: ./schema.json
 documents:
-  - ./src/queries/**/*.graphql
+  - ./src/graphql/**/*.graphql
 generates:
   ./src/@types/graphql/schema.d.ts:
     plugins:

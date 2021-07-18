@@ -6,12 +6,21 @@
                 :id="'id-prefix'"
                 :type="'text'"
                 :name="'prefix'"
+                :validator="validate"
                 v-model:value="value"
+                v-model:error="error"
             >
                 <template v-slot:hint>
                     <p>Example command: <code><span v-html="value"></span>echo</code></p>
                 </template>
             </input-field>
+        </template>
+        <template v-slot:form-after>
+            <button
+                type="button"
+                :class="['btn btn-primary', buttonState]"
+                @click="submit"
+            >Save setting</button>
         </template>
     </form-container>
 </template>

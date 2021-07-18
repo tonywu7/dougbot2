@@ -17,6 +17,7 @@
 import {
     ApolloClient,
     InMemoryCache,
+    ApolloLink,
     HttpLink,
     from as linkFrom,
     NormalizedCacheObject,
@@ -25,8 +26,11 @@ import {
 import { setContext } from '@apollo/client/link/context'
 import { getCSRF } from './utils/site'
 
-import { ServerInfoQuery } from './@types/graphql/schema'
-import SERVER_INFO from './queries/server-info.graphql'
+import {
+    ServerInfoQuery,
+    ServerInfoQueryVariables,
+} from './@types/graphql/schema'
+import SERVER_INFO from './graphql/query/server-info.graphql'
 
 export let server: Server
 
@@ -46,22 +50,30 @@ export function getServerEndpoint(): string | null {
     return (elem as HTMLElement).dataset.serverEndpoint!
 }
 
+export function getServerID(): string | null {
+    let elem = document.querySelector('[data-server-id]')
+    if (!elem) return null
+    return (elem as HTMLElement).dataset.serverId!
+}
+
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
     private serverInfo: ServerInfoQuery = {}
 
-    constructor(endpoint: string | null) {
+    constructor(endpoint: string | null, server: string | null) {
         let conf: ApolloClientOptions<NormalizedCacheObject> = {
             cache: new InMemoryCache(),
         }
         if (endpoint) {
-            conf.link = linkFrom([
-                setCSRFToken,
-                new HttpLink({
-                    uri: endpoint,
-                    useGETForQueries: true,
-                }),
-            ])
+            let http = new HttpLink({
+                uri: endpoint,
+                useGETForQueries: true,
+            })
+            let setServerPrefix = new ApolloLink((op, forward) => {
+                op.variables.id = server
+                return forward(op)
+            })
+            conf.link = linkFrom([setServerPrefix, setCSRFToken, http])
         }
         this.client = new ApolloClient(conf)
     }
@@ -83,5 +95,5 @@ class Server {
 }
 
 export function init() {
-    server = new Server(getServerEndpoint())
+    server = new Server(getServerEndpoint(), getServerID())
 }

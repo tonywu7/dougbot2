@@ -14,10 +14,16 @@
             :name="name"
             v-model="value"
         />
-        <div class="field-hint">
+        <div class="field-after field-hint">
             <slot name="hint">
                 <p v-if="hint">{{ hint }}</p>
             </slot>
+        </div>
+        <div
+            v-if="error"
+            class="field-after field-error"
+        >
+            <p v-html="error"></p>
         </div>
     </li>
 </template>
@@ -99,11 +105,22 @@
     }
 }
 
+.field-after {
+    margin: 0.4rem 0 0;
+
+    :deep(p) {
+        margin: 0;
+        font-size: 0.8rem;
+        letter-spacing: 0.01px;
+    }
+}
+
 .field-hint :deep(p) {
-    font-size: 0.8rem;
-    letter-spacing: 0.01px;
-    margin: 0.2rem 0;
     color: $bw-grey-9;
+}
+
+.field-error :deep(p) {
+    color: $red-500;
 }
 </style>
 

@@ -1,4 +1,4 @@
-import { defineComponent, computed } from 'vue'
+import { defineComponent, computed, PropType } from 'vue'
 
 let FORM_CONTROL_TYPES: Record<string, string> = {
     text: 'form-control',
@@ -35,7 +35,12 @@ export default defineComponent({
             default: (props: InputItemProps) => props.name,
         },
         hint: { type: String },
+        validator: {
+            type: Function as PropType<(value: any) => string | undefined>,
+            default: () => undefined,
+        },
     },
+    emits: ['update:value', 'update:error'],
     setup(props) {
         return {
             inputElem: FORM_CONTROL_TYPES[props.type],
@@ -83,6 +88,11 @@ export default defineComponent({
                 this._value = this.cast(v)
                 this.$emit('update:value', this._value)
             },
+        },
+        error(): string | undefined {
+            let error = this.validator && this.validator(this.value)
+            this.$emit('update:error', error)
+            return error
         },
         labelState(): Record<string, boolean> {
             return {

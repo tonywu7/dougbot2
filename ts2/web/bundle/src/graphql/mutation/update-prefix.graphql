@@ -1,0 +1,7 @@
+mutation updatePrefix($id: ID!, $prefix: String!) {
+  updatePrefix(id: $id, prefix: $prefix) {
+    server {
+      prefix
+    }
+  }
+}

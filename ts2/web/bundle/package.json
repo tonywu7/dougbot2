@@ -25,6 +25,7 @@
         "@types/lunr": "^2.3.3",
         "@vue/compiler-sfc": "^3.1.4",
         "bootstrap": "^5.0.2",
+        "concurrently": "^6.2.0",
         "css-loader": "^5.2.6",
         "graphql": "^15.5.1",
         "html-webpack-plugin": "^5.3.2",
@@ -57,7 +58,11 @@
         "printWidth": 80
     },
     "scripts": {
-        "gen:gql": "graphql-codegen",
+        "schema:create": "python ../../../manage.py graphql_schema --schema ts2.web.schema.schema",
+        "schema:parse": "graphql-codegen",
+        "watch-schema:create": "npm run schema:create -- --watch",
+        "watch-schema:parse": "npm run schema:parse -- --watch",
+        "schema": "concurrently \"npm:watch-schema*\"",
         "build": "npx webpack --config webpack.config.js"
     }
 }

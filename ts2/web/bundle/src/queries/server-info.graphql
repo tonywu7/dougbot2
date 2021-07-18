@@ -1,7 +1,0 @@
-query serverInfo {
-  server {
-    snowflake
-    name
-    prefix
-  }
-}

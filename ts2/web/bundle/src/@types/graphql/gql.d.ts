@@ -1,4 +1,13 @@
 
+declare module '*/update-prefix.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const updatePrefix: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/server-info.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

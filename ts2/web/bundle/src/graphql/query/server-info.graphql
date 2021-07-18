@@ -1,0 +1,7 @@
+query serverInfo($id: String!) {
+  server(id: $id) {
+    snowflake
+    name
+    prefix
+  }
+}
