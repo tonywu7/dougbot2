@@ -8,7 +8,6 @@ export function modelValueWithEmit<T>(
     return computed<T>({
         get: () => props[name],
         set: (v) => {
-            console.log(props, name, v)
             emit(`update:${name}`, v)
         },
     })
