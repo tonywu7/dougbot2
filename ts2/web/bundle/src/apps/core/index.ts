@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { createApp } from 'vue'
+import { selectAndMount } from '../../components/utils/app'
 import CoreSettings from './CoreSettings.vue'
 
 window.addEventListener('DOMContentLoaded', () => {
-    createApp(CoreSettings).mount('#global-settings')
+    selectAndMount('#global-settings', CoreSettings)
 })

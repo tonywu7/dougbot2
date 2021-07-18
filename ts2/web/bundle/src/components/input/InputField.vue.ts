@@ -8,7 +8,7 @@ let FORM_CONTROL_TYPES: Record<string, string> = {
     radio: 'form-check-input',
 }
 
-export interface InputItemProps<T = {}> {
+export interface InputItemProps {
     id: string
     type: string
     name?: string
@@ -40,12 +40,12 @@ export default defineComponent({
         }
     },
     data() {
-        let data = this.$attrs.data as FormDataType | undefined
+        let value = this.$attrs.value as FormDataType | undefined
         let initial = this.$attrs.initial as FormDataType | undefined
-        data = data || initial
+        initial = initial || value
         return {
             _initial: initial,
-            _data: data,
+            _value: value,
         }
     },
     methods: {
@@ -65,33 +65,33 @@ export default defineComponent({
                     return String(v)
             }
         },
+        setInitial(v: any) {
+            this._initial = v
+        },
     },
     computed: {
         initial(): FormDataType {
             return this.cast(this._initial)
         },
-        data: {
+        value: {
             get(): FormDataType {
-                return this.cast(this._data)
+                return this.cast(this._value)
             },
             set(v: string) {
-                this._data = this.cast(v)
-                this.$emit('update:data', this._data)
+                this._value = this.cast(v)
+                this.$emit('update:value', this._value)
             },
         },
         labelState(): Record<string, boolean> {
             return {
                 'field-label': true,
-                modified: this.data !== this.initial,
+                modified: this.value !== this.initial,
             }
         },
     },
     watch: {
-        '$attrs.initial'(v) {
-            this._initial = v
-        },
-        '$attrs.data'(v) {
-            this._data = v
+        '$attrs.value'(v) {
+            this._value = v
         },
     },
 })

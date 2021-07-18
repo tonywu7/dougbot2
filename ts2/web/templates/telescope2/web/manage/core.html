@@ -15,12 +15,7 @@
 
 {% section id='global' title='global' %}
 
-<div id="global-settings1">
-    {% bsform %}
-    {% bsfields form_update_prefix %}
-    <p>Example command: <code><span class="data-command-prefix"></span>echo</code></p>
-    {% bsbutton 'Save' 'primary' action='savePrefix' %}
-    {% endform %}
+<div id="global-settings" data-prefix="{{ discord.server.prefix }}">
 </div>
 
 {% endsection %}

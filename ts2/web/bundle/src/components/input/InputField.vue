@@ -11,7 +11,7 @@
             :id="id"
             :type="type"
             :name="name"
-            v-model="data"
+            v-model="value"
         />
     </li>
 </template>

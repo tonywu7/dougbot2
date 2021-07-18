@@ -100,13 +100,13 @@ export type ServerType = {
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
 };
 
-export type ServerPrefixQueryVariables = Exact<{ [key: string]: never; }>;
+export type ServerInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ServerPrefixQuery = (
+export type ServerInfoQuery = (
   { __typename?: 'PublicQuery' }
   & { server?: Maybe<(
     { __typename?: 'ServerType' }
-    & Pick<ServerType, 'snowflake' | 'prefix'>
+    & Pick<ServerType, 'snowflake' | 'name' | 'prefix'>
   )> }
 );

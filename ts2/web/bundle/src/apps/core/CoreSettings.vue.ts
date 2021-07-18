@@ -1,18 +1,17 @@
 import { defineComponent } from 'vue'
 
 import InputField from '../../components/input/InputField.vue'
+import FormContainer from '../../components/input/FormContainer.vue'
 
 export default defineComponent({
-    components: { InputField },
+    components: { FormContainer, InputField },
+    props: {
+        prefix: { type: String, required: true },
+    },
     data() {
         return {
-            original: '',
-            value: '',
+            original: this.prefix,
+            value: this.prefix,
         }
-    },
-    computed: {
-        prefix(): string {
-            return this.value
-        },
     },
 })
