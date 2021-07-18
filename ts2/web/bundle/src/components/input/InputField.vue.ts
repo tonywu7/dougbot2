@@ -72,8 +72,8 @@ export default defineComponent({
                     return String(v)
             }
         },
-        setInitial(v: any) {
-            this._initial = v
+        reset() {
+            this._initial = this._value
         },
     },
     computed: {

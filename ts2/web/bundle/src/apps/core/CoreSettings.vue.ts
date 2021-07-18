@@ -3,6 +3,11 @@ import { defineComponent } from 'vue'
 import InputField from '../../components/input/InputField.vue'
 import FormContainer from '../../components/input/FormContainer.vue'
 
+import { server } from '../../server'
+import { displayNotification } from '../../components/utils/modal'
+import { Color } from '../../components/modal/bootstrap'
+import { ApolloError } from '@apollo/client/errors'
+
 interface ComponentData {
     original: string
     value: string
@@ -27,8 +32,22 @@ export default defineComponent({
         },
     },
     methods: {
-        submit() {
-            console.log(this.value)
+        async submit() {
+            try {
+                await server.setPrefix(this.value)
+                ;(this.$refs.input as typeof InputField).reset()
+                displayNotification(Color.SUCCESS, 'Settings updated.')
+            } catch (e) {
+                let err = e as ApolloError
+                displayNotification(
+                    Color.DANGER,
+                    err.message,
+                    'Error saving settings',
+                    {
+                        autohide: false,
+                    }
+                )
+            }
         },
         validate(v: string): string | undefined {
             if (!v || !v.length) {

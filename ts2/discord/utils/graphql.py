@@ -99,5 +99,5 @@ class FormMutationMixin(Generic[U]):
             kwargs['instance'] = instance
         form = form_cls(**kwargs)
         if not form.is_valid() and raise_invalid:
-            raise ValueError(form.errors.as_json())
+            raise ValueError(form.errors.as_ul())
         return form

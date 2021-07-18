@@ -26,11 +26,9 @@ import {
 import { setContext } from '@apollo/client/link/context'
 import { getCSRF } from './utils/site'
 
-import {
-    ServerInfoQuery,
-    ServerInfoQueryVariables,
-} from './@types/graphql/schema'
+import { ServerInfoQuery, UpdatePrefixMutation } from './@types/graphql/schema'
 import SERVER_INFO from './graphql/query/server-info.graphql'
+import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 
 export let server: Server
 
@@ -91,6 +89,13 @@ class Server {
     async getPrefix(): Promise<string> {
         await this.fetchServerInfo()
         return this.serverInfo.server!.prefix!
+    }
+
+    async setPrefix(prefix: string): Promise<void> {
+        await this.client.mutate<UpdatePrefixMutation>({
+            mutation: UPDATE_PREFIX,
+            variables: { prefix: prefix },
+        })
     }
 }
 

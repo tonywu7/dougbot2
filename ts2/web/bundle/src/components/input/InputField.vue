@@ -1,127 +1,116 @@
 <template>
     <li :class="`field field-${type}`">
-        <label
-            v-if="label"
-            :for="id"
-            :class="labelState"
-        >
+        <label v-if="label" :for="id" :class="labelState">
             <slot name="label">{{ label }}</slot>
         </label>
-        <input
-            :class="inputElem"
-            :id="id"
-            :type="type"
-            :name="name"
-            v-model="value"
-        />
+        <input :class="inputElem" :id="id" :type="type" :name="name" v-model="value" />
         <div class="field-after field-hint">
             <slot name="hint">
                 <p v-if="hint">{{ hint }}</p>
             </slot>
         </div>
-        <div
-            v-if="error"
-            class="field-after field-error"
-        >
+        <div v-if="error" class="field-after field-error">
             <p v-html="error"></p>
         </div>
     </li>
 </template>
 
 <style lang="scss" scoped>
-@import '../../styles/colors';
-@import '../../styles/typefaces';
+    @import '../../styles/colors';
+    @import '../../styles/typefaces';
 
-.form-control {
-    &[type='text'],
-    &[type='number'] {
-        background-color: #00000000;
-        color: inherit;
+    .form-control {
 
-        padding: 0.5rem 0 0.5rem;
+        &[type='text'],
+        &[type='number'] {
+            background-color: #00000000;
+            color: inherit;
 
-        border-radius: 0;
-        border: none;
-        border-bottom: 2px solid $bw-grey-13;
+            padding: 0.5rem 0 0.5rem;
 
-        &:focus,
-        &:active {
-            box-shadow: none;
-            border-color: var(--accent);
-        }
+            border-radius: 0;
+            border: none;
+            border-bottom: 2px solid $bw-grey-13;
 
-        &::placeholder {
-            font-size: 0.9rem;
-            font-weight: 500;
-            font-family: $ui-fonts;
+            &:focus,
+            &:active {
+                box-shadow: none;
+                border-color: var(--accent);
+            }
+
+            &::placeholder {
+                font-size: 0.9rem;
+                font-weight: 500;
+                font-family: $ui-fonts;
+            }
         }
     }
-}
 
-.form-check-input {
-    margin-top: 0;
-}
-
-.field {
-    display: flex;
-    flex-flow: column nowrap;
-
-    margin-top: 12pt;
-    margin-bottom: 12pt;
-
-    &:first-child {
+    .form-check-input {
         margin-top: 0;
     }
 
-    &:last-child {
-        margin-bottom: 0;
+    .field {
+        display: flex;
+        flex-flow: column nowrap;
+
+        margin-top: 12pt;
+        margin-bottom: 12pt;
+
+        &:first-child {
+            margin-top: 0;
+        }
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        &::marker {
+            content: '';
+            display: none;
+        }
     }
 
-    &::marker {
-        content: '';
-        display: none;
+    .field-checkbox,
+    .field-radio {
+        flex-flow: row-reverse nowrap;
+        align-items: center;
+        justify-content: flex-end;
+
+        input {
+            margin-inline-end: 6pt;
+        }
     }
-}
 
-.field-checkbox,
-.field-radio {
-    flex-flow: row-reverse nowrap;
-    align-items: center;
-    justify-content: flex-end;
-
-    input {
-        margin-inline-end: 6pt;
-    }
-}
-
-.field-label {
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    font-weight: 400;
-    font-size: 0.8rem;
-
-    &.modified {
-        color: $yellow-300;
-    }
-}
-
-.field-after {
-    margin: 0.4rem 0 0;
-
-    :deep(p) {
-        margin: 0;
+    .field-label {
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 400;
         font-size: 0.8rem;
-        letter-spacing: 0.01px;
+        line-height: 1;
+
+        &.modified {
+            color: $yellow-300;
+        }
     }
-}
 
-.field-hint :deep(p) {
-    color: $bw-grey-9;
-}
+    .field-after {
+        margin: 0.4rem 0 0;
 
-.field-error :deep(p) {
-    color: $red-500;
-}
+        :deep(p) {
+            margin: 0;
+            font-size: 0.8rem;
+            letter-spacing: 0.01px;
+        }
+    }
+
+    .field-hint :deep(p) {
+        color: $bw-grey-9;
+    }
+
+    .field-error :deep(p) {
+        color: $red-500;
+    }
 </style>
 
 <script lang="ts" src="./InputField.vue.ts"></script>
