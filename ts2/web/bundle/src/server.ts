@@ -20,9 +20,13 @@ import {
     HttpLink,
     from as linkFrom,
     NormalizedCacheObject,
+    ApolloClientOptions,
 } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { getCSRF } from './utils/site'
+
+import { ServerInfoQuery } from './@types/graphql/schema'
+import SERVER_INFO from './queries/server-info.graphql'
 
 export let server: Server
 
@@ -43,21 +47,38 @@ export function getServerEndpoint(): string | null {
 }
 
 class Server {
-    private client?: ApolloClient<NormalizedCacheObject>
+    private client: ApolloClient<NormalizedCacheObject>
+    private serverInfo: ServerInfoQuery = {}
 
     constructor(endpoint: string | null) {
-        if (endpoint) {
-            this.client = new ApolloClient({
-                cache: new InMemoryCache(),
-                link: linkFrom([
-                    setCSRFToken,
-                    new HttpLink({
-                        uri: endpoint,
-                        useGETForQueries: true,
-                    }),
-                ]),
-            })
+        let conf: ApolloClientOptions<NormalizedCacheObject> = {
+            cache: new InMemoryCache(),
         }
+        if (endpoint) {
+            conf.link = linkFrom([
+                setCSRFToken,
+                new HttpLink({
+                    uri: endpoint,
+                    useGETForQueries: true,
+                }),
+            ])
+        }
+        this.client = new ApolloClient(conf)
+    }
+
+    async fetchServerInfo(refresh = false): Promise<void> {
+        if (refresh || !Object.keys(this.serverInfo).length) {
+            this.serverInfo = (
+                await this.client.query<ServerInfoQuery>({
+                    query: SERVER_INFO,
+                })
+            ).data
+        }
+    }
+
+    async getPrefix(): Promise<string> {
+        await this.fetchServerInfo()
+        return this.serverInfo.server!.prefix!
     }
 }
 

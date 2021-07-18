@@ -1,11 +1,11 @@
 schema: http://localhost:8000/web/graphql
 documents:
-  - ./src/scripts/**/*.graphql
+  - ./src/queries/**/*.graphql
 generates:
-  ./src/scripts/@types/graphql/schema.d.ts:
+  ./src/@types/graphql/schema.d.ts:
     plugins:
       - typescript
       - typescript-operations
-  ./src/scripts/@types/graphql/gql.d.ts:
+  ./src/@types/graphql/gql.d.ts:
     plugins:
       - typescript-graphql-files-modules
