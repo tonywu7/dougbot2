@@ -2,10 +2,11 @@
     <li :class="`field field-${type}`">
         <label
             v-if="label"
-            v-html="label"
             :for="id"
             :class="labelState"
-        ></label>
+        >
+            <slot name="label">{{ label }}</slot>
+        </label>
         <input
             :class="inputElem"
             :id="id"
@@ -13,6 +14,11 @@
             :name="name"
             v-model="value"
         />
+        <div class="field-hint">
+            <slot name="hint">
+                <p v-if="hint">{{ hint }}</p>
+            </slot>
+        </div>
     </li>
 </template>
 
@@ -91,6 +97,13 @@
     &.modified {
         color: $yellow-300;
     }
+}
+
+.field-hint :deep(p) {
+    font-size: 0.8rem;
+    letter-spacing: 0.01px;
+    margin: 0.2rem 0;
+    color: $bw-grey-9;
 }
 </style>
 

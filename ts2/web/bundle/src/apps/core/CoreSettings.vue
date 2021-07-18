@@ -7,12 +7,11 @@
                 :type="'text'"
                 :name="'prefix'"
                 v-model:value="value"
-            ></input-field>
-        </template>
-        <template v-slot:form-after>
-            <p>
-                Example command: <code><span v-html="value"></span>echo</code>
-            </p>
+            >
+                <template v-slot:hint>
+                    <p>Example command: <code><span v-html="value"></span>echo</code></p>
+                </template>
+            </input-field>
         </template>
     </form-container>
 </template>

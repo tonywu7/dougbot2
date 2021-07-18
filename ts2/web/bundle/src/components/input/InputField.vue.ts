@@ -13,6 +13,7 @@ export interface InputItemProps {
     type: string
     name?: string
     label?: string
+    hint?: string
 }
 
 type FormDataType = string | number | boolean
@@ -33,6 +34,7 @@ export default defineComponent({
             type: String,
             default: (props: InputItemProps) => props.name,
         },
+        hint: { type: String },
     },
     setup(props) {
         return {
