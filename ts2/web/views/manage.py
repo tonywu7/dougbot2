@@ -22,7 +22,7 @@ from django.shortcuts import render
 
 from ..config import CommandAppConfig
 from ..forms import ServerPrefixForm
-from ..middleware import DiscordContext
+from ..middleware import get_ctx
 from ..models import write_access_required
 
 Extensions = dict[str, CommandAppConfig]
@@ -38,7 +38,7 @@ def index(req: HttpRequest, **kwargs) -> HttpResponse:
 @write_access_required
 def core(req: HttpRequest, **kwargs) -> HttpResponse:
     current_user = req.user
-    ctx: DiscordContext = req.get_ctx()
+    ctx = get_ctx(req)
     server_invited_by = ctx.server.invited_by
     if (server_invited_by is not None
             and server_invited_by == current_user

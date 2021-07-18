@@ -2,17 +2,16 @@
 <div id="server-select" class="nav-control interactive-text">
     <div class="dropdown">
         <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
-            {% if discord.current %}
+            {% if discord.info %}
             <figure class="profile-picture guild-profile">
-                <img src="{{ discord.current.icon_url }}" class="rounded-circle"
-                    alt="icon for server {{ discord.current.name }}">
+                <img src="{{ discord.info.icon_url }}" class="rounded-circle"
+                    alt="icon for server {{ discord.info.name }}">
             </figure>
             {% endif %}
             <div id="server-select">
-                {% if discord.current %}
-                <span data-server-endpoint="{% url 'web:api.guild' guild_id=discord.server_id %}"
-                    data-server-id="{{ discord.server_id }}">
-                    {{ discord.current.name }}
+                {% if discord.info %}
+                <span data-server-endpoint="{% url 'web:api' %}" data-server-id="{{ discord.server_id }}">
+                    {{ discord.info.name }}
                 </span>
                 {% else %}
                 <span>Select server</span>{% endif %}
@@ -31,7 +30,7 @@
             <li>
                 <h6 class="dropdown-header">Available servers</h6>
             </li>
-            {% for guild in discord.available_servers.values %}
+            {% for guild in discord.pending_servers.values %}
             <li><a href="{% url 'web:manage.index' guild_id=guild.id %}" class="dropdown-item">{{ guild.name }}</a></li>
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server available)</a></li>

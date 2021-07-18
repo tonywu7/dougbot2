@@ -1,11 +1,11 @@
 {% extends 'telescope2/commons/article.html' %}
 
-{% block title %}Resetting {{ discord.current.name }} ...{% endblock %}
+{% block title %}Resetting {{ discord.info.name }} ...{% endblock %}
 
 {% block article %}
-<h1><span class="text-warning">Resetting <em>{{ discord.current.name }}</em></span></h1>
+<h1><span class="text-warning">Resetting <em>{{ discord.info.name }}</em></span></h1>
 
-<p>You are about to reset all settings for {{ discord.current.name }}.</p>
+<p>You are about to reset all settings for {{ discord.info.name }}.</p>
 
 <p class="text-danger">All settings for this server will be permanently deleted.</p>
 
@@ -13,11 +13,11 @@
     again.</p>
 
 <form method="POST">
-    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.current.id }}">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server_id }}">
     {% csrf_token %}
     <span class="token-list">
         <button class="btn btn-outline-danger" type="submit">confirm</button>
-        <a href="{% url 'web:manage.index' guild_id=discord.current.id %}" class="btn btn-outline-light">cancel</a>
+        <a href="{% url 'web:manage.index' guild_id=discord.server_id %}" class="btn btn-outline-light">cancel</a>
     </span>
 </form>
 

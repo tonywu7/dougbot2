@@ -13,10 +13,10 @@
         <span class="interactive-text top-menu-toggle-content">
             {% if user_authenticated %}
             <span class="identity-control">
-                {% if discord.current %}
+                {% if discord.info %}
                 <figure class="profile-picture guild-profile">
-                    <img src="{{ discord.current.icon_url }}" class="rounded-circle"
-                        alt="icon for server {{ discord.current.name }}">
+                    <img src="{{ discord.info.icon_url }}" class="rounded-circle"
+                        alt="icon for server {{ discord.info.name }}">
                 </figure>
                 {% endif %}
                 <figure class="profile-picture user-profile">

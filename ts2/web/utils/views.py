@@ -25,7 +25,7 @@ from rest_framework.serializers import ModelSerializer
 
 from ts2.discord.models import ServerScoped
 
-from ..middleware import DiscordContext
+from ..middleware import get_ctx
 
 RequestHandler = Callable[[HttpRequest], HttpResponse]
 InstanceRequestHandler = Callable[[Any, HttpRequest], HttpResponse]
@@ -52,8 +52,7 @@ class DiscordServerModelListView(ListModelMixin, GenericAPIView):
 
     @property
     def queryset(self):
-        ctx: DiscordContext = self.request.get_ctx()
-        return self.model.objects.filter(guild_id__exact=ctx.server.snowflake)
+        return self.model.objects.filter(guild_id__exact=get_ctx(self.request).server.snowflake)
 
     def get(self, req: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self.list(req, *args, **kwargs)

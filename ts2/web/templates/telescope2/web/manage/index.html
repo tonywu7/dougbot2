@@ -9,10 +9,10 @@
 
 {% block sections %}
 
-{% if not discord.server_joined or discord.server.disabled %}
+{% if not discord.joined or discord.server.disabled %}
 {% section id='server-access' title='access' %}
 <form action="{% url 'web:join' %}" method="POST">
-    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.current.id }}">
+    <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server_id }}">
     {% csrf_token %}
     <button class="btn btn-info" type="submit">Join server</button>
 </form>
@@ -24,7 +24,7 @@
 
 {% section id='general' title='general' %}
 <div class="key-value-pair kvp-justify">
-    <span>server name</span><span class="text-info">{{ discord.current.name }}</span>
+    <span>server name</span><span class="text-info">{{ discord.info.name }}</span>
     <span>server id</span><span class="text-info"><code>{{ server.snowflake }}</code></span>
     <span>command prefix</span><span class="text-info"><code>{{ server.prefix }}</code></span>
 </div>
@@ -32,7 +32,7 @@
 
 {% section id='modules' title='modules' %}
 <div class="key-value-pair kvp-justify interactive-text">
-    {% for ext_label, ext_state in discord.extension_state.items %}
+    {% for ext_label, ext_state in discord.extensions.items %}
     {% with ext_name=ext_state|item:1|attr:'title' ext_icon=ext_state|item:1|attr:'icon'|safe ext_state=ext_state|item:0 %}
     <span>{{ ext_icon }} {{ ext_name }}</span><span
         class="{{ ext_state|yesno:'text-on,text-off' }}">{{ ext_state|yesno:'Enabled,Disabled' }}</span>

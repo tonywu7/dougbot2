@@ -5,7 +5,7 @@
         {% include 'telescope2/elements/identities.html' %}
     </section>
 
-    {% if user_authenticated and discord.current %}
+    {% if user_authenticated and discord.info %}
 
     <div class="accordion-item">
         <h2 class="accordion-header" id="view-home">
@@ -13,7 +13,7 @@
         </h2>
     </div>
 
-    {% if discord.server_joined %}
+    {% if discord.joined %}
 
     {% chapter 'view-core' name='Core' icon='<i class="bi bi-gear-wide-connected"></i>' %}
     {% sidebarlink 'web:manage.core' 'Core settings' '<i class="bi bi-gear-fill"></i>' %}

@@ -68,7 +68,7 @@ class SidebarLinkNode(Node):
     icon: Variable
 
     def render(self, context: Context) -> str:
-        snowflake = context['discord'].current.id
+        snowflake = context['discord'].server_id
         mark_active: Optional[Callable] = context.get('mark_active')
         view = unwrap(context, self.view)
         icon = unwrap(context, self.icon)
