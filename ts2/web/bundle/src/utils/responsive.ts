@@ -20,19 +20,6 @@ type JSONValue = string | number | boolean | null
 type JSONArray = Array<JSONValue | JSONType>
 interface JSONType extends Record<string, JSONValue | JSONArray | JSONType> {}
 
-export function displayNotification(
-    notif: HTMLElement,
-    options?: Partial<bootstrap.Toast.Options>
-) {
-    let toast = new bootstrap.Toast(notif, options)
-    let center = document.querySelector('#toast-container') as HTMLElement
-    notif.addEventListener('hidden.bs.toast', () => {
-        notif.remove()
-    })
-    center.appendChild(notif)
-    toast.show()
-}
-
 export function createFlexSelect(e: HTMLElement) {
     let select = e.querySelector('select') as HTMLSelectElement
     if (!select) return
