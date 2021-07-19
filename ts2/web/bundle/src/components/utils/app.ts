@@ -1,15 +1,17 @@
 import { Component, createApp, App } from 'vue'
+import { PropSupplier } from '../../@types/infer/component'
 
 export function createAppWithDataset<T extends Component>(
     app: T,
-    target: HTMLElement
+    target: HTMLElement,
+    props?: PropSupplier<T>
 ) {
-    let props = { ...target.dataset }
-    return createApp(app, props)
+    let dataset = { ...target.dataset, ...props }
+    return createApp(app, dataset)
 }
 
 export function mountOptionalApp(
-    getApp: (el: HTMLElement) => App,
+    getApp: (el: HTMLElement, ...args: any) => App,
     selector: string
 ) {
     let elem = document.querySelector<HTMLElement>(selector)
@@ -18,6 +20,13 @@ export function mountOptionalApp(
     }
 }
 
-export function selectAndMount<T extends Component>(selector: string, app: T) {
-    return mountOptionalApp((el) => createAppWithDataset(app, el), selector)
+export function selectAndMount<T extends Component>(
+    selector: string,
+    app: T,
+    props?: PropSupplier<T>
+) {
+    return mountOptionalApp(
+        (el) => createAppWithDataset(app, el, props),
+        selector
+    )
 }

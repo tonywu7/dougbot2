@@ -1,4 +1,4 @@
-import { defineComponent, computed, PropType } from 'vue'
+import { defineComponent, PropType } from 'vue'
 
 let FORM_CONTROL_TYPES: Record<string, string> = {
     text: 'form-control',
@@ -8,12 +8,18 @@ let FORM_CONTROL_TYPES: Record<string, string> = {
     radio: 'form-check-input',
 }
 
+interface ExtraOptions {
+    useSwitch: boolean
+}
+
 export interface InputItemProps {
     id: string
     type: string
     name?: string
     label?: string
     hint?: string
+    validator?: () => string | undefined
+    options?: Partial<ExtraOptions>
 }
 
 type FormDataType = string | number | boolean
@@ -38,6 +44,10 @@ export default defineComponent({
         validator: {
             type: Function as PropType<(value: any) => string | undefined>,
             default: () => undefined,
+        },
+        options: {
+            type: Object as PropType<Partial<ExtraOptions>>,
+            default: {},
         },
     },
     emits: ['update:value', 'update:error'],
@@ -72,9 +82,6 @@ export default defineComponent({
                     return String(v)
             }
         },
-        reset() {
-            this._initial = this._value
-        },
     },
     computed: {
         initial(): FormDataType {
@@ -100,10 +107,23 @@ export default defineComponent({
                 modified: this.value !== this.initial,
             }
         },
+        containerType(): string[] {
+            let classes = ['field', `field-${this.type}`]
+            if (new Set(['checkbox', 'radio']).has(this.type)) {
+                classes.push('form-check')
+            }
+            if (this.options.useSwitch) {
+                classes.push('form-switch')
+            }
+            return classes
+        },
     },
     watch: {
         '$attrs.value'(v) {
             this._value = v
+        },
+        '$attrs.initial'(v) {
+            this._initial = v
         },
     },
 })

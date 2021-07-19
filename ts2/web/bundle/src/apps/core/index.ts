@@ -16,12 +16,17 @@
 
 import { selectAndMount } from '../../components/utils/app'
 import CoreSettings from './CoreSettings.vue'
+import ExtensionSettings from './ExtensionSettings.vue'
 
 import { server } from '../../server'
 
 window.addEventListener('DOMContentLoaded', () => {
     selectAndMount('#global-settings', CoreSettings)
-    document.querySelector('#sync-models')?.addEventListener('click', () => {
+    selectAndMount('#extension-settings', ExtensionSettings, {
+        datasrc: '#extension-state',
+    })
+    document.querySelector('#sync-models')?.addEventListener('click', (ev) => {
+        ev.preventDefault()
         server.updateModels()
     })
 })

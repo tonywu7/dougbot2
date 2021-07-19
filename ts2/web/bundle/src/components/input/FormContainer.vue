@@ -1,7 +1,7 @@
 <template>
     <form class="form">
         <slot name="form-before"></slot>
-        <ul>
+        <ul class="form-fields">
             <slot name="form-fields"></slot>
         </ul>
         <slot name="form-after"></slot>

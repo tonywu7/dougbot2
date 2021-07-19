@@ -206,6 +206,23 @@ export type ServerType = {
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
 };
 
+export type UpdateExtensionsMutationVariables = Exact<{
+  itemId: Scalars['ID'];
+  extensions: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
+}>;
+
+
+export type UpdateExtensionsMutation = (
+  { __typename?: 'Mutation' }
+  & { updateExtensions?: Maybe<(
+    { __typename?: 'ServerExtensionsMutation' }
+    & { server?: Maybe<(
+      { __typename?: 'ServerType' }
+      & Pick<ServerType, 'extensions'>
+    )> }
+  )> }
+);
+
 export type UpdateModelsMutationVariables = Exact<{
   itemId: Scalars['ID'];
 }>;

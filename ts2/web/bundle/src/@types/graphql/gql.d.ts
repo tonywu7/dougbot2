@@ -1,4 +1,13 @@
 
+declare module '*/update-extensions.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const updateExtensions: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/update-models.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

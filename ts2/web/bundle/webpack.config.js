@@ -89,18 +89,13 @@ module.exports = {
   optimization: {
     usedExports: true,
     splitChunks: {
-      chunks: 'all',
       cacheGroups: {
         vendors: {
           test: /\/node_modules\//,
           priority: -10,
           reuseExistingChunk: true,
+          chunks: 'all',
           name: 'vendor',
-        },
-        default: {
-          maxInitialRequests: 1,
-          priority: -20,
-          reuseExistingChunk: true,
         },
       },
     },
@@ -112,4 +107,6 @@ module.exports = {
     filename: `[name].bundle.js`,
     clean: true,
   },
+
+  stats: 'detailed',
 }

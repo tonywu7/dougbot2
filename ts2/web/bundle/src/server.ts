@@ -30,10 +30,17 @@ import { getCSRF } from './utils/site'
 import { displayNotification } from './components/utils/modal'
 import { Color } from './components/modal/bootstrap'
 
-import { ServerInfoQuery, UpdatePrefixMutation } from './@types/graphql/schema'
+import {
+    ServerInfoQuery,
+    UpdatePrefixMutation,
+    UpdatePrefixMutationVariables,
+    UpdateExtensionsMutation,
+    UpdateExtensionsMutationVariables,
+} from './@types/graphql/schema'
 import SERVER_INFO from './graphql/query/server-info.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
+import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
 
 export let server: Server
 
@@ -132,9 +139,22 @@ class Server {
     }
 
     async setPrefix(prefix: string): Promise<void> {
-        await this.client.mutate<UpdatePrefixMutation>({
+        await this.client.mutate<
+            UpdatePrefixMutation,
+            Partial<UpdatePrefixMutationVariables>
+        >({
             mutation: UPDATE_PREFIX,
             variables: { prefix: prefix },
+        })
+    }
+
+    async setExtensions(extensions: string[]): Promise<void> {
+        await this.client.mutate<
+            UpdateExtensionsMutation,
+            Partial<UpdateExtensionsMutationVariables>
+        >({
+            mutation: UPDATE_EXTENSIONS,
+            variables: { extensions: extensions },
         })
     }
 

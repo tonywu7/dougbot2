@@ -41,7 +41,7 @@ export default defineComponent({
                 this.processing = false
                 return
             }
-            ;(this.$refs.input as typeof InputField).reset()
+            this.original = this.value
             displayNotification(Color.SUCCESS, 'Settings updated.')
             this.processing = false
         },

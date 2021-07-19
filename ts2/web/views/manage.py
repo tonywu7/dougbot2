@@ -20,12 +20,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from ..config import CommandAppConfig
-from ..forms import ServerPrefixForm
+from ts2.discord.apps import DiscordBotConfig
+
 from ..middleware import get_ctx
 from ..models import write_access_required
-
-Extensions = dict[str, CommandAppConfig]
 
 
 @login_required
@@ -46,12 +44,16 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
         access_control = True
     else:
         access_control = False
-    update_prefix = ServerPrefixForm({'prefix': ctx.server.prefix})
+
+    enabled = ctx.server.extensions
+    exts = [(app.label, app.icon_and_title, app.label in enabled) for app
+            in DiscordBotConfig.ext_map.values()]
+
     return render(
         req, 'telescope2/web/manage/core.html',
         context={
             'access_control': access_control,
-            'form_update_prefix': update_prefix,
+            'extensions': exts,
         },
     )
 

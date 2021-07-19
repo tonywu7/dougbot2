@@ -1,7 +1,7 @@
 <template>
-    <li :class="`field field-${type}`">
+    <li :class="[containerType]">
         <label v-if="label" :for="id" :class="labelState">
-            <slot name="label">{{ label }}</slot>
+            <slot name="label"><span v-html="label"></span></slot>
         </label>
         <input :class="inputElem" :id="id" :type="type" :name="name" v-model="value" />
         <div class="field-after field-hint">
@@ -48,6 +48,7 @@
 
     .form-check-input {
         margin-top: 0;
+        cursor: pointer;
     }
 
     .field {
