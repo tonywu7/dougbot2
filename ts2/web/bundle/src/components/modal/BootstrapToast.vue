@@ -1,8 +1,8 @@
 <template>
     <teleport to="#toast-container">
         <div ref="main" :class="['toast align-items-center border-0', header ? [] : theming]" role="alert"
-            aria-live="{{ ariaLive }}" aria-atomic="true">
-            <div :class="['d-flex', header ? 'flex-column' : 'flex-row']">
+            aria-live="polite" aria-atomic="true">
+            <div :class="['d-flex position-relative', header ? 'flex-column' : 'flex-row']">
                 <template v-if="header">
                     <div :class="['toast-header', theming]">
                         <b v-html="header"></b>
@@ -44,6 +44,10 @@
 
         li {
             display: block;
+        }
+
+        .btn-close {
+            padding: 1px 6px;
         }
     }
 </style>

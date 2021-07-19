@@ -24,11 +24,14 @@ import {
     ApolloClientOptions,
 } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
+import { onError } from '@apollo/client/link/error'
 import { getCSRF } from './utils/site'
 
 import { ServerInfoQuery, UpdatePrefixMutation } from './@types/graphql/schema'
 import SERVER_INFO from './graphql/query/server-info.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
+import { displayNotification } from './components/utils/modal'
+import { Color } from './components/modal/bootstrap'
 
 export let server: Server
 
@@ -42,13 +45,13 @@ const setCSRFToken = setContext((request, previousContext) => {
     }
 })
 
-export function getServerEndpoint(): string | null {
+function getServerEndpoint(): string | null {
     let elem = document.querySelector('[data-server-endpoint]')
     if (!elem) return null
     return (elem as HTMLElement).dataset.serverEndpoint!
 }
 
-export function getServerID(): string | null {
+function getServerID(): string | null {
     let elem = document.querySelector('[data-server-id]')
     if (!elem) return null
     return (elem as HTMLElement).dataset.serverId!
@@ -62,6 +65,32 @@ class Server {
         let conf: ApolloClientOptions<NormalizedCacheObject> = {
             cache: new InMemoryCache(),
         }
+
+        let notifyError = onError((err) => {
+            if (err.networkError) {
+                displayNotification(
+                    Color.WARNING,
+                    err.networkError.message || 'Network Error',
+                    err.networkError.name,
+                    {
+                        autohide: false,
+                    }
+                )
+            }
+            if (err.graphQLErrors && err.graphQLErrors.length) {
+                for (let e of err.graphQLErrors) {
+                    displayNotification(
+                        Color.DANGER,
+                        e.message,
+                        e.name || 'Error',
+                        {
+                            autohide: false,
+                        }
+                    )
+                }
+            }
+        })
+
         if (endpoint) {
             let http = new HttpLink({
                 uri: endpoint,
@@ -71,8 +100,14 @@ class Server {
                 op.variables.id = server
                 return forward(op)
             })
-            conf.link = linkFrom([setServerPrefix, setCSRFToken, http])
+            conf.link = linkFrom([
+                setServerPrefix,
+                setCSRFToken,
+                notifyError,
+                http,
+            ])
         }
+
         this.client = new ApolloClient(conf)
     }
 
