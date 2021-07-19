@@ -1,5 +1,5 @@
-mutation updatePrefix($id: ID!, $prefix: String!) {
-  updatePrefix(id: $id, prefix: $prefix) {
+mutation updatePrefix($itemId: ID!, $prefix: String!) {
+  updatePrefix(itemId: $itemId, prefix: $prefix) {
     server {
       prefix
     }

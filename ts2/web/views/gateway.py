@@ -195,7 +195,7 @@ class DeleteServerProfileView(View):
     @login_required
     @write_access_required
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
-        if user_invited_guild(req.user, guild_id):
+        if req.user.is_staff or user_invited_guild(req.user, guild_id):
             return render(req, 'telescope2/web/leave.html')
         raise PermissionDenied()
 
@@ -204,9 +204,9 @@ class DeleteServerProfileView(View):
     @write_access_required
     @async_to_sync
     async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
-        if not user_invited_guild(req.user, guild_id):
-            raise PermissionDenied()
         guild_id = req.POST.get('guild_id')
+        if not req.user.is_staff or not await sync_to_async(user_invited_guild)(req.user, guild_id):
+            raise PermissionDenied()
         try:
             guild_id = int(guild_id)
         except ValueError:

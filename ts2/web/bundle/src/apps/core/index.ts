@@ -17,6 +17,11 @@
 import { selectAndMount } from '../../components/utils/app'
 import CoreSettings from './CoreSettings.vue'
 
+import { server } from '../../server'
+
 window.addEventListener('DOMContentLoaded', () => {
     selectAndMount('#global-settings', CoreSettings)
+    document.querySelector('#sync-models')?.addEventListener('click', () => {
+        server.updateModels()
+    })
 })

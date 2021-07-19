@@ -67,16 +67,7 @@ async function initDiscord() {
     discord = new DiscordClient(accessToken!)
 }
 
-function discordJoinServer() {
-    let form = document.querySelector(
-        '#discord-join-server form'
-    ) as HTMLFormElement
-    if (!form) return
-    form.submit()
-}
-
 window.addEventListener('DOMContentLoaded', async () => {
     await discordOAuth2()
     await initDiscord()
-    discordJoinServer()
 })

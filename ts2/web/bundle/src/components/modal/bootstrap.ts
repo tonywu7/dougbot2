@@ -12,14 +12,14 @@ export enum Color {
 }
 
 export let COLOR_CONTRAST: Record<Color, Color> = {
-    [Color.PRIMARY]: Color.WHITE,
-    [Color.SECONDARY]: Color.WHITE,
-    [Color.SUCCESS]: Color.WHITE,
-    [Color.DANGER]: Color.WHITE,
-    [Color.WARNING]: Color.BLACK,
-    [Color.INFO]: Color.BLACK,
-    [Color.LIGHT]: Color.BLACK,
-    [Color.DARK]: Color.WHITE,
-    [Color.WHITE]: Color.BLACK,
+    [Color.PRIMARY]: Color.LIGHT,
+    [Color.SECONDARY]: Color.LIGHT,
+    [Color.SUCCESS]: Color.LIGHT,
+    [Color.DANGER]: Color.LIGHT,
+    [Color.WARNING]: Color.DARK,
+    [Color.INFO]: Color.DARK,
+    [Color.LIGHT]: Color.DARK,
+    [Color.DARK]: Color.LIGHT,
+    [Color.WHITE]: Color.DARK,
     [Color.BLACK]: Color.WHITE,
 }

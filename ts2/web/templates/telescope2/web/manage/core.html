@@ -41,7 +41,7 @@
 {% section id='server-debug' title='debug' %}
 
 <div class="form">
-    <a class="btn btn-outline-warning btn-submit">Synchronize models</a>
+    <a id="sync-models" class="btn btn-outline-warning btn-submit">Synchronize models</a>
     <a href="{% url 'web:reset' guild_id=discord.server_id %}" class="btn btn-outline-danger">
         Reset server settings
     </a>

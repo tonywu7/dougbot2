@@ -35,12 +35,12 @@ export type AclUpdateMutation = {
 };
 
 export type AccessControlInput = {
-  name?: Maybe<Scalars['String']>;
+  name: Scalars['String'];
   commands?: Maybe<Array<Maybe<Scalars['String']>>>;
   channels?: Maybe<Array<Maybe<Scalars['String']>>>;
   roles?: Maybe<Array<Maybe<Scalars['String']>>>;
-  modifier?: Maybe<AclRoleModifier>;
-  action?: Maybe<AclAction>;
+  modifier: AclRoleModifier;
+  action: AclAction;
   error?: Maybe<Scalars['String']>;
 };
 
@@ -83,10 +83,9 @@ export type ChannelType = {
 };
 
 export type LoggingEntryInput = {
-  key?: Maybe<Scalars['String']>;
-  name?: Maybe<Scalars['String']>;
-  channel?: Maybe<Scalars['String']>;
-  role?: Maybe<Scalars['String']>;
+  key: Scalars['String'];
+  channel: Scalars['String'];
+  role: Scalars['String'];
 };
 
 export type LoggingEntryType = {
@@ -114,37 +113,37 @@ export type Mutation = {
 
 
 export type MutationUpdatePrefixArgs = {
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
   prefix: Scalars['String'];
 };
 
 
 export type MutationUpdateExtensionsArgs = {
   extensions: Array<Maybe<Scalars['String']>>;
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
 };
 
 
 export type MutationUpdateModelsArgs = {
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
 };
 
 
 export type MutationUpdateLoggingArgs = {
   config?: Maybe<Array<Maybe<LoggingEntryInput>>>;
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
 };
 
 
 export type MutationDeleteAclArgs = {
-  id: Scalars['ID'];
-  name: Scalars['String'];
+  itemId: Scalars['ID'];
+  names?: Maybe<Array<Maybe<Scalars['String']>>>;
 };
 
 
 export type MutationUpdateAclArgs = {
   changes?: Maybe<Array<Maybe<AccessControlInput>>>;
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
 };
 
 export type Query = {
@@ -207,8 +206,24 @@ export type ServerType = {
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
 };
 
+export type UpdateModelsMutationVariables = Exact<{
+  itemId: Scalars['ID'];
+}>;
+
+
+export type UpdateModelsMutation = (
+  { __typename?: 'Mutation' }
+  & { updateModels?: Maybe<(
+    { __typename?: 'ServerModelSyncMutation' }
+    & { server?: Maybe<(
+      { __typename?: 'ServerType' }
+      & Pick<ServerType, 'snowflake'>
+    )> }
+  )> }
+);
+
 export type UpdatePrefixMutationVariables = Exact<{
-  id: Scalars['ID'];
+  itemId: Scalars['ID'];
   prefix: Scalars['String'];
 }>;
 

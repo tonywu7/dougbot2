@@ -91,8 +91,8 @@ class ServerMutation(ModelMutation[Server]):
 
 class ServerFormMutation(FormMutationMixin, ServerMutation):
     @classmethod
-    def mutate(cls, info, *, item_id: str, **arguments):
-        server = cls.get_instance(info, item_id)
+    def mutate(cls, root, info, *, item_id: str, **arguments):
+        server = cls.get_instance(info.context, item_id)
         form = cls.get_form(arguments, server)
         form.save()
         return cls(server)

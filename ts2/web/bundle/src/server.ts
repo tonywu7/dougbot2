@@ -27,11 +27,13 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { getCSRF } from './utils/site'
 
+import { displayNotification } from './components/utils/modal'
+import { Color } from './components/modal/bootstrap'
+
 import { ServerInfoQuery, UpdatePrefixMutation } from './@types/graphql/schema'
 import SERVER_INFO from './graphql/query/server-info.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
-import { displayNotification } from './components/utils/modal'
-import { Color } from './components/modal/bootstrap'
+import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 
 export let server: Server
 
@@ -59,9 +61,12 @@ function getServerID(): string | null {
 
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
+    private id: string
     private serverInfo: ServerInfoQuery = {}
 
     constructor(endpoint: string | null, server: string | null) {
+        this.id = server || ''
+
         let conf: ApolloClientOptions<NormalizedCacheObject> = {
             cache: new InMemoryCache(),
         }
@@ -97,7 +102,7 @@ class Server {
                 useGETForQueries: true,
             })
             let setServerPrefix = new ApolloLink((op, forward) => {
-                op.variables.id = server
+                op.variables.itemId = server
                 return forward(op)
             })
             conf.link = linkFrom([
@@ -131,6 +136,10 @@ class Server {
             mutation: UPDATE_PREFIX,
             variables: { prefix: prefix },
         })
+    }
+
+    async updateModels(): Promise<void> {
+        await this.client.mutate({ mutation: UPDATE_MODELS })
     }
 }
 

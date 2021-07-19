@@ -20,7 +20,7 @@
     @import '../../styles/typefaces';
 
     :deep(#id-prefix) {
-        font-family: $ui-fonts;
+        font-family: $monospace-fonts;
         font-weight: 700;
         font-size: 1.2rem;
     }

@@ -55,7 +55,7 @@ class ModelMutation(Generic[T], Mutation):
         except AttributeError:
             pass
         try:
-            cls.Arguments.id = Argument(ID, required=True)
+            cls.Arguments.item_id = Argument(ID, required=True)
         except AttributeError:
             class Arguments:
                 item_id = Argument(ID, required=True)
