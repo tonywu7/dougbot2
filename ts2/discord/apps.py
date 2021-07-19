@@ -17,12 +17,14 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from django.apps import AppConfig, apps
 from django.conf import settings
 from django.core.checks import CheckMessage, Error, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
+from django.http import HttpRequest
 
 from ts2.web.config import AnnotatedPattern, CommandAppConfig
 
@@ -81,3 +83,15 @@ def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[Ch
                       hint='Run the init command to supply them.',
                       id='discord.E010')]
     return []
+
+
+def get_commands(req: HttpRequest) -> Optional[list[str]]:
+    superuser = req.user.is_superuser
+    instance = DiscordBotConfig.get().bot_thread.get_client()
+    if not instance:
+        return None
+    return [*sorted(
+        c.qualified_name for c
+        in instance.walk_commands()
+        if not instance.is_hidden(c) or superuser
+    )]

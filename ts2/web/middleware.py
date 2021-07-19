@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
@@ -262,3 +262,12 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> DiscordContext:
         if logout:
             raise PermissionDenied('Bad credentials')
         return None
+
+
+def get_server(req: HttpRequest, server_id: Union[str, int], deny=True) -> Optional[Server]:
+    ctx = get_ctx(req, logout=False)
+    if not ctx.accessible(server_id):
+        if deny:
+            raise PermissionDenied('Insufficient permission.')
+        return
+    return Server.objects.get(snowflake=server_id)

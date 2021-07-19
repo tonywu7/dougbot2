@@ -1,5 +1,5 @@
 from .acl.schema import AccessControlType, ACLDeleteMutation, ACLUpdateMutation
-from .logging.schema import LoggingEntryType, LoggingMutation, resolve_logging
+from .logging.schema import LoggingEntryType, LoggingMutation, get_logging_conf
 
 __all__ = [
     'LoggingEntryType',
@@ -7,5 +7,5 @@ __all__ = [
     'AccessControlType',
     'ACLDeleteMutation',
     'ACLUpdateMutation',
-    'resolve_logging',
+    'get_logging_conf',
 ]

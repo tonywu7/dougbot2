@@ -17,17 +17,16 @@
 from typing import Protocol
 
 from django.db.models import BigIntegerField
-from django.urls import ResolverMatch
-from django.utils.datastructures import MultiValueDict
+from django.http import HttpRequest
 from graphene import Argument, Enum, Field, List, ObjectType, String
 from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
 
-from ts2.web.models import User as WebUser
+from ts2.web.middleware import get_server
 
 from . import forms, models
-from .apps import DiscordBotConfig
+from .apps import get_commands
 from .models import Server
 from .utils.graphql import FormMutationMixin, ModelMutation
 
@@ -36,16 +35,8 @@ convert_django_field.register(BigIntegerField, convert_field_to_string)
 ChannelTypeEnum = Enum.from_enum(models.ChannelTypeEnum)
 
 
-class RequestContext(Protocol):
-    GET: MultiValueDict
-    POST: MultiValueDict
-    META: MultiValueDict
-    user: WebUser
-    resolver_match: ResolverMatch
-
-
 class HasContext(Protocol):
-    context: RequestContext
+    context: HttpRequest
 
 
 class BotType(ObjectType):
@@ -53,15 +44,7 @@ class BotType(ObjectType):
 
     @staticmethod
     def resolve_commands(root, info: HasContext, **kwargs):
-        superuser = info.context.user.is_superuser
-        instance = DiscordBotConfig.get().bot_thread.get_client()
-        if not instance:
-            return None
-        return [*sorted(
-            c.qualified_name for c
-            in instance.walk_commands()
-            if not instance.is_hidden(c) or superuser
-        )]
+        return get_commands(info.context)
 
 
 class ServerType(DjangoObjectType):
@@ -77,7 +60,7 @@ class ServerType(DjangoObjectType):
 
     @staticmethod
     def resolve_extensions(obj: Server, *args, **kwargs):
-        return obj._extensions.split(',')
+        return obj.extensions
 
 
 class ChannelType(DjangoObjectType):
@@ -100,40 +83,46 @@ class StringTemplateType(DjangoObjectType):
         fields = ('id', 'source', 'server', 'name')
 
 
-class ServerPrefixMutation(FormMutationMixin, ModelMutation[Server], model=Server):
+class ServerMutation(ModelMutation[Server]):
+    @classmethod
+    def get_instance(cls, req: HttpRequest, server_id: str) -> Server:
+        return get_server(req, server_id)
+
+
+class ServerFormMutation(FormMutationMixin, ServerMutation):
+    @classmethod
+    def mutate(cls, info, *, item_id: str, **arguments):
+        server = cls.get_instance(info, item_id)
+        form = cls.get_form(arguments, server)
+        form.save()
+        return cls(server)
+
+
+class ServerPrefixMutation(ServerFormMutation):
+    class Meta:
+        model = Server
+        form = forms.ServerPrefixForm
+
     class Arguments:
         prefix = Argument(String, required=True)
 
     server = Field(ServerType)
 
-    @classmethod
-    def mutate(cls, *args, **arguments):
-        server = cls.get_instance(arguments)
-        form = cls.get_form(forms.ServerPrefixForm, arguments, server)
-        form.save()
-        return cls(server)
 
+class ServerExtensionsMutation(ServerFormMutation):
+    class Meta:
+        model = Server
+        form = forms.ServerExtensionsForm
 
-class ServerExtensionsMutation(FormMutationMixin, ModelMutation[Server], model=Server):
     class Arguments:
         extensions = Argument(List(String), required=True)
 
     server = Field(ServerType)
 
-    @classmethod
-    def mutate(cls, *args, **arguments):
-        server = cls.get_instance(arguments)
-        form = cls.get_form(forms.ServerExtensionsForm, arguments, server)
-        form.save()
-        return cls(server)
 
+class ServerModelSyncMutation(ServerFormMutation):
+    class Meta:
+        model = Server
+        form = forms.ServerModelSyncForm
 
-class ServerModelSyncMutation(FormMutationMixin, ModelMutation[Server], model=Server):
     server = Field(ServerType)
-
-    @classmethod
-    def mutate(cls, *args, **arguments):
-        server = cls.get_instance(arguments)
-        form = cls.get_form(forms.ServerModelSyncForm, arguments, server)
-        form.save()
-        return cls(server)

@@ -14,14 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.core.exceptions import PermissionDenied
 from graphene import Field, List, ObjectType, Schema, String
 
 from ts2.discord import schema as discord
 from ts2.discord.ext import schema as discord_ext
 from ts2.discord.models import Server
 
-from .middleware import get_ctx
+from .middleware import get_server
 
 
 class Query(ObjectType):
@@ -36,10 +35,7 @@ class Query(ObjectType):
 
     @classmethod
     def resolve_server(cls, root, info, id) -> Server:
-        ctx = get_ctx(info.context)
-        if not ctx.accessible(id):
-            raise PermissionDenied('Missing query permission.')
-        return Server.objects.get(snowflake=id)
+        return get_server(info.context, id)
 
     @classmethod
     def resolve_logging(cls, root, info, server):

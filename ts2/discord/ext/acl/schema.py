@@ -16,13 +16,12 @@
 
 from itertools import product
 
-from django.db.models import QuerySet
-from graphene import (Argument, Boolean, Enum, Field, Int, List, ObjectType,
-                      String)
+from graphene import (Argument, Boolean, Enum, Field, InputObjectType, Int,
+                      List, ObjectType, String)
 from more_itertools import bucket, first
 
 from ...models import Server
-from ...utils.graphql import ModelMutation, input_from_type
+from ...schema import ServerMutation
 from .models import AccessControl, ACLAction, ACLRoleModifier
 
 
@@ -58,46 +57,51 @@ class AccessControlType(ObjectType):
         return objs
 
 
-AccessControlInput = input_from_type(AccessControlType, specificity=False)
+class AccessControlInput(InputObjectType):
+    name: str = Field(String, required=True)
+    commands: list[str] = Field(List(String), default_value=())
+    channels: list[str] = Field(List(String), default_value=())
+    roles: list[str] = Field(List(String), default_value=())
+    modifier: int = Field(Enum.from_enum(ACLRoleModifier), required=True)
+    action: str = Field(Enum.from_enum(ACLAction), required=True)
+    error: str = Field(String)
 
 
-class AccessControlMutation:
-    @classmethod
-    def get_acls(cls, arguments: dict) -> QuerySet[AccessControl]:
-        return cls.get_instance(arguments).acl.all()
+class ACLDeleteMutation(ServerMutation):
+    class Meta:
+        model = Server
 
-
-class ACLDeleteMutation(AccessControlMutation, ModelMutation[Server], model=Server):
     class Arguments:
-        name = Argument(String, required=True)
+        names = Argument(List(String), default_value=())
 
     success: bool = Boolean()
 
     @classmethod
-    def mutate(cls, root, info, **arguments):
-        instances = cls.get_acls(arguments).filter(name__exact=arguments['name'])
+    def mutate(cls, root, info, item_id: str, names: list[str]):
+        server = cls.get_instance(info.context, item_id)
+        instances = server.acl.all().filter(name__in=names)
         instances.delete()
         return cls(success=True)
 
 
-class ACLUpdateMutation(AccessControlMutation, ModelMutation[Server], model=Server):
+class ACLUpdateMutation(ServerMutation):
+    class Meta:
+        model = Server
+
     class Arguments:
-        changes = List(AccessControlInput)
+        changes = Argument(List(AccessControlInput), default_value=())
 
     acl = List(AccessControlType)
 
     @classmethod
-    def delete(cls, info, **arguments):
-        changes: list[AccessControlInput] = arguments['changes']
+    def delete(cls, server: Server, changes: list[AccessControlInput]):
         names = [acl.name for acl in changes]
-        existing = cls.get_acls(arguments).filter(name__in=names)
+        existing = server.acl.all().filter(name__in=names)
         existing.delete()
 
     @classmethod
-    def create(cls, info, **arguments) -> list[AccessControl]:
-        changes: list[AccessControlInput] = arguments['changes']
+    def create(cls, server: Server, changes: list[AccessControlInput]) -> list[AccessControl]:
         instances = []
-        server = cls.get_instance(arguments)
         for acl in changes:
             roles = [int(s) for s in acl.roles]
             commands = acl.commands or ['']
@@ -117,8 +121,9 @@ class ACLUpdateMutation(AccessControlMutation, ModelMutation[Server], model=Serv
         return instances
 
     @classmethod
-    def mutate(cls, root, info, **arguments):
-        cls.delete(info, **arguments)
-        instances = cls.create(info, **arguments)
+    def mutate(cls, root, info, item_id: str, changes):
+        server = cls.get_instance(info.context, item_id)
+        cls.delete(server, changes)
+        instances = cls.create(server, changes)
         acl = AccessControlType.serialize(instances)
         return cls(acl=acl)

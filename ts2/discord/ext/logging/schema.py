@@ -14,12 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from django.core.exceptions import PermissionDenied
-from graphene import List, ObjectType, String
+from graphene import Argument, InputObjectType, List, ObjectType, String
 
 from ...models import Server
-from ...utils.graphql import ModelMutation, input_from_type
-from .logging import LoggingConfig, can_change, get_name
+from ...schema import ServerMutation
+from .logging import get_logging_conf, set_logging_conf
 
 
 class LoggingEntryType(ObjectType):
@@ -29,51 +28,24 @@ class LoggingEntryType(ObjectType):
     role: str = String()
 
 
-LoggingEntryInput = input_from_type(LoggingEntryType)
+class LoggingEntryInput(InputObjectType):
+    key: str = Argument(String, required=True)
+    channel: str = Argument(String, required=True)
+    role: str = Argument(String, required=True)
 
 
-class LoggingMutation(ModelMutation[Server], model=Server):
+class LoggingMutation(ServerMutation):
+    class Meta:
+        model = Server
+
     class Arguments:
-        config = List(LoggingEntryInput)
+        config = Argument(List(LoggingEntryInput), default_value=())
 
     logging = List(LoggingEntryType)
 
     @classmethod
-    def validate_permission(cls, user, changes: list[LoggingEntryInput]):
-        for change in changes:
-            if not can_change(user, change.key):
-                raise PermissionDenied()
-
-    @classmethod
-    def apply(cls, logging: LoggingConfig, changes: list[LoggingEntryInput]):
-        logging = {**logging}
-        for change in changes:
-            key = change.key
-            if not change.channel:
-                logging.pop(key, None)
-                continue
-            name = get_name(key)
-            logging[change.key] = {
-                'name': name,
-                'channel': int(change.channel),
-                'role': int(change.role),
-            }
-        return logging
-
-    @classmethod
-    def mutate(cls, root, info, **arguments):
-        user = info.context.user
-        with cls.instance(arguments) as server:
-            logging = server.logging
-            conf = arguments['config']
-            cls.validate_permission(user, conf)
-            server.logging = cls.apply(logging, conf)
-            server.save()
-        return cls(logging=resolve_logging(server, info))
-
-
-def resolve_logging(server: Server, info):
-    user = info.context.user
-    return [LoggingEntryType(key=k, **v)
-            for k, v in server.logging.items()
-            if can_change(user, k)]
+    def mutate(cls, root, info, *, item_id: str, config: list[LoggingEntryInput]):
+        req = info.context
+        server = cls.get_instance(req, item_id)
+        set_logging_conf(req, server, config)
+        return cls(logging=get_logging_conf(req, server))

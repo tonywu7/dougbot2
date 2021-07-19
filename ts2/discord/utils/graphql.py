@@ -15,12 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
-from contextlib import contextmanager
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
-from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from django.db.models import Model, QuerySet
 from django.forms import Form, ModelForm
+from django.http import HttpRequest
 from graphene import ID, Argument, InputObjectType, List, Mutation, ObjectType
 
 T = TypeVar('T', bound=Model)
@@ -50,16 +49,16 @@ class ModelMutation(Generic[T], Mutation):
     class Meta:
         abstract = True
 
-    def __init_subclass__(cls, model: Optional[type[T]] = None, **kwargs) -> None:
-        if model is None:
-            super().__init_subclass__(**kwargs)
-            return
-        cls._model = model
+    def __init_subclass__(cls, **kwargs) -> None:
+        try:
+            cls._model = cls.Meta.model
+        except AttributeError:
+            pass
         try:
             cls.Arguments.id = Argument(ID, required=True)
         except AttributeError:
             class Arguments:
-                id = Argument(ID, required=True)
+                item_id = Argument(ID, required=True)
             cls.Arguments = Arguments
         super().__init_subclass__(**kwargs)
 
@@ -68,22 +67,8 @@ class ModelMutation(Generic[T], Mutation):
         return cls._model.objects.all()
 
     @classmethod
-    def get_instance(cls, arguments: dict) -> T:
-        return cls.get_queryset().get(pk=arguments['id'])
-
-    @classmethod
-    @contextmanager
-    def instance(cls, arguments: dict, save=True):
-        try:
-            instance = cls.get_instance(arguments)
-        except (LookupError, ObjectDoesNotExist):
-            raise BadRequest('Instance not found.')
-        try:
-            yield instance
-            if save:
-                instance.save()
-        finally:
-            pass
+    def get_instance(cls, req: HttpRequest, item_id: str) -> T:
+        return cls.get_queryset().get(pk=item_id)
 
     @classmethod
     def mutate(cls, *args, **kwargs):
@@ -91,9 +76,16 @@ class ModelMutation(Generic[T], Mutation):
 
 
 class FormMutationMixin(Generic[U]):
+    def __init_subclass__(cls, **kwargs) -> None:
+        try:
+            cls._form = cls.Meta.form
+        except AttributeError:
+            pass
+        super().__init_subclass__(**kwargs)
+
     @classmethod
-    def get_form(cls, form_cls: type[Form], arguments: dict,
-                 instance=None, raise_invalid=True) -> Form:
+    def get_form(cls, arguments: dict, instance=None, raise_invalid=True) -> Form:
+        form_cls = cls._form
         kwargs = {'data': arguments}
         if issubclass(form_cls, ModelForm):
             kwargs['instance'] = instance

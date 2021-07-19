@@ -27,9 +27,12 @@ from typing import Optional, TypedDict
 from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
+from django.core.exceptions import PermissionDenied
+from django.http import HttpRequest
 
 from ts2.utils.datetime import localnow, utcnow
 
+from ...models import Server
 from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
 
@@ -112,13 +115,13 @@ LoggingConfig = dict[str, LoggingEntry]
 _log = logging.getLogger('discord.logging.exceptions')
 
 
-def can_change(user, key: str) -> bool:
+def has_logging_conf_permission(user, key: str) -> bool:
     return (key not in privileged or user.is_superuser)  # Material conditional
 
 
 def iter_logging_conf(user) -> Iterator[tuple[str, _ErrorConf]]:
     for k, v in exceptions.items():
-        if can_change(user, k):
+        if has_logging_conf_permission(user, k):
             yield k, v
     for k in logging_classes.keys() - exceptions.keys():
         yield k, {'name': logging_classes[k]}
@@ -235,3 +238,34 @@ async def report_exception(channel: TextChannel, exc_info: BaseException):
     tb_file = io.BytesIO(tb_body.encode())
     filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
     await channel.send(file=File(tb_file, filename=filename))
+
+
+def get_logging_conf(req: HttpRequest, server: Server):
+    user = req.user
+    return {k: v for k, v in server.logging.items()
+            if has_logging_conf_permission(user, k)}
+
+
+def set_logging_conf(req: HttpRequest, server: Server, changes: list):
+    user = req.user
+
+    for change in changes:
+        if not has_logging_conf_permission(user, change.key):
+            raise PermissionDenied('Insufficient permission.')
+
+    logging = server.logging.copy()
+
+    for change in changes:
+        key = change.key
+        if not change.channel:
+            logging.pop(key, None)
+            continue
+        name = get_name(key)
+        logging[change.key] = {
+            'name': name,
+            'channel': int(change.channel),
+            'role': int(change.role),
+        }
+
+    server.logging = logging
+    server.save()
