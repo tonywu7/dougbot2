@@ -50,6 +50,7 @@ import BOT_DETAILS from './graphql/query/bot-details.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
+import { stripIgnoredCharacters } from 'graphql'
 
 export let server: Server
 
@@ -62,6 +63,43 @@ const setCSRFToken = setContext((request, previousContext) => {
         return {}
     }
 })
+
+const notifyError = onError((err) => {
+    if (err.networkError) {
+        displayNotification(
+            Color.WARNING,
+            err.networkError.message || 'Network Error',
+            err.networkError.name,
+            {
+                autohide: false,
+            }
+        )
+    }
+    if (err.graphQLErrors && err.graphQLErrors.length) {
+        for (let e of err.graphQLErrors) {
+            displayNotification(Color.DANGER, e.message, e.name || 'Error', {
+                autohide: false,
+            })
+        }
+    }
+})
+
+function stripQueryURL(uri: string): string {
+    let url: URL
+    try {
+        url = new URL(uri)
+    } catch (e) {
+        url = new URL(uri, window.location.origin)
+    }
+    let query = url.searchParams.get('query')
+    if (!query) return uri
+    url.searchParams.set('query', stripIgnoredCharacters(query))
+    if (url.origin == window.location.origin) {
+        return url.toString().slice(url.origin.length)
+    } else {
+        return url.toString()
+    }
+}
 
 function getServerEndpoint(): string | null {
     let elem = document.querySelector('[data-server-endpoint]')
@@ -179,35 +217,13 @@ class Server {
             cache: new InMemoryCache(),
         }
 
-        let notifyError = onError((err) => {
-            if (err.networkError) {
-                displayNotification(
-                    Color.WARNING,
-                    err.networkError.message || 'Network Error',
-                    err.networkError.name,
-                    {
-                        autohide: false,
-                    }
-                )
-            }
-            if (err.graphQLErrors && err.graphQLErrors.length) {
-                for (let e of err.graphQLErrors) {
-                    displayNotification(
-                        Color.DANGER,
-                        e.message,
-                        e.name || 'Error',
-                        {
-                            autohide: false,
-                        }
-                    )
-                }
-            }
-        })
-
         if (endpoint) {
             let http = new HttpLink({
                 uri: endpoint,
                 useGETForQueries: true,
+                fetch: (input, init): Promise<Response> => {
+                    return fetch(stripQueryURL(input.toString()), init)
+                },
             })
             let setServerPrefix = new ApolloLink((op, forward) => {
                 op.variables.itemId = server

@@ -1,6 +1,7 @@
 'use strict'
 const { readdirSync } = require('fs')
 const path = require('path')
+
 const { DefinePlugin } = require('webpack')
 const { VueLoaderPlugin } = require('vue-loader')
 
@@ -47,7 +48,10 @@ module.exports = {
       },
       {
         test: /\.(graphql|gql)$/,
-        use: 'graphql-tag/loader',
+        use: [
+          'graphql-tag/loader',
+          { loader: path.resolve('./scripts/graphql-strip-char-loader.js') },
+        ],
         exclude: /node_modules/,
         sideEffects: false,
       },
@@ -107,6 +111,4 @@ module.exports = {
     filename: `[name].bundle.js`,
     clean: true,
   },
-
-  stats: 'detailed',
 }
