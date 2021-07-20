@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'polymorphic',
     'rest_framework',
     'timezone_field',
+    'ts2admin',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +45,6 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.debugging.apps.DebuggingConfig',
     'graphene_django',
     'channels',
-    'ts2admin',
 ]
 
 ROOT_URLCONF = 'ts2.urls'
