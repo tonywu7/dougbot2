@@ -1,9 +1,9 @@
 <template>
     <form class="form">
         <slot name="form-before"></slot>
-        <ul class="form-fields">
+        <div class="form-fields">
             <slot name="form-fields"></slot>
-        </ul>
+        </div>
         <slot name="form-after"></slot>
     </form>
 </template>

@@ -13,10 +13,11 @@ interface ExtraOptions {
 }
 
 export interface InputItemProps {
-    id: string
     type: string
+    id?: string
     name?: string
     label?: string
+    placeholder?: string
     hint?: string
     validator?: () => string | undefined
     options?: Partial<ExtraOptions>
@@ -28,7 +29,6 @@ export default defineComponent({
     props: {
         id: {
             type: String,
-            required: true,
         },
         type: {
             type: String,
@@ -41,6 +41,7 @@ export default defineComponent({
             default: (props: InputItemProps) => props.name,
         },
         hint: { type: String },
+        placeholder: { type: String },
         validator: {
             type: Function as PropType<(value: any) => string | undefined>,
             default: () => undefined,

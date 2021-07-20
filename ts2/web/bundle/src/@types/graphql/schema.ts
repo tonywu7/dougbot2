@@ -156,17 +156,17 @@ export type Query = {
 
 
 export type QueryServerArgs = {
-  id: Scalars['String'];
+  itemId: Scalars['ID'];
 };
 
 
 export type QueryLoggingArgs = {
-  server: Scalars['String'];
+  itemId: Scalars['ID'];
 };
 
 
 export type QueryAclArgs = {
-  server: Scalars['String'];
+  itemId: Scalars['ID'];
 };
 
 export type RoleType = {
@@ -256,15 +256,33 @@ export type UpdatePrefixMutation = (
   )> }
 );
 
-export type ServerInfoQueryVariables = Exact<{
-  id: Scalars['String'];
+export type BotDetailsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type BotDetailsQuery = (
+  { __typename?: 'Query' }
+  & { bot?: Maybe<(
+    { __typename?: 'BotType' }
+    & Pick<BotType, 'commands'>
+  )> }
+);
+
+export type ServerDetailsQueryVariables = Exact<{
+  itemId: Scalars['ID'];
 }>;
 
 
-export type ServerInfoQuery = (
+export type ServerDetailsQuery = (
   { __typename?: 'Query' }
   & { server?: Maybe<(
     { __typename?: 'ServerType' }
-    & Pick<ServerType, 'snowflake' | 'name' | 'prefix'>
+    & Pick<ServerType, 'snowflake' | 'name' | 'prefix' | 'disabled' | 'extensions'>
+    & { channels: Array<(
+      { __typename?: 'ChannelType' }
+      & Pick<ChannelType, 'snowflake' | 'name' | 'type' | 'order'>
+    )>, roles: Array<(
+      { __typename?: 'RoleType' }
+      & Pick<RoleType, 'snowflake' | 'name' | 'color' | 'order' | 'perms'>
+    )> }
   )> }
 );

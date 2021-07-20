@@ -60,8 +60,8 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
 
 @login_required
 @write_access_required
-def constraints(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'telescope2/web/manage/constraints.html')
+def acl_config(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'telescope2/web/manage/acl.html')
 
 
 @login_required

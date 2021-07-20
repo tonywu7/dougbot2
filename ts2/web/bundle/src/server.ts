@@ -30,14 +30,23 @@ import { getCSRF } from './utils/site'
 import { displayNotification } from './components/utils/modal'
 import { Color } from './components/modal/bootstrap'
 
+import { ItemCandidate } from './components/input/ItemSelect.vue'
+import { SearchIndex } from './utils/search'
+
 import {
-    ServerInfoQuery,
+    ServerDetailsQuery,
     UpdatePrefixMutation,
     UpdatePrefixMutationVariables,
     UpdateExtensionsMutation,
     UpdateExtensionsMutationVariables,
+    ChannelType,
+    ChannelEnum,
+    RoleType,
+    BotDetailsQuery,
 } from './@types/graphql/schema'
-import SERVER_INFO from './graphql/query/server-info.graphql'
+
+import SERVER_DETAILS from './graphql/query/server-details.graphql'
+import BOT_DETAILS from './graphql/query/bot-details.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
@@ -66,10 +75,102 @@ function getServerID(): string | null {
     return (elem as HTMLElement).dataset.serverId!
 }
 
+export class Command implements ItemCandidate {
+    readonly id: string
+    readonly content: string
+    readonly foreground = '#d3d3d3'
+
+    constructor(cmd: string) {
+        this.id = this.content = cmd
+    }
+
+    public getIndex() {
+        return { id: this.id }
+    }
+}
+
+export class Channel implements ItemCandidate {
+    readonly id: string
+    readonly name: string
+    readonly order: number
+    readonly type: ChannelEnum
+
+    constructor(data: Omit<ChannelType, 'guild'>) {
+        this.id = data.snowflake!
+        this.name = data.name!
+        this.order = data.order!
+        this.type = data.type!
+    }
+
+    public get content(): string {
+        switch (this.type) {
+            case ChannelEnum.Text:
+            case ChannelEnum.News:
+                return `#${this.name}`
+            default:
+                return this.name
+        }
+    }
+
+    public get foreground(): string {
+        if (this.type === ChannelEnum.Category) {
+            return '#d3d3d3'
+        }
+        return '#7289da' // bring back blurple
+    }
+
+    public getIndex() {
+        return {
+            id: this.id,
+            name: this.content,
+            type: this.type,
+        }
+    }
+}
+
+export class Role implements ItemCandidate {
+    readonly id: string
+    readonly name: string
+    readonly order: number
+    readonly perms: number
+    readonly color: number
+
+    constructor(data: Omit<RoleType, 'guild'>) {
+        this.id = data.snowflake
+        this.name = data.name
+        this.order = data.order
+        this.perms = Number(data.perms)
+        this.color = data.color || 0x7289da
+    }
+
+    public get content() {
+        return this.name
+    }
+
+    public get foreground() {
+        return `#${this.color.toString(16).padStart(6, '0')}`
+    }
+
+    getIndex(): SearchIndex {
+        return {
+            id: this.id,
+            name: this.name,
+        }
+    }
+}
+
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
+
     private id: string
-    private serverInfo: ServerInfoQuery = {}
+
+    private serverInfo: ServerDetailsQuery = {}
+    private botInfo: BotDetailsQuery = {}
+
+    private channels: Channel[] = []
+    private roles: Role[] = []
+
+    private commands: Command[] = []
 
     constructor(endpoint: string | null, server: string | null) {
         this.id = server || ''
@@ -123,19 +224,53 @@ class Server {
         this.client = new ApolloClient(conf)
     }
 
-    async fetchServerInfo(refresh = false): Promise<void> {
+    async fetchServerDetails(refresh = false): Promise<void> {
         if (refresh || !Object.keys(this.serverInfo).length) {
             this.serverInfo = (
-                await this.client.query<ServerInfoQuery>({
-                    query: SERVER_INFO,
+                await this.client.query<ServerDetailsQuery>({
+                    query: SERVER_DETAILS,
                 })
             ).data
+            this.channels = this.serverInfo
+                .server!.channels.map((d) => new Channel(d))
+                .sort((a, b) => a.order - b.order)
+            this.roles = this.serverInfo
+                .server!.roles.map((d) => new Role(d))
+                .sort((a, b) => a.order - b.order)
+        }
+    }
+
+    async fetchBotDetails(refresh = false): Promise<void> {
+        if (refresh || !Object.keys(this.botInfo).length) {
+            this.botInfo = (
+                await this.client.query<BotDetailsQuery>({
+                    query: BOT_DETAILS,
+                })
+            ).data
+            this.commands = this.botInfo
+                .bot!.commands!.map((d) => new Command(d!))
+                .sort((a, b) => a.id.localeCompare(b.id))
         }
     }
 
     async getPrefix(): Promise<string> {
-        await this.fetchServerInfo()
+        await this.fetchServerDetails()
         return this.serverInfo.server!.prefix!
+    }
+
+    async getChannels(): Promise<Channel[]> {
+        await this.fetchServerDetails()
+        return this.channels
+    }
+
+    async getRoles(): Promise<Role[]> {
+        await this.fetchServerDetails()
+        return this.roles
+    }
+
+    async getCommands(): Promise<Command[]> {
+        await this.fetchBotDetails()
+        return this.commands
     }
 
     async setPrefix(prefix: string): Promise<void> {

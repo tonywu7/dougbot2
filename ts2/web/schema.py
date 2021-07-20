@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import Field, List, ObjectType, Schema, String
+from graphene import ID, Field, List, ObjectType, Schema
 
 from ts2.discord import schema as discord
 from ts2.discord.ext import schema as discord_ext
@@ -25,26 +25,26 @@ from .middleware import get_server
 
 class Query(ObjectType):
     bot = Field(discord.BotType)
-    server = Field(discord.ServerType, id=String(required=True))
-    logging = List(discord_ext.LoggingEntryType, server=String(required=True))
-    acl = List(discord_ext.AccessControlType, server=String(required=True))
+    server = Field(discord.ServerType, item_id=ID(required=True))
+    logging = List(discord_ext.LoggingEntryType, item_id=ID(required=True))
+    acl = List(discord_ext.AccessControlType, item_id=ID(required=True))
 
     @classmethod
     def resolve_bot(cls, root, info):
         return discord.BotType()
 
     @classmethod
-    def resolve_server(cls, root, info, id) -> Server:
-        return get_server(info.context, id)
+    def resolve_server(cls, root, info, item_id) -> Server:
+        return get_server(info.context, item_id)
 
     @classmethod
-    def resolve_logging(cls, root, info, server):
-        server = cls.resolve_server(root, info, server)
+    def resolve_logging(cls, root, info, item_id):
+        server = cls.resolve_server(root, info, item_id)
         return discord_ext.resolve_logging(server, info)
 
     @classmethod
-    def resolve_acl(cls, root, info, server):
-        server = cls.resolve_server(root, info, server)
+    def resolve_acl(cls, root, info, item_id):
+        server = cls.resolve_server(root, info, item_id)
         return discord_ext.AccessControlType.serialize([*server.acl.all()])
 
 

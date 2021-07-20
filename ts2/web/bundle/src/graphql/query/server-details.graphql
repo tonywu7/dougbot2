@@ -1,0 +1,22 @@
+query serverDetails($itemId: ID!){
+  server(itemId: $itemId) {
+    snowflake
+    name
+    prefix
+    disabled
+    extensions
+    channels {
+      snowflake
+      name
+      type
+      order
+    }
+    roles {
+      snowflake
+      name
+      color
+      order
+      perms
+    }
+  }
+}

@@ -53,7 +53,7 @@ export class TextSearch<T extends Indexable> {
     }
 
     public search(query: string): T[] {
-        let indices = this.index.search(query).map((r) => r.ref)
+        let indices = this.query(allKeywords(query)).map((r) => r.ref)
         return this.values(indices)
     }
 

@@ -1,18 +1,16 @@
 <template>
-    <li :class="[containerType]">
-        <label v-if="label" :for="id" :class="labelState">
-            <slot name="label"><span v-html="label"></span></slot>
-        </label>
-        <input :class="inputElem" :id="id" :type="type" :name="name" v-model="value" />
-        <div class="field-after field-hint">
+    <div :class="[containerType]">
+        <label v-if="label" :for="id" :class="labelState" v-html="label"></label>
+        <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder" v-model="value" />
+        <div v-if="$slots.hint" class="field-after field-hint">
             <slot name="hint">
-                <p v-if="hint">{{ hint }}</p>
+                <p>{{ hint }}</p>
             </slot>
         </div>
         <div v-if="error" class="field-after field-error">
             <p v-html="error"></p>
         </div>
-    </li>
+    </div>
 </template>
 
 <style lang="scss" scoped>
@@ -81,36 +79,6 @@
         input {
             margin-inline-end: 6pt;
         }
-    }
-
-    .field-label {
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        font-weight: 400;
-        font-size: 0.8rem;
-        line-height: 1;
-
-        &.modified {
-            color: $yellow-300;
-        }
-    }
-
-    .field-after {
-        margin: 0.4rem 0 0;
-
-        :deep(p) {
-            margin: 0;
-            font-size: 0.8rem;
-            letter-spacing: 0.01px;
-        }
-    }
-
-    .field-hint :deep(p) {
-        color: $bw-grey-9;
-    }
-
-    .field-error :deep(p) {
-        color: $red-500;
     }
 </style>
 

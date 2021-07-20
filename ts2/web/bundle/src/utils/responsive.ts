@@ -57,3 +57,7 @@ export function initTooltips(frame: Element) {
         .call(frame.querySelectorAll('[data-bs-toggle="tooltip"]'))
         .forEach((tooltipElem) => new bootstrap.Tooltip(tooltipElem))
 }
+
+export function sleep(s: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, s * 1000))
+}

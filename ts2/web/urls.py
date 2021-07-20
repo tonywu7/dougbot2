@@ -36,7 +36,7 @@ urlpatterns = [
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/index$', views.manage.index, name='manage.index'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/core$', views.manage.core, name='manage.core'),
-    re_path(r'^guild/(?P<guild_id>[0-9]+)/constraints$', views.manage.constraints, name='manage.constraints'),
+    re_path(r'^guild/(?P<guild_id>[0-9]+)/acl$', views.manage.acl_config, name='manage.acl'),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/logging$', views.manage.logging_config, name='manage.logging'),
 
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('ts2.discord.urls')),

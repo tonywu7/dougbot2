@@ -26,10 +26,19 @@ declare module '*/update-prefix.graphql' {
 }
     
 
-declare module '*/server-info.graphql' {
+declare module '*/bot-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const serverInfo: DocumentNode;
+  export const botDetails: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/server-details.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const serverDetails: DocumentNode;
 
   export default defaultDocument;
 }
