@@ -1,3 +1,19 @@
+// ItemSelect.vue.ts
+// Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import { color } from 'd3'
 import { Dropdown } from 'bootstrap'
 
@@ -125,11 +141,7 @@ export default defineComponent({
             this.update()
         },
         update() {
-            if (this.multiple) {
-                this.$emit('update:choices', Object.values(this.selected))
-            } else {
-                this.$emit('update:choices', Object.values(this.selected)[0])
-            }
+            this.$emit('update:choices', Object.values(this.selected))
         },
         regenIndex() {
             this.index = createIndex(this.items)
@@ -139,6 +151,15 @@ export default defineComponent({
         items: {
             handler() {
                 this.regenIndex()
+            },
+            deep: true,
+        },
+        '$attrs.choices': {
+            handler(v: ItemCandidate[]) {
+                this.selected = Object.assign(
+                    {},
+                    ...v.map((d) => ({ [d.id]: d }))
+                )
             },
             deep: true,
         },
