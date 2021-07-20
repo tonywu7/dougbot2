@@ -1,0 +1,11 @@
+query serverACL($itemId: ID!) {
+  acl(itemId: $itemId) {
+    name
+    commands
+    channels
+    roles
+    modifier
+    action
+    error
+  }
+}

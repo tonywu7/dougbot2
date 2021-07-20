@@ -35,6 +35,15 @@ declare module '*/bot-details.graphql' {
 }
     
 
+declare module '*/server-acl.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const serverACL: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/server-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

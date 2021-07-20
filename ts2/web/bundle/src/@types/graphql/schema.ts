@@ -267,6 +267,19 @@ export type BotDetailsQuery = (
   )> }
 );
 
+export type ServerAclQueryVariables = Exact<{
+  itemId: Scalars['ID'];
+}>;
+
+
+export type ServerAclQuery = (
+  { __typename?: 'Query' }
+  & { acl?: Maybe<Array<Maybe<(
+    { __typename?: 'AccessControlType' }
+    & Pick<AccessControlType, 'name' | 'commands' | 'channels' | 'roles' | 'modifier' | 'action' | 'error'>
+  )>>> }
+);
+
 export type ServerDetailsQueryVariables = Exact<{
   itemId: Scalars['ID'];
 }>;

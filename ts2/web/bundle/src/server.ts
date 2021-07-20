@@ -25,6 +25,8 @@ import {
 } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
+import { DocumentNode, stripIgnoredCharacters } from 'graphql'
+
 import { getCSRF } from './utils/site'
 
 import { displayNotification } from './components/utils/modal'
@@ -43,6 +45,7 @@ import {
     ChannelEnum,
     RoleType,
     BotDetailsQuery,
+    ServerAclQuery,
 } from './@types/graphql/schema'
 
 import SERVER_DETAILS from './graphql/query/server-details.graphql'
@@ -50,7 +53,8 @@ import BOT_DETAILS from './graphql/query/bot-details.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
-import { stripIgnoredCharacters } from 'graphql'
+
+import SERVER_ACL from './graphql/query/server-acl.graphql'
 
 export let server: Server
 
@@ -197,13 +201,26 @@ export class Role implements ItemCandidate {
     }
 }
 
+interface QueryResults {
+    serverInfo: ServerDetailsQuery
+    botInfo: BotDetailsQuery
+    aclInfo: ServerAclQuery
+    [x: string]: any
+}
+
+const QUERIES: Record<keyof QueryResults, DocumentNode> = {
+    serverInfo: SERVER_DETAILS,
+    botInfo: BOT_DETAILS,
+    aclInfo: SERVER_ACL,
+}
+
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
 
     private id: string
+    private prefix: string | undefined
 
-    private serverInfo: ServerDetailsQuery = {}
-    private botInfo: BotDetailsQuery = {}
+    private queries: Partial<QueryResults> = {}
 
     private channels: Channel[] = []
     private roles: Role[] = []
@@ -240,38 +257,51 @@ class Server {
         this.client = new ApolloClient(conf)
     }
 
-    async fetchServerDetails(refresh = false): Promise<void> {
-        if (refresh || !Object.keys(this.serverInfo).length) {
-            this.serverInfo = (
-                await this.client.query<ServerDetailsQuery>({
-                    query: SERVER_DETAILS,
-                })
+    async fetchQuery<K extends keyof QueryResults, T = QueryResults[K]>(
+        key: K,
+        refresh = false,
+        variables?: Record<string, any>
+    ): Promise<boolean> {
+        let query = QUERIES[key]
+        if (
+            refresh ||
+            !this.queries[key] ||
+            !Object.keys(this.queries[key]).length
+        ) {
+            this.queries[key] = (
+                await this.client.query<T>({ query, variables })
             ).data
-            this.channels = this.serverInfo
-                .server!.channels.map((d) => new Channel(d))
+            return true
+        }
+        return false
+    }
+
+    async fetchServerDetails(refresh = false): Promise<void> {
+        let refreshed = await this.fetchQuery('serverInfo', refresh)
+        if (refreshed) {
+            let info = this.queries.serverInfo!.server!
+            this.prefix = info.prefix
+            this.channels = info.channels
+                .map((d) => new Channel(d))
                 .sort((a, b) => a.order - b.order)
-            this.roles = this.serverInfo
-                .server!.roles.map((d) => new Role(d))
+            this.roles = info.roles
+                .map((d) => new Role(d))
                 .sort((a, b) => a.order - b.order)
         }
     }
 
     async fetchBotDetails(refresh = false): Promise<void> {
-        if (refresh || !Object.keys(this.botInfo).length) {
-            this.botInfo = (
-                await this.client.query<BotDetailsQuery>({
-                    query: BOT_DETAILS,
-                })
-            ).data
-            this.commands = this.botInfo
-                .bot!.commands!.map((d) => new Command(d!))
+        let refreshed = await this.fetchQuery('botInfo', refresh)
+        if (refreshed) {
+            this.commands = this.queries
+                .botInfo!.bot!.commands!.map((d) => new Command(d!))
                 .sort((a, b) => a.id.localeCompare(b.id))
         }
     }
 
     async getPrefix(): Promise<string> {
         await this.fetchServerDetails()
-        return this.serverInfo.server!.prefix!
+        return this.prefix!
     }
 
     async getChannels(): Promise<Channel[]> {
