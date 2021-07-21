@@ -1,8 +1,8 @@
 from django.conf import settings
 from django.urls import include, re_path
 from django.views.generic.base import RedirectView
-from graphene_django.views import GraphQLView
 
+from .._compat.graphql_django import GraphQLView_
 from . import schema, views
 
 
@@ -44,6 +44,6 @@ urlpatterns = [
 
     re_path(
         r'^graphql$', name='api',
-        view=GraphQLView.as_view(graphiql=settings.DEBUG, schema=schema.schema),
+        view=GraphQLView_.as_view(graphiql=settings.DEBUG, schema=schema.schema),
     ),
 ]

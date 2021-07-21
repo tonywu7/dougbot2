@@ -2,8 +2,11 @@
 {% load element static  %}
 
 {% block apps %}
-<link rel="stylesheet" href="{% static '/telescope2/acl.css' %}">
 <script defer src="{% static '/telescope2/acl.bundle.js' %}"></script>
+{% endblock %}
+
+{% block app_styles %}
+<link rel="stylesheet" href="{% static '/telescope2/acl.css' %}">
 {% endblock %}
 
 {% block title %}Access control - {{ discord.server.name|default:'server' }}{% endblock %}
