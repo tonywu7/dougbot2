@@ -25,6 +25,7 @@ import {
     Indexable,
     configureAsPrefixSearch,
 } from '../../utils/search'
+import { pick } from 'lodash'
 
 export interface ItemCandidate extends Indexable {
     id: string
@@ -46,10 +47,10 @@ export default defineComponent({
     components: { InputField },
     props: {
         items: {
-            type: Object as PropType<ItemCandidate[]>,
+            type: Object as PropType<Record<string, ItemCandidate>>,
             required: true,
             default: () => {
-                return []
+                return {}
             },
         },
         label: {
@@ -63,8 +64,12 @@ export default defineComponent({
             type: Boolean,
             default: true,
         },
+        error: {
+            type: String,
+            default: '',
+        },
     },
-    emits: ['update:choices'],
+    emits: ['update:choices', 'update:error'],
     mounted() {
         let elem = this.$refs.dropdown as HTMLElement
         elem.addEventListener('hidden.bs.dropdown', () => {
@@ -73,7 +78,7 @@ export default defineComponent({
     },
     data() {
         let selected: Record<string, ItemCandidate> = {}
-        let index = createIndex(this.items)
+        let index = createIndex(Object.values(this.items))
         let search: string = ''
         return {
             selected,
@@ -99,11 +104,16 @@ export default defineComponent({
         },
     },
     methods: {
-        inputFocused(ev: MouseEvent | FocusEvent) {
-            ev.stopImmediatePropagation()
+        showDropdown(ev?: MouseEvent | FocusEvent) {
+            ev?.stopImmediatePropagation()
             this.dropdown?.show()
         },
-        inputBlurred(ev: FocusEvent) {
+        clearValidity() {
+            let searchBox = this.$refs.searchBox as HTMLInputElement
+            searchBox.setCustomValidity('')
+            this.$emit('update:error', '')
+        },
+        hideDropdown(ev: FocusEvent) {
             let focused = ev.relatedTarget as HTMLElement
             if (focused && !focused.classList.contains('item-select-item')) {
                 this.dropdown?.hide()
@@ -141,13 +151,21 @@ export default defineComponent({
             this.update()
         },
         update() {
-            this.$emit('update:choices', Object.values(this.selected))
+            this.$emit(
+                'update:choices',
+                pick(this.items, Object.keys(this.selected))
+            )
         },
         regenIndex() {
-            this.index = createIndex(this.items)
+            this.index = createIndex(Object.values(this.items))
         },
     },
     watch: {
+        error(e: string) {
+            let searchBox = this.$refs.searchBox as HTMLInputElement
+            searchBox.setCustomValidity(e)
+            searchBox.reportValidity()
+        },
         items: {
             handler() {
                 this.regenIndex()
@@ -155,13 +173,28 @@ export default defineComponent({
             deep: true,
         },
         '$attrs.choices': {
-            handler(v: ItemCandidate[]) {
-                this.selected = Object.assign(
-                    {},
-                    ...v.map((d) => ({ [d.id]: d }))
-                )
+            handler(v: Record<string, ItemCandidate>) {
+                this.selected = v
             },
             deep: true,
+            immediate: true,
         },
     },
 })
+
+export function candidateWithDefault(
+    keys: string[],
+    items: Record<string, ItemCandidate>,
+    ifndef: (id: string) => string
+) {
+    let selected: Record<string, ItemCandidate> = {}
+    for (let k of keys) {
+        selected[k] = items[k] || {
+            id: k,
+            content: ifndef(k),
+            foreground: 'white',
+            getIndex: () => ({ id: k }),
+        }
+    }
+    return selected
+}

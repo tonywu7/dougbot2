@@ -15,24 +15,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from itertools import product
+from typing import Optional, Union
 
-from graphene import (Argument, Boolean, Enum, Field, InputObjectType, Int,
-                      List, ObjectType, String)
+from graphene import (ID, Argument, Boolean, Enum, Field, InputObjectType, Int,
+                      List, NonNull, ObjectType, String)
 from more_itertools import bucket, first
 
+from ts2.web.middleware import get_server
+
 from ...models import Server
-from ...schema import ServerMutation
+from ...schema import ServerModelMutation
 from .models import AccessControl, ACLAction, ACLRoleModifier
 
 
 class AccessControlType(ObjectType):
-    name: str = String()
-    commands: list[str] = List(String)
-    channels: list[str] = List(String)
-    roles: list[str] = List(String)
-    modifier: int = Field(Enum.from_enum(ACLRoleModifier))
-    action: str = Field(Enum.from_enum(ACLAction))
-    specificity: list[int] = List(Int)
+    name: str = Field(String, required=True)
+    commands: list[str] = List(NonNull(String))
+    channels: list[str] = List(NonNull(String))
+    roles: list[str] = List(NonNull(String))
+    modifier: int = Field(Enum.from_enum(ACLRoleModifier), required=True)
+    action: str = Field(Enum.from_enum(ACLAction), required=True)
+    specificity: list[int] = List(NonNull(Int))
     error: str = String()
 
     @classmethod
@@ -67,7 +70,29 @@ class AccessControlInput(InputObjectType):
     error: str = Field(String)
 
 
-class ACLDeleteMutation(ServerMutation):
+def schema_to_models(
+    self: Union[AccessControlType, AccessControlInput],
+    server_id: Optional[int] = None,
+) -> list[AccessControl]:
+    roles = [int(s) for s in self.roles]
+    commands = self.commands or ['']
+    channels = self.channels or [0]
+    targets = {(cmd, int(ch)): True for cmd, ch
+               in product(commands, channels)}
+    instances = []
+    for cmd, ch in targets:
+        obj = AccessControl(
+            server_id=server_id, name=self.name,
+            command=cmd, channel=ch,
+            roles=roles, modifier=self.modifier,
+            action=self.action, error=self.error or '',
+        )
+        obj.calc_specificity()
+        instances.append(obj)
+    return instances
+
+
+class ACLDeleteMutation(ServerModelMutation):
     class Meta:
         model = Server
 
@@ -77,14 +102,14 @@ class ACLDeleteMutation(ServerMutation):
     success: bool = Boolean()
 
     @classmethod
-    def mutate(cls, root, info, item_id: str, names: list[str]):
-        server = cls.get_instance(info.context, item_id)
+    def mutate(cls, root, info, server_id: str, names: list[str]):
+        server = cls.get_instance(info.context, server_id)
         instances = server.acl.all().filter(name__in=names)
         instances.delete()
         return cls(success=True)
 
 
-class ACLUpdateMutation(ServerMutation):
+class ACLUpdateMutation(ServerModelMutation):
     class Meta:
         model = Server
 
@@ -103,27 +128,28 @@ class ACLUpdateMutation(ServerMutation):
     def create(cls, server: Server, changes: list[AccessControlInput]) -> list[AccessControl]:
         instances = []
         for acl in changes:
-            roles = [int(s) for s in acl.roles]
-            commands = acl.commands or ['']
-            channels = acl.channels or [0]
-            targets = {(cmd, int(ch)): True for cmd, ch
-                       in product(commands, channels)}
-            for cmd, ch in targets:
-                obj = AccessControl(
-                    server_id=server.snowflake, name=acl.name,
-                    command=cmd, channel=ch,
-                    roles=roles, modifier=acl.modifier,
-                    action=acl.action, error=acl.error or '',
-                )
-                obj.calc_specificity()
-                instances.append(obj)
+            instances.extend(schema_to_models(acl, server.snowflake))
         AccessControl.objects.bulk_create(instances)
         return instances
 
     @classmethod
-    def mutate(cls, root, info, item_id: str, changes):
-        server = cls.get_instance(info.context, item_id)
+    def mutate(cls, root, info, server_id: str, changes):
+        server = cls.get_instance(info.context, server_id)
         cls.delete(server, changes)
         instances = cls.create(server, changes)
         acl = AccessControlType.serialize(instances)
         return cls(acl=acl)
+
+
+class ACLQuery(ObjectType):
+    acl = List(AccessControlType, server_id=ID(required=True))
+
+    @classmethod
+    def resolve_acl(cls, root, info, server_id):
+        server = get_server(info.context, server_id)
+        return AccessControlType.serialize([*server.acl.all()])
+
+
+class ACLMutation(ObjectType):
+    delete_acl = ACLDeleteMutation.Field(name='deleteACL')
+    update_acl = ACLUpdateMutation.Field(name='updateACL')

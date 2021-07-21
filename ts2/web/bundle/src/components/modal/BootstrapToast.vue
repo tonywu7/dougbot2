@@ -15,7 +15,7 @@
                     <div class="toast-body">
                         <b v-html="message"></b>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    <button type="button" :class="['btn-close me-2 m-auto', btnColor]" data-bs-dismiss="toast"
                         aria-label="Close"></button>
                 </template>
             </div>

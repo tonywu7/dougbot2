@@ -1,0 +1,20 @@
+mutation UpdateACL(
+    $names: [String]!
+    $changes: [AccessControlInput]!
+    $serverId: ID!
+) {
+    deleteACL(names: $names, serverId: $serverId) {
+        success
+    }
+    updateACL(changes: $changes, serverId: $serverId) {
+        acl {
+            name
+            commands
+            channels
+            roles
+            modifier
+            action
+            error
+        }
+    }
+}

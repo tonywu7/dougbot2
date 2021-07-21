@@ -1,11 +1,11 @@
-query serverACL($itemId: ID!) {
-  acl(itemId: $itemId) {
-    name
-    commands
-    channels
-    roles
-    modifier
-    action
-    error
-  }
+query ServerACL($serverId: ID!) {
+    acl(serverId: $serverId) {
+        name
+        commands
+        channels
+        roles
+        modifier
+        action
+        error
+    }
 }

@@ -18,7 +18,7 @@ from typing import Protocol
 
 from django.db.models import BigIntegerField
 from django.http import HttpRequest
-from graphene import Argument, Enum, Field, List, ObjectType, String
+from graphene import ID, Argument, Enum, Field, List, ObjectType, String
 from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
@@ -68,7 +68,7 @@ class ChannelType(DjangoObjectType):
 
     class Meta:
         model = models.Channel
-        fields = ('snowflake', 'name', 'guild', 'order')
+        fields = ('snowflake', 'name', 'guild', 'order', 'category')
 
 
 class RoleType(DjangoObjectType):
@@ -83,16 +83,16 @@ class StringTemplateType(DjangoObjectType):
         fields = ('id', 'source', 'server', 'name')
 
 
-class ServerMutation(ModelMutation[Server]):
+class ServerModelMutation(ModelMutation[Server]):
     @classmethod
     def get_instance(cls, req: HttpRequest, server_id: str) -> Server:
         return get_server(req, server_id)
 
 
-class ServerFormMutation(FormMutationMixin, ServerMutation):
+class ServerFormMutation(FormMutationMixin, ServerModelMutation):
     @classmethod
-    def mutate(cls, root, info, *, item_id: str, **arguments):
-        server = cls.get_instance(info.context, item_id)
+    def mutate(cls, root, info, *, server_id: str, **arguments):
+        server = cls.get_instance(info.context, server_id)
         form = cls.get_form(arguments, server)
         form.save()
         return cls(server)
@@ -126,3 +126,25 @@ class ServerModelSyncMutation(ServerFormMutation):
         form = forms.ServerModelSyncForm
 
     server = Field(ServerType)
+
+
+class ServerQuery(ObjectType):
+    server = Field(ServerType, server_id=ID(required=True))
+
+    @classmethod
+    def resolve_server(cls, root, info, server_id) -> Server:
+        return get_server(info.context, server_id)
+
+
+class BotQuery(ObjectType):
+    bot = Field(BotType)
+
+    @classmethod
+    def resolve_bot(cls, root, info):
+        return BotType()
+
+
+class ServerMutation(ObjectType):
+    update_prefix = ServerPrefixMutation.Field()
+    update_extensions = ServerExtensionsMutation.Field()
+    update_models = ServerModelSyncMutation.Field()

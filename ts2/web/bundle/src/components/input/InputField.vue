@@ -1,7 +1,12 @@
 <template>
     <div :class="[containerType]">
         <label v-if="label" :for="id" :class="labelState" v-html="label"></label>
-        <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder" v-model="value" />
+        <template v-if="type === 'textarea'">
+            <textarea :class="inputElem" :id="id" :name="name" :placeholder="placeholder" v-model="value"></textarea>
+        </template>
+        <template v-else>
+            <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder" v-model="value" />
+        </template>
         <div v-if="$slots.hint" class="field-after field-hint">
             <slot name="hint">
                 <p>{{ hint }}</p>
@@ -17,30 +22,28 @@
     @import '../../styles/colors';
     @import '../../styles/typefaces';
 
-    .form-control {
+    .form-control[type='text'],
+    .form-control[type='number'],
+    textarea.form-control {
+        background-color: #00000000;
+        color: inherit;
 
-        &[type='text'],
-        &[type='number'] {
-            background-color: #00000000;
-            color: inherit;
+        padding: 0.5rem 0 0.5rem;
 
-            padding: 0.5rem 0 0.5rem;
+        border-radius: 0;
+        border: none;
+        border-bottom: 2px solid $bw-grey-13;
 
-            border-radius: 0;
-            border: none;
-            border-bottom: 2px solid $bw-grey-13;
+        &:focus,
+        &:active {
+            box-shadow: none;
+            border-color: var(--accent);
+        }
 
-            &:focus,
-            &:active {
-                box-shadow: none;
-                border-color: var(--accent);
-            }
-
-            &::placeholder {
-                font-size: 0.9rem;
-                font-weight: 500;
-                font-family: $ui-fonts;
-            }
+        &::placeholder {
+            font-size: 0.9rem;
+            font-weight: 500;
+            font-family: $ui-fonts;
         }
     }
 

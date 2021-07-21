@@ -14,20 +14,98 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { defineComponent } from 'vue'
-import InputSelect from '../../components/input/InputSelect.vue'
-import { InputSelectOption } from '../../components/input/InputSelect.vue'
+import { defineComponent, onMounted, ref, Ref } from 'vue'
+import ACLRule from './ACLRule.vue'
+
+import { ACL, server } from '../../server'
+import { displayNotification } from '../../components/utils/modal'
+import { Color } from '../../components/modal/bootstrap'
 
 export default defineComponent({
-    components: { InputSelect },
-    data() {
-        let options: InputSelectOption[] = [
-            { value: 0, text: 'none of' },
-            { value: 1, text: 'any of' },
-        ]
+    components: { 'acl-rule': ACLRule },
+    setup() {
+        let rules: Ref<ACL[]> = ref([])
+        onMounted(async () => {
+            rules.value.push(...(await server.getACLs()))
+        })
+        return { rules }
+    },
+    data(): {
+        changed: ACL[]
+        created: ACL[]
+    } {
         return {
-            options,
-            value: undefined,
+            changed: [],
+            created: [],
         }
+    },
+    computed: {
+        merged(): ACL[] {
+            let base: ACL[] = [...this.rules]
+            base.push(...this.created)
+            for (let i = 0; i < this.changed.length; i++) {
+                let item = this.changed[i]
+                if (item !== undefined) base[i] = item
+            }
+            return base
+        },
+    },
+    methods: {
+        untitled(): string {
+            let i = 1
+            while (
+                new Set(this.merged.map((d) => d.name)).has(
+                    `untitled rule (${i})`
+                )
+            )
+                i++
+            return `untitled rule (${i})`
+        },
+        createRule(): void {
+            let rule = ACL.empty()
+            let name = this.untitled()
+            rule.name = name
+            this.created.push(rule)
+        },
+        updateRule(item: ACL, index: number) {
+            this.changed[index] = item
+        },
+        assertUniqueNames(items: ACL[]): void {
+            let names: Set<string> = new Set()
+            for (let rule of items) {
+                if (rule.deleted) continue
+                if (names.has(rule.name)) {
+                    throw new Error(
+                        `Different rules cannot have the same name: ${rule.name}`
+                    )
+                }
+                names.add(rule.name)
+            }
+        },
+        async submit() {
+            let items = this.merged
+            try {
+                this.assertUniqueNames(items)
+            } catch (e) {
+                displayNotification(Color.WARNING, e.toString())
+                return
+            }
+            for (let i = 0; i < this.rules.length; i++) {
+                let before = this.rules[i]
+                let after = this.changed[i]
+                if (after !== undefined && before.name !== after.name) {
+                    items.push(Object.assign({}, before, { deleted: true }))
+                }
+            }
+            try {
+                let data = await server.updateACLs(items)
+                displayNotification(Color.SUCCESS, 'Rules saved.')
+                this.rules = data
+                this.created.length = 0
+                this.changed.length = 0
+            } catch (e) {
+                console.warn(e)
+            }
+        },
     },
 })

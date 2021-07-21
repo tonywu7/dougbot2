@@ -5,9 +5,14 @@
             aria-expanded="false" @click="(e) => e.stopImmediatePropagation()">
             <button v-for="item in selected" :key="item.id" type="button" class="selected-item item-select-item"
                 :style="styles(item, true)" v-html="item.content" @click="(e) => deselect(e, item)"></button>
-            <input type="text" class="item-select-search" :placeholder="placeholder" v-model="search"
-                @click="inputFocused" @focus="inputFocused" @blur="inputBlurred">
+            <input ref="searchBox" type="text" class="item-select-search" :placeholder="placeholder" v-model="search"
+                @click="showDropdown" @focus="showDropdown" @blur="hideDropdown" @input="clearValidity">
         </span>
+        <div v-if="$slots.hint" class="field-after field-hint">
+            <slot name="hint">
+                <p>{{ hint }}</p>
+            </slot>
+        </div>
         <ul class="dropdown-menu dropdown-menu-end">
             <li v-for="item in candidates" :key="item.id">
                 <button type="button" :style="styles(item, false)" class="dropdown-item item-select-item"
@@ -21,11 +26,13 @@
     @use "sass:color";
     @import '../../styles/colors';
 
-    $hairline-color: color.scale($color-text, $alpha: -50%);
+    $hairline-color: color.scale($color-text, $alpha: -75%);
 
     .item-select {
         display: flex;
         flex-flow: column nowrap;
+        margin-bottom: .5rem;
+
     }
 
     .item-select-field {
@@ -37,12 +44,16 @@
         border: 1px solid $hairline-color;
 
         border-radius: 4px;
-        margin: .5rem 0;
+        margin: .5rem 0 0;
         padding: 6px;
 
         >* {
             margin: 0;
         }
+    }
+
+    .field-hint {
+        margin: .25rem 0 0;
     }
 
     .selected-item {
@@ -71,11 +82,14 @@
         padding: 0;
         margin: 0 0 0 .5rem;
         width: 40%;
+        min-width: 270px;
 
         border: none;
 
         background-color: transparent;
         color: $color-text;
+
+        text-overflow: ellipsis;
 
         &:focus-visible {
             outline: none;

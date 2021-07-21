@@ -1,8 +1,17 @@
 
+declare module '*/update-acl.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateACL: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/update-extensions.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const updateExtensions: DocumentNode;
+  export const UpdateExtensions: DocumentNode;
 
   export default defaultDocument;
 }
@@ -11,7 +20,7 @@ declare module '*/update-extensions.graphql' {
 declare module '*/update-models.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const updateModels: DocumentNode;
+  export const UpdateModels: DocumentNode;
 
   export default defaultDocument;
 }
@@ -20,7 +29,7 @@ declare module '*/update-models.graphql' {
 declare module '*/update-prefix.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const updatePrefix: DocumentNode;
+  export const UpdatePrefix: DocumentNode;
 
   export default defaultDocument;
 }
@@ -29,7 +38,7 @@ declare module '*/update-prefix.graphql' {
 declare module '*/bot-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const botDetails: DocumentNode;
+  export const BotDetails: DocumentNode;
 
   export default defaultDocument;
 }
@@ -38,7 +47,7 @@ declare module '*/bot-details.graphql' {
 declare module '*/server-acl.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const serverACL: DocumentNode;
+  export const ServerACL: DocumentNode;
 
   export default defaultDocument;
 }
@@ -47,7 +56,7 @@ declare module '*/server-acl.graphql' {
 declare module '*/server-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
-  export const serverDetails: DocumentNode;
+  export const ServerDetails: DocumentNode;
 
   export default defaultDocument;
 }

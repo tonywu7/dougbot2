@@ -10,6 +10,7 @@
 {% block main_title %}Command access control{% endblock %}
 
 {% block sections %}
+{% csrf_token %}
 
 <div class="paragraph">
     <p class="large-icon"><span><i class="bi bi-person-check-fill"></i></span></p>
@@ -22,10 +23,11 @@
 </div>
 
 {% section id='acl-inspector' title='inspector' classes='grid-span-2' %}
+<div id="acl-app"></div>
 <div id="acl-inspect"></div>
 {% endsection %}
 
-{% section id='acl-editor' title='access control list' classes='grid-span-all' %}
+{% section id='acl-editor' title='access control rules' classes='grid-span-all' %}
 <div id="acl-list"></div>
 {% endsection %}
 

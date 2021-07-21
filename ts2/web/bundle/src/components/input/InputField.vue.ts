@@ -26,6 +26,7 @@ let FORM_CONTROL_TYPES: Record<string, string> = {
 
 interface ExtraOptions {
     useSwitch: boolean
+    showChanged: boolean
 }
 
 export interface InputItemProps {
@@ -121,7 +122,9 @@ export default defineComponent({
         labelState(): Record<string, boolean> {
             return {
                 'field-label': true,
-                modified: this.value !== this.initial,
+                modified:
+                    this.options.showChanged !== false &&
+                    this.value !== this.initial,
             }
         },
         containerType(): string[] {

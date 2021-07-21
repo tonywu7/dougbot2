@@ -39,6 +39,23 @@ def applicable(ac: AccessControl, roles: set[int]) -> bool:
     return applicable
 
 
+def acl_filter(acls: list[AccessControl], command: str, channel: int, category: int) -> list[AccessControl]:
+    return [r for r in acls if (r.command == command or not r.command)
+            and (r.channel == channel or r.channel == category or not r.channel)]
+
+
+def acl_test(acls: list[AccessControl], roles: set[int]) -> list[AccessControl]:
+    acls = bucket(acls, lambda c: c.calc_specificity())
+    for level in sorted(acls, reverse=True):
+        tests = [c for c in acls[level] if applicable(c, roles)]
+        if not tests:
+            continue
+        if any(c.enabled for c in tests):
+            return []
+        return tests
+    return []
+
+
 async def acl_check(ctx: Context) -> bool:
     cmd = ctx.command
     if cmd.hidden:
@@ -69,15 +86,7 @@ async def acl_check(ctx: Context) -> bool:
             )
             .all()
         )]
-        acls = bucket(acls, lambda c: c.calc_specificity())
-        for level in sorted(acls, reverse=True):
-            tests = [c for c in acls[level] if applicable(c, roles)]
-            if not tests:
-                continue
-            if any(c.enabled for c in tests):
-                return []
-            return tests
-        return []
+        return acl_test(acls, roles)
 
     result = await eval_acl()
     if result:

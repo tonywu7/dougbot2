@@ -198,19 +198,22 @@ class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
     type: int = models.IntegerField(choices=ChannelTypeEnum.choices)
     guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='channels')
     order: int = models.IntegerField(default=0)
+    category: Channel = models.ForeignKey('self', on_delete=SET_NULL, null=True)
 
     @classmethod
     def from_discord(cls, channel: DiscordChannels) -> Channel:
-        return cls(
+        instance = cls(
             snowflake=channel.id,
             name=channel.name,
             guild_id=channel.guild.id,
             type=channel.type.value,
+            category_id=channel.category_id,
         )
+        return instance
 
     @classmethod
     def updatable_fields(cls) -> list[str]:
-        return ['name', 'type']
+        return ['name', 'type', 'category_id']
 
 
 class Role(Entity, ModelTranslator[discord.Role, 'Role']):

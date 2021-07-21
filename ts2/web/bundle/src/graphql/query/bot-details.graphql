@@ -1,5 +1,5 @@
-query botDetails {
-  bot {
-    commands
-  }
+query BotDetails {
+    bot {
+        commands
+    }
 }

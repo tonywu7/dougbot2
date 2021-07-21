@@ -16,21 +16,24 @@
 
 import { defineComponent, PropType } from 'vue'
 
-export interface InputSelectOption {
-    value: any
+export interface InputSelectOption<T = any> {
+    value: T
     text: string
 }
 
 export default defineComponent({
     props: {
+        id: String,
+        label: String,
         options: {
             type: Object as PropType<InputSelectOption[]>,
             required: true,
         },
+        initial: [String, Number, Boolean],
     },
     emits: ['update:value'],
     data() {
-        return { _value: undefined } as { _value: any }
+        return { _value: this.initial || this.options[0].value }
     },
     computed: {
         choices(): Record<string, InputSelectOption> {
@@ -54,8 +57,11 @@ export default defineComponent({
         _value(v) {
             this.$emit('update:value', this._value)
         },
-        '$attrs.value'(v) {
-            this._value = v
+        '$attrs.value': {
+            handler(v) {
+                this._value = v
+            },
+            immediate: true,
         },
     },
 })

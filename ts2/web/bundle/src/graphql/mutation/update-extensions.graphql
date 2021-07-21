@@ -1,7 +1,7 @@
-mutation updateExtensions($itemId: ID!, $extensions: [String]!) {
-  updateExtensions(itemId: $itemId, extensions: $extensions) {
-    server {
-      extensions
+mutation UpdateExtensions($serverId: ID!, $extensions: [String]!) {
+    updateExtensions(serverId: $serverId, extensions: $extensions) {
+        server {
+            extensions
+        }
     }
-  }
 }

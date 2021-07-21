@@ -45,7 +45,11 @@ import {
     ChannelEnum,
     RoleType,
     BotDetailsQuery,
-    ServerAclQuery,
+    ServerACLQuery,
+    ACLRoleModifier,
+    ACLAction,
+    AccessControlType,
+    UpdateACLMutation,
 } from './@types/graphql/schema'
 
 import SERVER_DETAILS from './graphql/query/server-details.graphql'
@@ -55,6 +59,9 @@ import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
 
 import SERVER_ACL from './graphql/query/server-acl.graphql'
+import UPDATE_ACL from './graphql/mutation/update-acl.graphql'
+
+import { omit, partition } from 'lodash'
 
 export let server: Server
 
@@ -136,18 +143,24 @@ export class Channel implements ItemCandidate {
     readonly name: string
     readonly order: number
     readonly type: ChannelEnum
+    readonly categoryId?: string
 
-    constructor(data: Omit<ChannelType, 'guild'>) {
+    constructor(
+        data: Omit<ChannelType, 'guild' | 'category'> & {
+            category?: Pick<ChannelType, 'snowflake'> | null
+        }
+    ) {
         this.id = data.snowflake!
         this.name = data.name!
         this.order = data.order!
         this.type = data.type!
+        this.categoryId = data.category?.snowflake
     }
 
     public get content(): string {
         switch (this.type) {
-            case ChannelEnum.Text:
-            case ChannelEnum.News:
+            case ChannelEnum.text:
+            case ChannelEnum.news:
                 return `#${this.name}`
             default:
                 return this.name
@@ -155,7 +168,7 @@ export class Channel implements ItemCandidate {
     }
 
     public get foreground(): string {
-        if (this.type === ChannelEnum.Category) {
+        if (this.type === ChannelEnum.category) {
             return '#d3d3d3'
         }
         return '#7289da' // bring back blurple
@@ -201,10 +214,39 @@ export class Role implements ItemCandidate {
     }
 }
 
+export class ACL {
+    public name: string
+    public commands: string[]
+    public channels: string[]
+    public roles: string[]
+    public modifier: ACLRoleModifier
+    public action: ACLAction
+    public error: string
+    public deleted?: boolean = false
+
+    constructor(data: AccessControlType) {
+        this.name = data.name!
+        this.commands = data.commands || []
+        this.channels = data.channels || []
+        this.roles = data.roles || []
+        this.modifier = data.modifier
+        this.action = data.action
+        this.error = data.error || ''
+    }
+
+    static empty(): ACL {
+        return new ACL({
+            name: '',
+            modifier: ACLRoleModifier.ANY,
+            action: ACLAction.ENABLED,
+        })
+    }
+}
+
 interface QueryResults {
     serverInfo: ServerDetailsQuery
     botInfo: BotDetailsQuery
-    aclInfo: ServerAclQuery
+    aclInfo: ServerACLQuery
     [x: string]: any
 }
 
@@ -217,6 +259,8 @@ const QUERIES: Record<keyof QueryResults, DocumentNode> = {
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
 
+    private commands: Command[] = []
+
     private id: string
     private prefix: string | undefined
 
@@ -224,8 +268,7 @@ class Server {
 
     private channels: Channel[] = []
     private roles: Role[] = []
-
-    private commands: Command[] = []
+    private acl: ACL[] = []
 
     constructor(endpoint: string | null, server: string | null) {
         this.id = server || ''
@@ -237,13 +280,13 @@ class Server {
         if (endpoint) {
             let http = new HttpLink({
                 uri: endpoint,
-                useGETForQueries: true,
+                useGETForQueries: false,
                 fetch: (input, init): Promise<Response> => {
                     return fetch(stripQueryURL(input.toString()), init)
                 },
             })
             let setServerPrefix = new ApolloLink((op, forward) => {
-                op.variables.itemId = server
+                op.variables.serverId = server
                 return forward(op)
             })
             conf.link = linkFrom([
@@ -263,13 +306,14 @@ class Server {
         variables?: Record<string, any>
     ): Promise<boolean> {
         let query = QUERIES[key]
+        let context = { fetchOptions: { method: 'GET' } }
         if (
             refresh ||
             !this.queries[key] ||
             !Object.keys(this.queries[key]).length
         ) {
             this.queries[key] = (
-                await this.client.query<T>({ query, variables })
+                await this.client.query<T>({ query, variables, context })
             ).data
             return true
         }
@@ -299,6 +343,13 @@ class Server {
         }
     }
 
+    async fetchACLRules(refresh = false): Promise<void> {
+        let refreshed = await this.fetchQuery('aclInfo', refresh)
+        if (refreshed) {
+            this.acl = this.queries.aclInfo!.acl!.map((d) => new ACL(d!))
+        }
+    }
+
     async getPrefix(): Promise<string> {
         await this.fetchServerDetails()
         return this.prefix!
@@ -317,6 +368,11 @@ class Server {
     async getCommands(): Promise<Command[]> {
         await this.fetchBotDetails()
         return this.commands
+    }
+
+    async getACLs(): Promise<ACL[]> {
+        await this.fetchACLRules()
+        return this.acl
     }
 
     async setPrefix(prefix: string): Promise<void> {
@@ -341,6 +397,17 @@ class Server {
 
     async updateModels(): Promise<void> {
         await this.client.mutate({ mutation: UPDATE_MODELS })
+    }
+
+    async updateACLs(acls: ACL[]): Promise<ACL[]> {
+        let [remove, update] = partition(acls, (d) => d.deleted)
+        update = update.map((d) => omit(d, 'deleted'))
+        let removeKeys = remove.map((d) => d.name)
+        let res = await this.client.mutate<UpdateACLMutation>({
+            mutation: UPDATE_ACL,
+            variables: { names: removeKeys, changes: update },
+        })
+        return res.data!.updateACL!.acl!.map((d) => new ACL(d!))
     }
 }
 

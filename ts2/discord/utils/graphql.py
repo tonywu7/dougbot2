@@ -51,15 +51,19 @@ class ModelMutation(Generic[T], Mutation):
 
     def __init_subclass__(cls, **kwargs) -> None:
         try:
-            cls._model = cls.Meta.model
+            model: type[T] = cls.Meta.model
         except AttributeError:
-            pass
+            super().__init_subclass__(**kwargs)
+            return
+        cls._model = model
+        key = f'{model._meta.model_name}_id'
         try:
-            cls.Arguments.item_id = Argument(ID, required=True)
+            args = cls.Arguments
         except AttributeError:
             class Arguments:
-                item_id = Argument(ID, required=True)
-            cls.Arguments = Arguments
+                pass
+            cls.Arguments = args = Arguments
+        setattr(args, key, Argument(ID, required=True))
         super().__init_subclass__(**kwargs)
 
     @classmethod

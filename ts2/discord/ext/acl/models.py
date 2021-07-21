@@ -48,9 +48,9 @@ class AccessControl(models.Model):
 
     def calc_specificity(self):
         return (
-            int(self.modifier == 2) and len(self.roles),
-            int(self.modifier == 1) and len(self.roles),
             int(self.modifier == 0) and len(self.roles),
+            int(self.modifier == 2) and len(self.roles),
+            int(self.modifier == 1) and bool(self.roles),
             (bool(self.channel) << 1) + (bool(self.command) << 0),
         )
 

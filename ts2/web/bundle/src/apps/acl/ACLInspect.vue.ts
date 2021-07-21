@@ -14,30 +14,69 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { defineComponent, onMounted, ref, Ref } from 'vue'
+import { defineComponent } from 'vue'
+import { dataDiscordModel, setupDiscordModel } from '../../components/discord'
 import ItemSelect from '../../components/input/ItemSelect.vue'
-import { Role, Channel, Command, server } from '../../server'
 
 export default defineComponent({
     components: { ItemSelect },
+    props: {
+        state: {
+            type: Boolean,
+            default: undefined,
+        },
+    },
+    emits: ['run-test', 'clear'],
     setup() {
-        let roles: Ref<Role[]> = ref([])
-        let channels: Ref<Channel[]> = ref([])
-        let commands: Ref<Command[]> = ref([])
-        onMounted(async () => {
-            roles.value.push(...(await server.getRoles()))
-            channels.value.push(...(await server.getChannels()))
-            commands.value.push(...(await server.getCommands()))
-        })
-        return { roles, channels, commands }
+        return { ...setupDiscordModel() }
     },
     data() {
-        let result: string = '...'
-        let selected: {
-            roles: Role[]
-            channel: Channel[]
-            command: Command[]
-        } = { roles: [], channel: [], command: [] }
-        return { result, selected }
+        let errors = { commands: '', channels: '' }
+        return { errors, selected: dataDiscordModel() }
+    },
+    computed: {
+        command(): string {
+            return this.selected.commands[
+                Object.keys(this.selected.commands)[0]
+            ].content
+        },
+        channel(): string {
+            return this.selected.channels[
+                Object.keys(this.selected.channels)[0]
+            ].content
+        },
+        channelColor(): { color: string } {
+            return {
+                color: this.selected.channels[
+                    Object.keys(this.selected.channels)[0]
+                ].foreground,
+            }
+        },
+    },
+    methods: {
+        runTest() {
+            this.errors = { commands: '', channels: '' }
+            setTimeout(() => {
+                let channels = this.selected.channels || {}
+                let commands = this.selected.commands || {}
+                if (!Object.keys(channels).length) {
+                    this.errors.channels = 'Please choose a channel.'
+                    return
+                }
+                if (!Object.keys(commands).length) {
+                    this.errors.commands = 'Please choose a command.'
+                    return
+                }
+                this.$emit('run-test', this.selected)
+            })
+        },
+    },
+    watch: {
+        selected: {
+            handler() {
+                this.$emit('clear')
+            },
+            deep: true,
+        },
     },
 })

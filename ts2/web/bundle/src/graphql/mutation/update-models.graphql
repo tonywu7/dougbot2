@@ -1,7 +1,7 @@
-mutation updateModels($itemId: ID!) {
-  updateModels(itemId: $itemId) {
-    server {
-      snowflake
+mutation UpdateModels($serverId: ID!) {
+    updateModels(serverId: $serverId) {
+        server {
+            snowflake
+        }
     }
-  }
 }

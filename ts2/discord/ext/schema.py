@@ -1,11 +1,10 @@
-from .acl.schema import AccessControlType, ACLDeleteMutation, ACLUpdateMutation
-from .logging.schema import LoggingEntryType, LoggingMutation, get_logging_conf
+from .acl.schema import ACLMutation, ACLQuery
+from .logging.schema import LoggingMutation, LoggingQuery, get_logging_conf
 
 __all__ = [
-    'LoggingEntryType',
+    'LoggingQuery',
     'LoggingMutation',
-    'AccessControlType',
-    'ACLDeleteMutation',
-    'ACLUpdateMutation',
+    'ACLQuery',
+    'ACLMutation',
     'get_logging_conf',
 ]

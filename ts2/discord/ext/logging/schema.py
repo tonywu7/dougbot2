@@ -14,10 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import Argument, InputObjectType, List, ObjectType, String
+from graphene import ID, Argument, InputObjectType, List, ObjectType, String
+
+from ts2.web.middleware import get_server
 
 from ...models import Server
-from ...schema import ServerMutation
+from ...schema import ServerModelMutation
 from .logging import get_logging_conf, set_logging_conf
 
 
@@ -34,7 +36,7 @@ class LoggingEntryInput(InputObjectType):
     role: str = Argument(String, required=True)
 
 
-class LoggingMutation(ServerMutation):
+class LoggingUpdateMutation(ServerModelMutation):
     class Meta:
         model = Server
 
@@ -44,8 +46,21 @@ class LoggingMutation(ServerMutation):
     logging = List(LoggingEntryType)
 
     @classmethod
-    def mutate(cls, root, info, *, item_id: str, config: list[LoggingEntryInput]):
+    def mutate(cls, root, info, *, server_id: str, config: list[LoggingEntryInput]):
         req = info.context
-        server = cls.get_instance(req, item_id)
+        server = cls.get_instance(req, server_id)
         set_logging_conf(req, server, config)
         return cls(logging=get_logging_conf(req, server))
+
+
+class LoggingQuery(ObjectType):
+    logging = List(LoggingEntryType, server_id=ID(required=True))
+
+    @classmethod
+    def resolve_logging(cls, root, info, server_id):
+        server = get_server(info.context, server_id)
+        return get_logging_conf(info.context, server)
+
+
+class LoggingMutation(ObjectType):
+    update_logging = LoggingUpdateMutation.Field()

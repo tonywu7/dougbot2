@@ -12,24 +12,24 @@ export type Scalars = {
 };
 
 /** An enumeration. */
-export enum AclAction {
-  Enabled = 'ENABLED',
-  Disabled = 'DISABLED'
+export enum ACLAction {
+  ENABLED = 'ENABLED',
+  DISABLED = 'DISABLED'
 }
 
-export type AclDeleteMutation = {
+export type ACLDeleteMutation = {
   __typename?: 'ACLDeleteMutation';
   success?: Maybe<Scalars['Boolean']>;
 };
 
 /** An enumeration. */
-export enum AclRoleModifier {
-  None = 'NONE',
-  Any = 'ANY',
-  All = 'ALL'
+export enum ACLRoleModifier {
+  NONE = 'NONE',
+  ANY = 'ANY',
+  ALL = 'ALL'
 }
 
-export type AclUpdateMutation = {
+export type ACLUpdateMutation = {
   __typename?: 'ACLUpdateMutation';
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
 };
@@ -39,20 +39,20 @@ export type AccessControlInput = {
   commands?: Maybe<Array<Maybe<Scalars['String']>>>;
   channels?: Maybe<Array<Maybe<Scalars['String']>>>;
   roles?: Maybe<Array<Maybe<Scalars['String']>>>;
-  modifier: AclRoleModifier;
-  action: AclAction;
+  modifier: ACLRoleModifier;
+  action: ACLAction;
   error?: Maybe<Scalars['String']>;
 };
 
 export type AccessControlType = {
   __typename?: 'AccessControlType';
-  name?: Maybe<Scalars['String']>;
-  commands?: Maybe<Array<Maybe<Scalars['String']>>>;
-  channels?: Maybe<Array<Maybe<Scalars['String']>>>;
-  roles?: Maybe<Array<Maybe<Scalars['String']>>>;
-  modifier?: Maybe<AclRoleModifier>;
-  action?: Maybe<AclAction>;
-  specificity?: Maybe<Array<Maybe<Scalars['Int']>>>;
+  name: Scalars['String'];
+  commands?: Maybe<Array<Scalars['String']>>;
+  channels?: Maybe<Array<Scalars['String']>>;
+  roles?: Maybe<Array<Scalars['String']>>;
+  modifier: ACLRoleModifier;
+  action: ACLAction;
+  specificity?: Maybe<Array<Scalars['Int']>>;
   error?: Maybe<Scalars['String']>;
 };
 
@@ -63,14 +63,14 @@ export type BotType = {
 
 /** An enumeration. */
 export enum ChannelEnum {
-  Text = 'text',
-  Private = 'private',
-  Voice = 'voice',
-  Group = 'group',
-  Category = 'category',
-  News = 'news',
-  Store = 'store',
-  StageVoice = 'stage_voice'
+  text = 'text',
+  private = 'private',
+  voice = 'voice',
+  group = 'group',
+  category = 'category',
+  news = 'news',
+  store = 'store',
+  stage_voice = 'stage_voice'
 }
 
 export type ChannelType = {
@@ -79,6 +79,7 @@ export type ChannelType = {
   name: Scalars['String'];
   guild: ServerType;
   order: Scalars['Int'];
+  category?: Maybe<ChannelType>;
   type?: Maybe<ChannelEnum>;
 };
 
@@ -96,77 +97,77 @@ export type LoggingEntryType = {
   role?: Maybe<Scalars['String']>;
 };
 
-export type LoggingMutation = {
-  __typename?: 'LoggingMutation';
+export type LoggingUpdateMutation = {
+  __typename?: 'LoggingUpdateMutation';
   logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
+  deleteACL?: Maybe<ACLDeleteMutation>;
+  updateACL?: Maybe<ACLUpdateMutation>;
+  updateLogging?: Maybe<LoggingUpdateMutation>;
   updatePrefix?: Maybe<ServerPrefixMutation>;
   updateExtensions?: Maybe<ServerExtensionsMutation>;
   updateModels?: Maybe<ServerModelSyncMutation>;
-  updateLogging?: Maybe<LoggingMutation>;
-  deleteACL?: Maybe<AclDeleteMutation>;
-  updateACL?: Maybe<AclUpdateMutation>;
 };
 
 
-export type MutationUpdatePrefixArgs = {
-  itemId: Scalars['ID'];
-  prefix: Scalars['String'];
-};
-
-
-export type MutationUpdateExtensionsArgs = {
-  extensions: Array<Maybe<Scalars['String']>>;
-  itemId: Scalars['ID'];
-};
-
-
-export type MutationUpdateModelsArgs = {
-  itemId: Scalars['ID'];
-};
-
-
-export type MutationUpdateLoggingArgs = {
-  config?: Maybe<Array<Maybe<LoggingEntryInput>>>;
-  itemId: Scalars['ID'];
-};
-
-
-export type MutationDeleteAclArgs = {
-  itemId: Scalars['ID'];
+export type MutationdeleteACLArgs = {
   names?: Maybe<Array<Maybe<Scalars['String']>>>;
+  serverId: Scalars['ID'];
 };
 
 
-export type MutationUpdateAclArgs = {
+export type MutationupdateACLArgs = {
   changes?: Maybe<Array<Maybe<AccessControlInput>>>;
-  itemId: Scalars['ID'];
+  serverId: Scalars['ID'];
+};
+
+
+export type MutationupdateLoggingArgs = {
+  config?: Maybe<Array<Maybe<LoggingEntryInput>>>;
+  serverId: Scalars['ID'];
+};
+
+
+export type MutationupdatePrefixArgs = {
+  prefix: Scalars['String'];
+  serverId: Scalars['ID'];
+};
+
+
+export type MutationupdateExtensionsArgs = {
+  extensions: Array<Maybe<Scalars['String']>>;
+  serverId: Scalars['ID'];
+};
+
+
+export type MutationupdateModelsArgs = {
+  serverId: Scalars['ID'];
 };
 
 export type Query = {
   __typename?: 'Query';
+  acl?: Maybe<Array<Maybe<AccessControlType>>>;
+  logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
   bot?: Maybe<BotType>;
   server?: Maybe<ServerType>;
-  logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
-  acl?: Maybe<Array<Maybe<AccessControlType>>>;
 };
 
 
-export type QueryServerArgs = {
-  itemId: Scalars['ID'];
+export type QueryaclArgs = {
+  serverId: Scalars['ID'];
 };
 
 
-export type QueryLoggingArgs = {
-  itemId: Scalars['ID'];
+export type QueryloggingArgs = {
+  serverId: Scalars['ID'];
 };
 
 
-export type QueryAclArgs = {
-  itemId: Scalars['ID'];
+export type QueryserverArgs = {
+  serverId: Scalars['ID'];
 };
 
 export type RoleType = {
@@ -206,8 +207,29 @@ export type ServerType = {
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
 };
 
+export type UpdateACLMutationVariables = Exact<{
+  names: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
+  changes: Array<Maybe<AccessControlInput>> | Maybe<AccessControlInput>;
+  serverId: Scalars['ID'];
+}>;
+
+
+export type UpdateACLMutation = (
+  { __typename?: 'Mutation' }
+  & { deleteACL?: Maybe<(
+    { __typename?: 'ACLDeleteMutation' }
+    & Pick<ACLDeleteMutation, 'success'>
+  )>, updateACL?: Maybe<(
+    { __typename?: 'ACLUpdateMutation' }
+    & { acl?: Maybe<Array<Maybe<(
+      { __typename?: 'AccessControlType' }
+      & Pick<AccessControlType, 'name' | 'commands' | 'channels' | 'roles' | 'modifier' | 'action' | 'error'>
+    )>>> }
+  )> }
+);
+
 export type UpdateExtensionsMutationVariables = Exact<{
-  itemId: Scalars['ID'];
+  serverId: Scalars['ID'];
   extensions: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
 }>;
 
@@ -224,7 +246,7 @@ export type UpdateExtensionsMutation = (
 );
 
 export type UpdateModelsMutationVariables = Exact<{
-  itemId: Scalars['ID'];
+  serverId: Scalars['ID'];
 }>;
 
 
@@ -240,7 +262,7 @@ export type UpdateModelsMutation = (
 );
 
 export type UpdatePrefixMutationVariables = Exact<{
-  itemId: Scalars['ID'];
+  serverId: Scalars['ID'];
   prefix: Scalars['String'];
 }>;
 
@@ -267,12 +289,12 @@ export type BotDetailsQuery = (
   )> }
 );
 
-export type ServerAclQueryVariables = Exact<{
-  itemId: Scalars['ID'];
+export type ServerACLQueryVariables = Exact<{
+  serverId: Scalars['ID'];
 }>;
 
 
-export type ServerAclQuery = (
+export type ServerACLQuery = (
   { __typename?: 'Query' }
   & { acl?: Maybe<Array<Maybe<(
     { __typename?: 'AccessControlType' }
@@ -281,7 +303,7 @@ export type ServerAclQuery = (
 );
 
 export type ServerDetailsQueryVariables = Exact<{
-  itemId: Scalars['ID'];
+  serverId: Scalars['ID'];
 }>;
 
 
@@ -293,6 +315,10 @@ export type ServerDetailsQuery = (
     & { channels: Array<(
       { __typename?: 'ChannelType' }
       & Pick<ChannelType, 'snowflake' | 'name' | 'type' | 'order'>
+      & { category?: Maybe<(
+        { __typename?: 'ChannelType' }
+        & Pick<ChannelType, 'snowflake'>
+      )> }
     )>, roles: Array<(
       { __typename?: 'RoleType' }
       & Pick<RoleType, 'snowflake' | 'name' | 'color' | 'order' | 'perms'>
