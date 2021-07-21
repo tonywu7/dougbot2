@@ -151,10 +151,7 @@ export default defineComponent({
             this.update()
         },
         update() {
-            this.$emit(
-                'update:choices',
-                pick(this.items, Object.keys(this.selected))
-            )
+            this.$emit('update:choices', Object.keys(this.selected))
         },
         regenIndex() {
             this.index = createIndex(Object.values(this.items))
@@ -173,8 +170,22 @@ export default defineComponent({
             deep: true,
         },
         '$attrs.choices': {
-            handler(v: Record<string, ItemCandidate>) {
-                this.selected = v
+            handler(keys: string[]) {
+                let selected: Record<string, ItemCandidate> = {}
+                for (let k of keys) {
+                    let item = this.items[k]
+                    if (item) {
+                        selected[k] = item
+                    } else {
+                        selected[k] = {
+                            id: k,
+                            content: k,
+                            foreground: 'white',
+                            getIndex: () => ({ id: k }),
+                        }
+                    }
+                }
+                this.selected = selected
             },
             deep: true,
             immediate: true,

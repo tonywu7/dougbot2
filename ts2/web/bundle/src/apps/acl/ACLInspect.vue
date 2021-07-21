@@ -2,14 +2,14 @@
     <div class="form">
         <h4>Test out access control settings:</h4>
         <div>
+            <item-select label="In channel" :items="channels" v-model:error="errors.channels"
+                v-model:choices="selected.channels" placeholder="type in the name of a channel" :multiple="false">
+            </item-select>
             <item-select label="Member with roles" :items="roles" v-model:choices="selected.roles"
                 placeholder="type in the name of a role">
             </item-select>
             <item-select label="Using command" :items="commands" v-model:error="errors.commands"
                 v-model:choices="selected.commands" placeholder="type in a command" :multiple="false">
-            </item-select>
-            <item-select label="In channel" :items="channels" v-model:error="errors.channels"
-                v-model:choices="selected.channels" placeholder="type in the name of a channel" :multiple="false">
             </item-select>
             <div class="test">
                 <button type="button" class="btn btn-outline-primary btn-submit" @click="runTest">Test</button>
@@ -25,7 +25,7 @@
                         <span v-else class="text-off">
                             <i class="bi bi-circle-fill"></i> not allowed
                         </span>
-                        <span> to use </span>
+                        <span> to use command </span>
                         <span class="result-arg" v-html="command"></span>
                         <span> in </span>
                         <span class="result-arg" :style="channelColor" v-html="channel"></span>
@@ -62,7 +62,6 @@
     }
 
     .bi-circle-fill::before {
-        margin-inline-start: 1px;
         top: -2px;
     }
 </style>

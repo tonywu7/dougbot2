@@ -3,7 +3,7 @@ import { defineComponent, ref } from 'vue'
 import ACLList from './ACLList.vue'
 import ACLInspect from './ACLInspect.vue'
 import { dataDiscordModel } from '../../components/discord'
-import { filterACL, testACL } from './ACLRule.vue'
+import { ACLTestOptions, filterACL, testACL } from './ACLRule.vue'
 
 export default defineComponent({
     components: {
@@ -22,11 +22,8 @@ export default defineComponent({
         }
     },
     methods: {
-        runInspector(selection: ReturnType<typeof dataDiscordModel>) {
-            let { roles, commands, channels } = selection
-            let command = Object.keys(commands)[0]
-            let channel = Object.keys(channels)[0]
-            let category = channels[channel].categoryId
+        runInspector(options: ACLTestOptions) {
+            let { roles, command, channel, category } = options
             let rules = filterACL(
                 this.rulesApp!.merged.filter((d) => !d.deleted),
                 command,

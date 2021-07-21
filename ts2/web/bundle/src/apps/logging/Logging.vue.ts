@@ -31,7 +31,7 @@ import { ChannelEnum } from '../../@types/graphql/schema'
 import { displayNotification } from '../../components/utils/modal'
 import { Color } from '../../components/modal/bootstrap'
 
-type LoggingSelection = Omit<ReturnType<typeof dataDiscordModel>, 'commands'>
+type LoggingSelection = { roles: string[]; channels: string[] }
 
 export default defineComponent({
     components: { FormContainer, ItemSelect },
@@ -52,7 +52,7 @@ export default defineComponent({
     data() {
         let logging: Record<string, LoggingSelection> = Object.assign(
             {},
-            ...this.conf.map((c) => ({ [c.key]: dataDiscordModel() }))
+            ...this.conf.map((c) => ({ [c.key]: { roles: [], channels: [] } }))
         )
         return { logging }
     },
@@ -70,8 +70,8 @@ export default defineComponent({
             let existing = new Set(this.settings.map((d) => d.key))
             let finalized: LoggingConfigSubmission[] = []
             for (let [k, v] of Object.entries(this.logging)) {
-                let channel = Object.keys(v.channels)[0]
-                let role = Object.keys(v.roles)[0]
+                let channel = v.channels[0]
+                let role = v.roles[0]
                 if (!channel) {
                     if (existing.has(k)) {
                         finalized.push({ key: k, channel: '', role: '' })
@@ -96,11 +96,11 @@ export default defineComponent({
             handler(conf: LoggingConfig[]) {
                 for (let c of conf) {
                     let reconstructed: LoggingSelection = {
-                        channels: { [c.channel!]: this.channels[c.channel!] },
-                        roles: {},
+                        channels: [c.channel!],
+                        roles: [],
                     }
                     if (c.role) {
-                        reconstructed.roles![c.role] = this.roles[c.role]
+                        reconstructed.roles!.push(c.role!)
                     }
                     this.logging[c.key] = reconstructed
                 }

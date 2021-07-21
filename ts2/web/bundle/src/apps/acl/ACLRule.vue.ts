@@ -135,6 +135,13 @@ export function testACL(rules: ACL[], roles: Set<string>): boolean {
     return true
 }
 
+export interface ACLTestOptions {
+    roles: Set<string>
+    channel: string
+    command: string
+    category?: string
+}
+
 export default defineComponent({
     components: { InputSelect, ItemSelect, InputField },
     props: {
@@ -186,39 +193,33 @@ export default defineComponent({
             return `(${specificity.join(', ')})`
         },
         channelSelectors: {
-            get(): Record<string, ItemCandidate> {
-                return candidateWithDefault(
-                    this.data.channels,
-                    this.channels,
-                    (k) => `deleted channel ${k}`
+            get(): string[] {
+                return this.data.channels.map((k) =>
+                    k in this.channels ? k : `deleted channel ${k}`
                 )
             },
-            set(v: Record<string, Channel>) {
-                this.data.channels = Object.keys(v)
+            set(v: string[]) {
+                this.data.channels = v
             },
         },
         roleSelectors: {
-            get(): Record<string, ItemCandidate> {
-                return candidateWithDefault(
-                    this.data.roles,
-                    this.roles,
-                    (k) => `deleted role ${k}`
+            get(): string[] {
+                return this.data.roles.map((k) =>
+                    k in this.roles ? k : `deleted role ${k}`
                 )
             },
-            set(v: Record<string, Role>) {
-                this.data.roles = Object.keys(v)
+            set(v: string[]) {
+                this.data.roles = v
             },
         },
         commandSelectors: {
-            get(): Record<string, ItemCandidate> {
-                return candidateWithDefault(
-                    this.data.commands,
-                    this.commands,
-                    (k) => `deleted command ${k}`
+            get(): string[] {
+                return this.data.commands.map((k) =>
+                    k in this.commands ? k : `deleted command ${k}`
                 )
             },
-            set(v: Record<string, Command>) {
-                this.data.commands = Object.keys(v)
+            set(v: string[]) {
+                this.data.commands = v
             },
         },
         itemState(): {

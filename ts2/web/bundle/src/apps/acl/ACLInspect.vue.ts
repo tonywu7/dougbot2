@@ -17,6 +17,7 @@
 import { defineComponent } from 'vue'
 import { dataDiscordModel, setupDiscordModel } from '../../components/discord'
 import ItemSelect from '../../components/input/ItemSelect.vue'
+import { ACLTestOptions } from './ACLRule.vue'
 
 export default defineComponent({
     components: { ItemSelect },
@@ -32,24 +33,23 @@ export default defineComponent({
     },
     data() {
         let errors = { commands: '', channels: '' }
-        return { errors, selected: dataDiscordModel() }
+        let selected: {
+            roles: string[]
+            commands: string[]
+            channels: string[]
+        } = { roles: [], commands: [], channels: [] }
+        return { errors, selected }
     },
     computed: {
         command(): string {
-            return this.selected.commands[
-                Object.keys(this.selected.commands)[0]
-            ].content
+            return this.commands[this.selected.commands[0]].content
         },
         channel(): string {
-            return this.selected.channels[
-                Object.keys(this.selected.channels)[0]
-            ].content
+            return this.channels[this.selected.channels[0]].content
         },
         channelColor(): { color: string } {
             return {
-                color: this.selected.channels[
-                    Object.keys(this.selected.channels)[0]
-                ].foreground,
+                color: this.channels[this.selected.channels[0]].foreground,
             }
         },
     },
@@ -57,17 +57,26 @@ export default defineComponent({
         runTest() {
             this.errors = { commands: '', channels: '' }
             setTimeout(() => {
-                let channels = this.selected.channels || {}
-                let commands = this.selected.commands || {}
-                if (!Object.keys(channels).length) {
+                let channels = this.selected.channels || []
+                let commands = this.selected.commands || []
+                if (!channels.length) {
                     this.errors.channels = 'Please choose a channel.'
                     return
                 }
-                if (!Object.keys(commands).length) {
+                if (!commands.length) {
                     this.errors.commands = 'Please choose a command.'
                     return
                 }
-                this.$emit('run-test', this.selected)
+                let channel = channels[0]
+                let command = commands[0]
+                let category = this.channels[channel].categoryId
+                let payload: ACLTestOptions = {
+                    roles: new Set(this.selected.roles),
+                    channel,
+                    command,
+                    category,
+                }
+                this.$emit('run-test', payload)
             })
         },
     },
