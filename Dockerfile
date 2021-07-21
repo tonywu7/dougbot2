@@ -1,21 +1,18 @@
 # syntax=docker/dockerfile:1
 
-FROM continuumio/miniconda3 AS build
+FROM python:3.9.6-buster AS build
 
 # Prerequisites
 RUN apt-get update && \
-    apt-get -y install linux-headers-amd64 build-essential
-RUN conda install --override-channels -c main -c conda-forge conda-pack
+    apt-get -y install libmemcached-dev
 
-# Setup conda environment
-COPY environment.yml .
-RUN conda env create -f environment.yml
+# Setup environment
+ENV POETRY_VERSION=1.1.7
+RUN python3 -m pip install poetry==$POETRY_VERSION
 
-# Run conda-pack
-RUN conda-pack -n ts2 -o /tmp/env.tar && \
-    mkdir /venv && cd /venv && tar xf /tmp/env.tar && \
-    rm /tmp/env.tar
-RUN /venv/bin/conda-unpack
+WORKDIR /application
+COPY ./pyproject.toml ./poetry.lock /application/
+RUN poetry config virtualenvs.in-project true && poetry install --no-dev --no-interaction --no-ansi
 
 # Compile assets
 FROM node:14-alpine AS assets
@@ -28,24 +25,30 @@ COPY ./ts2/web/bundle/package.json \
 RUN npm install -g npm@latest && npm i
 
 COPY ./ts2/web/bundle/ /application/ts2/web/bundle/
-RUN NODE_ENV=production npm run build && npm prune --production
+RUN NODE_ENV=production npm run build && \
+    npm prune --production
+
+# Setup environment
+FROM python:3.9.6-slim-buster AS runtime
+
+RUN apt-get update && \
+    apt-get -y install libmemcached-dev
+
+# Finalize file system
+COPY --from=assets /application /application
+COPY --from=build /application/.venv /application/.venv
+RUN python3 -m venv /application/.venv
+COPY ./ /application/
 
 WORKDIR /application
-COPY . /application
-
-# Initialize instance data
-FROM debian:buster AS runtime
-
-COPY --from=assets /application /application
-COPY --from=build /venv /venv
-
 SHELL ["/bin/bash", "-c"]
 
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONFAULTHANDLER=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONHASHSEED=random
 ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
 
-WORKDIR /application
+# Setup project
 RUN NO_CACHE=true ./bin/setup
 
 RUN adduser -u 5555 --disabled-password --gecos "" ts2 && chown -R ts2 /application

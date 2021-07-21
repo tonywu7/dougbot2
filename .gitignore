@@ -128,11 +128,14 @@ dmypy.json
 .vscode/
 .env.vscode
 
+# macOS
+.DS_Store
+
+# env specific
 .flake8
-
 .temp/
-
-node_modules
-
 .watchmanconfig
 vetur.config.js
+
+# JavaScript
+node_modules
