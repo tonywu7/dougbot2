@@ -38,7 +38,7 @@
 <script lang="ts" src="./ACLInspect.vue.ts"></script>
 <style lang="scss" scoped>
     .item-select {
-        margin: .5rem 0;
+        margin: .8rem 0;
     }
 
     .test {

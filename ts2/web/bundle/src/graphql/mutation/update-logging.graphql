@@ -1,0 +1,10 @@
+mutation UpdateLogging($serverId: ID!, $config: [LoggingEntryInput]) {
+    updateLogging(serverId: $serverId, config: $config) {
+        logging {
+            key
+            name
+            channel
+            role
+        }
+    }
+}

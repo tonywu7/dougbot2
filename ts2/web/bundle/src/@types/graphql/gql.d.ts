@@ -17,6 +17,15 @@ declare module '*/update-extensions.graphql' {
 }
     
 
+declare module '*/update-logging.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateLogging: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/update-models.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -39,6 +48,15 @@ declare module '*/bot-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const BotDetails: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/logging-config.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const LoggingConfig: DocumentNode;
 
   export default defaultDocument;
 }

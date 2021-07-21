@@ -21,5 +21,5 @@ export let COLOR_CONTRAST: Record<Color, Color> = {
     [Color.LIGHT]: Color.DARK,
     [Color.DARK]: Color.LIGHT,
     [Color.WHITE]: Color.DARK,
-    [Color.BLACK]: Color.WHITE,
+    [Color.BLACK]: Color.LIGHT,
 }

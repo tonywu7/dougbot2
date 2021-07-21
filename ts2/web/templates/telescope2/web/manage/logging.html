@@ -1,5 +1,9 @@
 {% extends 'telescope2/web/manage/base.html' %}
-{% load inspect element async_form discord_list %}
+{% load inspect element static %}
+
+{% block apps %}
+<script defer src="{% static '/telescope2/logging.bundle.js' %}"></script>
+{% endblock %}
 
 {% block title %}Logging - {{ discord.server.name|default:'server' }}{% endblock %}
 
@@ -7,33 +11,15 @@
 
 {% block sections %}
 
-<div class="paragraph">
-    <p class="large-icon"><span><i class="bi bi-receipt-cutoff"></i></span></p>
-    <p>Setup logging channels for various types of events.</p>
-</div>
-
-{% section id='logging' title='log dispatcher' classes='grid-span-2' %}
-
-<form method="POST" class="form">
-    {% if errors %}
-    <p class="paragraph text-danger">
-        Some settings contain errors. Please check below:
-    </p>
-    {% endif %}
-    {% for form in formset %}
-    <div class="paragraph{% if form.superuser.value %} text-warning{% endif %}">
-        <h4>{{ form.name.value }}</h4>
-        {{ form.key }}
-        <ul class="form-fields">
-            {{ form.as_ul }}
-        </ul>
-    </div>
-    {% endfor %}
-    {{ formset.management_form }}
+{% section id='logging' title='event dispatcher' classes='grid-span-all' %}
+<div id="logging-config"></div>
+<div class="d-none">
     {% csrf_token %}
-    <button id="constraint-form-submit" type="submit" class="btn btn-primary">Save settings</button>
-</form>
-
+    {% for key, name, superuser in logging_conf %}
+    <span class="logging-conf" data-key="{{ key }}" data-name="{{ name }}" {% if superuser %} data-superuser="true"
+        {% endif %}></span>
+    {% endfor %}
+</div>
 {% endsection %}
 
 {% endblock %}

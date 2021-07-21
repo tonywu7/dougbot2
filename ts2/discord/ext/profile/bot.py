@@ -83,10 +83,10 @@ class Personalize(
     @doc.argument('longitude', 'Longitude of the location whose timezone to use.')
     @doc.argument('location', 'Name of a location to search for.')
     @doc.use_syntax_whitelist
-    @doc.invocation((), 'Print your current timezone setting.')
-    @doc.invocation(('delete',), 'Remove your timezone setting.')
+    @doc.invocation((), 'Print your current timezone preference.')
+    @doc.invocation(('delete',), 'Remove your timezone preference.')
     @doc.invocation(('tz',), 'Set your timezone using an IANA timezone code.')
-    @doc.invocation(('latitude', 'longitude'), 'Set your timezone using a coordinate (latitude first).')
+    @doc.invocation(('latitude', 'longitude'), 'Set your timezone using coordinates (latitude first).')
     @doc.invocation(('location',), 'Set your timezone by searching for a location.')
     @doc.discussion('Privacy', (
         'When setting timezones using lat/long or a location query,'
@@ -94,7 +94,7 @@ class Personalize(
         'The bot does not keep your location info.'
     ))
     @doc.example('America/New_York', 'Directly using an IANA timezone.')
-    @doc.example(('40 -74', '52.3676° N, 4.9041° E'), 'Using the geographical coordinate of your location.')
+    @doc.example(('40 -74', '52.3676° N, 4.9041° E'), 'Using the geographical coordinates of your location.')
     @doc.example(('Seattle WA', 'Straße des 17. Juni', '国会議事堂前駅'), 'Or search for a place directly.')
     @Maybe.ensure
     async def timezone(
@@ -124,7 +124,7 @@ class Personalize(
 
         if delete.value:
             await self.set_tz(author, '')
-            return await ctx.reply('Your timezone setting has been reset.')
+            return await ctx.reply('Your timezone preference has been reset.')
 
         if not errors and not values:
             profile: User = await User.aget(author)

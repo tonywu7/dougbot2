@@ -54,21 +54,21 @@ UNCAUGHT_EXCEPTIONS = (
 EXCEPTIONS = {
     (errors.MaxConcurrencyReached,
      errors.CommandOnCooldown): {
-        'name': 'Command throttling hit',
+        'name': 'Command throttling triggered',
         'key': 'CommandThrottling',
         'level': logging.DEBUG,
     },
     (errors.BotMissingAnyRole,
      errors.BotMissingPermissions,
      errors.BotMissingRole): {
-        'name': 'Bot permission requirements not met',
+        'name': 'Bot has insufficient permissions',
         'key': 'Unauthorized',
         'level': logging.WARNING,
     },
     (errors.MissingPermissions,
      errors.MissingAnyRole,
      errors.MissingRole): {
-        'name': 'Unauthorized invocations',
+        'name': 'Member has insufficient permissions',
         'key': 'MissingPerms',
         'level': logging.DEBUG,
     },
@@ -120,11 +120,11 @@ def has_logging_conf_permission(user, key: str) -> bool:
 
 
 def iter_logging_conf(user) -> Iterator[tuple[str, _ErrorConf]]:
+    for k in logging_classes.keys() - exceptions.keys():
+        yield k, {'name': logging_classes[k]}
     for k, v in exceptions.items():
         if has_logging_conf_permission(user, k):
             yield k, v
-    for k in logging_classes.keys() - exceptions.keys():
-        yield k, {'name': logging_classes[k]}
 
 
 def get_name(key: str) -> str:
@@ -193,7 +193,7 @@ class ContextualLogger:
 async def log_command_errors(ctx: Context, exc: errors.CommandError):
     if isinstance(exc, tuple(bypassed)):
         return
-    for conf in exceptions.values():
+    for key, conf in exceptions.items():
         if isinstance(exc, conf['exc']):
             break
     else:
@@ -220,7 +220,7 @@ async def log_command_errors(ctx: Context, exc: errors.CommandError):
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
     logger = ContextualLogger('discord.exception', ctx)
-    return await logger.log(conf['key'], level, msg, exc_info=exc_info, embed=embed, embed_only=True)
+    return await logger.log(key, level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 
 def censor_paths(tb: str):
@@ -239,10 +239,11 @@ async def report_exception(channel: TextChannel, exc_info: BaseException):
     await channel.send(file=File(tb_file, filename=filename))
 
 
-def get_logging_conf(req: HttpRequest, server: Server):
+def get_logging_conf(req: HttpRequest, server: Server) -> list[LoggingEntry]:
     user = req.user
-    return {k: v for k, v in server.logging.items()
-            if has_logging_conf_permission(user, k)}
+    return [{'key': k, **{u: w for u, w in v.items() if w}}
+            for k, v in server.logging.items()
+            if has_logging_conf_permission(user, k)]
 
 
 def set_logging_conf(req: HttpRequest, server: Server, changes: list):
@@ -263,7 +264,7 @@ def set_logging_conf(req: HttpRequest, server: Server, changes: list):
         logging[change.key] = {
             'name': name,
             'channel': int(change.channel),
-            'role': int(change.role),
+            'role': int(change.role or 0),
         }
 
     server.logging = logging

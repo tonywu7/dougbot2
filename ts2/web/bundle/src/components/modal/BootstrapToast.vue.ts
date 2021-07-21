@@ -28,7 +28,7 @@ export default defineComponent({
         let bgColor = `bg-${this.color}`
         let fg = COLOR_CONTRAST[<Color>this.color]
         let fgColor = `text-${fg}`
-        let btnColor = `btn-close-${fg}`
+        let btnColor = fg === Color.LIGHT ? `btn-close-white` : ''
         let theming = [bgColor, fgColor]
         return {
             theming,

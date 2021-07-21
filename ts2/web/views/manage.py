@@ -21,6 +21,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from ts2.discord.apps import DiscordBotConfig
+from ts2.discord.ext.logging import iter_logging_conf
 
 from ..middleware import get_ctx
 from ..models import write_access_required
@@ -67,4 +68,10 @@ def acl_config(req: HttpRequest, **kwargs) -> HttpResponse:
 @login_required
 @write_access_required
 def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'telescope2/web/manage/logging.html')
+    logging_conf = sorted((
+        (key, conf['name'], conf.get('superuser', False))
+        for key, conf in iter_logging_conf(req.user)
+    ), key=lambda t: t[2])
+    return render(req, 'telescope2/web/manage/logging.html', context={
+        'logging_conf': logging_conf,
+    })

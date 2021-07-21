@@ -31,8 +31,6 @@
     .item-select {
         display: flex;
         flex-flow: column nowrap;
-        margin-bottom: .5rem;
-
     }
 
     .item-select-field {

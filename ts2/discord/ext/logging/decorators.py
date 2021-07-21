@@ -17,7 +17,7 @@
 import logging
 from typing import Optional
 
-from .logging import bypassed, exceptions, privileged
+from .logging import bypassed, exceptions, logging_classes, privileged
 
 
 def log_exception(
@@ -33,8 +33,9 @@ def log_exception(
             'exc': (exc,),
             'name': name,
             'level': level,
-            'superuser': privileged,
+            'superuser': superuser,
         }
+        logging_classes[key] = name
         if superuser:
             privileged.add(key)
         return exc

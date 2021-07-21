@@ -9,3 +9,11 @@
 </template>
 
 <script lang="ts" src="./FormContainer.vue.ts"></script>
+
+<style lang="scss" scoped>
+    .form-fields {
+        display: flex;
+        flex-flow: column nowrap;
+        gap: .7rem;
+    }
+</style>

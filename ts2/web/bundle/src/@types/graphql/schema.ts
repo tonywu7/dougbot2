@@ -245,6 +245,23 @@ export type UpdateExtensionsMutation = (
   )> }
 );
 
+export type UpdateLoggingMutationVariables = Exact<{
+  serverId: Scalars['ID'];
+  config?: Maybe<Array<Maybe<LoggingEntryInput>> | Maybe<LoggingEntryInput>>;
+}>;
+
+
+export type UpdateLoggingMutation = (
+  { __typename?: 'Mutation' }
+  & { updateLogging?: Maybe<(
+    { __typename?: 'LoggingUpdateMutation' }
+    & { logging?: Maybe<Array<Maybe<(
+      { __typename?: 'LoggingEntryType' }
+      & Pick<LoggingEntryType, 'key' | 'name' | 'channel' | 'role'>
+    )>>> }
+  )> }
+);
+
 export type UpdateModelsMutationVariables = Exact<{
   serverId: Scalars['ID'];
 }>;
@@ -287,6 +304,19 @@ export type BotDetailsQuery = (
     { __typename?: 'BotType' }
     & Pick<BotType, 'commands'>
   )> }
+);
+
+export type LoggingConfigQueryVariables = Exact<{
+  serverId: Scalars['ID'];
+}>;
+
+
+export type LoggingConfigQuery = (
+  { __typename?: 'Query' }
+  & { logging?: Maybe<Array<Maybe<(
+    { __typename?: 'LoggingEntryType' }
+    & Pick<LoggingEntryType, 'key' | 'name' | 'channel' | 'role'>
+  )>>> }
 );
 
 export type ServerACLQueryVariables = Exact<{

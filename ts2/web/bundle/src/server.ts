@@ -50,6 +50,9 @@ import {
     ACLAction,
     AccessControlType,
     UpdateACLMutation,
+    LoggingConfigQuery,
+    UpdateLoggingMutation,
+    UpdateLoggingMutationVariables,
 } from './@types/graphql/schema'
 
 import SERVER_DETAILS from './graphql/query/server-details.graphql'
@@ -58,10 +61,13 @@ import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
 
+import LOGGING_CONFIG from './graphql/query/logging-config.graphql'
+import UPDATE_LOGGING from './graphql/mutation/update-logging.graphql'
+
 import SERVER_ACL from './graphql/query/server-acl.graphql'
 import UPDATE_ACL from './graphql/mutation/update-acl.graphql'
 
-import { omit, partition } from 'lodash'
+import { omit, partition, pick } from 'lodash'
 
 export let server: Server
 
@@ -243,8 +249,19 @@ export class ACL {
     }
 }
 
+export interface LoggingConfig {
+    key: string
+    name: string
+    channel: string
+    role: string
+    superuser?: boolean
+}
+
+export type LoggingConfigSubmission = Omit<LoggingConfig, 'name' | 'superuser'>
+
 interface QueryResults {
     serverInfo: ServerDetailsQuery
+    loggingConf: LoggingConfigQuery
     botInfo: BotDetailsQuery
     aclInfo: ServerACLQuery
     [x: string]: any
@@ -252,6 +269,7 @@ interface QueryResults {
 
 const QUERIES: Record<keyof QueryResults, DocumentNode> = {
     serverInfo: SERVER_DETAILS,
+    loggingConf: LOGGING_CONFIG,
     botInfo: BOT_DETAILS,
     aclInfo: SERVER_ACL,
 }
@@ -268,6 +286,7 @@ class Server {
 
     private channels: Channel[] = []
     private roles: Role[] = []
+    private logging: LoggingConfig[] = []
     private acl: ACL[] = []
 
     constructor(endpoint: string | null, server: string | null) {
@@ -280,7 +299,7 @@ class Server {
         if (endpoint) {
             let http = new HttpLink({
                 uri: endpoint,
-                useGETForQueries: false,
+                useGETForQueries: true,
                 fetch: (input, init): Promise<Response> => {
                     return fetch(stripQueryURL(input.toString()), init)
                 },
@@ -306,14 +325,13 @@ class Server {
         variables?: Record<string, any>
     ): Promise<boolean> {
         let query = QUERIES[key]
-        let context = { fetchOptions: { method: 'GET' } }
         if (
             refresh ||
             !this.queries[key] ||
             !Object.keys(this.queries[key]).length
         ) {
             this.queries[key] = (
-                await this.client.query<T>({ query, variables, context })
+                await this.client.query<T>({ query, variables })
             ).data
             return true
         }
@@ -340,6 +358,18 @@ class Server {
             this.commands = this.queries
                 .botInfo!.bot!.commands!.map((d) => new Command(d!))
                 .sort((a, b) => a.id.localeCompare(b.id))
+        }
+    }
+
+    async fetchLoggingConfig(refresh = false): Promise<void> {
+        let refreshed = await this.fetchQuery('loggingConf', refresh)
+        if (refreshed) {
+            this.logging = this.queries.loggingConf!.logging!.map((d) => ({
+                key: d!.key!,
+                name: d!.name!,
+                channel: d!.channel || '',
+                role: d!.role || '',
+            }))
         }
     }
 
@@ -375,6 +405,11 @@ class Server {
         return this.acl
     }
 
+    async getLogging(): Promise<LoggingConfig[]> {
+        await this.fetchLoggingConfig()
+        return this.logging
+    }
+
     async setPrefix(prefix: string): Promise<void> {
         await this.client.mutate<
             UpdatePrefixMutation,
@@ -408,6 +443,20 @@ class Server {
             variables: { names: removeKeys, changes: update },
         })
         return res.data!.updateACL!.acl!.map((d) => new ACL(d!))
+    }
+
+    async updateLogging(logging: LoggingConfigSubmission[]): Promise<void> {
+        await this.client.mutate<
+            UpdateLoggingMutation,
+            Partial<UpdateLoggingMutationVariables>
+        >({
+            mutation: UPDATE_LOGGING,
+            variables: {
+                config: logging.map((conf) =>
+                    pick(conf, ['key', 'channel', 'role'])
+                ),
+            },
+        })
     }
 }
 
