@@ -19,7 +19,6 @@ python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[setting
 
 # Initialize database
 python3 manage.py migrate --skip-checks
-python3 manage.py synccmds
 
 # Collect assets
 yes yes | python3 manage.py collectstatic

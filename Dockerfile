@@ -20,11 +20,18 @@ RUN /venv/bin/conda-unpack
 # Compile assets
 FROM node:14-alpine AS assets
 
+WORKDIR /application/ts2/web/bundle
+COPY ./ts2/web/bundle/package.json \
+    ./ts2/web/bundle/package-lock.json \
+    ./ts2/web/bundle/webpack.config.js \
+    /application/ts2/web/bundle/
+RUN npm install -g npm@latest && npm i
+
+COPY ./ts2/web/bundle/ /application/ts2/web/bundle/
+RUN NODE_ENV=production npm run build && npm prune --production
+
 WORKDIR /application
 COPY . /application
-
-WORKDIR /application/ts2/web/bundle
-RUN npm install -g npm@latest && npm i && NODE_ENV=production npm run build && npm prune --production
 
 # Initialize instance data
 FROM debian:buster AS runtime

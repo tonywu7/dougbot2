@@ -4,6 +4,7 @@ const path = require('path')
 
 const { DefinePlugin } = require('webpack')
 const { VueLoaderPlugin } = require('vue-loader')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
 const devMode = process.env.NODE_ENV !== 'production'
 
@@ -43,7 +44,9 @@ module.exports = {
       },
       {
         test: /\.scss$/,
-        use: ['style-loader', 'css-loader', 'sass-loader'],
+        use: devMode
+          ? ['style-loader', 'css-loader', 'sass-loader']
+          : [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
         sideEffects: true,
       },
       {
@@ -84,6 +87,7 @@ module.exports = {
       __VUE_PROD_DEVTOOLS__: false,
     }),
     new VueLoaderPlugin(),
+    ...(devMode ? [] : [new MiniCssExtractPlugin({})]),
   ],
 
   resolve: {
@@ -97,9 +101,16 @@ module.exports = {
         vendors: {
           test: /\/node_modules\//,
           priority: -10,
-          reuseExistingChunk: true,
           chunks: 'all',
+          reuseExistingChunk: true,
           name: 'vendor',
+        },
+        gql: {
+          test: /\/src\/graphql/,
+          priority: -20,
+          chunks: 'all',
+          reuseExistingChunk: true,
+          name: 'gql',
         },
       },
     },

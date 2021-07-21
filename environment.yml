@@ -14,8 +14,9 @@ dependencies:
   - cchardet
   - discord.py
   - django
-  - djangorestframework
+  - geopy
   - inflect
+  - jinja2
   - lxml
   - markdown
   - nltk
@@ -23,10 +24,12 @@ dependencies:
   - pillow
   - psutil
   - pyjwt
+  - pylibmc
   - python-decouple
   - simplejson
   - sqlite
   - termcolor
+  - timezonefinder
   - youtube-dl
   - pip:
     - aiojobs
@@ -36,7 +39,10 @@ dependencies:
     - django-extensions
     - django-polymorphic
     - django-redis
+    - django-timezone-field
     - fuzzywuzzy
+    - graphene==3.0b7
+    - graphene-django==3.0.0b7
     - logging-tree
     - more-itertools
     - python-levenshtein
