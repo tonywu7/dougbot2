@@ -15,9 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { color } from 'd3'
-import { Dropdown } from 'bootstrap'
 
-import { defineComponent, PropType } from 'vue'
+import { defineComponent, PropType, ref } from 'vue'
 import InputField from './InputField.vue'
 
 import {
@@ -69,31 +68,37 @@ export default defineComponent({
             default: '',
         },
     },
-    emits: ['update:choices', 'update:error'],
-    mounted() {
-        let elem = this.$refs.dropdown as HTMLElement
-        elem.addEventListener('hidden.bs.dropdown', () => {
-            this.search = ''
-        })
+    setup() {
+        const container = ref<HTMLElement>()
+        const searchElem = ref<HTMLElement>()
+        const searchInput = ref<HTMLTextAreaElement>()
+        const candidateList = ref<HTMLUListElement>()
+        return { container, searchElem, searchInput, candidateList }
     },
+    // emits: ['update:choices', 'update:error'],
     data() {
         let selected: Record<string, ItemCandidate> = {}
         let index = createIndex(Object.values(this.items))
         let search: string = ''
+        let ctx = document.createElement('canvas').getContext('2d')!
         return {
             selected,
             search,
             index,
+            ctx,
+            _currentFocus: 0,
+            dropdownShow: false,
         }
     },
     computed: {
-        dropdown(): Dropdown {
-            let elem = this.$refs.dropdown as HTMLElement
-            let dropdown = Dropdown.getInstance(elem)
-            if (!dropdown) {
-                dropdown = new Dropdown(elem)
-            }
-            return dropdown
+        currentFocus: {
+            get(): number {
+                return this._currentFocus
+            },
+            set(v: number) {
+                this._currentFocus = v
+                if (v == 0) this.scrollReset()
+            },
         },
         candidates(): ItemCandidate[] {
             let items: ItemCandidate[] = []
@@ -102,24 +107,111 @@ export default defineComponent({
             }
             return items
         },
-    },
-    methods: {
-        showDropdown(ev?: MouseEvent | FocusEvent) {
-            ev?.stopImmediatePropagation()
-            this.dropdown?.show()
-        },
-        clearValidity() {
-            let searchBox = this.$refs.searchBox as HTMLInputElement
-            searchBox.setCustomValidity('')
-            this.$emit('update:error', '')
-        },
-        hideDropdown(ev: FocusEvent) {
-            let focused = ev.relatedTarget as HTMLElement
-            if (focused && !focused.classList.contains('item-select-item')) {
-                this.dropdown?.hide()
+        inputFont(): string {
+            let elem = this.searchInput
+            if (elem) {
+                return getComputedStyle(this.searchInput!).font
+            } else {
+                return '1rem sans-serif'
             }
         },
-        styles(item: ItemCandidate, background = true): ItemStyle {
+        inputWidth(): { width: string } {
+            this.ctx.font = this.inputFont
+            let size = this.ctx.measureText(this.search)
+            let width =
+                Math.abs(size.actualBoundingBoxLeft) +
+                Math.abs(size.actualBoundingBoxRight)
+            return { width: `calc(${width}px + 1rem)` }
+        },
+    },
+    methods: {
+        activate(ev?: FocusEvent) {
+            if (this.dropdownShow) return
+            this.dropdownShow = true
+            this.currentFocus = 0
+            this.searchInput?.focus()
+        },
+        deactivate(ev?: FocusEvent, force = false) {
+            this.$nextTick(() => {
+                if (force || !this.hasFocusWithin()) {
+                    this.searchInput?.blur()
+                    this.dropdownShow = false
+                    this.scrollReset()
+                } else {
+                    this.searchInput?.focus()
+                }
+            })
+        },
+        hasFocusWithin(): boolean {
+            return Boolean(
+                this.container?.querySelector(':focus, :hover, :active')
+            )
+        },
+        updateSearch() {
+            this.searchInput?.setCustomValidity('')
+            this.$emit('update:error', '')
+            this.search = this.searchInput?.value || ''
+        },
+        focusSibling(inc: number): boolean {
+            this.currentFocus += inc
+            if (this.currentFocus < 0) {
+                this.currentFocus = 0
+            } else if (this.currentFocus >= this.candidates.length) {
+                this.currentFocus = this.candidates.length - 1
+            } else {
+                return true
+            }
+            return false
+        },
+        getFocusedItem(): HTMLElement | undefined {
+            return (
+                this.candidateList?.querySelector<HTMLLIElement>(
+                    '.has-focus'
+                ) || undefined
+            )
+        },
+        navigateList(ev: KeyboardEvent) {
+            if (ev.key == 'ArrowDown' || ev.key == 'ArrowUp') {
+                ev.preventDefault()
+                let direction: 1 | -1 = ev.key == 'ArrowDown' ? 1 : -1
+                this.focusSibling(direction)
+                this.scrollByOneItem(direction)
+            } else if (ev.key == 'Enter') {
+                ev.preventDefault()
+                this.select(this.candidates[this.currentFocus])
+            } else if (ev.key == 'Escape') {
+                this.deactivate(undefined, true)
+            } else if (ev.key == 'Backspace') {
+                if (!this.search) {
+                    let item = Object.values(this.selected).pop()
+                    if (!item) return
+                    this.deselect(item)
+                    this.search = item.content
+                    ev.preventDefault()
+                }
+            }
+        },
+        scrollReset() {
+            this.candidateList?.scrollTo(0, 0)
+        },
+        scrollByOneItem(direction: 1 | -1) {
+            this.$nextTick(() => {
+                let item = this.getFocusedItem()
+                if (!item) return
+                let container = item.parentElement!
+                if (
+                    (direction == 1 &&
+                        container.scrollTop + container.clientHeight <
+                            item.offsetTop + item.clientHeight) ||
+                    (direction == -1 && container.scrollTop > item.offsetTop)
+                )
+                    this.candidateList?.scrollBy(
+                        0,
+                        item.clientHeight * direction
+                    )
+            })
+        },
+        getItemStyles(item: ItemCandidate, background = true): ItemStyle {
             let fg = color(item.foreground)
             let styles: ItemStyle = {
                 color: fg?.formatRgb() || '#d3d3d3',
@@ -133,20 +225,17 @@ export default defineComponent({
             }
             return styles
         },
-        select(ev: MouseEvent, item: ItemCandidate) {
-            if (!this.multiple) {
-                this.dropdown?.hide()
-            }
+        select(item: ItemCandidate) {
             if (!this.multiple) {
                 Object.keys(this.selected).forEach(
                     (k) => delete this.selected[k]
                 )
             }
             this.selected[item.id] = item
+            this.search = ''
             this.update()
         },
-        deselect(ev: MouseEvent, item: ItemCandidate) {
-            ev.stopImmediatePropagation()
+        deselect(item: ItemCandidate) {
             delete this.selected[item.id]
             this.update()
         },
@@ -158,10 +247,12 @@ export default defineComponent({
         },
     },
     watch: {
+        candidates() {
+            this.currentFocus = 0
+        },
         error(e: string) {
-            let searchBox = this.$refs.searchBox as HTMLInputElement
-            searchBox.setCustomValidity(e)
-            searchBox.reportValidity()
+            this.searchInput!.setCustomValidity(e)
+            this.searchInput!.reportValidity()
         },
         items: {
             handler() {
@@ -192,20 +283,3 @@ export default defineComponent({
         },
     },
 })
-
-export function candidateWithDefault(
-    keys: string[],
-    items: Record<string, ItemCandidate>,
-    ifndef: (id: string) => string
-) {
-    let selected: Record<string, ItemCandidate> = {}
-    for (let k of keys) {
-        selected[k] = items[k] || {
-            id: k,
-            content: ifndef(k),
-            foreground: 'white',
-            getIndex: () => ({ id: k }),
-        }
-    }
-    return selected
-}

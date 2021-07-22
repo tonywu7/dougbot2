@@ -1,24 +1,25 @@
 <template>
-    <div ref="container" class="item-select dropdown" @click="regenIndex">
+    <div ref="container" class="item-select dropdown">
         <label v-if="label" v-html="label" class="field-label"></label>
-        <span ref="dropdown" class="item-select-field" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-            aria-expanded="false" @click="(e) => e.stopImmediatePropagation()">
-            <button v-for="item in selected" :key="item.id" type="button" class="selected-item item-select-item"
-                :style="styles(item, true)" v-html="item.content" @click="(e) => deselect(e, item)"></button>
-            <input ref="searchBox" type="text" class="item-select-search" :placeholder="placeholder" v-model="search"
-                @click="showDropdown" @focus="showDropdown" @blur="hideDropdown" @input="clearValidity">
-        </span>
-        <div v-if="$slots.hint" class="field-after field-hint">
-            <slot name="hint">
-                <p>{{ hint }}</p>
-            </slot>
+        <div ref="searchElem" class="item-select-field" aria-expanded="false" @click="activate" @focusin="activate"
+            @focusout="deactivate">
+            <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
+                :style="getItemStyles(item, true)" v-html="item.content" @click="(e) => deselect(item)"></button>
+            <textarea ref="searchInput" type="search" class="item-select-search" wrap="off" autocomplete="off"
+                autocapitalize="none" spellcheck="false" :style="[inputWidth]" :value="search" @click="showDropdown"
+                @input="updateSearch" @keydown="navigateList"></textarea>
+            <ul ref="candidateList" role="listbox" aria-multiselectable="true" :aria-expanded="dropdownShow"
+                :aria-hidden="!dropdownShow" :class="['dropdown-menu', {show: dropdownShow}]">
+                <li v-for="(item, index) in candidates" :key="item.id" role="button"
+                    :class="['dropdown-item', {'has-focus': index == currentFocus}]" :style="getItemStyles(item, false)"
+                    :aria-selected="index == currentFocus" v-html="item.content" @click="(e) => select(item)"
+                    @mouseenter="currentFocus = index">
+                </li>
+            </ul>
         </div>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <li v-for="item in candidates" :key="item.id">
-                <button type="button" :style="styles(item, false)" class="dropdown-item item-select-item"
-                    v-html="item.content" @click="(e) => select(e, item)"></button>
-            </li>
-        </ul>
+        <div v-if="$slots.hint" class="field-after field-hint">
+            <slot name="hint"></slot>
+        </div>
     </div>
 </template>
 <script lang="ts" src="./ItemSelect.vue.ts"></script>
@@ -27,6 +28,7 @@
     @import '../../styles/colors';
 
     $hairline-color: color.scale($color-text, $alpha: -75%);
+    $field-padding: 6px;
 
     .item-select {
         display: flex;
@@ -43,7 +45,9 @@
 
         border-radius: 4px;
         margin: .5rem 0 0;
-        padding: 6px;
+        padding: $field-padding;
+
+        cursor: text;
 
         >* {
             margin: 0;
@@ -76,18 +80,27 @@
     .item-select-search {
         display: inline-block;
 
-        line-height: 1.5;
+        line-height: 1;
         padding: 0;
         margin: 0 0 0 .5rem;
-        width: 40%;
-        min-width: 270px;
 
+        height: 1.2em;
+        min-width: 20px;
+        max-width: calc(100% - (#{$field-padding * 2}));
+        vertical-align: middle;
+
+        resize: none;
         border: none;
 
         background-color: transparent;
         color: $color-text;
 
-        text-overflow: ellipsis;
+        overflow: hidden;
+        overflow-wrap: break-word;
+
+        &:focus {
+            box-shadow: none;
+        }
 
         &:focus-visible {
             outline: none;
@@ -96,10 +109,12 @@
 
     .dropdown-menu {
         width: 100%;
-        max-height: 50vh;
+        max-height: 40vh;
         padding: 6pt;
         overflow-y: scroll;
         z-index: 2000;
+        top: 100%;
+        left: 0;
     }
 
     .dropdown-item {
@@ -109,10 +124,17 @@
 
         font-weight: 600;
         font-size: 0.9rem;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.4px;
+        line-height: 1.5;
+
+        white-space: normal;
 
         &:hover,
         &:focus {
+            background-color: unset;
+        }
+
+        &.has-focus {
             background-color: $bw-grey-6;
         }
 
