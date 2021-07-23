@@ -1,0 +1,6 @@
+query ServerTimezones($serverId: ID!) {
+    timezones(serverId: $serverId) {
+        roleId
+        timezone
+    }
+}

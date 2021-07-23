@@ -5,7 +5,7 @@
             <button type="button" class="btn btn-primary" @click="submit">Save changes</button>
         </div>
         <div class="acl-list">
-            <transition-group name="list">
+            <transition-group name="list-move">
                 <acl-rule v-for="(rule, index) in merged" :key="index" :rule="rule" :data="merged[index]"
                     @update:data="(item) => updateRule(item, index)">
                 </acl-rule>
@@ -34,20 +34,5 @@
         .btn-new {
             flex: 1 0 auto;
         }
-    }
-
-    .list-enter-active,
-    .list-leave-active {
-        transition: all .3s ease;
-    }
-
-    .list-enter-from,
-    .list-leave-to {
-        opacity: 0;
-        transform: translateY(-15px);
-    }
-
-    .list-move {
-        transition: transform 0.3s ease;
     }
 </style>

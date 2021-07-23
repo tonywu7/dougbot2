@@ -1,0 +1,15 @@
+mutation UpdateTimezones(
+    $serverId: ID!
+    $toUpdate: [RoleTimezoneInput]
+    $toDelete: [String]
+) {
+    deleteTimezones(serverId: $serverId, roleIds: $toDelete) {
+        success
+    }
+    updateTimezones(serverId: $serverId, timezones: $toUpdate) {
+        timezones {
+            roleId
+            timezone
+        }
+    }
+}

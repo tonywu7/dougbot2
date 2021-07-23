@@ -104,12 +104,26 @@ export type LoggingUpdateMutation = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  updateTimezones?: Maybe<RoleTimezoneUpdateMutation>;
+  deleteTimezones?: Maybe<RoleTimezoneDeleteMutation>;
   deleteACL?: Maybe<ACLDeleteMutation>;
   updateACL?: Maybe<ACLUpdateMutation>;
   updateLogging?: Maybe<LoggingUpdateMutation>;
   updatePrefix?: Maybe<ServerPrefixMutation>;
   updateExtensions?: Maybe<ServerExtensionsMutation>;
   updateModels?: Maybe<ServerModelSyncMutation>;
+};
+
+
+export type MutationupdateTimezonesArgs = {
+  serverId: Scalars['ID'];
+  timezones?: Maybe<Array<Maybe<RoleTimezoneInput>>>;
+};
+
+
+export type MutationdeleteTimezonesArgs = {
+  roleIds?: Maybe<Array<Maybe<Scalars['String']>>>;
+  serverId: Scalars['ID'];
 };
 
 
@@ -149,10 +163,16 @@ export type MutationupdateModelsArgs = {
 
 export type Query = {
   __typename?: 'Query';
+  timezones?: Maybe<Array<Maybe<RoleTimezoneType>>>;
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
   logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
   bot?: Maybe<BotType>;
   server?: Maybe<ServerType>;
+};
+
+
+export type QuerytimezonesArgs = {
+  serverId: Scalars['ID'];
 };
 
 
@@ -168,6 +188,27 @@ export type QueryloggingArgs = {
 
 export type QueryserverArgs = {
   serverId: Scalars['ID'];
+};
+
+export type RoleTimezoneDeleteMutation = {
+  __typename?: 'RoleTimezoneDeleteMutation';
+  success?: Maybe<Scalars['Boolean']>;
+};
+
+export type RoleTimezoneInput = {
+  roleId: Scalars['ID'];
+  timezone: Scalars['String'];
+};
+
+export type RoleTimezoneType = {
+  __typename?: 'RoleTimezoneType';
+  timezone: Scalars['String'];
+  roleId: Scalars['ID'];
+};
+
+export type RoleTimezoneUpdateMutation = {
+  __typename?: 'RoleTimezoneUpdateMutation';
+  timezones?: Maybe<Array<Maybe<RoleTimezoneType>>>;
 };
 
 export type RoleType = {
@@ -295,6 +336,27 @@ export type UpdatePrefixMutation = (
   )> }
 );
 
+export type UpdateTimezonesMutationVariables = Exact<{
+  serverId: Scalars['ID'];
+  toUpdate?: Maybe<Array<Maybe<RoleTimezoneInput>> | Maybe<RoleTimezoneInput>>;
+  toDelete?: Maybe<Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>>;
+}>;
+
+
+export type UpdateTimezonesMutation = (
+  { __typename?: 'Mutation' }
+  & { deleteTimezones?: Maybe<(
+    { __typename?: 'RoleTimezoneDeleteMutation' }
+    & Pick<RoleTimezoneDeleteMutation, 'success'>
+  )>, updateTimezones?: Maybe<(
+    { __typename?: 'RoleTimezoneUpdateMutation' }
+    & { timezones?: Maybe<Array<Maybe<(
+      { __typename?: 'RoleTimezoneType' }
+      & Pick<RoleTimezoneType, 'roleId' | 'timezone'>
+    )>>> }
+  )> }
+);
+
 export type BotDetailsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -354,4 +416,17 @@ export type ServerDetailsQuery = (
       & Pick<RoleType, 'snowflake' | 'name' | 'color' | 'order' | 'perms'>
     )> }
   )> }
+);
+
+export type ServerTimezonesQueryVariables = Exact<{
+  serverId: Scalars['ID'];
+}>;
+
+
+export type ServerTimezonesQuery = (
+  { __typename?: 'Query' }
+  & { timezones?: Maybe<Array<Maybe<(
+    { __typename?: 'RoleTimezoneType' }
+    & Pick<RoleTimezoneType, 'roleId' | 'timezone'>
+  )>>> }
 );

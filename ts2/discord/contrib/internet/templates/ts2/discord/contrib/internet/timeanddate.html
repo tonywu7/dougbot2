@@ -1,5 +1,13 @@
 {% extends 'telescope2/web/manage/base.html' %}
-{% load element async_form discord_list %}
+{% load static element %}
+
+{% block apps %}
+<script defer src="{% static '/telescope2/timezones.bundle.js' %}"></script>
+{% endblock %}
+
+{% block app_styles %}
+<link rel="stylesheet" href="{% static '/telescope2/timezones.css' %}">
+{% endblock %}
 
 {% block title %}Time & date - {{ discord.server.name|default:'server' }}{% endblock %}
 
@@ -7,24 +15,10 @@
 
 {% block sections %}
 
-<!-- <div class="paragraph grid-span-all">
-    <p class="large-icon"><span><i class="bi bi-calendar-date"></i></span></p>
-</div> -->
+{% csrf_token %}
 
 {% section id='role-timezone' title='role timezones' classes='grid-span-all' %}
-
-<div class="actions paragraph">
-    <button id="role-timezone-form-new" type="button" class="btn btn-success async-form-submit">Create new
-        timezone</button>
-    <button id="role-timezone-form-submit" type="button" class="btn btn-primary async-form-submit">Save all</button>
-</div>
-
-<div class="form role-timezone-form">
-    <div id="role-timezone-form-list" class="role-timezone-form-list paragraph"
-        data-src="{% url 'web:api.guild.core.constraints' guild_id=discord.server_id %}">
-        <form>{% csrf_token %}</form>
-    </div>
-</div>
+<div id="timezone-list" data-tzsrc="{% static 'ts2/discord/contrib/internet/tz.json' %}"></div>
 {% endsection %}
 
 {% endblock %}

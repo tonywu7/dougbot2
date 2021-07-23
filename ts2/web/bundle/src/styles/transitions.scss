@@ -1,0 +1,14 @@
+.list-move-enter-active,
+.list-move-leave-active {
+    transition: all 0.3s ease;
+}
+
+.list-move-enter-from,
+.list-move-leave-to {
+    opacity: 0;
+    transform: translateY(-15px);
+}
+
+.list-move-move {
+    transition: transform 0.3s ease;
+}

@@ -16,16 +16,27 @@
 
 from graphene import ObjectType, Schema
 
+from ts2.discord.contrib.schema import InternetMutation, InternetQuery
 from ts2.discord.ext.schema import (ACLMutation, ACLQuery, LoggingMutation,
                                     LoggingQuery)
 from ts2.discord.schema import BotQuery, ServerMutation, ServerQuery
 
 
-class Query(ServerQuery, BotQuery, LoggingQuery, ACLQuery, ObjectType):
+class Query(
+    ServerQuery, BotQuery,
+    LoggingQuery, ACLQuery,
+    InternetQuery,
+    ObjectType,
+):
     pass
 
 
-class Mutation(ServerMutation, LoggingMutation, ACLMutation, ObjectType):
+class Mutation(
+    ServerMutation,
+    LoggingMutation, ACLMutation,
+    InternetMutation,
+    ObjectType,
+):
     pass
 
 

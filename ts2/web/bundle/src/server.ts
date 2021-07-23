@@ -22,6 +22,8 @@ import {
     from as linkFrom,
     NormalizedCacheObject,
     ApolloClientOptions,
+    ApolloQueryResult,
+    FetchResult,
 } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
@@ -317,6 +319,20 @@ class Server {
         }
 
         this.client = new ApolloClient(conf)
+    }
+
+    async fetch<T, V = any>(
+        query: DocumentNode,
+        variables?: V
+    ): Promise<ApolloQueryResult<T>> {
+        return await this.client.query<T>({ query, variables })
+    }
+
+    async mutate<T, V = any>(
+        mutation: DocumentNode,
+        variables?: V
+    ): Promise<FetchResult<T>> {
+        return await this.client.mutate<T>({ mutation, variables })
     }
 
     async fetchQuery<K extends keyof QueryResults, T = QueryResults[K]>(

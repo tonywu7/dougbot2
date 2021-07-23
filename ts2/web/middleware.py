@@ -264,10 +264,18 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> DiscordContext:
         return None
 
 
-def get_server(req: HttpRequest, server_id: Union[str, int], deny=True) -> Optional[Server]:
+def assert_server_access(req: HttpRequest, server_id: Union[str, int],
+                         deny: bool = True) -> bool:
     ctx = get_ctx(req, logout=False)
     if not ctx.accessible(server_id):
         if deny:
             raise PermissionDenied('Insufficient permission.')
+        return False
+    return True
+
+
+def get_server(req: HttpRequest, server_id: Union[str, int],
+               deny=True, queryset=Server.objects) -> Optional[Server]:
+    if not assert_server_access(req, server_id, deny):
         return
-    return Server.objects.get(snowflake=server_id)
+    return queryset.get(snowflake=server_id)

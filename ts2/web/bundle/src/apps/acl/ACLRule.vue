@@ -10,17 +10,23 @@
         <transition name="fade">
             <div class="acl-body" v-show="!_collapsed">
                 <div class="acl-details">
-                    <item-select label="Where" :items="channels" v-model:choices="channelSelectors"
-                        :placeholder="data.channels.length ? '...' : 'Leave blank to apply to all channels'">
+                    <item-select label="Where" :items="channels" v-model:choices="channelSelectors">
+                        <template v-slot:hint>
+                            <p>Leave blank to apply to all channels</p>
+                        </template>
                     </item-select>
-                    <item-select label="What" :items="commands" v-model:choices="commandSelectors"
-                        :placeholder="data.commands.length ? '...' : 'Leave blank to apply to all commands'">
+                    <item-select label="What" :items="commands" v-model:choices="commandSelectors">
+                        <template v-slot:hint>
+                            <p>Leave blank to apply to all commands</p>
+                        </template>
                     </item-select>
                     <div class="acl-roles">
                         <input-select label="Who" :options="modifiers" v-model:value="data.modifier">
                         </input-select>
-                        <item-select :items="roles" v-model:choices="roleSelectors"
-                            :placeholder="data.roles.length ? '...' : 'Leave blank to apply to everyone'">
+                        <item-select :items="roles" v-model:choices="roleSelectors">
+                            <template v-slot:hint>
+                                <p>Leave blank to apply to all everyone</p>
+                            </template>
                         </item-select>
                     </div>
                     <div class="acl-action">

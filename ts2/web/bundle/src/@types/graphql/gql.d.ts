@@ -44,6 +44,15 @@ declare module '*/update-prefix.graphql' {
 }
     
 
+declare module '*/update-timezones.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdateTimezones: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/bot-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
@@ -75,6 +84,15 @@ declare module '*/server-details.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;
   export const ServerDetails: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
+declare module '*/server-timezones.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const ServerTimezones: DocumentNode;
 
   export default defaultDocument;
 }

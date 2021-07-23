@@ -24,4 +24,4 @@ from ts2.discord.models import Role
 
 class RoleTimezone(models.Model):
     timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
-    role: Role = models.OneToOneField(Role, on_delete=CASCADE, related_name='+')
+    role: Role = models.OneToOneField(Role, on_delete=CASCADE, related_name='timezone')

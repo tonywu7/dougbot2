@@ -16,17 +16,14 @@
 
 import { defineComponent, PropType } from 'vue'
 
-import ItemSelect, {
-    candidateWithDefault,
-    ItemCandidate,
-} from '../../components/input/ItemSelect.vue'
+import ItemSelect from '../../components/input/ItemSelect.vue'
 import InputSelect from '../../components/input/InputSelect.vue'
 import InputField from '../../components/input/InputField.vue'
 
 import { InputSelectOption } from '../../components/input/InputSelect.vue'
 import { setupDiscordModel } from '../../components/discord'
 import { ACLAction, ACLRoleModifier } from '../../@types/graphql/schema'
-import { ACL, Channel, Command, Role } from '../../server'
+import { ACL } from '../../server'
 import { slugify } from '../../utils/data'
 
 const aclModifiers: InputSelectOption<ACLRoleModifier>[] = [
