@@ -132,11 +132,18 @@ export default defineComponent({
             this.searchInput?.focus()
         },
         deactivate(ev?: FocusEvent, force = false) {
+            let deactivate = () => {
+                this.searchInput?.blur()
+                this.dropdownShow = false
+                this.scrollReset()
+            }
+            if (force) {
+                deactivate()
+                return
+            }
             this.$nextTick(() => {
-                if (force || !this.hasFocusWithin()) {
-                    this.searchInput?.blur()
-                    this.dropdownShow = false
-                    this.scrollReset()
+                if (!this.hasFocusWithin()) {
+                    deactivate()
                 } else {
                     this.searchInput?.focus()
                 }
@@ -183,11 +190,13 @@ export default defineComponent({
                 this.deactivate(undefined, true)
             } else if (ev.key == 'Backspace') {
                 if (!this.search) {
+                    ev.preventDefault()
                     let item = Object.values(this.selected).pop()
                     if (!item) return
                     this.deselect(item)
-                    this.search = item.content
-                    ev.preventDefault()
+                    if (!ev.metaKey) {
+                        this.search = item.content
+                    }
                 }
             }
         },
@@ -235,7 +244,8 @@ export default defineComponent({
             this.search = ''
             this.update()
         },
-        deselect(item: ItemCandidate) {
+        deselect(item: ItemCandidate, ev?: Event) {
+            ev?.stopPropagation()
             delete this.selected[item.id]
             this.update()
         },

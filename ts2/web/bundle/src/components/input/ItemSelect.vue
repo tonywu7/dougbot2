@@ -1,13 +1,14 @@
 <template>
     <div ref="container" class="item-select dropdown">
         <label v-if="label" v-html="label" class="field-label"></label>
-        <div ref="searchElem" class="item-select-field" aria-expanded="false" @click="activate" @focusin="activate"
-            @focusout="deactivate">
+        <div ref="searchElem" class="item-select-field" aria-expanded="false" @click="activate" @focus="activate"
+            @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
-                :style="getItemStyles(item, true)" v-html="item.content" @click="(e) => deselect(item)"></button>
+                :style="getItemStyles(item, true)" v-html="item.content" @click="(e) => deselect(item, e)"
+                @focusin="(e) => e.stopPropagation()"></button>
             <textarea ref="searchInput" type="search" class="item-select-search" wrap="off" autocomplete="off"
-                autocapitalize="none" spellcheck="false" :style="[inputWidth]" :value="search" @click="showDropdown"
-                @input="updateSearch" @keydown="navigateList"></textarea>
+                autocapitalize="none" spellcheck="false" :style="[inputWidth]" :value="search" @focus="activate"
+                @blur="deactivate" @input="updateSearch" @keydown="navigateList"></textarea>
             <ul ref="candidateList" role="listbox" aria-multiselectable="true" :aria-expanded="dropdownShow"
                 :aria-hidden="!dropdownShow" :class="['dropdown-menu', {show: dropdownShow}]">
                 <li v-for="(item, index) in candidates" :key="item.id" role="button"
