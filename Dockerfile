@@ -12,7 +12,8 @@ RUN python3 -m pip install poetry==$POETRY_VERSION
 
 WORKDIR /application
 COPY ./pyproject.toml ./poetry.lock /application/
-RUN poetry config virtualenvs.in-project true && poetry install --no-dev --no-interaction --no-ansi
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --no-dev --no-interaction --no-ansi
 
 # Compile assets
 FROM node:14-alpine AS assets
@@ -46,10 +47,11 @@ SHELL ["/bin/bash", "-c"]
 ENV PYTHONFAULTHANDLER=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONHASHSEED=random
-ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
 
 # Setup project
+ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
 RUN NO_CACHE=true ./bin/setup
 
-RUN adduser -u 5555 --disabled-password --gecos "" ts2 && chown -R ts2 /application
+RUN adduser -u 5555 --disabled-password --gecos "" ts2 && \
+    chown -R ts2 /application
 USER ts2
