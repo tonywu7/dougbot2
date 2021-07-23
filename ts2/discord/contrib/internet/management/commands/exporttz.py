@@ -21,6 +21,7 @@ from typing import TypedDict
 import pytz
 import simplejson
 from django.core.management.base import BaseCommand
+from PIL import ImageColor
 
 N_WINTER = datetime(2021, 1, 1)
 N_SUMMER = datetime(2021, 6, 1)
@@ -31,6 +32,15 @@ class Zone(TypedDict):
     tzname: str
     canonical: float
     summer: float
+
+    mean_offset: float
+    offset: str
+    content: str
+    foreground: str
+
+
+def rgb2hex(r: int, g: int, b: int):
+    return f'#{(r << 16) + (g << 8) + b:06x}'
 
 
 class Command(BaseCommand):
@@ -47,7 +57,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, output: str, **options):
         dest = Path(output).resolve()
-        zones: dict[str, Zone] = {}
+        zones: list[Zone] = []
         for tzname in pytz.common_timezones:
             tz = pytz.timezone(tzname)
             zone: Zone = {'iana': tzname}
@@ -55,13 +65,23 @@ class Command(BaseCommand):
             offset_2 = tz.utcoffset(N_SUMMER).total_seconds() / 3600
             northern = tz.dst(N_WINTER).total_seconds() == 0
             if northern:
-                zone['canonical'] = offset_1
-                zone['summer'] = offset_2
+                canonical = zone['canonical'] = offset_1
+                summer = zone['summer'] = offset_2
                 zone['tzname'] = tz.tzname(N_WINTER)
             else:
-                zone['canonical'] = offset_2
-                zone['summer'] = offset_1
+                canonical = zone['canonical'] = offset_2
+                summer = zone['summer'] = offset_1
                 zone['tzname'] = tz.tzname(N_SUMMER)
-            zones[tzname] = zone
+            mean_offset = zone['mean_offset'] = (offset_1 + offset_2) / 2
+            readable = tzname.replace('/', ' - ').replace('_', ' ')
+            if offset_1 == offset_2:
+                offset = zone['offset'] = f'{canonical:+g}'
+            else:
+                offset = zone['offset'] = f'{canonical:+g}/{summer:+g}'
+            zone['content'] = f'{offset} : {readable}'
+            hue = 15 * ((mean_offset + 12) % 24)
+            zone['foreground'] = rgb2hex(*ImageColor.getrgb(f'hsl({hue}, 60%, 75%)'))
+            zones.append(zone)
+        zones = [*sorted(zones, key=lambda z: (z['mean_offset'], z['canonical'], z['iana']))]
         with open(dest, 'w+') as f:
             simplejson.dump(zones, f)

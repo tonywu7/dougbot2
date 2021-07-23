@@ -17,8 +17,8 @@
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
+from ts2.discord.middleware import assert_server_access
 from ts2.discord.models import Role
-from ts2.web.middleware import assert_server_access
 
 from .models import RoleTimezone
 
