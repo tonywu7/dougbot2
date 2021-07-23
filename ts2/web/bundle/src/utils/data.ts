@@ -7,7 +7,7 @@ export function randomIdentifier(
     return 'r' + _.sampleSize(from, length - 1).join('')
 }
 
-export function slugify(text: string, toStrip: RegExp = /[\W_]+/g) {
+export function slugify(text: string, toStrip: RegExp = /[\p{P}_]+/gu) {
     return text.replace(toStrip, ' ').trim().toLowerCase()
 }
 

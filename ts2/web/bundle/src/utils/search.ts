@@ -53,7 +53,9 @@ export class TextSearch<T extends Indexable> {
     }
 
     public search(query: string): T[] {
-        let indices = this.query(allKeywords(query)).map((r) => r.ref)
+        let indices = this.query(
+            allKeywords(query, lunr.Query.presence.OPTIONAL)
+        ).map((r) => r.ref)
         return this.values(indices)
     }
 
@@ -75,13 +77,16 @@ export function configureAsPrefixSearch(builder: lunr.Builder): void {
     builder.searchPipeline.remove(lunr.stemmer)
 }
 
-export function allKeywords(keywords: string) {
+export function allKeywords(
+    keywords: string,
+    presence = lunr.Query.presence.REQUIRED
+) {
     let tokens = lunr.tokenizer(slugify(keywords))
     return (q: lunr.Query) => {
         tokens.forEach((k) =>
             q.term(k, {
                 wildcard: lunr.Query.wildcard.TRAILING,
-                presence: lunr.Query.presence.REQUIRED,
+                presence: presence,
             })
         )
     }
