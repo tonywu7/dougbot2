@@ -22,6 +22,7 @@ from discord.errors import HTTPException
 from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
@@ -32,7 +33,6 @@ from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
 from ts2.discord.models import Server
 
 from .config import CommandAppConfig, Extensions
-from .models import User
 
 
 def _http_safe_method(req: HttpRequest) -> bool:
@@ -54,7 +54,7 @@ async def fetch_discord_info(req: HttpRequest, view_func):
         raise Logout
 
     fetch = DiscordFetch(
-        user_id=user.snowflake,
+        user_id=user.pk,
         nocache=(
             not getattr(view_func, 'csrf_exempt', False)
             and not _http_safe_method(req)
@@ -179,7 +179,7 @@ class DiscordContext:
 
     @property
     def user_id(self):
-        return self.web_user.snowflake
+        return self.web_user.pk
 
     @property
     def username(self):

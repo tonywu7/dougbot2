@@ -16,8 +16,7 @@
 
 from graphene import ID, Argument, InputObjectType, List, ObjectType, String
 
-from ts2.web.middleware import get_server
-
+from ...middleware import get_server
 from ...models import Server
 from ...schema import ServerModelMutation
 from .logging import get_logging_conf, set_logging_conf

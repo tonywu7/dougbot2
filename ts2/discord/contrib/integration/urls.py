@@ -1,4 +1,4 @@
-from ts2.web.config import annotated_re_path
+from ts2.discord.config import annotated_re_path
 
 from . import views
 

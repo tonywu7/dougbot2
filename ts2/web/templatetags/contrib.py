@@ -18,10 +18,10 @@ from __future__ import annotations
 
 from django.template import Context, Library, Node, NodeList
 
-from ts2.web.templatetags.elements import SidebarLinkNode, SidebarSectionNode
-from ts2.web.utils.templates import create_tag_parser
+from ts2.discord.apps import DiscordBotConfig
 
-from ..apps import DiscordBotConfig
+from ..templatetags.elements import SidebarLinkNode, SidebarSectionNode
+from ..utils.templates import create_tag_parser
 
 register = Library()
 

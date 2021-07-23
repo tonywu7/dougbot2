@@ -23,10 +23,9 @@ from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
 
-from ts2.web.middleware import get_server
-
 from . import forms, models
 from .apps import get_commands
+from .middleware import get_server
 from .models import Server
 from .utils.graphql import FormMutationMixin, ModelMutation
 

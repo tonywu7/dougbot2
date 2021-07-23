@@ -22,8 +22,8 @@ from django.shortcuts import render
 
 from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.ext.logging import iter_logging_conf
+from ts2.discord.middleware import get_ctx
 
-from ..middleware import get_ctx
 from ..models import write_access_required
 
 

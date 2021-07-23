@@ -21,7 +21,7 @@ from graphene import (ID, Argument, Boolean, Enum, Field, InputObjectType, Int,
                       List, NonNull, ObjectType, String)
 from more_itertools import bucket, first
 
-from ts2.web.middleware import get_server
+from ts2.discord.middleware import get_server
 
 from ...models import Server
 from ...schema import ServerModelMutation

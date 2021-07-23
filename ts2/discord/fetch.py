@@ -35,7 +35,7 @@ from django.http import HttpRequest
 from django.urls import reverse
 
 from ts2.utils.datetime import utcnow, utctimestamp
-from ts2.web.utils.jwt import gen_token
+from ts2.utils.jwt import gen_token
 
 OAUTH2_PROTOCOL = 'https'
 OAUTH2_DOMAIN = 'discord.com'

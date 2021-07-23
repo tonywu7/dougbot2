@@ -32,11 +32,11 @@ from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
                                bot_invite_url, create_session)
 from ts2.discord.models import Server
+from ts2.utils.jwt import validate_token
 
 from ..forms import ServerCreationForm, UserCreationForm
 from ..models import User, write_access_required
 from ..utils.http import HTTPCreated
-from ..utils.jwt import validate_token
 
 
 def verify_state(req: HttpRequest):

@@ -35,7 +35,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'ts2.web.apps.WebConfig',
     'ts2.discord.apps.DiscordBotConfig',
-    'ts2.discord.ext.profile.apps.ProfileConfig',
+    'ts2.discord.ext.identity.apps.IdentityConfig',
     'ts2.discord.ext.acl.apps.CommandACLConfig',
     'ts2.discord.contrib.internet.apps.InternetConfig',
     'ts2.discord.contrib.utility.apps.BotUtilityConfig',
@@ -67,6 +67,18 @@ TEMPLATES = [
         },
     },
 ]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'ts2.discord.middleware.DiscordContextMiddleware',
+]
+
 
 WSGI_APPLICATION = 'ts2.wsgi.application'
 

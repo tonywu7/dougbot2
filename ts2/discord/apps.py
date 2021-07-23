@@ -26,8 +26,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
 from django.http import HttpRequest
 
-from ts2.web.config import AnnotatedPattern, CommandAppConfig
-
+from .config import AnnotatedPattern, CommandAppConfig
 from .runner import BotRunner
 
 

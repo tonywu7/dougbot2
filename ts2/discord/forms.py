@@ -21,9 +21,8 @@ from django import forms
 from django.apps import apps
 from django.http import HttpRequest
 
-from ts2.web.config import CommandAppConfig
-
 from .apps import DiscordBotConfig
+from .config import CommandAppConfig
 from .models import Server
 
 

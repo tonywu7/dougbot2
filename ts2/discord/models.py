@@ -32,7 +32,7 @@ from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 
-from ts2.web.config import CommandAppConfig
+from .config import CommandAppConfig
 
 inflection = inflect.engine()
 

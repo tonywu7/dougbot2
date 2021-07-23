@@ -18,7 +18,7 @@ from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
-from .middleware import get_ctx
+from ts2.discord.middleware import get_ctx
 
 
 def user_info(req: HttpRequest):
