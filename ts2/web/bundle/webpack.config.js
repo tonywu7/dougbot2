@@ -28,7 +28,7 @@ module.exports = {
     ...APPS
   ),
 
-  devtool: devMode ? 'source-map' : false,
+  devtool: devMode ? 'inline-source-map' : false,
   watch: devMode,
 
   module: {
