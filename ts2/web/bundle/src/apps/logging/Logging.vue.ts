@@ -44,10 +44,12 @@ export default defineComponent({
     setup() {
         let settings: Ref<LoggingConfig[]> = ref([])
         let { roles, channels } = setupDiscordModel()
+        let loading = ref(true)
         onMounted(async () => {
             settings.value.push(...(await server.getLogging()))
+            loading.value = false
         })
-        return { settings, roles, channels }
+        return { settings, roles, channels, loading }
     },
     data() {
         let logging: Record<string, LoggingSelection> = Object.assign(

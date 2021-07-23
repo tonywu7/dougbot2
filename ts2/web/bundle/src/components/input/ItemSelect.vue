@@ -4,7 +4,7 @@
         <div ref="searchElem" class="item-select-field" aria-expanded="false" @click="activate" @focus="activate"
             @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
-                :style="getItemStyles(item, true)" v-html="item.content" @click="(e) => deselect(item, e)"
+                :style="getItemStyles(item, true)" v-html="safe(item.content)" @click="(e) => deselect(item, e)"
                 @focusin="(e) => e.stopPropagation()"></button>
             <textarea ref="searchInput" type="search" class="item-select-search" wrap="off" autocomplete="off"
                 autocapitalize="none" spellcheck="false" :style="[inputWidth]" :value="search" @focus="activate"
@@ -13,7 +13,7 @@
                 :aria-hidden="!dropdownShow" :class="['dropdown-menu', {show: dropdownShow}]">
                 <li v-for="(item, index) in candidates" :key="item.id" role="button"
                     :class="['dropdown-item', {'has-focus': index == currentFocus}]" :style="getItemStyles(item, false)"
-                    :aria-selected="index == currentFocus" v-html="item.content" @click="(e) => select(item)"
+                    :aria-selected="index == currentFocus" v-html="safe(item.content)" @click="(e) => select(item)"
                     @mouseenter="currentFocus = index">
                 </li>
             </ul>

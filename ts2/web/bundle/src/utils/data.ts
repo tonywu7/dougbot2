@@ -18,3 +18,9 @@ export function serializeFormData(data: FormData): Record<string, string> {
     }
     return obj
 }
+
+export function safe(s: string): string {
+    let span = document.createElement('span')
+    span.textContent = s
+    return span.innerHTML
+}

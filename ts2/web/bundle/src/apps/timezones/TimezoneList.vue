@@ -6,7 +6,7 @@
                     <item-select label="Role" :items="roles" v-model:choices="tz.roles"
                         @update:choices="() => updateClockAt(index)">
                     </item-select>
-                    <item-select label="Timezone" :items="zones" v-model:choices="tz.zones" :multiple="false"
+                    <item-select label="Timezone" :items="zones" v-model:choices="tz.zones" :options="{multiple: false}"
                         @update:choices="() => updateClockAt(index)">
                     </item-select>
                     <div class="clock">

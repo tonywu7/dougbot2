@@ -24,7 +24,12 @@ import {
     Indexable,
     configureAsPrefixSearch,
 } from '../../utils/search'
-import { pick } from 'lodash'
+import { safe } from '../../utils/data'
+
+export interface ItemSelectOptions {
+    multiple?: boolean
+    unsafe?: boolean
+}
 
 export interface ItemCandidate extends Indexable {
     id: string
@@ -55,17 +60,16 @@ export default defineComponent({
         label: {
             type: String,
         },
-        placeholder: {
-            type: String,
-            default: '...',
-        },
-        multiple: {
-            type: Boolean,
-            default: true,
-        },
         error: {
             type: String,
             default: '',
+        },
+        options: {
+            type: Object as PropType<ItemSelectOptions>,
+            default: (): ItemSelectOptions => ({
+                multiple: true,
+                unsafe: false,
+            }),
         },
     },
     setup() {
@@ -125,6 +129,13 @@ export default defineComponent({
         },
     },
     methods: {
+        safe(s: string): string {
+            if (this.options.unsafe) {
+                return s
+            } else {
+                return safe(s)
+            }
+        },
         activate(ev?: FocusEvent) {
             if (this.dropdownShow) return
             this.dropdownShow = true
@@ -235,7 +246,7 @@ export default defineComponent({
             return styles
         },
         select(item: ItemCandidate) {
-            if (!this.multiple) {
+            if (!this.options.multiple) {
                 Object.keys(this.selected).forEach(
                     (k) => delete this.selected[k]
                 )

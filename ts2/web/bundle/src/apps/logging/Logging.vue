@@ -1,5 +1,5 @@
 <template>
-    <div class="logging-config-main">
+    <div :class="['logging-config-main', {loading: loading}]">
         <div class="logging-conf">
             <form-container v-for="cls in conf" :class="{'superuser': cls.superuser}" :key="cls">
                 <template v-slot:form-before>
@@ -8,11 +8,11 @@
                 <template v-slot:form-fields>
                     <item-select label="Send logs to this channel" :items="textChannels"
                         v-model:choices="logging[cls.key].channels" placeholder="type in the name of a channel"
-                        :multiple="false">
+                        :options="{multiple: false}">
                     </item-select>
                     <item-select label="Notify this role for every log message" :items="roles"
                         v-model:choices="logging[cls.key].roles" placeholder="type in the name of a role"
-                        :multiple="false">
+                        :options="{multiple: false}">
                     </item-select>
                 </template>
             </form-container>
