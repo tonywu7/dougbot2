@@ -4,6 +4,13 @@
     grid-template-columns: 1fr 1fr;
     column-gap: 6pt;
 
+    > * {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     &.kvp-left {
         > * {
             justify-self: left;

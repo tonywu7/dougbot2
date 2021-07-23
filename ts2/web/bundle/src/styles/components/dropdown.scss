@@ -42,8 +42,10 @@ a.dropdown-toggle:focus {
     color: $color-text;
 
     font-size: 11pt;
-
     padding: 0.25rem 1rem;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &:hover {
         text-decoration: none;

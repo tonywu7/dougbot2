@@ -9,6 +9,8 @@
     display: flex;
     flex-flow: column nowrap;
 
+    min-width: 0;
+
     > ul {
         padding: 0;
         margin: 0;

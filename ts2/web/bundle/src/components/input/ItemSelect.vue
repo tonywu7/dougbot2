@@ -70,6 +70,10 @@
         line-height: 1;
         font-weight: 600;
 
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 3.6px);
+
         cursor: pointer;
         user-select: none;
 
