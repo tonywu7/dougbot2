@@ -53,7 +53,7 @@ class Personalize(
     @command('me', invoke_without_command=True)
     @doc.description('Print your settings within the bot.')
     async def me(self, ctx: Circumstances):
-        profile: User = await User.aget(ctx.author)
+        profile: User = await User.async_get(ctx.author)
 
         footer = ('No preference set, showing default values'
                   if profile.isdefault else None)
@@ -127,7 +127,7 @@ class Personalize(
             return await ctx.reply('Your timezone preference has been reset.')
 
         if not errors and not values:
-            profile: User = await User.aget(author)
+            profile: User = await User.async_get(author)
             embed = Embed2(title='Timezone').personalized(author)
             if profile.timezone:
                 dt = utcnow().astimezone(profile.timezone)
@@ -196,7 +196,7 @@ class Personalize(
         return await commit_tz(tz, location=place, delete=True)
 
     async def set_tz(self, member: Member, tz: pytz.BaseTzInfo):
-        profile: User = await User.aget(member)
+        profile: User = await User.async_get(member)
         await profile.save_timezone(tz)
         return profile
 

@@ -17,10 +17,15 @@
 from __future__ import annotations
 
 import re
+from typing import Optional, TypedDict
 
 import inflect
 import unidecode
+from discord import User
+from discord.ext.commands import Context
 from django.db.models import Model
+
+from ...utils.markdown import tag
 
 inflection = inflect.engine()
 
@@ -250,3 +255,48 @@ def slugify(name: str, sep='-', *, limit=0) -> str:
     if limit > 0:
         t = sep.join(t.split(sep)[:limit])
     return t
+
+
+class PartOfSpeech(TypedDict):
+    PRP_NOM: str
+    PRP_ACC: str
+    DET_POSS: str
+    PRP_POSS: str
+    PRP_REFL: str
+
+
+_3RD_PERSON_PLURAL: PartOfSpeech = {
+    'PRP_NOM': 'they',
+    'PRP_ACC': 'them',
+    'DET_POSS': 'their',
+    'PRP_POSS': 'theirs',
+    'PRP_REFL': 'themselves',
+}
+
+_2ND_PERSON_SINGULAR: PartOfSpeech = {
+    'PRP_NOM': 'you',
+    'PRP_ACC': 'you',
+    'DET_POSS': 'your',
+    'PRP_POSS': 'yours',
+    'PRP_REFL': 'yourself',
+}
+
+
+def address(msg: str, person: User, ctx: Optional[Context] = None,
+            sentence=True, **infinitives: str) -> str:
+    pos: PartOfSpeech
+    third_person = not ctx or ctx.author.id != person.id
+    if third_person:
+        pos = _3RD_PERSON_PLURAL
+        entity = tag(person)
+    else:
+        pos = _2ND_PERSON_SINGULAR
+        entity = 'you'
+    verbs = {k: inflection.plural_verb(v, 2) for k, v in infinitives.items()}
+    phrases = {f'{k}_vp': f'{entity} {inflection.plural_verb(v, int(third_person))}'
+               for k, v in infinitives.items()}
+    tokens = {**pos, **verbs, **phrases, 'entity': entity}
+    msg = msg % tokens
+    if sentence:
+        msg = msg[0].upper() + msg[1:]
+    return msg

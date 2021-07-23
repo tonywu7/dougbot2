@@ -177,14 +177,14 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
 
 
 def accepts(*args, **kwargs):
-    def wrapper(obj: Any):
+    def wrapper(obj):
         add_type_description(obj, QuantifiedNP(*args, **kwargs))
         return obj
     return wrapper
 
 
-def convert_with(c: Callable):
-    def wrapper(obj: Any):
+def convert_with(c):
+    def wrapper(obj):
         add_type_converter(obj, c)
         return obj
     return wrapper

@@ -14,19 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from typing import Literal, Optional
 
 import aiohttp
+import pytz
+from discord import Member, Role
 from discord.ext.commands import BucketType, Greedy, command
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import autodoc as doc
-from ts2.discord.ext.autodoc.lang import pluralize
+from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
 from ts2.discord.ext.services.oeis import OEIS
-from ts2.discord.ext.types.patterns import RegExp
+from ts2.discord.ext.services.tz import Timezone
+from ts2.discord.utils.common import Color2, Embed2, async_first, code, tag
+from ts2.utils.datetime import utcnow
+
+from .models import RoleTimezone
 
 
 class Internet(
@@ -72,4 +75,111 @@ class Internet(
             await ctx.reply('Network error while searching on OEIS')
             raise
         await ctx.reply_with_text_fallback(sequence.to_embed(), sequence.to_text())
-        await ctx.send(f'({num_results - 1} more {pluralize(num_results - 1, "result")})')
+        await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')
+
+    @command('time')
+    @doc.description('Get local time of a server member or a timezone.')
+    @doc.argument('tz', 'Name of a timezone.')
+    @doc.argument('user', 'The user whose local time to check.')
+    @doc.argument('role', 'The server role whose associated time to check.')
+    @doc.use_syntax_whitelist
+    @doc.invocation((), 'Show your local time.')
+    @doc.invocation(('tz',), 'Show the local time of a supported IANA timezone.')
+    @doc.invocation(('user',), (
+        'Show the local time of another user,'
+        ' if they have their timezone preference set.'
+    ))
+    @doc.invocation(('role',), (
+        'Show the local time of a server role,'
+        ' if it is associated with a timezone.'
+    ))
+    @Maybe.ensure
+    async def time(
+        self, ctx: Circumstances,
+        tz: Maybe[Timezone, None],
+        user: Maybe[Member, None],
+        role: Maybe[Role, None],
+    ):
+        timezone: Optional[pytz.BaseTzInfo] = None
+        footer_fmt: str = 'Timezone: %(tz)s'
+        TIMEZONE_NOT_SET = (
+            '%(has_vp)s not set %(PRP_REFL)s a timezone preference'
+            '\nnor assigned %(PRP_REFL)s a role timezone in the server.'
+        )
+
+        target: Optional[Member] = None
+        role_ids: list[int] = []
+        if tz:
+            timezone = tz.value
+        elif role:
+            role_ids = [role.value.id]
+        elif user:
+            target = user.value
+            role_ids = [r.id for r in user.value.roles]
+        else:
+            target = ctx.author
+            role_ids = [r.id for r in ctx.author.roles]
+
+        if not timezone:
+            if target:
+                profile: User = await User.async_get(target)
+                timezone = profile and profile.timezone
+
+        if not timezone and role_ids:
+            q = RoleTimezone.objects.filter(role_id__in=role_ids)
+            role_tz: Optional[RoleTimezone] = await async_first(q)
+            timezone = role_tz and role_tz.timezone
+            footer_fmt = 'Timezone: %(tz)s (from server role)'
+
+        if not timezone:
+            errors = Maybe.errordict(tz=tz, user=user, role=role)
+            if not errors:
+                hint = (
+                    'Set timezone preference with '
+                    + ctx.fmt_command('my timezone')
+                )
+                msg = lang.address(TIMEZONE_NOT_SET, ctx.author, ctx, has='has')
+                embed = (
+                    Embed2(description=msg.capitalize())
+                    .set_footer(text=hint)
+                    .set_color(Color2.red())
+                    .set_timestamp(None)
+                )
+                return await ctx.reply(embed=embed, delete_after=20)
+
+            if 'user' not in errors:
+                msg = lang.address(TIMEZONE_NOT_SET, user.value, ctx, has='has')
+                embed = (
+                    Embed2(description=msg.capitalize())
+                    .set_color(Color2.red())
+                    .set_timestamp(None)
+                )
+                return await ctx.reply(embed=embed, delete_after=20)
+
+            elif 'role' not in errors:
+                msg = f'{tag(role.value)} has no associated timezone.'
+                embed = (
+                    Embed2(description=msg)
+                    .set_color(Color2.red())
+                    .set_timestamp(None)
+                )
+                return await ctx.reply(embed=embed, delete_after=20)
+
+            else:
+                raise doc.NotAcceptable(
+                    'Cannot find a timezone, user, or server role'
+                    f' using {code(ctx.raw_input)}',
+                )
+
+        profile = await User.async_get(ctx.author)
+        datefmt = profile.datetimefmt
+        time = utcnow().astimezone(timezone)
+        formatted = time.strftime(datefmt)
+        result = (
+            Embed2(title='Local time', description=formatted)
+            .set_footer(text=footer_fmt % {'tz': timezone})
+            .set_timestamp(None)
+        )
+        if target:
+            result = result.personalized(target)
+        return await ctx.reply(embed=result)

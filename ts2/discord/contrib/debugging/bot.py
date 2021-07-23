@@ -29,8 +29,7 @@ from discord.ext.commands import (BucketType, Converter, command, has_role,
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import autodoc as doc
-from ts2.discord.ext.types.patterns import Constant, RegExp
+from ts2.discord.ext.common import Constant, RegExp, doc
 from ts2.discord.utils.markdown import E, a, code, strong
 
 

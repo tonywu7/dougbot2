@@ -29,6 +29,7 @@ from . import unpack_varargs
 
 T = TypeVar('T')
 U = TypeVar('U')
+R = TypeVar('R')
 
 
 class DoesConversion(Protocol[T]):
@@ -49,6 +50,9 @@ class Maybe(Converter, Generic[T, U]):
         self.default = default
         self.argument = argument
         self.error = error
+
+    def __bool__(self):
+        return bool(self.value)
 
     @property
     def value(self):
@@ -115,25 +119,24 @@ class Maybe(Converter, Generic[T, U]):
         return Union[type(cls.__name__, (Maybe,), __dict__), None]
 
     @classmethod
-    def asdict(cls, **items: Maybe) -> dict:
-        return defaultdict(lambda: None, {k: v.value for k, v in items.items() if v.value is not None})
+    def asdict(cls, **items: Maybe[R]) -> dict[str, R]:
+        return defaultdict(lambda: None, {
+            k: v.value if isinstance(v, cls) else v for k, v in items.items()
+            if not isinstance(v, cls) or v.value is not None
+        })
 
     @classmethod
-    def astuple(cls, *items: Maybe) -> tuple:
-        return tuple(v.value for v in items)
+    def astuple(cls, *items: Maybe[R]) -> tuple[R, ...]:
+        return tuple(v.value if isinstance(v, cls) else v for v in items)
 
     @classmethod
-    def errordict(cls, **items: Maybe) -> dict:
+    def errordict(cls, **items: Maybe) -> dict[str, Exception]:
         errors = {}
         for k, v in items.items():
-            if v.error is not None:
+            if isinstance(v, cls) and v.error is not None:
                 errors[k] = v.error
         return errors
 
     @classmethod
-    def unpack(cls, **items: Maybe) -> tuple[dict, dict]:
+    def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, Exception]]:
         return cls.asdict(**items), cls.errordict(**items)
-
-    @classmethod
-    def reconstruct(cls, *items: Maybe) -> str:
-        return ' '.join(v.argument for v in items if v.argument)

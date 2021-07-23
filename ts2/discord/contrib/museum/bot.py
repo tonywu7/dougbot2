@@ -33,9 +33,8 @@ from pendulum import DateTime, instance
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
-from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
-from ts2.discord.ext.types.patterns import Choice
+from ts2.discord.ext.common import Choice, doc
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal
 from ts2.discord.utils.pagination import ParagraphStream, chapterize
 from ts2.utils.datetime import utcnow

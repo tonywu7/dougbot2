@@ -164,6 +164,10 @@ class Circumstances(Context):
     def trigger_cooldowns(self, cmd: Command):
         cmd._prepare_cooldowns(self)
 
+    def fmt_command(self, cmd: str):
+        assert cmd in self.bot.manual.commands
+        return f'{self.prefix}{cmd}'
+
 
 class CommandContextError(CommandInvokeError):
     def __init__(self, exc: Exception):

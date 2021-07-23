@@ -20,13 +20,13 @@ from datetime import datetime
 
 import discord
 import pytz
-from asgiref.sync import sync_to_async
 from django.conf.locale import LANG_INFO
 from django.db import models
 from django.db.models import CASCADE
 from timezone_field import TimeZoneField
 
 from ...models import Entity, ModelTranslator, Server
+from ...utils.async_ import async_get, async_save
 
 
 def make_locale_type() -> models.TextChoices:
@@ -77,22 +77,19 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
         return instance
 
     @classmethod
-    @sync_to_async
-    def aget(cls, user: discord.User) -> User:
+    async def async_get(cls, user: discord.User) -> User:
         try:
-            return cls.objects.get(snowflake=user.id)
+            return await async_get(cls.objects, snowflake=user.id)
         except cls.DoesNotExist:
             return cls.defaultuser(snowflake=user.id, name=user.name,
                                    discriminator=user.discriminator)
 
-    @sync_to_async
-    def asave(self, *args, **kwargs):
-        return self.save(*args, **kwargs)
+    async def async_save(self, *args, **kwargs):
+        return await async_save(self, *args, **kwargs)
 
-    @sync_to_async
-    def save_timezone(self, tz: pytz.BaseTzInfo | str):
+    async def save_timezone(self, tz: pytz.BaseTzInfo | str):
         self.timezone = tz
-        self.save()
+        await self.async_save()
 
     @property
     def isdefault(self):
