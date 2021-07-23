@@ -19,6 +19,7 @@ from __future__ import annotations
 from cmd import Cmd
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from getpass import getpass
 from typing import Any, Optional
 
 from .logger import colored as _
@@ -33,6 +34,7 @@ class Question:
     required: bool
     value: Any = missing
     converter: Callable[[str], Any] = lambda v: v
+    conceal: bool = False
 
 
 class TemplateQuestionMixin:
@@ -116,16 +118,26 @@ class Form(TemplateQuestionMixin, Cmd):
     def current(self) -> Question:
         return self._current
 
+    def _prompt_pass(self) -> str:
+        password = getpass(self.prompt)
+        self.cmdqueue.append(password)
+
     def _set_position(self, pos: int):
         if pos < 0:
             raise IndexError
         self._current = self._questions[pos]
         self._pointer = pos
         self.prompt = self._format_prompt()
+        if self._current.conceal:
+            try:
+                self._prompt_pass()
+            except KeyboardInterrupt:
+                print()
+                self._backward()
 
     def _format_prompt(self):
         prompt = _(self.current.prompt, attrs=['bold'])
-        if self.current.value is not missing:
+        if self.current.value is not missing and not self.current.conceal:
             return f'{prompt} [{self.current.value}] '
         return f'{prompt}: '
 

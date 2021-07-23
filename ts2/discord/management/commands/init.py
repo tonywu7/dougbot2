@@ -48,10 +48,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, client_id=missing, secret=missing, token=missing, **options):
+        logging.disable(logging.ERROR)
+
         form = Form([
             Question('client_id', 'Discord app client ID', True, value=client_id),
-            Question('secret', 'Discord app client secret', True, value=secret),
-            Question('token', 'Discord bot login token', True, value=token),
+            Question('secret', 'Discord app client secret', True, value=secret, conceal=True),
+            Question('token', 'Discord bot login token', True, value=token, conceal=True),
         ])
         form.cmdloop(intro=('Initializing app credentials.\n'
                             'Please enter/confirm the following values.\n'
@@ -70,4 +72,4 @@ class Command(BaseCommand):
         with open(target, 'w+') as f:
             f.write(tmpl)
 
-        log.info(_(f'Exported credentials to {target.resolve()}', 'green'))
+        print(_(f'Exported credentials to {target.resolve()}', 'green'))
