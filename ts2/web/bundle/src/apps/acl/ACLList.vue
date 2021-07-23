@@ -1,5 +1,5 @@
 <template>
-    <div class="acl-list-container">
+    <div :class="['acl-list-container', {'loading': loading}]">
         <div class="acl-list-actions">
             <button type="button" class="btn btn-success btn-new" @click="createRule">Create a new rule</button>
             <button type="button" class="btn btn-primary" @click="submit">Save changes</button>

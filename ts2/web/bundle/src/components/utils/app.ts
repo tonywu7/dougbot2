@@ -1,4 +1,4 @@
-import { Component, createApp, App } from 'vue'
+import { Component, createApp, App, onBeforeMount, onMounted } from 'vue'
 import { PropSupplier } from '../../@types/infer/component'
 
 export function createAppWithDataset<T extends Component>(

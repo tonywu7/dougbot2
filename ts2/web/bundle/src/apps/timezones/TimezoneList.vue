@@ -1,5 +1,5 @@
 <template>
-    <div class="timezone-list-container">
+    <div :class="['timezone-list-container', {'loading': loading}]">
         <div class="timezone-list">
             <form-container v-for="(tz, index) in data" :key="tz">
                 <template v-slot:form-fields>

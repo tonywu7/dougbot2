@@ -25,10 +25,12 @@ export default defineComponent({
     components: { 'acl-rule': ACLRule },
     setup() {
         let rules: Ref<ACL[]> = ref([])
+        let loading = ref(true)
         onMounted(async () => {
             rules.value.push(...(await server.getACLs()))
+            loading.value = false
         })
-        return { rules }
+        return { rules, loading }
     },
     data(): {
         changed: ACL[]

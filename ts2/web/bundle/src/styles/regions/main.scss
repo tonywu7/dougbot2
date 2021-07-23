@@ -83,17 +83,6 @@
     row-gap: 2rem;
     column-gap: 1.6rem;
 
-    section {
-        border-top: 2px solid;
-        margin-bottom: 1rem;
-        padding: 0.5rem 0 0 0;
-
-        header {
-            margin: 0 0 1rem;
-            user-select: none;
-        }
-    }
-
     @media screen and (max-width: 768px) {
         grid-template-columns: repeat(1, minmax(0, 1fr));
 
@@ -131,5 +120,18 @@
             flex: 1 0 auto;
             margin-bottom: 2rem;
         }
+    }
+}
+
+.main-section {
+    position: relative;
+
+    border-top: 2px solid;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0 0 0;
+
+    header {
+        margin: 0 0 1rem;
+        user-select: none;
     }
 }

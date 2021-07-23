@@ -45,8 +45,7 @@ class Zone implements ItemCandidate {
     readonly summer: number
     readonly tzname: string
 
-    readonly meanOffset: number
-    readonly readable: string
+    readonly mean_offset: number
     readonly offset: string
     readonly content: string
     readonly foreground: string
@@ -56,40 +55,25 @@ class Zone implements ItemCandidate {
         this.canonical = data.canonical
         this.summer = data.summer
         this.tzname = data.tzname
-
-        this.meanOffset = (this.canonical + this.summer) / 2
-        if (this.summer == this.canonical) {
-            this.offset = fmtPositive(this.canonical)
-        } else {
-            this.offset = `${fmtPositive(this.canonical)}/${fmtPositive(
-                this.summer
-            )}`
-        }
-        this.readable = this.id.replace(/\//g, ' - ').replace(/_/g, ' ')
-        this.content = `${this.offset} : ${this.readable}`
-        let hue = 15 * ((this.meanOffset + 12) % 24)
-        this.foreground = hsl(hue, 0.6, 0.75).formatRgb()
+        this.mean_offset = data.mean_offset
+        this.offset = data.offset
+        this.content = data.content
+        this.foreground = data.foreground
     }
 
     getIndex() {
         return {
             id: this.id,
             tz: this.id,
-            offset: fmtPositive(this.canonical),
             name: this.tzname,
-            place: this.readable,
+            place: this.content,
         }
     }
 }
 
 async function getZones(src: string): Promise<Zone[]> {
-    let data: Record<string, any> = await (await fetch(src)).json()
-    return Object.values(data)
-        .map((d) => new Zone(d))
-        .sort(
-            (z1, z2) =>
-                z1.meanOffset - z2.meanOffset || z1.canonical - z2.canonical
-        )
+    let data: any[] = await (await fetch(src)).json()
+    return data.map((d) => new Zone(d))
 }
 
 async function loadRoleTimezones(): Promise<RoleTimezoneType[]> {
@@ -171,6 +155,7 @@ export default defineComponent({
             updateClocks()
         }
 
+        let loading = ref(true)
         onMounted(async () => {
             let [r, z, roleTimezones] = await Promise.all([
                 server.getRoles(),
@@ -185,13 +170,16 @@ export default defineComponent({
             setInitialData(roleTimezones)
             updateClocks()
             setInterval(() => updateClocks(), 1000)
+            loading.value = false
         })
+
         return {
             roles,
             zones,
             data,
             clocks,
             orig,
+            loading,
             updateClockAt,
             setInitialData,
         }
