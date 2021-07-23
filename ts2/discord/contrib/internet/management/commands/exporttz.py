@@ -23,8 +23,8 @@ import simplejson
 from django.core.management.base import BaseCommand
 from PIL import ImageColor
 
-N_WINTER = datetime(2021, 1, 1)
-N_SUMMER = datetime(2021, 6, 1)
+N_WINTER = datetime(datetime.now().year, 1, 1)
+N_SUMMER = datetime(datetime.now().year, 6, 1)
 
 
 class Zone(TypedDict):

@@ -104,7 +104,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
             field = self._meta.get_field(field_name)
             val = getattr(self, field_name)
             if field.choices:
-                val = dict(field.choices).get(val)
+                val = dict(field.choices).get(val, val)
             info[field.verbose_name] = val
         return info
 

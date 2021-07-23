@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import warnings
+from datetime import datetime, timedelta
 
 import pytz
 from discord.ext.commands import Converter
@@ -30,6 +31,7 @@ from ...ext.autodoc import accepts
 from ...utils.markdown import a, code, verbatim
 
 tzfinder = None
+tznames: dict[str, pytz.BaseTzInfo] = {}
 
 
 def get_tzfinder() -> TimezoneFinder:
@@ -37,6 +39,27 @@ def get_tzfinder() -> TimezoneFinder:
     if tzfinder is None:
         tzfinder = TimezoneFinder(in_memory=True)
     return tzfinder
+
+
+def make_tz_names():
+    year = datetime.now().year
+    time_1 = datetime(year, 1, 1)
+    time_2 = datetime(year, 6, 1)
+    for iana in pytz.common_timezones:
+        tz = pytz.timezone(iana)
+        tznames[tz.tzname(time_1)] = tz
+        tznames[tz.tzname(time_2)] = tz
+
+
+def get_tz_by_name(s: str) -> pytz.BaseTzInfo:
+    if not tznames:
+        make_tz_names()
+    return tznames[s]
+
+
+def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:
+    return (not hasattr(tz, '_tzinfos')
+            and getattr(tz, '_utcoffset') != timedelta(0))
 
 
 @accepts('IANA tz code', predicative=(
@@ -48,8 +71,14 @@ class Timezone(Converter, pytz.BaseTzInfo):
 
     async def convert(self, ctx: Circumstances, argument: str) -> pytz.BaseTzInfo:
         try:
-            return pytz.timezone(argument)
+            tz = pytz.timezone(argument)
+            if not is_ambiguous_static_tz(tz):
+                return tz
         except pytz.UnknownTimeZoneError:
+            pass
+        try:
+            return get_tz_by_name(argument)
+        except KeyError:
             raise BadArgument(f'Unknown timezone {code(escape_markdown(argument))}')
 
 
