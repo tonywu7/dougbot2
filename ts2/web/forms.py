@@ -22,8 +22,6 @@ from django import forms
 
 from ts2.discord.models import Server
 
-from .utils.forms import FormConstants, TextInput
-
 
 class UserCreationForm(forms.Form):
     username = forms.CharField()
@@ -45,7 +43,3 @@ class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
         fields = ['snowflake', 'invited_by', 'disabled']
-
-
-class ServerPrefixForm(FormConstants, forms.Form):
-    prefix = forms.CharField(widget=TextInput)

@@ -1,10 +1,10 @@
 {% extends 'telescope2/web/manage/base.html' %}
-{% load inspect element builtins %}
+{% load inspect elements builtins %}
 
 {% block title %}Home - {{ discord.server.name|default:'server' }}{% endblock %}
 
 {% block main_title %}
-<span class="bot-name">{{ BRANDING_FULL }}</span>
+<span>{{ discord.server.name|default:BRANDING_FULL }}</span>
 {% endblock %}
 
 {% block sections %}
@@ -24,9 +24,9 @@
 
 {% section id='general' title='general' %}
 <div class="key-value-pair kvp-justify">
+    <span>command prefix</span><span class="text-info"><code>{{ server.prefix }}</code></span>
     <span>server name</span><span class="text-info">{{ discord.info.name }}</span>
     <span>server id</span><span class="text-info"><code>{{ server.snowflake }}</code></span>
-    <span>command prefix</span><span class="text-info"><code>{{ server.prefix }}</code></span>
 </div>
 {% endsection %}
 

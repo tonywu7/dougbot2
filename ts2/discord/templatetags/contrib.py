@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from django.template import Context, Library, Node, NodeList
 
-from ts2.web.templatetags.element import SidebarLinkNode, SidebarSectionNode
+from ts2.web.templatetags.elements import SidebarLinkNode, SidebarSectionNode
 from ts2.web.utils.templates import create_tag_parser
 
 from ..apps import DiscordBotConfig

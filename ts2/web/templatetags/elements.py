@@ -24,7 +24,8 @@ from django.template import Context, Library, Node, NodeList, Variable, loader
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from ts2.web.utils.templates import create_tag_parser, optional_attr, unwrap
+from ts2.web.utils.templates import (create_tag_parser, domtokenlist,
+                                     optional_attr, unwrap)
 
 register = Library()
 
@@ -52,7 +53,7 @@ class SectionNode(Node):
         content = self.nodelist.render(context)
         title = unwrap(context, self.title)
         section_id = optional_attr('id', unwrap(context, self.id))
-        classes = optional_attr('class', unwrap(context, self.classes))
+        classes = optional_attr('class', domtokenlist('main-section', unwrap(context, self.classes)))
         return mark_safe(
             f'<section {section_id} {classes}>'
             f'<header><h3>{mark_safe(title)}</h3></header>'

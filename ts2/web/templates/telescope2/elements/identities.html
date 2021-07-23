@@ -8,7 +8,7 @@
                     alt="icon for server {{ discord.info.name }}">
             </figure>
             {% endif %}
-            <div id="server-select">
+            <div id="server-select" class="identity-str">
                 {% if discord.info %}
                 <span data-server-endpoint="{% url 'web:api' %}" data-server-id="{{ discord.server_id }}">
                     {{ discord.info.name }}
@@ -47,7 +47,7 @@
                 <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
                     alt="icon for user {{ discord.username }}">
             </figure>
-            <div id="user-info">
+            <div id="user-info" class="identity-str">
                 <span>{{ discord.username }}</span> <i class="bi bi-chevron-down"></i>
             </div>
         </a>
