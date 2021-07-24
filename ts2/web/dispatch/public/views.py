@@ -17,6 +17,14 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from ...models import Feature
 
-async def index(req: HttpRequest) -> HttpResponse:
+
+def index(req: HttpRequest) -> HttpResponse:
     return render(req, 'ts2/public/index.html')
+
+
+def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'ts2/public/features.html', {
+        'features': Feature.objects.order_by('status', 'ftype', 'name').all(),
+    })

@@ -97,14 +97,17 @@ def write_access_required(f):
 
 
 class FeatureStatus(models.TextChoices):
-    PLANNED = 'PL', 'planned'
-    PROTOTYPE = 'PR', 'prototyping'
-    PARTIAL = 'PS', 'partial'
-    CANDIDATE = 'RC', 'ready'
-    FINAL = 'FN', 'finalized'
-    NEVER = 'NO', 'never'
-    REMOVED = 'RM', 'removed'
-    STOPPED = 'ST', 'abandoned'
+    PLANNED = '01-PL', 'planned'
+    PROTOTYPE = '02-PR', 'drafting'
+    PARTIAL = '03-PS', 'partial'
+    CANDIDATE = '04-RC', 'ready'
+    FROZEN = '05-FN', 'frozen'
+    SUPERSEDED = '10-SU', 'superseded'
+    MAYBE = '20-SP', 'speculative'
+    NEVER = '30-NO', 'never'
+    NOSUPPORT = '31-NA', 'no support'
+    REMOVED = '32-RM', 'removed'
+    STOPPED = '33-ST', 'abandoned'
 
 
 class FeatureType(models.TextChoices):

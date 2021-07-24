@@ -1,0 +1,33 @@
+{% extends 'ts2/web/base.html' %}
+{% load inspect elements static %}
+
+{% block apps %}
+<script defer src="{% static '/telescope2/features.bundle.js' %}"></script>
+{% endblock %}
+
+{% block app_styles %}
+<link rel="stylesheet" href="{% static '/telescope2/features.css' %}">
+{% endblock %}
+
+{% block title %}Feature tracker{% endblock %}
+{% block main_title %}Feature tracker{% endblock %}
+
+{% block sections %}
+{% section id='features' title='features' classes="grid-span-all" %}
+<ul class="feature-grid">
+    {% for feature in features %}
+    <li class="feature-item">
+        <span class="feature-status">
+            <span class="status status-{{ feature.status }}">
+                {{ feature.get_status_display }}
+            </span>
+        </span>
+        <span class="feature-content">
+            {{ feature.name }}
+            <span class="feature-type type-{{ feature.ftype }}">{{ feature.get_ftype_display }}</span>
+        </span>
+    </li>
+    {% endfor %}
+</ul>
+{% endsection %}
+{% endblock %}

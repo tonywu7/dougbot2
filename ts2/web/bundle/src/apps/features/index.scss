@@ -1,0 +1,134 @@
+@use "sass:color";
+
+@import "../../styles/colors";
+@import "../../styles/typefaces";
+
+.feature-grid {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+
+    padding: 0;
+    gap: 0.4rem;
+
+    @media screen and (max-width: 768px) {
+        gap: 1rem;
+    }
+
+    .feature-item {
+        display: flex;
+        flex-flow: row nowrap;
+        gap: 0.5rem;
+        align-items: center;
+
+        @media screen and (max-width: 768px) {
+            flex-flow: row-reverse nowrap;
+            align-items: center;
+            gap: 0.2rem;
+        }
+    }
+
+    .feature-content {
+        flex: 1 1 auto;
+        letter-spacing: -0.01px;
+        font-size: 0.95rem;
+    }
+
+    .feature-status {
+        width: 7.5rem;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+
+        @media screen and (max-width: 768px) {
+            text-align: right;
+        }
+
+        .status {
+            padding: 3px 6px;
+            border-radius: 3px;
+            border-left: solid;
+
+            &.status-01-PL {
+                $blue_: adjust-color(
+                    $color: $blue,
+                    $saturation: -30%,
+                );
+                background-color: change-color($color: $blue_, $alpha: 0.1);
+                color: $blue_;
+                border-color: $blue_;
+            }
+
+            &.status-02-PR {
+                background-color: change-color($color: $cyan, $alpha: 0.1);
+                color: $cyan;
+                border-color: $cyan;
+            }
+
+            &.status-03-PS {
+                background-color: change-color($color: $yellow-600, $alpha: 0.1);
+                color: $yellow-600;
+                border-color: $yellow-600;
+            }
+
+            &.status-04-RC {
+                background-color: adjust-color($color: change-color($color: $teal, $alpha: 0.1), $saturation: 50%);
+                color: $teal;
+                border-color: $teal;
+            }
+
+            &.status-05-FN {
+                background-color: change-color($color: $pink, $alpha: 0.1);
+                color: $pink;
+                border-color: $pink;
+            }
+
+            &.status-30-NO {
+                background-color: change-color($color: $red, $alpha: 0.1);
+                color: $red;
+                border-color: $red;
+            }
+            &.status-31-NA,
+            &.status-33-ST {
+                background-color: change-color($color: $gray-700, $alpha: 0.1);
+                color: $gray-700;
+                border-color: $gray-700;
+            }
+
+            &.status-20-SP {
+                background-color: change-color($color: $indigo-400, $alpha: 0.1);
+                color: $indigo-400;
+                border-color: $indigo-400;
+            }
+
+            &.status-32-RM {
+                background-color: change-color($color: $orange, $alpha: 0.1);
+                color: $orange;
+                border-color: $orange;
+            }
+
+            &.status-10-SU {
+                background-color: change-color($color: $green-400, $alpha: 0.1);
+                color: $green-400;
+                border-color: $green-400;
+            }
+        }
+    }
+
+    .feature-type {
+        display: inline-block;
+
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: $bw-grey-8;
+
+        margin-inline-start: 0.3rem;
+        width: 8rem;
+
+        &::before {
+            content: "#";
+            margin-inline-end: 0.5rem;
+        }
+    }
+}

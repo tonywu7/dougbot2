@@ -1,6 +1,7 @@
-from django.urls import re_path
+from django.urls import include, re_path
 from django.views.generic.base import RedirectView
 
+from ..public.urls import universal_urls
 from . import views
 
 
@@ -18,4 +19,5 @@ urlpatterns = [
     re_path(r'^logging$', views.logging_config, name='manage.logging'),
     re_path(r'^leave$', views.DeleteServerProfileView.as_view(), name='leave'),
     re_path(r'^reset$', views.ResetServerDataView.as_view(), name='reset'),
+    re_path(r'^', include(universal_urls)),
 ]

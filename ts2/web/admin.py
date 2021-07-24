@@ -2,6 +2,8 @@ from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
+from ts2admin.models import AdminController
+
 from .models import Feature, User
 
 
@@ -21,6 +23,10 @@ class DiscordUserAdmin(UserAdmin):
     )
 
 
+class FeatureAdmin(AdminController):
+    pass
+
+
 def register_all(admin_site: AdminSite):
     admin_site.register(User, DiscordUserAdmin)
-    admin_site.register(Feature)
+    admin_site.register(Feature, FeatureAdmin)

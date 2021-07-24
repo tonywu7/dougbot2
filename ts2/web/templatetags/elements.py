@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from django.template import Context, Library, Node, NodeList, Variable, loader
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 
 from ts2.web.utils.templates import (create_tag_parser, domtokenlist,
@@ -69,13 +69,16 @@ class SidebarLinkNode(Node):
     icon: Variable
 
     def render(self, context: Context) -> str:
-        snowflake = context['discord'].server_id
         mark_active: Optional[Callable] = context.get('mark_active')
         view = unwrap(context, self.view)
         icon = unwrap(context, self.icon)
         name = unwrap(context, self.name)
-        url = reverse(view, kwargs={'guild_id': snowflake})
-        if view == context['request'].resolver_match.view_name:
+        try:
+            snowflake = context['discord'].server_id
+            url = reverse(view, kwargs={'guild_id': snowflake})
+        except (KeyError, NoReverseMatch):
+            url = reverse(view)
+        if 'request' in context and view == context['request'].resolver_match.view_name:
             classes = ' class="sidebar-active"'
             if mark_active:
                 mark_active(url)

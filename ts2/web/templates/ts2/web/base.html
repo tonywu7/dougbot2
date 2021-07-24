@@ -2,7 +2,10 @@
 
 {% block body %}
 <main id="control-panel" class="main-content">
-    {% block main %}
-    {% endblock %}
+    <h1 class="main-title ui-text-no-select">{% block main_title %}{% endblock %}</h1>
+    <section class="section-container">
+        {% block sections %}
+        {% endblock %}
+    </section>
 </main>
 {% endblock %}

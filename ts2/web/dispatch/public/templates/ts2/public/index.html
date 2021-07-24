@@ -2,12 +2,10 @@
 {% load inspect elements %}
 
 {% block title %}Home{% endblock %}
+{% block main_title %}<span class="bot-name">{{ BRANDING_FULL }}</span>{% endblock %}
 
-{% block main %}
-<h1 class="main-title ui-text-no-select"><span class="bot-name">{{ BRANDING_FULL }}</span></h1>
-<section class="section-container">
-    {% section id='general-info' title='general' %}
-    <p><span>version</span> {% pkg_version_string %}</p>
-    {% endsection %}
-</section>
+{% block sections %}
+{% section id='version-info' title='versions' %}
+{% pkg_version_string %}</p>
+{% endsection %}
 {% endblock %}
