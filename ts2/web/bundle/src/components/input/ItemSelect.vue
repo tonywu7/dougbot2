@@ -1,8 +1,8 @@
 <template>
     <div ref="container" class="item-select dropdown">
         <label v-if="label" v-html="label" class="field-label"></label>
-        <div ref="searchElem" class="item-select-field" aria-expanded="false" @click="activate" @focus="activate"
-            @blur="deactivate">
+        <div ref="searchElem" class="item-select-field" :aria-expanded="dropdownShow" @click="activate"
+            @focus="activate" @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
                 :style="getItemStyles(item, true)" v-html="safe(item.content)" @click="(e) => deselect(item, e)"
                 @focusin="(e) => e.stopPropagation()"></button>

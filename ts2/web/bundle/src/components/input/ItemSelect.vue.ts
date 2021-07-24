@@ -137,14 +137,14 @@ export default defineComponent({
             }
         },
         activate(ev?: FocusEvent) {
+            this.searchInput?.focus()
             if (this.dropdownShow) return
             this.dropdownShow = true
             this.currentFocus = 0
-            this.searchInput?.focus()
         },
         deactivate(ev?: FocusEvent, force = false) {
+            if (!this.dropdownShow) return
             let deactivate = () => {
-                this.searchInput?.blur()
                 this.dropdownShow = false
                 this.scrollReset()
             }
@@ -156,7 +156,7 @@ export default defineComponent({
                 if (!this.hasFocusWithin()) {
                     deactivate()
                 } else {
-                    this.searchInput?.focus()
+                    setTimeout(() => this.searchInput?.focus())
                 }
             })
         },
@@ -166,6 +166,7 @@ export default defineComponent({
             )
         },
         updateSearch() {
+            this.activate()
             this.searchInput?.setCustomValidity('')
             this.$emit('update:error', '')
             this.search = this.searchInput?.value || ''
@@ -199,6 +200,11 @@ export default defineComponent({
                 this.select(this.candidates[this.currentFocus])
             } else if (ev.key == 'Escape') {
                 this.deactivate(undefined, true)
+            } else if (ev.key == 'Tab') {
+                if (this.dropdownShow) {
+                    ev.preventDefault()
+                    this.deactivate(undefined, true)
+                }
             } else if (ev.key == 'Backspace') {
                 if (!this.search) {
                     ev.preventDefault()
