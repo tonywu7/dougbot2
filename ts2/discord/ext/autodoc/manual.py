@@ -24,6 +24,7 @@ from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten
 
 from ...utils.duckcord.embeds import Embed2, EmbedField
+from ...utils.events import DeleteResponder, run_responders
 from ...utils.markdown import blockquote, em, strong
 from ...utils.pagination import (EmbedPagination, TextPagination,
                                  chapterize_items)
@@ -33,7 +34,7 @@ from .exceptions import NoSuchCommand
 
 @attr.s
 class Manual:
-    MANPAGE_MAX_LEN = 1000
+    MANPAGE_MAX_LEN = 750
 
     commands: dict[str, Documentation] = attr.ib(factory=dict)
     sections: dict[str, list[str]] = attr.ib(factory=lambda: defaultdict(list))
@@ -158,11 +159,8 @@ class Manual:
 
     async def send_toc(self, ctx: Context):
         front_embed = self.toc_rich[0][1]
-        front_text = self.toc_text[0][0]
-        msg, embed_sent = await ctx.reply_with_text_fallback(front_embed, front_text)
-        if not embed_sent:
-            pagination = self.toc_text
-        else:
-            pagination = self.toc_rich
-        paginator = pagination(ctx.bot, msg, 60, ctx.author.id)
-        await paginator.run()
+        msg = await ctx.reply(embed=front_embed)
+        pagination = self.toc_rich
+        paginator = pagination(ctx.bot, msg, 300, ctx.author.id)
+        deleter = DeleteResponder(ctx, msg)
+        await run_responders(paginator, deleter)

@@ -16,11 +16,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Coroutine
+import asyncio
+import logging
+import time
+from collections.abc import Callable, Coroutine, Iterable
 from functools import wraps
-from typing import Any
+from typing import Any, Optional
 
-from discord import RawReactionActionEvent
+from discord import (Client, Emoji, Message, PartialEmoji,
+                     RawReactionActionEvent)
+from discord.ext.commands import Context
 
 Decorator = Callable[[Callable], Callable]
 EventFilter = Callable[..., Coroutine[Any, Any, bool]]
@@ -62,3 +67,112 @@ def emote_matches(*emotes: str | int):
         id_ = event.emoji.id or event.emoji.name
         return id_ in emotes
     return check_emote
+
+
+class Responder:
+    def __init__(self, event: str, client: Client, ttl: float) -> None:
+        self.log = logging.getLogger('discord.responder')
+        self.event = event
+        self.client = client
+        self.ttl = ttl
+        self.end: float
+        self.tests: list[Callable[..., bool]] = []
+
+    def check(self, args) -> bool:
+        return all(t(args) for t in self.tests)
+
+    async def on_start(self):
+        return True
+
+    async def on_finish(self):
+        return
+
+    async def init(self) -> bool:
+        try:
+            return await self.on_start()
+        except Exception as e:
+            self.log.debug(f'{type(e).__name__} while starting paginator: {e}\n')
+            return False
+
+    async def cleanup(self):
+        try:
+            return await self.on_finish()
+        except Exception:
+            pass
+
+    async def run(self):
+        self.end = time.perf_counter() + self.ttl
+
+        while True:
+            ts = time.perf_counter()
+            if ts > self.end:
+                break
+            timeout = self.end - ts
+            try:
+                evt = await self.client.wait_for(self.event, check=self.check,
+                                                 timeout=timeout)
+            except asyncio.TimeoutError:
+                continue
+
+            stop = await self.handle(evt)
+            if stop:
+                break
+
+        await self.cleanup()
+
+    async def handle(self, event: RawReactionActionEvent) -> Optional[bool]:
+        raise NotImplementedError
+
+    def __await__(self):
+        return self.run()
+
+
+class EmoteResponder(Responder):
+    def __init__(
+        self, users: Iterable[int], emotes: list[Emoji | PartialEmoji | str],
+        message: Message, *args, **kwargs,
+    ) -> None:
+        super().__init__('raw_reaction_add', *args, **kwargs)
+        self.message = message
+        self.emotes: dict[int | str, str | Emoji | PartialEmoji] = {}
+        for e in emotes:
+            if isinstance(e, str):
+                self.emotes[e] = e
+            elif isinstance(e, (Emoji, PartialEmoji)):
+                self.emotes[e.id] = e
+
+        self.tests = (
+            emote_no_bots,
+            emote_added,
+            emote_matches(*self.emotes.keys()),
+            reaction_from(*users),
+            reaction_on(self.message.id),
+        )
+
+    async def on_start(self):
+        for emote in self.emotes:
+            await self.message.add_reaction(emote)
+        return True
+
+    async def on_finish(self):
+        for emote in self.emotes:
+            await self.message.clear_reaction(emote)
+
+
+class DeleteResponder(EmoteResponder):
+    def __init__(self, ctx: Context, message: Message, ttl: int = 300) -> None:
+        super().__init__([ctx.author.id], ['🗑'], client=ctx.bot, message=message, ttl=ttl)
+
+    async def handle(self, event) -> True:
+        await self.message.delete(delay=.1)
+        return True
+
+
+async def run_responders(*responders: Responder):
+    should_run = []
+    for r in responders:
+        if await r.init():
+            should_run.append(r)
+    if not should_run:
+        return []
+    return await asyncio.gather(*should_run, return_exceptions=True)

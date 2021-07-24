@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from datetime import datetime
 from typing import Literal, Optional
 
 import aiohttp
@@ -24,10 +25,9 @@ from discord.ext.commands import BucketType, Greedy, command
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
+from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
-from ts2.discord.ext.services.tz import Timezone
 from ts2.discord.utils.common import Color2, Embed2, async_first, code, tag
-from ts2.utils.datetime import utcnow
 
 from .models import RoleTimezone
 
@@ -70,11 +70,11 @@ class Internet(
             reason = str(e)
             if not integers and not a_number:
                 reason = f'{reason} (Searched for a random A-number {query})'
-            return await ctx.reply(reason, delete_after=20)
+            return await ctx.response(ctx, content=reason).timed(20).run()
         except aiohttp.ClientError:
             await ctx.reply('Network error while searching on OEIS')
             raise
-        await ctx.reply_with_text_fallback(sequence.to_embed(), sequence.to_text())
+        await ctx.reply(embed=sequence.to_embed())
         await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')
 
     @command('time')
@@ -109,6 +109,7 @@ class Internet(
 
         target: Optional[Member] = None
         role_ids: list[int] = []
+        role_tz: Optional[RoleTimezone] = None
         if tz:
             timezone = tz.value
         elif role:
@@ -126,7 +127,8 @@ class Internet(
                 timezone = profile and profile.timezone
 
         if not timezone and role_ids:
-            q = RoleTimezone.objects.filter(role_id__in=role_ids)
+            q = (RoleTimezone.objects.filter(role_id__in=role_ids)
+                 .prefetch_related('role'))
             role_tz: Optional[RoleTimezone] = await async_first(q)
             timezone = role_tz and role_tz.timezone
             footer_fmt = 'Timezone: %(tz)s (from server role)'
@@ -172,9 +174,8 @@ class Internet(
                 )
 
         profile = await User.async_get(ctx.author)
-        datefmt = profile.datetimefmt
-        time = utcnow().astimezone(timezone)
-        formatted = time.strftime(datefmt)
+        time = datetime.now(tz=timezone)
+        formatted = profile.format_datetime(time)
         result = (
             Embed2(title='Local time', description=formatted)
             .set_footer(text=footer_fmt % {'tz': timezone})
@@ -182,4 +183,6 @@ class Internet(
         )
         if target:
             result = result.personalized(target)
+        elif role_tz:
+            result = result.set_color(role_tz.role.color)
         return await ctx.reply(embed=result)

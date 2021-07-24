@@ -21,8 +21,8 @@ from typing import Optional, Protocol, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Client, Guild, Message, MessageReference,
-                     Object, Permissions, RawReactionActionEvent)
+from discord import (AllowedMentions, Client, Guild, Message, Object,
+                     Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, Command, has_guild_permissions
 from discord.utils import escape_markdown
@@ -46,7 +46,7 @@ from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
 from .ext.logging import log_command_errors, log_exception
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
-from .utils import events, ipc
+from .utils import ipc
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
@@ -54,7 +54,7 @@ U = TypeVar('U', bound=Bot)
 
 AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
 
-HelpFormat = Choice[Documentation.HELP_STYLES.keys(), 'info category']
+HelpFormat = Choice[[f'-{k}' for k in Documentation.HELP_STYLES], 'info category']
 
 
 class DiscordModel(Protocol):
@@ -124,8 +124,11 @@ class Robot(Bot):
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
 
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
-        super().__init__(loop=loop, command_prefix=self.which_prefix,
-                         help_command=None, case_insensitive=True, **options)
+        options['command_prefix'] = self.which_prefix
+        options['help_command'] = None
+        options.setdefault('case_insensitive', True)
+        options.setdefault('strip_after_prefix', True)
+        super().__init__(loop=loop, **options)
 
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual
@@ -319,9 +322,9 @@ class Robot(Bot):
     @doc.invocation(('category',), False)
     @doc.invocation(('category', 'query'), 'See specific info about a command, such as argument types.')
     @doc.example('perms', f'Check help doc for {code("perms")}')
-    @doc.example('full perms', f'See detailed information about the command {code("perms")}')
+    @doc.example('-full perms', f'See detailed information about the command {code("perms")}')
     @doc.example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
-    async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = 'normal',
+    async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = '-normal',
                         *, query: str = ''):
         man = ctx.bot.manual
         query = query.lower()
@@ -337,11 +340,12 @@ class Robot(Bot):
         except NoSuchCommand as exc:
             return await ctx.send(str(exc), delete_after=60)
 
-        rich_help, text_help = doc.rich_helps[category], doc.text_helps[category]
+        category = category[1:]
+        rich_help = doc.rich_helps[category]
         if category == 'normal':
             rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
 
-        return await ctx.reply_with_text_fallback(rich_help, text_help)
+        await ctx.response(ctx, embed=rich_help).reply().deleter().run()
 
     def is_hidden(self, cmd: Command):
         return self.manual.commands[cmd.qualified_name].hidden
@@ -389,23 +393,6 @@ def add_event_listeners(self: Robot):
                 await self.sync_server(guild)
         except IntegrityError:
             pass
-
-    @self.listen('on_raw_reaction_add')
-    @events.event_filter(sync_to_async(events.emote_added))
-    @events.event_filter(sync_to_async(events.emote_no_bots))
-    @events.event_filter(sync_to_async(events.emote_matches('🗑')))
-    async def handle_reply_delete(evt: RawReactionActionEvent):
-        channel: GuildChannel = self.get_channel(evt.channel_id)
-        message: Message = await channel.fetch_message(evt.message_id)
-        if message.author != self.user:
-            return
-        reference: MessageReference = message.reference
-        if not reference:
-            self.log.debug('handle_reply_delete: no reference found')
-            return
-        reply: Message = await channel.fetch_message(reference.message_id)
-        if reply.author.id == evt.user_id:
-            await message.delete()
 
     @self.listen('on_guild_channel_create')
     @self.listen('on_guild_channel_update')

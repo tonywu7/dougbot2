@@ -16,21 +16,18 @@
 
 from __future__ import annotations
 
-import asyncio
 import enum
-import logging
 import re
-import time
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from textwrap import shorten
 from typing import Generic, TypeVar, Union
 
-from discord import (Client, Embed, Emoji, Message, PartialEmoji,
+from discord import (Client, Embed, Message, PartialEmoji,
                      RawReactionActionEvent)
 from more_itertools import split_before
 
-from . import events
 from .duckcord.embeds import Embed2
+from .events import EmoteResponder
 from .markdown import strong, u
 
 RE_BLOCKQUOTE = re.compile(r'^> ')
@@ -198,86 +195,17 @@ def format_page_number(idx: int, total: int, sep: str = '/'):
     return f'{idx + 1}{sep}{total}'
 
 
-class Paginator:
-    def __init__(
-        self, client: Client, message: Message, ttl: float, *,
-        users: Iterable[int], emotes: list[Emoji | PartialEmoji | str],
-        provider: PageProvider,
-    ) -> None:
-        self.log = logging.getLogger('discord.paginator')
-
-        self.client = client
-        self.message = message
+class Paginator(EmoteResponder):
+    def __init__(self, provider: PageProvider, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.provider = provider
 
-        self.ttl = ttl
-        self.end: float
-
-        self.emotes: dict[int | str, str | Emoji | PartialEmoji] = {}
-        for e in emotes:
-            if isinstance(e, str):
-                self.emotes[e] = e
-            elif isinstance(e, (Emoji, PartialEmoji)):
-                self.emotes[e.id] = e
-
-        tests = (
-            events.emote_no_bots,
-            events.emote_added,
-            events.emote_matches(*self.emotes.keys()),
-            events.reaction_from(*users),
-            events.reaction_on(message.id),
-        )
-
-        def check(evt: RawReactionActionEvent, tests=tests) -> bool:
-            return all(t(evt) for t in tests)
-
-        self.check = check
-
-    async def init(self):
-        for emote in self.emotes:
-            await self.message.add_reaction(emote)
-
-    async def cleanup(self):
-        try:
-            for emote in self.emotes:
-                await self.message.clear_reaction(emote)
-        except Exception:
-            pass
-
-    async def run(self):
-        self.end = time.perf_counter() + self.ttl
-
-        try:
-            await self.init()
-        except Exception as e:
-            self.log.debug(
-                f'{type(e).__name__} while starting paginator: {e}\n'
-                f'Message: {self.message.id}',
-            )
+    async def handle(self, event: RawReactionActionEvent) -> bool:
+        await self.message.remove_reaction(event.emoji, event.member)
+        text, embed = self.provider(event.emoji)
+        if not text and not embed:
             return
-
-        while True:
-            ts = time.perf_counter()
-            if ts > self.end:
-                break
-            timeout = self.end - ts
-            try:
-                evt = await self.client.wait_for(
-                    'raw_reaction_add',
-                    check=self.check, timeout=timeout,
-                )
-            except asyncio.TimeoutError:
-                continue
-
-            evt: RawReactionActionEvent
-            await self.message.remove_reaction(evt.emoji, evt.member)
-
-            text, embed = self.provider(evt.emoji)
-            if not text and not embed:
-                continue
-            await self.message.edit(content=text, embed=embed)
-
-        await self.cleanup()
+        await self.message.edit(content=text, embed=embed)
 
 
 class NullPaginator(Paginator):
@@ -318,8 +246,8 @@ class Pagination:
 
     def __call__(self, client: Client, message: Message, ttl: int, *users: int) -> Paginator:
         if len(self.content) > 1:
-            return Paginator(client, message, ttl, users=users,
-                             provider=self.index_setter(), emotes=self.actions.keys())
+            return Paginator(self.index_setter(), client=client, message=message,
+                             ttl=ttl, users=users, emotes=self.actions.keys())
         return NullPaginator()
 
     def text_transform(self, idx: int, body: str) -> str:

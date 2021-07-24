@@ -24,8 +24,7 @@ from typing import Literal, Optional
 
 import nltk
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Embed, Message, MessageReference, Object,
-                     TextChannel)
+from discord import Embed, Message, MessageReference, Object, TextChannel
 from discord.ext.commands import BucketType, command
 from django.conf import settings
 from nltk.corpus import stopwords
@@ -192,7 +191,7 @@ class StoryCollector:
 
     async def _warn(self, message: str):
         warn = Embed(description=f'⚠️ {message}')
-        await self.ctx.reply_with_delete(embed=warn, allowed_mentions=self.ctx.NOTIFY_REPLY)
+        await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run()
 
     async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=8192):
         async for msg in self.iter_messages(channel, begin_id, end_id):
@@ -210,8 +209,9 @@ class StoryCollector:
             return await self._warn('Gathered no text from all messages!')
 
         for chapter in chapterize(self.gen_story()):
-            await self.ctx.send(chapter, allowed_mentions=AllowedMentions.none())
-        await self.ctx.reply(embed=self.gen_stats(), allowed_mentions=self.ctx.NOTIFY_REPLY)
+            await (self.ctx.response(self.ctx, content=chapter)
+                   .mentions(None).suppress().run())
+        await self.ctx.response(self.ctx, embed=self.gen_stats()).reply(notify=True).run()
 
         if self.overflow:
             warn = (f'Length limit ({maxlen} characters) reached.\n'

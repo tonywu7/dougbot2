@@ -75,7 +75,8 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:
         allowed_mentions = AllowedMentions.none()
-    return await ctx.reply(message, delete_after=autodelete, allowed_mentions=allowed_mentions)
+    reply = await ctx.reply(message, delete_after=autodelete, allowed_mentions=allowed_mentions)
+    await reply.edit(suppress=True)
 
 
 async def explain_exception(ctx: Context, exc: Exception):
@@ -100,7 +101,9 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             if not should_log:
                 return
             msg, autodelete = should_log
-            arg_info, arg = ctx.command.doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
+            man = ctx.bot.manual
+            doc = man.lookup(ctx.command.qualified_name)
+            arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
             arg_info = f'\n> {ctx.full_invoked_with} {arg_info}'
             if supply_arg_type:
                 arg_info = f'{arg_info}\n{strong(arg)}: {arg.describe()}'
