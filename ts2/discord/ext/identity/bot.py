@@ -19,10 +19,9 @@ from typing import Literal, Optional
 import pytz
 from discord import Member
 from discord.ext.commands import command, group
+from discord.utils import escape_markdown
 from geopy import Location, Point
 from geopy.exc import GeocoderTimedOut
-
-from ts2.utils.datetime import utcnow
 
 from ...cog import Gear
 from ...context import Circumstances
@@ -33,9 +32,32 @@ from ...ext.types.patterns import Constant
 from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import code, verbatim
 from ..services import ServiceUnavailable
-from ..services.osm import get_location
-from ..services.tz import Latitude, Longitude, Timezone, get_tzfinder
+from ..services.datetime import Timezone, get_tzfinder
+from ..services.osm import (Latitude, Longitude, format_coarse_location,
+                            get_location)
 from .models import User
+
+
+async def set_tz(member: Member, tz: pytz.BaseTzInfo):
+    profile: User = await User.async_get(member)
+    await profile.save_timezone(tz)
+    return profile
+
+
+def format_tz_set(user: User, location: Optional[Location] = None) -> Embed2:
+    dt = user.gettime()
+    zonename = user.timezone.tzname(dt.replace(tzinfo=None)) or '(unknown)'
+    dtstr = f'{user.format_datetime(dt)}'
+    embed = (
+        Embed2(title=f'Timezone set: {zonename}')
+        .add_field(name='Local time', value=dtstr)
+        .set_footer(text=f'IANA tz code: {user.timezone}')
+    )
+    if location:
+        location_str = format_coarse_location(location)
+        if location_str:
+            embed = embed.add_field(name='Location', value=location_str)
+    return embed
 
 
 class Personalize(
@@ -76,7 +98,7 @@ class Personalize(
         pass
 
     @conf.command('timezone', aliases=('tz',))
-    @doc.description('Set timezone preference.')
+    @doc.description('Configure your timezone.')
     @doc.argument('delete', signature='-delete', node='-delete')
     @doc.argument('tz', 'Timezone to set.')
     @doc.argument('latitude', 'Latitude of the location whose timezone to use.')
@@ -113,26 +135,25 @@ class Personalize(
 
         async def commit_tz(tz: pytz.BaseTzInfo, location: Optional[Location] = None,
                             notify: bool = True, delete: bool = False):
-            profile = await self.set_tz(author, tz)
-            res = self.fmt_tz_set(profile, tz, location).personalized(author)
+            profile = await set_tz(author, tz)
+            res = format_tz_set(profile, location).personalized(author)
             if notify:
-                await ctx.pingback(embed=res)
+                await ctx.response(ctx, embed=res).pingback().run()
             else:
                 await ctx.reply(embed=res)
             if delete:
                 await ctx.message.delete(delay=0.1)
 
         if delete.value:
-            await self.set_tz(author, '')
+            await set_tz(author, '')
             return await ctx.reply('Your timezone preference has been reset.')
 
         if not errors and not values:
             profile: User = await User.async_get(author)
             embed = Embed2(title='Timezone').personalized(author)
             if profile.timezone:
-                dt = utcnow().astimezone(profile.timezone)
                 embed = (embed.set_description(code(profile.timezone))
-                         .add_field(name='Local time', value=profile.format_datetime(dt)))
+                         .add_field(name='Local time', value=profile.format_datetime()))
             else:
                 embed = embed.set_description('No timezone preference set.')
             return await ctx.reply(embed=embed)
@@ -195,33 +216,44 @@ class Personalize(
         tz = pytz.timezone(tzname)
         return await commit_tz(tz, location=place, delete=True)
 
-    async def set_tz(self, member: Member, tz: pytz.BaseTzInfo):
-        profile: User = await User.async_get(member)
-        await profile.save_timezone(tz)
-        return profile
+    @conf.command('date-format', aliases=('datefmt',))
+    @doc.description('Configure how dates are formatted for date/time related commands.')
+    @doc.argument('help', signature='-help', node='-help')
+    @doc.argument('reset', signature='-reset', node='-reset')
+    @doc.argument('libc', f'Use {code("strftime(3)")} format specifiers.',
+                  signature='-libc', node='-libc')
+    @doc.argument('format_string', 'Date and time value specifiers.')
+    @doc.use_syntax_whitelist
+    @doc.invocation((), 'Display your current set format.')
+    @doc.invocation(('help',), 'Show help on how to specify a format.')
+    @doc.invocation(('reset',), 'Reset your date format to the default value.')
+    @doc.invocation(('format_string',), 'Set your datetime format.')
+    async def date_format(
+        self, ctx: Circumstances,
+        help: Optional[Constant[Literal['-help']]] = None,
+        libc: Optional[Constant[Literal['-libc']]] = None,
+        reset: Optional[Constant[Literal['-reset']]] = None,
+        *, format_string: Optional[str] = None,
+    ):
+        if help:
+            return
 
-    def fmt_tz_set(self, user: User, tz: pytz.BaseTzInfo, location: Optional[Location]) -> Embed2:
-        dt = utcnow().astimezone(tz)
-        zonename = tz.tzname(dt.replace(tzinfo=None)) or '(unknown)'
-        dtstr = f'{user.format_datetime(dt)}'
+        profile: User = await User.async_get(ctx.author)
+        if reset:
+            profile.datetimefmt = User._meta.get_field('datetimefmt').default
+            await profile.async_save()
+        elif format_string:
+            if libc:
+                format_string = f'strftime:{format_string}'
+            profile.datetimefmt = format_string
+            await profile.async_save()
+        format_string = profile.datetimefmt
+
+        fmt = code(escape_markdown(format_string))
         embed = (
-            Embed2(title=f'Timezone set: {zonename}')
-            .add_field(name='Local time', value=dtstr)
-            .set_footer(text=f'IANA tz code: {tz}')
+            format_tz_set(profile)
+            .set_title('Date format set')
+            .insert_field_at(0, name='Format', value=fmt)
+            .personalized(ctx.author)
         )
-        if location:
-            location_str = self.fmt_coarse_location(location)
-            if location_str:
-                embed = embed.add_field(name='Location', value=location_str)
-        return embed
-
-    def fmt_coarse_location(self, location: Location) -> str:
-        info: dict = location.raw.get('address', {})
-        levels = [
-            ('country', 'country_code', 'continent'),
-            ('state', 'state_district', 'province', 'region', 'county'),
-            ('city', 'municipality', 'town', 'village', 'locality'),
-        ]
-        segments = [[*filter(None, (info.get(k) for k in tags))] for tags in levels]
-        segments = [s[0] for s in segments if s]
-        return ', '.join(reversed(segments))
+        return await ctx.send(embed=embed)

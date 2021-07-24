@@ -16,19 +16,17 @@
 
 from __future__ import annotations
 
-import warnings
 from datetime import datetime, timedelta
 
 import pytz
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown
-from geopy import Point
 from timezonefinder import TimezoneFinder
 
 from ...context import Circumstances
 from ...ext.autodoc import accepts
-from ...utils.markdown import a, code, verbatim
+from ...utils.markdown import a, code
 
 tzfinder = None
 tznames: dict[str, pytz.BaseTzInfo] = {}
@@ -80,33 +78,3 @@ class Timezone(Converter, pytz.BaseTzInfo):
             return get_tz_by_name(argument)
         except KeyError:
             raise BadArgument(f'Unknown timezone {code(escape_markdown(argument))}')
-
-
-@accepts('latitude', predicative=f'such as {code(-41.5)}, {code("41.5N")}, or {code("N 39°")}')
-class Latitude(Converter, float):
-    def __init__(self) -> None:
-        pass
-
-    async def convert(self, ctx: Circumstances, argument: str) -> float:
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(category=UserWarning)
-                point = Point.from_string(f'{argument} 0')
-            return point.latitude
-        except ValueError:
-            raise BadArgument(f'Failed to parse {verbatim(argument)} as a latitude')
-
-
-@accepts('longitude', predicative=f'such as {code(-110)}, {code("30E")}, or {code("E 162°")}')
-class Longitude(Converter, float):
-    def __init__(self) -> None:
-        pass
-
-    async def convert(self, ctx: Circumstances, argument: str) -> float:
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(category=UserWarning)
-                point = Point.from_string(f'0 {argument}')
-            return point.longitude
-        except ValueError:
-            raise BadArgument(f'Failed to parse {verbatim(argument)} as a longitude')

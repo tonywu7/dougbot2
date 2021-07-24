@@ -17,8 +17,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 import discord
+import pendulum
 import pytz
 from django.conf.locale import LANG_INFO
 from django.db import models
@@ -53,8 +55,8 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     discriminator: int = models.IntegerField()
 
     timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
-    datetimefmt: str = models.TextField('datetime format', blank=True)
-    locale: str = models.CharField('language', max_length=120, blank=True, choices=LocaleType.choices)
+    datetimefmt: str = models.TextField('datetime format', blank=True, default='D MMM YYYY h:mm:ss A')
+    locale: str = models.CharField('language', max_length=120, blank=True, default='en', choices=LocaleType.choices)
 
     _default: bool = False
 
@@ -71,18 +73,12 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
         return ['name', 'discriminator']
 
     @classmethod
-    def defaultuser(cls, **kwargs):
-        instance = cls(datetimefmt='%d %b %Y %l:%M:%S %p', locale='en', **kwargs)
-        instance._default = True
-        return instance
-
-    @classmethod
     async def async_get(cls, user: discord.User) -> User:
         try:
             return await async_get(cls.objects, snowflake=user.id)
         except cls.DoesNotExist:
-            return cls.defaultuser(snowflake=user.id, name=user.name,
-                                   discriminator=user.discriminator)
+            return cls(snowflake=user.id, name=user.name,
+                       discriminator=user.discriminator)
 
     async def async_save(self, *args, **kwargs):
         return await async_save(self, *args, **kwargs)
@@ -95,6 +91,11 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     def isdefault(self):
         return self._default
 
+    def gettime(self, aware_required=False) -> datetime:
+        if not self.timezone and aware_required:
+            raise ValueError('User does not have a timezone.')
+        return datetime.now(tz=self.timezone)
+
     def format_prefs(self) -> dict[str, str]:
         info = {}
         for field_name in ('timezone', 'datetimefmt', 'locale'):
@@ -105,8 +106,12 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
             info[field.verbose_name] = val
         return info
 
-    def format_datetime(self, dt: datetime):
-        return dt.strftime(self.datetimefmt)
+    def format_datetime(self, dt: Optional[datetime] = None):
+        dt = dt or self.gettime()
+        fmt = self.datetimefmt
+        if fmt[:9] == 'strftime:':
+            return dt.strftime(fmt[9:])
+        return pendulum.instance(dt).format(self.datetimefmt)
 
 
 class Member(Entity, ModelTranslator[discord.Member, 'Member']):
