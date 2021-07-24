@@ -94,3 +94,28 @@ def write_access_required(f):
         'discord.change_server',
         'discord.delete_server',
     ])(f)
+
+
+class FeatureStatus(models.TextChoices):
+    PLANNED = 'PL', 'planned'
+    PROTOTYPE = 'PR', 'prototyping'
+    PARTIAL = 'PS', 'partial'
+    CANDIDATE = 'RC', 'ready'
+    FINAL = 'FN', 'finalized'
+    NEVER = 'NO', 'never'
+    REMOVED = 'RM', 'removed'
+    STOPPED = 'ST', 'abandoned'
+
+
+class FeatureType(models.TextChoices):
+    infrastructure = 'infrastructure', 'infrastructure'
+    feature = 'feature', 'bot feature'
+    quality = 'qol', 'quality of life'
+    doc = 'doc', 'documentation'
+    web = 'web', 'website'
+
+
+class Feature(models.Model):
+    ftype = models.CharField(max_length=32, choices=FeatureType.choices)
+    status = models.CharField(max_length=32, choices=FeatureStatus.choices)
+    name = models.TextField()
