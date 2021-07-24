@@ -103,7 +103,7 @@ class DiscordRateLimiter:
             self.rate_reset_time[route] = now + 1
             yield
         finally:
-            return
+            pass
 
 
 class DiscordCache:

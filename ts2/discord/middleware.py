@@ -24,7 +24,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -85,7 +85,12 @@ def invalidate_cache(req: HttpRequest):
 
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
     await sync_to_async(logout)(req)
-    messages.warning(req, 'Your Discord login credentials have expired. Please log in again.')
+    message = 'Your Discord login credentials have expired. Please log in again.'
+    accept = req.headers.get('Accept', '').lower()
+    content_type = req.headers.get('Content-Type', '').lower()
+    if 'application/json' in accept or 'application/json' in content_type:
+        return JsonResponse({'errors': [{'message': message}]})
+    messages.warning(req, message)
     return render(req, 'telescope2/web/index.html')
 
 
@@ -113,7 +118,7 @@ def handle_server_disabled(req: HttpRequest) -> HttpResponse:
     ctx = get_ctx(req)
     redirect_url = reverse('web:manage.index', kwargs={'guild_id': ctx.server_id})
     if redirect_url == req.path:
-        return render(req, 'telescope2/web/manage/index.html')
+        return render(req, 'ts2/manage/index.html')
     return redirect(redirect_url)
 
 
@@ -255,7 +260,7 @@ class ServerDisabled(Exception):
     pass
 
 
-def get_ctx(req: HttpRequest, logout: bool = True) -> DiscordContext:
+def get_ctx(req: HttpRequest, logout: bool = True) -> Optional[DiscordContext]:
     try:
         return req.discord
     except AttributeError:
@@ -267,7 +272,7 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> DiscordContext:
 def assert_server_access(req: HttpRequest, server_id: Union[str, int],
                          deny: bool = True) -> bool:
     ctx = get_ctx(req, logout=False)
-    if not ctx.accessible(server_id):
+    if not ctx or not ctx.accessible(server_id):
         if deny:
             raise PermissionDenied('Insufficient permission.')
         return False

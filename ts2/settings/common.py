@@ -33,7 +33,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'ts2.web.apps.WebConfig',
+    'ts2.web',
+    'ts2.web.dispatch.public',
+    'ts2.web.dispatch.gateway',
+    'ts2.web.dispatch.manage',
     'ts2.discord.apps.DiscordBotConfig',
     'ts2.discord.ext.identity.apps.IdentityConfig',
     'ts2.discord.ext.acl.apps.CommandACLConfig',
@@ -127,7 +130,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-LOGIN_URL = '/web'
+LOGIN_URL = '/'
 
 STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_DIRS = [

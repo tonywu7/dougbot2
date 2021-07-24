@@ -84,6 +84,10 @@
         border: none;
         background-color: transparent;
 
+        &:first-of-type .accordion-header {
+            padding-top: 3rem;
+        }
+
         .accordion-button.collapsed {
             border-radius: 0;
         }
@@ -157,51 +161,6 @@
             }
         }
     }
-}
-
-form#extension-toggles {
-    .form-fields {
-        font-size: 1.1rem;
-        font-weight: 600;
-        letter-spacing: -0.5px;
-        padding: 1rem;
-
-        row-gap: 6pt;
-    }
-
-    label {
-        user-select: none;
-    }
-
-    i.bi::before {
-        position: relative;
-        top: 0px;
-        font-size: 0.9em;
-        margin-right: 4px;
-    }
-}
-
-#global-settings {
-    input[id="id_prefix"] {
-        font-family: $monospace-fonts;
-        font-weight: 700;
-        font-size: 1.2rem;
-    }
-}
-
-#constraint-form-list {
-    .accordion-item {
-        background: none;
-    }
-    .accordion-button {
-        background: none;
-        width: auto;
-        padding: 0 0.5rem;
-    }
-}
-
-#view-home {
-    padding-top: 3rem;
 }
 
 #server-messages {

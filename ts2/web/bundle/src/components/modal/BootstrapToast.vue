@@ -24,12 +24,22 @@
 </template>
 <script lang="ts" src="./BootstrapToast.vue.ts"></script>
 <style lang="scss" scoped>
+    @import '../../styles/colors';
+
     :deep(*) {
+        .toast {
+            @media screen and (max-width: 768px) {
+                background-color: $gray-200;
+            }
+        }
+
         .errorlist {
             color: inherit;
         }
 
         .toast-header {
+            font-size: 1rem;
+
             justify-content: space-between;
 
             b {

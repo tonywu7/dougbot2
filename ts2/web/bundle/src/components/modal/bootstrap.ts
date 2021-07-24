@@ -9,6 +9,7 @@ export enum Color {
     DARK = 'dark',
     WHITE = 'white',
     BLACK = 'black',
+    DEBUG = 'debug',
 }
 
 export let COLOR_CONTRAST: Record<Color, Color> = {
@@ -22,4 +23,5 @@ export let COLOR_CONTRAST: Record<Color, Color> = {
     [Color.DARK]: Color.LIGHT,
     [Color.WHITE]: Color.DARK,
     [Color.BLACK]: Color.LIGHT,
+    [Color.DEBUG]: Color.LIGHT,
 }

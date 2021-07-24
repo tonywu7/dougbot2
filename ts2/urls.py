@@ -11,8 +11,7 @@ admin_site = create_admin_site('telescope2 console', [
 ])
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='web:index')),
-    path('web/', include('ts2.web.urls')),
+    path('', include('ts2.web.urls')),
     path('admin/', admin_site.urls),
     path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('favicon.ico'))),
 ]

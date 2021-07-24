@@ -34,7 +34,7 @@ def cprofile(out: str, enabled: bool = True):
         yield pr
     finally:
         if not enabled:
-            return
+            pass
         pr.disable()
         pr.dump_stats(out)
 

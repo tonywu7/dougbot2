@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { Color } from './components/modal/bootstrap'
+import { displayNotification } from './components/utils/modal'
 import { initTooltips } from './utils/responsive'
 
 export function homepage(): string {
@@ -52,8 +54,27 @@ function discordJoinServer() {
     form.submit()
 }
 
+function displayServerMessages() {
+    document
+        .querySelectorAll<HTMLElement>('#server-messages li')
+        .forEach((elem) => {
+            let msg = elem.innerHTML
+            let colors: Record<string, Color> = {
+                debug: Color.DEBUG,
+                info: Color.INFO,
+                'info success': Color.SUCCESS,
+                'success info': Color.SUCCESS,
+                warning: Color.WARNING,
+                error: Color.DANGER,
+                critical: Color.DANGER,
+            }
+            displayNotification(colors[elem.className] || Color.LIGHT, msg)
+        })
+}
+
 export function init() {
     initTopMenu()
     initWidgets()
+    displayServerMessages()
     discordJoinServer()
 }
