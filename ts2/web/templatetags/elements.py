@@ -76,7 +76,7 @@ class SidebarLinkNode(Node):
         try:
             snowflake = context['discord'].server_id
             url = reverse(view, kwargs={'guild_id': snowflake})
-        except (KeyError, NoReverseMatch):
+        except (AttributeError, KeyError, NoReverseMatch):
             url = reverse(view)
         if 'request' in context and view == context['request'].resolver_match.view_name:
             classes = ' class="sidebar-active"'

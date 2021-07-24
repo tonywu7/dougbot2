@@ -112,10 +112,13 @@ class FeatureStatus(models.TextChoices):
 
 class FeatureType(models.TextChoices):
     infrastructure = 'infrastructure', 'infrastructure'
-    feature = 'feature', 'bot feature'
+    command = 'command', 'command'
+    system = 'system', 'system'
+    integration = 'integration', 'integration'
     quality = 'qol', 'quality of life'
     doc = 'doc', 'documentation'
     web = 'web', 'website'
+    special = 'special', 'special'
 
 
 class Feature(models.Model):
