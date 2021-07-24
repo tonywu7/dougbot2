@@ -35,6 +35,13 @@
             {% empty %}
             <li><a href="#" class="dropdown-item disabled">(no server available)</a></li>
             {% endfor %}
+            <li>
+                <form action="{% url 'web:refresh' %}" method="POST" class="server-refresh">
+                    {% csrf_token %}
+                    <input type="hidden" name="dest" value="{{ request.get_full_path }}">
+                    <button type="submit"><span class="dropdown-header">Refresh</span></button>
+                </form>
+            </li>
         </ul>
     </div>
 </div>

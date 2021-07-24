@@ -179,3 +179,8 @@ class CreateServerProfileView(View):
         except ValueError:
             snowflake = req.POST['snowflake']
         return redirect(reverse('web:manage.index', kwargs={'guild_id': snowflake}))
+
+
+@require_POST
+def refresh_servers(req: HttpRequest):
+    return redirect(req.POST.get('dest', reverse('web:index')))

@@ -22,3 +22,21 @@ figure.profile-picture {
     text-overflow: ellipsis;
     overflow: hidden;
 }
+
+.server-refresh {
+    display: flex;
+    justify-content: flex-end;
+
+    button {
+        background: none;
+        padding: 0;
+        border: none;
+    }
+
+    .dropdown-header {
+        padding: 0 1rem;
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}

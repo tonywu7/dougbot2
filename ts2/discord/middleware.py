@@ -39,6 +39,13 @@ def _http_safe_method(req: HttpRequest) -> bool:
     return req.method in ('GET', 'HEAD', 'OPTIONS')
 
 
+def unsafe(req, view_func):
+    return (
+        not getattr(view_func, 'csrf_exempt', False)
+        and not _http_safe_method(req)
+    )
+
+
 async def fetch_discord_info(req: HttpRequest, view_func):
     user: User = req.user
 
@@ -53,13 +60,7 @@ async def fetch_discord_info(req: HttpRequest, view_func):
     if not token:
         raise Logout
 
-    fetch = DiscordFetch(
-        user_id=user.pk,
-        nocache=(
-            not getattr(view_func, 'csrf_exempt', False)
-            and not _http_safe_method(req)
-        ),
-    )
+    fetch = DiscordFetch(user_id=user.pk)
     await fetch.init_session(access_token=token, refresh_token=user.refresh_token)
 
     try:
@@ -76,9 +77,9 @@ async def fetch_discord_info(req: HttpRequest, view_func):
     return token, profile, guilds
 
 
+@sync_to_async
 def invalidate_cache(req: HttpRequest):
-    ctx = get_ctx(req)
-    user_id = ctx.user_id
+    user_id = req.user.pk
     cache = DiscordCache(user_id)
     cache.invalidate()
 
@@ -107,9 +108,10 @@ def message_server_disabled(req):
 
 async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
     message_server_disabled(req)
-    invalidate_cache(req)
-    ctx = get_ctx(req)
-    await disable_server(ctx.server)
+    await invalidate_cache(req)
+    ctx = get_ctx(req, logout=False)
+    if ctx:
+        await disable_server(ctx.server)
     return redirect(reverse('web:manage.index', kwargs={'guild_id': ctx.server_id}))
 
 
@@ -208,6 +210,9 @@ class DiscordContextMiddleware:
 
     async def process_view(self, request: HttpRequest, view_func,
                            view_args: tuple, view_kwargs: dict):
+        if unsafe(request, view_func):
+            await invalidate_cache(request)
+
         try:
             token, profile, guilds = await fetch_discord_info(request, view_func)
         except Logout:
@@ -217,9 +222,7 @@ class DiscordContextMiddleware:
             return
 
         guild_id: str = view_kwargs.get('guild_id')
-
         servers = await load_servers(request, guilds)
-
         context = DiscordContext(
             token, request.user,
             profile, servers,

@@ -112,8 +112,7 @@ class DiscordCache:
         ('GET', api_endpoint('/users/@me')): 60 * 5,
     }
 
-    def __init__(self, user_id: int, nocache=False):
-        self.nocache = nocache
+    def __init__(self, user_id: int):
         self.user_id = user_id
 
     def _key(self, endpoint):
@@ -121,7 +120,7 @@ class DiscordCache:
         return f'buffer:{self.user_id}:{method}:{url}'
 
     def __setitem__(self, endpoint: tuple[str, str], data: dict):
-        if self.nocache or self.user_id == -1:
+        if self.user_id == -1:
             return
         key = self._key(endpoint)
         ttl = self.ENDPOINT_TTL.get(endpoint)
@@ -129,7 +128,7 @@ class DiscordCache:
             cache.set(key, data, timeout=ttl)
 
     def __getitem__(self, endpoint: tuple[str, str]) -> Optional[dict]:
-        if self.nocache or self.user_id == -1:
+        if self.user_id == -1:
             return
         key = self._key(endpoint)
         return cache.get(key)
@@ -140,7 +139,7 @@ class DiscordCache:
 
 
 class DiscordFetch:
-    def __init__(self, session: Optional[ClientSession] = None, user_id: int = -1, nocache=False):
+    def __init__(self, session: Optional[ClientSession] = None, user_id: int = -1):
         self.log = logging.getLogger('discord.fetch')
         self._session: ClientSession = session
 
@@ -151,7 +150,7 @@ class DiscordFetch:
         self._ratelimit.set()
 
         self._throttle_route = DiscordRateLimiter()
-        self._cache = DiscordCache(user_id, nocache)
+        self._cache = DiscordCache(user_id)
 
     async def init_session(self, access_token: Optional[str] = None,
                            refresh_token: Optional[str] = None):

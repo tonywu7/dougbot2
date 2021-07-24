@@ -45,5 +45,5 @@ def application_info(req: HttpRequest):
 def site_info(req: HttpRequest):
     site = get_current_site(req)
     return {
-        'current_domain': site.domain,
+        'CURRENT_DOMAIN': site.domain,
     }
