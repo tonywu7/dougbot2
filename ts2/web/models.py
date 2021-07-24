@@ -84,11 +84,7 @@ class User(AbstractUser):
         return self.access_token
 
 
-def read_access_required(f):
-    return permission_required(['discord.view_server'])(f)
-
-
-def write_access_required(f):
+def manage_permissions_required(f):
     return permission_required([
         'discord.add_server',
         'discord.change_server',

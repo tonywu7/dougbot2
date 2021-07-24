@@ -25,7 +25,7 @@ from graphene_django.converter import (convert_django_field,
 
 from . import forms, models
 from .apps import get_commands
-from .middleware import get_server
+from .middleware import get_ctx
 from .models import Server
 from .utils.graphql import FormMutationMixin, ModelMutation
 
@@ -85,7 +85,7 @@ class StringTemplateType(DjangoObjectType):
 class ServerModelMutation(ModelMutation[Server]):
     @classmethod
     def get_instance(cls, req: HttpRequest, server_id: str) -> Server:
-        return get_server(req, server_id)
+        return get_ctx(req).fetch_server(server_id, 'write')
 
 
 class ServerFormMutation(FormMutationMixin, ServerModelMutation):
@@ -132,7 +132,7 @@ class ServerQuery(ObjectType):
 
     @classmethod
     def resolve_server(cls, root, info, server_id) -> Server:
-        return get_server(info.context, server_id)
+        return get_ctx(info.context).fetch_server(server_id, 'read')
 
 
 class BotQuery(ObjectType):

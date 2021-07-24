@@ -27,7 +27,6 @@ from urllib.parse import urlencode, urlunsplit
 
 import aiohttp
 from aiohttp import ClientSession
-from discord import Permissions
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
@@ -36,6 +35,8 @@ from django.urls import reverse
 
 from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.jwt import gen_token
+
+from .utils.duckcord.permissions import Permissions2
 
 OAUTH2_PROTOCOL = 'https'
 OAUTH2_DOMAIN = 'discord.com'
@@ -294,7 +295,7 @@ class PartialGuild:
     name: str
     icon: str
     joined: bool
-    perms: Optional[Permissions]
+    perms: Permissions2
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -307,5 +308,4 @@ class PartialGuild:
 
     def __post_init__(self):
         self.id = int(self.id)
-        if self.perms:
-            self.perms = Permissions(int(self.perms))
+        self.perms = Permissions2(int(self.perms or 0))

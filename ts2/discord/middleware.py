@@ -14,18 +14,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Optional, Union
+from functools import wraps
+from typing import Literal, Optional, Union
 
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import logout
+from django.contrib.auth import REDIRECT_FIELD_NAME, logout
 from django.contrib.auth.models import User
+from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse
 
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
@@ -46,7 +53,7 @@ def unsafe(req, view_func):
     )
 
 
-async def fetch_discord_info(req: HttpRequest, view_func):
+async def fetch_discord_info(req: HttpRequest):
     user: User = req.user
 
     @sync_to_async
@@ -54,7 +61,7 @@ async def fetch_discord_info(req: HttpRequest, view_func):
         return user.is_authenticated
 
     if not await is_authenticated():
-        return None, None, None
+        return None, None, []
 
     token = await user.fresh_token()
     if not token:
@@ -124,20 +131,7 @@ def handle_server_disabled(req: HttpRequest) -> HttpResponse:
     return redirect(redirect_url)
 
 
-async def load_servers(req: HttpRequest, guilds: list[PartialGuild]):
-    managed_guilds = {g.id: g for g in guilds if g.perms.manage_guild is True}
-
-    @sync_to_async
-    def get_servers():
-        return [*Server.objects.filter(snowflake__in=managed_guilds)]
-
-    servers: list[Server] = await get_servers()
-    server_ids = {s.snowflake for s in servers}
-
-    for v in managed_guilds.values():
-        v.joined = v.id in server_ids
-
-    return managed_guilds
+AccessLevel = Literal['read', 'write', 'execute']
 
 
 @dataclass
@@ -147,18 +141,63 @@ class DiscordContext:
     web_user: User
     user_profile: PartialUser
 
+    # All servers the user is in
     servers: dict[int, PartialGuild]
+
+    permissions: defaultdict[int, frozenset[AccessLevel]]
+
+    # Requested server ID
     server_id: Optional[int] = None
+    # Current server model, if it exists in the database and is requested
     server: Optional[Server] = None
 
-    def __post_init__(self):
-        try:
-            self.server_id = int(self.server_id)
-        except (TypeError, ValueError):
-            self.server_id = None
+    @classmethod
+    async def create(cls, guilds: Iterable[PartialGuild], guild_id: Optional[str | int],
+                     token: str, user: User, profile: PartialUser) -> DiscordContext:
+        if guild_id:
+            guild_id = int(guild_id)
+        user_guilds = {g.id: g for g in guilds}
 
-    def accessible(self, server_id: int) -> bool:
-        return int(server_id) in self.servers
+        @sync_to_async
+        def get_servers():
+            return {s.snowflake: s for s in Server.objects.filter(snowflake__in=user_guilds)}
+
+        servers: dict[int, Server] = await get_servers()
+
+        for v in user_guilds.values():
+            v.joined = v.id in servers
+
+        permissions = defaultdict(set)
+        for k, v in user_guilds.items():
+            perms = v.perms
+            server = servers.get(k)
+            if perms.manage_guild:
+                permissions[k] |= {'read', 'write', 'execute'}
+            elif server and perms >= server.writable:
+                permissions[k] |= {'read', 'write'}
+            elif server and perms >= server.readable:
+                permissions[k].add('read')
+        permissions = defaultdict(set, {k: frozenset(v) for k, v in permissions.items()})
+
+        if 'read' in permissions[guild_id]:
+            current = servers.get(guild_id)
+        else:
+            current = None
+
+        return cls(access_token=token, web_user=user, user_profile=profile,
+                   servers=user_guilds, server_id=guild_id, server=current,
+                   permissions=permissions)
+
+    def check_access(self, access: AccessLevel, server_id: Optional[Union[str, int]] = None) -> bool:
+        server_id = server_id or self.server_id
+        try:
+            return access in self.permissions[int(server_id)]
+        except ValueError:
+            return False
+
+    def assert_access(self, access: AccessLevel, server_id: Optional[Union[str, int]] = None) -> None:
+        if not self.check_access(access, server_id):
+            raise PermissionDenied('Insufficient permissions.')
 
     @property
     def info(self) -> Optional[PartialGuild]:
@@ -170,11 +209,13 @@ class DiscordContext:
 
     @property
     def joined_servers(self) -> dict[int, PartialGuild]:
-        return {k: v for k, v in self.servers.items() if v.joined}
+        return {k: v for k, v in self.servers.items()
+                if v.joined and self.check_access('read', k)}
 
     @property
     def pending_servers(self) -> dict[int, PartialGuild]:
-        return {k: v for k, v in self.servers.items() if not v.joined}
+        return {k: v for k, v in self.servers.items()
+                if not v.joined and v.perms.manage_guild}
 
     @property
     def extensions(self) -> dict[str, tuple[bool, CommandAppConfig]]:
@@ -200,6 +241,14 @@ class DiscordContext:
     def is_superuser(self):
         return self.web_user.is_superuser
 
+    def fetch_server(self, server_id: Union[str, int], access: Literal['read', 'write'],
+                     deny=True, queryset=Server.objects) -> Optional[Server]:
+        if not self.check_access(access, server_id):
+            if deny:
+                raise PermissionDenied('Insufficient permissions.')
+            return None
+        return queryset.get(snowflake=server_id)
+
 
 class DiscordContextMiddleware:
     def __init__(self, get_response):
@@ -210,41 +259,25 @@ class DiscordContextMiddleware:
 
     async def process_view(self, request: HttpRequest, view_func,
                            view_args: tuple, view_kwargs: dict):
+
+        # Make sure we have the latest auth info from Discord.
         if unsafe(request, view_func):
             await invalidate_cache(request)
 
         try:
-            token, profile, guilds = await fetch_discord_info(request, view_func)
+            token, profile, guilds = await fetch_discord_info(request)
         except Logout:
             return await logout_current_user(request)
 
-        if token is None:
-            return
-
         guild_id: str = view_kwargs.get('guild_id')
-        servers = await load_servers(request, guilds)
-        context = DiscordContext(
-            token, request.user,
-            profile, servers,
-            server_id=guild_id,
-        )
+        context = await DiscordContext.create(guilds, guild_id, token, request.user, profile)
+
         if context.server_id and context.info is None:
             return redirect(reverse('web:index'))
-
-        request.discord = context
-
-        @sync_to_async
-        def get_preferences():
-            if context.server_id is None:
-                return None
-            try:
-                return Server.objects.get(snowflake=context.server_id)
-            except Server.DoesNotExist:
-                return None
-
-        context.server = await get_preferences()
         if context.server and context.server.disabled:
             return handle_server_disabled(request)
+
+        request.discord = context
 
     async def process_exception(self, request: HttpRequest, exception: Exception):
         if isinstance(exception, Logout):
@@ -272,18 +305,23 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> Optional[DiscordContext]:
         return None
 
 
-def assert_server_access(req: HttpRequest, server_id: Union[str, int],
-                         deny: bool = True) -> bool:
-    ctx = get_ctx(req, logout=False)
-    if not ctx or not ctx.accessible(server_id):
-        if deny:
-            raise PermissionDenied('Insufficient permission.')
-        return False
-    return True
-
-
-def get_server(req: HttpRequest, server_id: Union[str, int],
-               deny=True, queryset=Server.objects) -> Optional[Server]:
-    if not assert_server_access(req, server_id, deny):
-        return
-    return queryset.get(snowflake=server_id)
+def require_server_access(
+    permission: AccessLevel,
+    login_url: Optional[str] = None,
+    redirect_field_name=REDIRECT_FIELD_NAME,
+):
+    def wrapper(view_func):
+        @wraps(view_func)
+        def check_perm(request: HttpRequest, *args, **kwargs):
+            ctx = get_ctx(request, logout=False)
+            login_url_ = login_url or settings.LOGIN_URL
+            resolved_login_url = resolve_url(login_url_)
+            if not ctx or not ctx.check_access(permission):
+                return redirect_to_login(
+                    request.get_full_path(),
+                    resolved_login_url,
+                    redirect_field_name,
+                )
+            return view_func(request, *args, **kwargs)
+        return check_perm
+    return wrapper

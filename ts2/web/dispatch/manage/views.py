@@ -27,10 +27,10 @@ from django.views.generic import View
 
 from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.ext.logging import iter_logging_conf
-from ts2.discord.middleware import get_ctx
+from ts2.discord.middleware import get_ctx, require_server_access
 from ts2.discord.models import Server
 
-from ...models import User, write_access_required
+from ...models import User
 
 
 def user_invited_guild(user: User, guild_id: str) -> bool:
@@ -38,13 +38,15 @@ def user_invited_guild(user: User, guild_id: str) -> bool:
 
 
 @login_required
-@write_access_required
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'ts2/manage/index.html')
+    ctx = get_ctx(req)
+    if ctx.server or ctx.check_access('execute'):
+        return render(req, 'ts2/manage/index.html')
+    return redirect('web:index')
 
 
 @login_required
-@write_access_required
+@require_server_access('read')
 def core(req: HttpRequest, **kwargs) -> HttpResponse:
     current_user = req.user
     ctx = get_ctx(req)
@@ -70,13 +72,13 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
 
 
 @login_required
-@write_access_required
+@require_server_access('read')
 def acl_config(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/manage/acl.html')
 
 
 @login_required
-@write_access_required
+@require_server_access('read')
 def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
     logging_conf = sorted((
         (key, conf['name'], conf.get('superuser', False))
@@ -90,7 +92,7 @@ def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
 class DeleteServerProfileView(View):
     @staticmethod
     @login_required
-    @write_access_required
+    @require_server_access('read')
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
         if req.user.is_staff or user_invited_guild(req.user, guild_id):
             return render(req, 'ts2/manage/leave.html')
@@ -98,7 +100,7 @@ class DeleteServerProfileView(View):
 
     @staticmethod
     @login_required
-    @write_access_required
+    @require_server_access('read')
     @async_to_sync
     async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
         guild_id = req.POST.get('guild_id')
@@ -147,13 +149,13 @@ class DeleteServerProfileView(View):
 class ResetServerDataView(View):
     @staticmethod
     @login_required
-    @write_access_required
+    @require_server_access('read')
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
         return render(req, 'ts2/manage/reset.html')
 
     @staticmethod
     @login_required
-    @write_access_required
+    @require_server_access('read')
     def post(req: HttpRequest, guild_id: str) -> HttpResponse:
         guild_id = req.POST.get('guild_id')
         try:

@@ -33,7 +33,7 @@ from ts2.discord.models import Server
 from ts2.utils.jwt import validate_token
 
 from ...forms import ServerCreationForm, UserCreationForm
-from ...models import User, write_access_required
+from ...models import User, manage_permissions_required
 from ...utils.http import HTTPCreated
 
 
@@ -129,7 +129,7 @@ class CreateUserView(View):
 
 @require_POST
 @login_required
-@write_access_required
+@manage_permissions_required
 def join(req: HttpRequest) -> HttpResponse:
     guild_id = req.POST.get('guild_id')
     if not guild_id:
@@ -143,7 +143,7 @@ def join(req: HttpRequest) -> HttpResponse:
 class CreateServerProfileView(View):
     @staticmethod
     @login_required
-    @write_access_required
+    @manage_permissions_required
     def get(req: HttpRequest) -> HttpResponse:
         state = verify_state(req)
         guild_id = req.GET.get('guild_id')
@@ -159,7 +159,7 @@ class CreateServerProfileView(View):
 
     @staticmethod
     @login_required
-    @write_access_required
+    @manage_permissions_required
     def post(req: HttpRequest) -> HttpResponse:
         try:
             instance = Server.objects.get(pk=req.POST.get('snowflake'))

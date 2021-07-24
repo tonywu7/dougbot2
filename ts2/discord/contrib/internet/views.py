@@ -14,9 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
+from ...middleware import require_server_access
 
-async def timezone_index(req: HttpRequest, **kwargs) -> HttpResponse:
+
+@login_required
+@require_server_access('read')
+def timezone_index(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/discord/contrib/internet/timeanddate.html')

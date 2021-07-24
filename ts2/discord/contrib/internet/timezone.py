@@ -17,14 +17,14 @@
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
-from ts2.discord.middleware import assert_server_access
+from ts2.discord.middleware import get_ctx
 from ts2.discord.models import Role
 
 from .models import RoleTimezone
 
 
 def get_roles(req: HttpRequest, server_id: str) -> QuerySet[Role]:
-    assert_server_access(req, server_id)
+    get_ctx(req, logout=False).assert_access('write', server_id)
     return Role.objects.filter(guild_id__exact=server_id).all()
 
 

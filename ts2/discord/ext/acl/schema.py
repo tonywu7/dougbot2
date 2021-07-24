@@ -21,7 +21,7 @@ from graphene import (ID, Argument, Boolean, Enum, Field, InputObjectType, Int,
                       List, NonNull, ObjectType, String)
 from more_itertools import bucket, first
 
-from ts2.discord.middleware import get_server
+from ts2.discord.middleware import get_ctx
 
 from ...models import Server
 from ...schema import ServerModelMutation
@@ -146,7 +146,7 @@ class ACLQuery(ObjectType):
 
     @classmethod
     def resolve_acl(cls, root, info, server_id):
-        server = get_server(info.context, server_id)
+        server = get_ctx(info.context).fetch_server(server_id, 'read')
         return AccessControlType.serialize([*server.acl.all()])
 
 

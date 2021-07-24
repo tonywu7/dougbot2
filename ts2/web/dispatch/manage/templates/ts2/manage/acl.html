@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static '/telescope2/acl.css' %}">
 {% endblock %}
 
-{% block title %}Access control - {{ discord.server.name|default:'server' }}{% endblock %}
+{% block title %}Access control - {{ discord.info.name|default:'server' }}{% endblock %}
 
 {% block main_title %}Command access control{% endblock %}
 

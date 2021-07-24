@@ -1,10 +1,10 @@
 {% extends 'ts2/web/base.html' %}
 {% load inspect elements builtins %}
 
-{% block title %}Home - {{ discord.server.name|default:'server' }}{% endblock %}
+{% block title %}Home - {{ discord.info.name|default:'server' }}{% endblock %}
 
 {% block main_title %}
-<span class="bot-name">{{ discord.server.name|default:BRANDING_FULL }}</span>
+<span class="bot-name">{{ discord.info.name|default:BRANDING_FULL }}</span>
 {% endblock %}
 
 {% block sections %}

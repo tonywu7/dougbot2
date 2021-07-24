@@ -33,6 +33,8 @@ from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 
 from .config import CommandAppConfig
+from .utils.duckcord.color import Color2
+from .utils.duckcord.permissions import Permissions2
 
 inflection = inflect.engine()
 
@@ -102,23 +104,29 @@ class PermissionField(models.BigIntegerField):
         number = super().to_python(value)
         if number is None:
             return None
-        return discord.Permissions(number)
+        return Permissions2(number)
+
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
 
     def get_prep_value(self, value: discord.Permissions | None):
-        if isinstance(value, discord.Permissions):
-            return super().get_prep_value(value.value)
-        return super().get_prep_value(value)
+        if value is None:
+            return super().get_prep_value(None)
+        return super().get_prep_value(int(value))
 
 
 class ColorField(models.IntegerField):
-    def to_python(self, value) -> discord.Color | None:
+    def to_python(self, value) -> Color2 | None:
         number = super().to_python(value)
         if number is None:
             return None
-        return discord.Color(number)
+        return Color2(number)
 
-    def get_prep_value(self, value: discord.Color):
-        if isinstance(value, discord.Color):
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
+
+    def get_prep_value(self, value: Color2):
+        if isinstance(value, Color2):
             return super().get_prep_value(value.value)
         return super().get_prep_value(value)
 
@@ -149,19 +157,22 @@ class Entity(NamingMixin, models.Model):
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
+    _extensions: str = models.TextField(blank=True)
+
     invited_by = models.ForeignKey('web.User', on_delete=SET_NULL, null=True, related_name='invited_servers')
     disabled: bool = models.BooleanField(default=False)
-
-    prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
-    _extensions: str = models.TextField(blank=True)
 
     channels: QuerySet[Channel]
     roles: QuerySet[Role]
 
     name: str = models.TextField()
-    perms: discord.Permissions = PermissionField(verbose_name='default permissions', default=0)
+    perms: Permissions2 = PermissionField(verbose_name='default permissions', default=0)
 
+    prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
     logging = models.JSONField(verbose_name='logging config', default=dict)
+
+    readable: Permissions2 = PermissionField(verbose_name='readable perms', default=32)
+    writable: Permissions2 = PermissionField(verbose_name='writable perms', default=32)
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
@@ -218,9 +229,9 @@ class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):
 
 class Role(Entity, ModelTranslator[discord.Role, 'Role']):
     name: str = models.CharField(max_length=120)
-    color: int = ColorField()
+    color: Color2 = ColorField()
     guild: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='roles')
-    perms: discord.Permissions = PermissionField(verbose_name='permissions')
+    perms: Permissions2 = PermissionField(verbose_name='permissions')
     order: int = models.IntegerField(default=0)
 
     @classmethod

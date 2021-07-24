@@ -16,7 +16,7 @@
 
 from graphene import ID, Argument, InputObjectType, List, ObjectType, String
 
-from ...middleware import get_server
+from ...middleware import get_ctx
 from ...models import Server
 from ...schema import ServerModelMutation
 from .logging import get_logging_conf, set_logging_conf
@@ -57,7 +57,7 @@ class LoggingQuery(ObjectType):
 
     @classmethod
     def resolve_logging(cls, root, info, server_id):
-        server = get_server(info.context, server_id)
+        server = get_ctx(info.context).fetch_server(server_id, 'read')
         return get_logging_conf(info.context, server)
 
 
