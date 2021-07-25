@@ -14,14 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { defineComponent, onMounted, ref, Ref, watch } from 'vue'
-import { hsl } from 'd3-color'
+import { defineComponent, onMounted, ref, Ref } from 'vue'
 import { format as formatTime, utcToZonedTime } from 'date-fns-tz'
 
 import FormContainer from '../../components/input/FormContainer.vue'
-import ItemSelect, {
-    ItemCandidate,
-} from '../../components/input/ItemSelect.vue'
+import ItemSelect from '../../components/input/ItemSelect.vue'
 import { Role, server } from '../../server'
 import {
     RoleTimezoneType,
@@ -35,46 +32,7 @@ import UPDATE_TIMEZONES from '../../graphql/mutation/update-timezones.graphql'
 import { displayNotification } from '../../components/utils/modal'
 import { Color } from '../../components/modal/bootstrap'
 
-function fmtPositive(n: number) {
-    return n >= 0 ? `+${n}` : `${n}`
-}
-
-class Zone implements ItemCandidate {
-    readonly id: string
-    readonly canonical: number
-    readonly summer: number
-    readonly tzname: string
-
-    readonly mean_offset: number
-    readonly offset: string
-    readonly content: string
-    readonly foreground: string
-
-    constructor(data: any) {
-        this.id = data.iana
-        this.canonical = data.canonical
-        this.summer = data.summer
-        this.tzname = data.tzname
-        this.mean_offset = data.mean_offset
-        this.offset = data.offset
-        this.content = data.content
-        this.foreground = data.foreground
-    }
-
-    getIndex() {
-        return {
-            id: this.id,
-            tz: this.id,
-            name: this.tzname,
-            place: this.content,
-        }
-    }
-}
-
-async function getZones(src: string): Promise<Zone[]> {
-    let data: any[] = await (await fetch(src)).json()
-    return data.map((d) => new Zone(d))
-}
+import zones from './tz'
 
 async function loadRoleTimezones(): Promise<RoleTimezoneType[]> {
     let res = await server.fetch<ServerTimezonesQuery>(SERVER_TIMEZONES)
@@ -105,7 +63,6 @@ export default defineComponent({
     },
     setup(props) {
         let roles: Ref<Record<string, Role>> = ref({})
-        let zones: Ref<Record<string, Zone>> = ref({})
         let orig: Ref<RoleTimezoneType[]> = ref([])
         let data: Ref<{ roles: string[]; zones: string[] }[]> = ref([])
         let roleIds: Set<string>
@@ -157,14 +114,12 @@ export default defineComponent({
 
         let loading = ref(true)
         onMounted(async () => {
-            let [r, z, roleTimezones] = await Promise.all([
+            let [r, roleTimezones] = await Promise.all([
                 server.getRoles(),
-                getZones(props.tzsrc),
                 loadRoleTimezones(),
             ])
 
             Object.assign(roles.value, ...r.map((r) => ({ [r.id]: r })))
-            Object.assign(zones.value, ...z.map((z) => ({ [z.id]: z })))
             roleIds = new Set(Object.keys(roles.value))
 
             setInitialData(roleTimezones)
@@ -183,6 +138,9 @@ export default defineComponent({
             updateClockAt,
             setInitialData,
         }
+    },
+    data() {
+        return { zones }
     },
     methods: {
         createTimezone() {

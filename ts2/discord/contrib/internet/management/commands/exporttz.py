@@ -37,6 +37,7 @@ class Zone(TypedDict):
     offset: str
     content: str
     foreground: str
+    background: str
 
 
 def rgb2hex(r: int, g: int, b: int):
@@ -80,7 +81,8 @@ class Command(BaseCommand):
                 offset = zone['offset'] = f'{canonical:+g}/{summer:+g}'
             zone['content'] = f'{offset} : {readable}'
             hue = 15 * ((mean_offset + 12) % 24)
-            zone['foreground'] = rgb2hex(*ImageColor.getrgb(f'hsl({hue}, 60%, 75%)'))
+            zone['foreground'] = fg = rgb2hex(*ImageColor.getrgb(f'hsl({hue}, 60%, 75%)'))
+            zone['background'] = f'{fg}26'
             zones.append(zone)
         zones = [*sorted(zones, key=lambda z: (z['mean_offset'], z['canonical'], z['iana']))]
         with open(dest, 'w+') as f:
