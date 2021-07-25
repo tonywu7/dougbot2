@@ -121,3 +121,24 @@ class Feature(models.Model):
     ftype = models.CharField(max_length=32, choices=FeatureType.choices)
     status = models.CharField(max_length=32, choices=FeatureStatus.choices)
     name = models.TextField()
+
+    def __str__(self):
+        return f'Feature [{self.ftype}] {self.name} ({self.status})'
+
+
+class BugReportType(models.IntegerChoices):
+    commands = 1, 'Commands errors'
+    doc = 2, 'Documentation errors'
+    web = 3, 'Website issues'
+    feedback = 4, 'Suggestion & feedback'
+
+
+class BugReport(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    topic = models.IntegerField(verbose_name='report type', choices=BugReportType.choices)
+    summary = models.TextField()
+    path = models.TextField()
+
+    def __str__(self) -> str:
+        return f'{self.user}: {self.summary}'

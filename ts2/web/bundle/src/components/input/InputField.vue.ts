@@ -27,6 +27,7 @@ let FORM_CONTROL_TYPES: Record<string, string> = {
 interface ExtraOptions {
     useSwitch: boolean
     showChanged: boolean
+    [attr: string]: string | boolean
 }
 
 export interface InputItemProps {

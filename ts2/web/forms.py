@@ -22,6 +22,8 @@ from django import forms
 
 from ts2.discord.models import Server
 
+from .models import BugReport
+
 
 class UserCreationForm(forms.Form):
     username = forms.CharField()
@@ -45,3 +47,9 @@ class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
         fields = ['snowflake', 'invited_by', 'disabled']
+
+
+class FeedbackForm(forms.ModelForm):
+    class Meta:
+        model = BugReport
+        fields = ['user', 'topic', 'summary', 'path']

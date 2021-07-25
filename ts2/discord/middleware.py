@@ -289,7 +289,7 @@ class DiscordContextMiddleware:
         if context.server_id and context.info is None:
             if request.user.is_authenticated:
                 return redirect(reverse('web:index'))
-            handoff = {'continue': request.get_full_path()}
+            handoff = {'next': request.get_full_path()}
             return redirect(f'{reverse("web:login")}?{urlencode(handoff)}')
         if context.server and context.server.disabled:
             return handle_server_disabled(request)

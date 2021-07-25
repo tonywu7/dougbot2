@@ -40,4 +40,9 @@
     .form-fields {
         margin: 0 0 .5rem 0;
     }
+
+    .form-after {
+        display: flex;
+        flex-flow: column nowrap;
+    }
 </style>

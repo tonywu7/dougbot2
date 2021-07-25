@@ -54,7 +54,7 @@ def verify_state(req: HttpRequest, sub=None, aud=None) -> tuple[str, Optional[di
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
-    redirect_uri, token = app_auth_url(req, req.GET.get('continue'))
+    redirect_uri, token = app_auth_url(req, req.GET.get('next'))
     res = redirect(redirect_uri)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res

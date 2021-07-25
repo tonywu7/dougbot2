@@ -1,10 +1,14 @@
 <template>
-    <form class="form">
-        <slot name="form-before"></slot>
+    <form class="form" :method="method" :action="action">
+        <div v-if="$slots['form-before']" class="form-before">
+            <slot name="form-before"></slot>
+        </div>
         <div class="form-fields">
             <slot name="form-fields"></slot>
         </div>
-        <slot name="form-after"></slot>
+        <div v-if="$slots['form-after']" class="form-after">
+            <slot name="form-after"></slot>
+        </div>
     </form>
 </template>
 
@@ -14,6 +18,6 @@
     .form-fields {
         display: flex;
         flex-flow: column nowrap;
-        gap: .7rem;
+        gap: 1.2rem;
     }
 </style>

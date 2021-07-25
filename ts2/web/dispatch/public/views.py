@@ -14,9 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.views.generic import View
 
+from ...forms import FeedbackForm
 from ...models import Feature
 
 
@@ -28,3 +32,25 @@ def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/public/features.html', {
         'features': Feature.objects.order_by('status', 'ftype', 'name').all(),
     })
+
+
+class BugReportView(View):
+    @staticmethod
+    @login_required
+    def get(req: HttpRequest, **kwargs) -> HttpResponse:
+        return render(req, 'ts2/public/bugreport.html', {'endpoint': req.get_full_path()})
+
+    @staticmethod
+    @login_required
+    def post(req: HttpRequest, **kwargs) -> HttpResponse:
+        form = FeedbackForm({**req.POST.dict(), 'user': req.user})
+        try:
+            form.save()
+        except Exception:
+            status = 400
+            messages.warning(req, 'Error while submitting bug report.')
+        else:
+            status = 201
+            messages.success(req, 'Report submitted. Thank you!')
+        return render(req, 'ts2/public/bugreport.html',
+                      {'endpoint': req.get_full_path()}, status=status)

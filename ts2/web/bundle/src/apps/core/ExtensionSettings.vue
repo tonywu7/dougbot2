@@ -69,4 +69,10 @@
             }
         }
     }
+
+    :deep(.form-after) {
+        display: flex;
+        flex-flow: column nowrap;
+        margin: 0;
+    }
 </style>

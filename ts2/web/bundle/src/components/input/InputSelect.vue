@@ -3,7 +3,7 @@
         <label v-if="label" :for="id" class="field-label" v-html="label"></label>
         <div class="flex-select">
             <span class="actionable" v-html="display"></span>
-            <select :id="id" class="flex-select-input" v-model="_value">
+            <select :id="id" class="flex-select-input" :name="name" v-model="_value">
                 <option v-for="opt in options" :key="opt" :value="opt.value">{{ opt.text }}</option>
             </select>
         </div>

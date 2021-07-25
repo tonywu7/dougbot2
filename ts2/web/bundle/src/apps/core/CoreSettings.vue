@@ -24,4 +24,10 @@
         font-weight: 700;
         font-size: 1.2rem;
     }
+
+    :deep(.form-after) {
+        display: flex;
+        flex-flow: column nowrap;
+        margin: 0;
+    }
 </style>

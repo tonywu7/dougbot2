@@ -135,7 +135,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-LOGIN_URL = '/gateway/login'
+LOGIN_URL = 'web:login'
 
 STATIC_ROOT = BASE_DIR / 'static'
 STATICFILES_DIRS = [

@@ -62,8 +62,7 @@ function displayServerMessages() {
             let colors: Record<string, Color> = {
                 debug: Color.DEBUG,
                 info: Color.INFO,
-                'info success': Color.SUCCESS,
-                'success info': Color.SUCCESS,
+                success: Color.SUCCESS,
                 warning: Color.WARNING,
                 error: Color.DANGER,
                 critical: Color.DANGER,

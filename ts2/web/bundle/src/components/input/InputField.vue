@@ -2,15 +2,18 @@
     <div :class="[containerType]">
         <label v-if="label" :for="id" :class="labelState" v-html="label"></label>
         <template v-if="type === 'textarea'">
-            <textarea :class="inputElem" :id="id" :name="name" :placeholder="placeholder" v-model="value"></textarea>
+            <textarea :class="inputElem" :id="id" :name="name" :placeholder="placeholder" :required="options.required"
+                :autocomplete="options.autocomplete" v-model="value"></textarea>
         </template>
         <template v-else>
-            <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder" v-model="value" />
+            <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder"
+                :required="options.required" :autocomplete="options.autocomplete" v-model="value" />
         </template>
         <div v-if="$slots.hint" class="field-after field-hint">
-            <slot name="hint">
-                <p>{{ hint }}</p>
-            </slot>
+            <slot name="hint"></slot>
+        </div>
+        <div v-else-if="hint" class="field-after field-hint">
+            <p>{{ hint }}</p>
         </div>
         <div v-if="error" class="field-after field-error">
             <p v-html="error"></p>
@@ -55,9 +58,6 @@
     .field {
         display: flex;
         flex-flow: column nowrap;
-
-        margin-top: 12pt;
-        margin-bottom: 12pt;
 
         &:first-child {
             margin-top: 0;

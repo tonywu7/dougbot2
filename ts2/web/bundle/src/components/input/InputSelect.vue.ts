@@ -24,6 +24,7 @@ export interface InputSelectOption<T = any> {
 export default defineComponent({
     props: {
         id: String,
+        name: String,
         label: String,
         options: {
             type: Object as PropType<InputSelectOption[]>,

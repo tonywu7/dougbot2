@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ts2admin.models import AdminController
 
-from .models import Feature, User
+from .models import BugReport, Feature, User
 
 
 class DiscordUserAdmin(UserAdmin):
@@ -27,6 +27,11 @@ class FeatureAdmin(AdminController):
     pass
 
 
+class BugReportAdmin(AdminController):
+    pass
+
+
 def register_all(admin_site: AdminSite):
     admin_site.register(User, DiscordUserAdmin)
     admin_site.register(Feature, FeatureAdmin)
+    admin_site.register(BugReport, BugReportAdmin)
