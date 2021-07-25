@@ -22,8 +22,9 @@ from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from textwrap import shorten
 from typing import Generic, TypeVar, Union
 
-from discord import (Client, Embed, Message, PartialEmoji,
+from discord import (Client, Embed, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
+from discord.ext.commands import Context
 from more_itertools import split_before
 
 from .duckcord.embeds import Embed2
@@ -231,6 +232,12 @@ class Pagination:
         return (self.text_transform(k, text),
                 self.embed_transform(k, embed))
 
+    def get_text(self, k: int) -> str:
+        return self.text_transform(k, self.content[k][0])
+
+    def get_embed(self, k: int) -> str:
+        return self.embed_transform(k, self.content[k][1])
+
     def index_setter(self) -> PageProvider:
         index = 0
 
@@ -244,7 +251,12 @@ class Pagination:
 
         return provider
 
-    def __call__(self, client: Client, message: Message, ttl: int, *users: int) -> Paginator:
+    async def reply(self, ctx: Context, ttl: int) -> tuple[Message, Paginator]:
+        text, embed = self[0]
+        msg = await ctx.reply(content=text, embed=embed)
+        return msg, self(ctx.bot, msg, ttl, ctx.author)
+
+    def __call__(self, client: Client, message: Message, ttl: int, *users: Union[int, Member]) -> Paginator:
         if len(self.content) > 1:
             return Paginator(self.index_setter(), client=client, message=message,
                              ttl=ttl, users=users, emotes=self.actions.keys())

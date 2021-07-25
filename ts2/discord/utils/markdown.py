@@ -39,6 +39,12 @@ ARROWS_W = {
     'white': '<:mta_arrowW:856190628399153164>',
     'red': '<:mta_arrowW_red:856460793323323392>',
 }
+ARROWS_N = {
+    'white': '<:mta_arrowN:856190628831952906>',
+}
+ARROWS_S = {
+    'white': '<:mta_arrowS:856190628823826432>',
+}
 
 
 def tag(obj) -> str:
@@ -113,6 +119,15 @@ def traffic_light(val: bool | None, strict=False):
         return '🟡'
     else:
         return '⛔'
+
+
+def arrow(d: Literal['N', 'E', 'S', 'W']) -> str:
+    return {
+        'N': ARROWS_N['white'],
+        'E': ARROWS_E['white'],
+        'S': ARROWS_S['white'],
+        'W': ARROWS_W['white'],
+    }[d]
 
 
 def mta_arrow_bracket(s: str, color='white') -> str:

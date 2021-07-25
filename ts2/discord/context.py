@@ -96,20 +96,27 @@ class ResponseInit:
         init.callbacks = [*init.callbacks, callback]
         return init
 
-    async def run(self):
-        args = attr.asdict(self, recurse=False)
-        del args['context']
-        del args['callbacks']
-        del args['responders']
-        if len(args['files']) == 1:
-            args['file'] = args['files'].pop()
-        message = await self.context.send(**args)
+    async def run(self, message: Optional[Message] = None):
+        if not message:
+            if self.isempty:
+                return
+            args = attr.asdict(self, recurse=False)
+            del args['context']
+            del args['callbacks']
+            del args['responders']
+            if len(args['files']) == 1:
+                args['file'] = args['files'].pop()
+            message = await self.context.send(**args)
         for cb in self.callbacks:
             await cb(message)
         if self.responders:
             tasks = [r(message) for r in self.responders]
             await run_responders(*tasks)
         return message
+
+    @property
+    def isempty(self):
+        return not self.content and not self.embed and not self.files
 
 
 # 'Cause of ...

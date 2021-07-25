@@ -7,8 +7,8 @@ from .duckcord.permissions import Permissions2  # noqa: F401
 from .events import (DeleteResponder, EmoteResponder, Responder,  # noqa: F401
                      emote_added, emote_matches, emote_no_bots, event_filter,
                      run_responders)
-from .markdown import (E, a, blockquote, code, em, pre, redact,  # noqa: F401
-                       strike, strong, tag, tag_literal, timestamp,
+from .markdown import (E, a, arrow, blockquote, code, em, pre,  # noqa: F401
+                       redact, strike, strong, tag, tag_literal, timestamp,
                        traffic_light, u, unmarked, untagged, verbatim)
 from .pagination import (EmbedPagination, ParagraphStream,  # noqa: F401
                          TextPagination, chapterize_items, limit_results,

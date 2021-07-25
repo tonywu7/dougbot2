@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from textwrap import dedent
 from typing import Literal, Optional
 
 import pytz
@@ -29,8 +30,7 @@ from ...ext import autodoc as doc
 from ...ext.autodoc import NotAcceptable
 from ...ext.types.functional import Maybe
 from ...ext.types.patterns import Constant
-from ...utils.duckcord.embeds import Embed2
-from ...utils.markdown import code, verbatim
+from ...utils.common import Embed2, EmbedPagination, a, arrow, code, verbatim
 from ..services import ServiceUnavailable
 from ..services.datetime import Timezone, get_tzfinder
 from ..services.osm import (Latitude, Longitude, format_coarse_location,
@@ -50,14 +50,63 @@ def format_tz_set(user: User, location: Optional[Location] = None) -> Embed2:
     dtstr = f'{user.format_datetime(dt)}'
     embed = (
         Embed2(title=f'Timezone set: {zonename}')
-        .add_field(name='Local time', value=dtstr)
+        .add_field(name='Local time', value=dtstr, inline=True)
         .set_footer(text=f'IANA tz code: {user.timezone}')
+        .set_timestamp(None)
     )
     if location:
         location_str = format_coarse_location(location)
         if location_str:
-            embed = embed.add_field(name='Location', value=location_str)
+            embed = embed.add_field(name='Location', value=location_str, inline=True)
     return embed
+
+
+DATEFORMAT_HELP_FRONT = f"""\
+Specify one or more tokens listed below (case-sensitive).
+Examples:
+{code('my dateformat little endian')} {arrow('E')} 22/06/2021 18:40
+{code('my dateformat MMM D Y h:mm A')} {arrow('E')} Jun 22 2021 6:40 PM
+"""
+DATEFORMAT_HELP_CONTENT = [
+    ('Preset', dedent(f"""
+     {code('middle endian')}: format like 06/22/2021 6:40 PM
+     {code('little endian')}: format like 22/06/2021 18:40
+     {code('big endian')}: format like 2021-06-21 18:40
+     """)),
+    ('Common date', dedent(f"""\
+    {code('Y')}, {code('YYYY')}: 2021, 2022, 2023, ...
+    {code('YY')}: 21, 22, 23, ...
+    {code('MMMM')}: January, Feburary, ...
+    {code('MMM')}: Jan, Feb, Mar ...
+    {code('MM')}: 01, 02, 03 ... 11, 12
+    {code('M')}: 1, 2, 3 ... 11, 12
+    {code('DD')}: 01, 02, 03 ... 30, 31
+    {code('D')}: 1, 2, 3 ... 30, 31
+    {code('Do')}: 1st, 2nd, 3rd ... 30th, 31st
+    {code('dddd')}: Monday, Tuesday, Wednesday ...
+    {code('ddd')}: Mon, Tue, Wed ...
+    """)),
+    ('Common time', dedent(f"""\
+    {code('HH')}: 00, 01, 02 ... 23, 24
+    {code('h')}: 1, 2, 3 ... 11, 12
+    {code('mm')}: 00, 01, 02 ... 58, 59
+    {code('ss')}: 00, 01, 02 ... 58, 59
+    {code('A')}: AM, PM
+    {code('Z')}: -07:00, -06:00 ... +06:00, +07:00
+    {code('zz')}: EST CST ... MST PST
+    """)),
+    ('More', dedent(f"""
+    See {a('Pendulum documentation', 'https://pendulum.eustace.io/docs/#tokens')} \
+    for a list of all supported tokens.
+    See {a('strftime(3)', 'https://man7.org/linux/man-pages/man3/strftime.3.html')} \
+    for a list of alternative {code('printf')}-style tokens.
+    """)),
+]
+DATEFORMAT_HELP = EmbedPagination([
+    Embed2(description=DATEFORMAT_HELP_FRONT)
+    .add_field(name=k, value=v)
+    for k, v in DATEFORMAT_HELP_CONTENT
+], 'Date time formatting help', False)
 
 
 class Personalize(
@@ -236,7 +285,8 @@ class Personalize(
         *, format_string: Optional[str] = None,
     ):
         if help:
-            return
+            msg, paginator = await DATEFORMAT_HELP.reply(ctx, 720)
+            await ctx.response(ctx).deleter().responder(lambda msg: paginator).run(msg)
 
         profile: User = await User.async_get(ctx.author)
         if reset:
@@ -245,15 +295,19 @@ class Personalize(
         elif format_string:
             if libc:
                 format_string = f'strftime:{format_string}'
+            format_string = {
+                'little endian': 'DD/MM/YYYY HH:mm',
+                'big endian': 'YYYY-MM-DD HH:mm',
+                'middle endian': 'MM/DD/YYYY h:mm A',
+            }.get(format_string.lower(), format_string)
             profile.datetimefmt = format_string
             await profile.async_save()
-        format_string = profile.datetimefmt
 
-        fmt = code(escape_markdown(format_string))
+        fmt = code(escape_markdown(profile.datetimefmt))
         embed = (
             format_tz_set(profile)
-            .set_title('Date format set')
-            .insert_field_at(0, name='Format', value=fmt)
+            .set_title('Date format')
+            .insert_field_at(0, name='Format', value=fmt, inline=True)
             .personalized(ctx.author)
         )
         return await ctx.send(embed=embed)

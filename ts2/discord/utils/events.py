@@ -23,8 +23,8 @@ from collections.abc import Callable, Coroutine, Iterable
 from functools import wraps
 from typing import Any, Optional
 
-from discord import (Client, Emoji, Forbidden, Message, PartialEmoji,
-                     RawReactionActionEvent)
+from discord import (Client, Emoji, Forbidden, Member, Message, PartialEmoji,
+                     RawReactionActionEvent, User)
 from discord.ext.commands import BotMissingPermissions, Context
 
 Decorator = Callable[[Callable], Callable]
@@ -131,7 +131,7 @@ class Responder:
 
 class EmoteResponder(Responder):
     def __init__(
-        self, users: Iterable[int], emotes: list[Emoji | PartialEmoji | str],
+        self, users: Iterable[int | Member], emotes: list[Emoji | PartialEmoji | str],
         message: Message, *args, **kwargs,
     ) -> None:
         super().__init__('raw_reaction_add', *args, **kwargs)
@@ -143,6 +143,7 @@ class EmoteResponder(Responder):
             elif isinstance(e, (Emoji, PartialEmoji)):
                 self.emotes[e.id] = e
 
+        users = [m.id if isinstance(m, (Member, User)) else m for m in users]
         self.tests = (
             emote_no_bots,
             emote_added,
