@@ -112,6 +112,7 @@ export type Mutation = {
   updatePrefix?: Maybe<ServerPrefixMutation>;
   updateExtensions?: Maybe<ServerExtensionsMutation>;
   updateModels?: Maybe<ServerModelSyncMutation>;
+  updatePerms?: Maybe<ServerPermMutation>;
 };
 
 
@@ -159,6 +160,13 @@ export type MutationupdateExtensionsArgs = {
 
 export type MutationupdateModelsArgs = {
   serverId: Scalars['ID'];
+};
+
+
+export type MutationupdatePermsArgs = {
+  readable: Array<Maybe<Scalars['String']>>;
+  serverId: Scalars['ID'];
+  writable: Array<Maybe<Scalars['String']>>;
 };
 
 export type Query = {
@@ -217,7 +225,7 @@ export type RoleType = {
   name: Scalars['String'];
   color: Scalars['Int'];
   guild: ServerType;
-  perms: Scalars['String'];
+  perms: Array<Scalars['String']>;
   order: Scalars['Int'];
 };
 
@@ -231,6 +239,11 @@ export type ServerModelSyncMutation = {
   server?: Maybe<ServerType>;
 };
 
+export type ServerPermMutation = {
+  __typename?: 'ServerPermMutation';
+  server?: Maybe<ServerType>;
+};
+
 export type ServerPrefixMutation = {
   __typename?: 'ServerPrefixMutation';
   server?: Maybe<ServerType>;
@@ -240,9 +253,11 @@ export type ServerType = {
   __typename?: 'ServerType';
   snowflake: Scalars['String'];
   disabled: Scalars['Boolean'];
-  prefix: Scalars['String'];
   name: Scalars['String'];
-  perms: Scalars['String'];
+  perms: Array<Scalars['String']>;
+  prefix: Scalars['String'];
+  readable: Array<Scalars['String']>;
+  writable: Array<Scalars['String']>;
   channels: Array<ChannelType>;
   roles: Array<RoleType>;
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
@@ -315,6 +330,24 @@ export type UpdateModelsMutation = (
     & { server?: Maybe<(
       { __typename?: 'ServerType' }
       & Pick<ServerType, 'snowflake'>
+    )> }
+  )> }
+);
+
+export type UpdatePermsMutationVariables = Exact<{
+  serverId: Scalars['ID'];
+  readable: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
+  writable: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
+}>;
+
+
+export type UpdatePermsMutation = (
+  { __typename?: 'Mutation' }
+  & { updatePerms?: Maybe<(
+    { __typename?: 'ServerPermMutation' }
+    & { server?: Maybe<(
+      { __typename?: 'ServerType' }
+      & Pick<ServerType, 'snowflake' | 'readable' | 'writable'>
     )> }
   )> }
 );
@@ -403,7 +436,7 @@ export type ServerDetailsQuery = (
   { __typename?: 'Query' }
   & { server?: Maybe<(
     { __typename?: 'ServerType' }
-    & Pick<ServerType, 'snowflake' | 'name' | 'prefix' | 'disabled' | 'extensions'>
+    & Pick<ServerType, 'snowflake' | 'name' | 'prefix' | 'disabled' | 'extensions' | 'perms' | 'readable' | 'writable'>
     & { channels: Array<(
       { __typename?: 'ChannelType' }
       & Pick<ChannelType, 'snowflake' | 'name' | 'type' | 'order'>

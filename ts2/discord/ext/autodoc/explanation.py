@@ -159,7 +159,7 @@ def describe_concurrency(number: int, bucket: BucketType):
 
 
 def readable_perm_name(p: str) -> str:
-    return p.replace('_', ' ').replace('guild', 'server').title()
+    return p.replace('_', ' ').replace('guild', 'server').title().replace('Tts', 'TTS')
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)

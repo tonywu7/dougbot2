@@ -23,19 +23,19 @@ from ts2.discord.models import Role
 from .models import RoleTimezone
 
 
-def get_roles(req: HttpRequest, server_id: str) -> QuerySet[Role]:
-    get_ctx(req, logout=False).assert_access('write', server_id)
+def get_roles(req: HttpRequest, server_id: str, access: str) -> QuerySet[Role]:
+    get_ctx(req, logout=False).assert_access(access, server_id)
     return Role.objects.filter(guild_id__exact=server_id).all()
 
 
-def get_role_tzs(req: HttpRequest, server_id: str) -> tuple[list[int], QuerySet[RoleTimezone]]:
-    roles: list[int] = get_roles(req, server_id).values_list('snowflake', flat=True)
+def get_role_tzs(req: HttpRequest, server_id: str, access: str) -> tuple[list[int], QuerySet[RoleTimezone]]:
+    roles: list[int] = get_roles(req, server_id, access).values_list('snowflake', flat=True)
     zones = RoleTimezone.objects.filter(role_id__in=roles)
     return roles, zones
 
 
 def set_role_tzs(req: HttpRequest, server_id: str, timezones: dict[int, str]) -> list[RoleTimezone]:
-    roles, zones = get_role_tzs(req, server_id)
+    roles, zones = get_role_tzs(req, server_id, 'write')
     zones = zones.filter(role_id__in=timezones)
     for z in zones:
         tz = timezones.pop(z.role_id)
@@ -54,4 +54,4 @@ def set_role_tzs(req: HttpRequest, server_id: str, timezones: dict[int, str]) ->
 
 
 def del_role_tzs(req: HttpRequest, server_id: str, roles: list[str]):
-    get_role_tzs(req, server_id)[1].filter(role_id__in=roles).delete()
+    get_role_tzs(req, server_id, 'write')[1].filter(role_id__in=roles).delete()

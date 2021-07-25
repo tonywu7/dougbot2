@@ -35,6 +35,15 @@ declare module '*/update-models.graphql' {
 }
     
 
+declare module '*/update-perms.graphql' {
+  import { DocumentNode } from 'graphql';
+  const defaultDocument: DocumentNode;
+  export const UpdatePerms: DocumentNode;
+
+  export default defaultDocument;
+}
+    
+
 declare module '*/update-prefix.graphql' {
   import { DocumentNode } from 'graphql';
   const defaultDocument: DocumentNode;

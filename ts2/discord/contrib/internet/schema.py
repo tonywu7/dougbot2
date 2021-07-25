@@ -76,7 +76,7 @@ class InternetQuery(ObjectType):
 
     @classmethod
     def resolve_timezones(cls, root, info, server_id: str):
-        return get_role_tzs(info.context, server_id)[1]
+        return get_role_tzs(info.context, server_id, 'read')[1]
 
 
 class InternetMutation(ObjectType):

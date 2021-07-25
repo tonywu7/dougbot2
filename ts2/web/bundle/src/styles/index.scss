@@ -173,3 +173,20 @@
         margin-inline-end: 6px;
     }
 }
+
+#readonly-mode {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    width: 100%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.2rem 0.5rem;
+    text-align: center;
+    user-select: none;
+    background-color: $yellow;
+    color: black;
+    box-shadow: var(--box-shadow-3);
+}

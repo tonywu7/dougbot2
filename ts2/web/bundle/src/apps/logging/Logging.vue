@@ -7,12 +7,10 @@
                 </template>
                 <template v-slot:form-fields>
                     <item-select label="Send logs to this channel" :items="textChannels"
-                        v-model:choices="logging[cls.key].channels" placeholder="type in the name of a channel"
-                        :options="{multiple: false}">
+                        v-model:choices="logging[cls.key].channels" :options="{multiple: false}">
                     </item-select>
                     <item-select label="Notify this role for every log message" :items="roles"
-                        v-model:choices="logging[cls.key].roles" placeholder="type in the name of a role"
-                        :options="{multiple: false}">
+                        v-model:choices="logging[cls.key].roles" :options="{multiple: false}">
                     </item-select>
                 </template>
             </form-container>

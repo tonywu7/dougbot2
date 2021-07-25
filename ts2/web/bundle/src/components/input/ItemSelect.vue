@@ -1,6 +1,11 @@
 <template>
     <div ref="container" class="item-select dropdown">
-        <label v-if="label" v-html="label" class="field-label"></label>
+        <template v-if="$slots.label">
+            <label class="field-label">
+                <slot name="label"></slot>
+            </label>
+        </template>
+        <label v-else-if="label" v-html="label" class="field-label"></label>
         <div ref="searchElem" class="item-select-field" :aria-expanded="dropdownShow" @click="activate"
             @focus="activate" @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"

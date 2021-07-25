@@ -17,6 +17,7 @@
 import { selectAndMount } from '../../components/utils/app'
 import CoreSettings from './CoreSettings.vue'
 import ExtensionSettings from './ExtensionSettings.vue'
+import PermissionSettings from './PermissionSettings.vue'
 
 import { server } from '../../server'
 
@@ -25,6 +26,7 @@ window.addEventListener('DOMContentLoaded', () => {
     selectAndMount('#extension-settings', ExtensionSettings, {
         datasrc: '#extension-state',
     })
+    selectAndMount('#permission-settings', PermissionSettings)
     document.querySelector('#sync-models')?.addEventListener('click', (ev) => {
         ev.preventDefault()
         server.updateModels()

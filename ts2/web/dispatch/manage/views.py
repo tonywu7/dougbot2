@@ -30,7 +30,7 @@ from ts2.discord.ext.logging import iter_logging_conf
 from ts2.discord.middleware import get_ctx, require_server_access
 from ts2.discord.models import Server
 
-from ...models import User
+from ...models import User, manage_permissions_required
 
 
 def user_invited_guild(user: User, guild_id: str) -> bool:
@@ -92,7 +92,8 @@ def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
 class DeleteServerProfileView(View):
     @staticmethod
     @login_required
-    @require_server_access('read')
+    @manage_permissions_required
+    @require_server_access('execute')
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
         if req.user.is_staff or user_invited_guild(req.user, guild_id):
             return render(req, 'ts2/manage/leave.html')
@@ -100,7 +101,8 @@ class DeleteServerProfileView(View):
 
     @staticmethod
     @login_required
-    @require_server_access('read')
+    @manage_permissions_required
+    @require_server_access('execute')
     @async_to_sync
     async def post(req: HttpRequest, guild_id: str) -> HttpResponse:
         guild_id = req.POST.get('guild_id')
@@ -122,13 +124,13 @@ class DeleteServerProfileView(View):
         try:
             result = thread.run_coroutine(get(thread.client))
         except Forbidden:
-            raise SuspiciousOperation('Insufficient permission.')
+            raise SuspiciousOperation('Insufficient permissions.')
 
         guild, member = result
         if not member:
             raise SuspiciousOperation('Invalid parameters.')
         if not member.guild_permissions.manage_guild:
-            raise SuspiciousOperation('Insufficient permission.')
+            raise SuspiciousOperation('Insufficient permissions.')
 
         @sync_to_async(thread_sensitive=False)
         def delete_server():
@@ -149,13 +151,15 @@ class DeleteServerProfileView(View):
 class ResetServerDataView(View):
     @staticmethod
     @login_required
-    @require_server_access('read')
+    @manage_permissions_required
+    @require_server_access('execute')
     def get(req: HttpRequest, guild_id: str) -> HttpResponse:
         return render(req, 'ts2/manage/reset.html')
 
     @staticmethod
     @login_required
-    @require_server_access('read')
+    @manage_permissions_required
+    @require_server_access('execute')
     def post(req: HttpRequest, guild_id: str) -> HttpResponse:
         guild_id = req.POST.get('guild_id')
         try:

@@ -109,9 +109,11 @@ class PermissionField(models.BigIntegerField):
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
-    def get_prep_value(self, value: discord.Permissions | None):
+    def get_prep_value(self, value: discord.Permissions | Permissions2 | None):
         if value is None:
             return super().get_prep_value(None)
+        elif isinstance(value, discord.Permissions):
+            return super().get_prep_value(value.value)
         return super().get_prep_value(int(value))
 
 
@@ -125,10 +127,12 @@ class ColorField(models.IntegerField):
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
-    def get_prep_value(self, value: Color2):
-        if isinstance(value, Color2):
+    def get_prep_value(self, value: discord.Color | Color2):
+        if value is None:
+            return super().get_prep_value(None)
+        elif isinstance(value, discord.Colour):
             return super().get_prep_value(value.value)
-        return super().get_prep_value(value)
+        return super().get_prep_value(int(value))
 
 
 class ModelTranslator(Generic[T, U]):
@@ -202,6 +206,16 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['perms']
+
+    def fill_permissions(self, readable: list[str], writable: list[str]):
+        pr = Permissions2(**{k: True for k in readable if k in Permissions2.VALID_FLAGS})
+        pw = Permissions2(**{k: True for k in writable if k in Permissions2.VALID_FLAGS})
+        if not int(pr):
+            pr = Permissions2(32)
+        if not int(pw):
+            pw = Permissions2(32)
+        self.readable = pr
+        self.writable = pw
 
 
 class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):

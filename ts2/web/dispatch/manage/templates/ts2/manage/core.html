@@ -25,28 +25,27 @@
 {% endsection %}
 
 {% section id='extensions' title='modules' classes='grid-span-2' %}
-
-<div id="extension-settings">
-</div>
-
+<div id="extension-settings"></div>
 <div id="extension-state" class="d-none">
     {% for ext_id, label, enabled in extensions %}
     <span class="extension-label" data-id="{{ ext_id }}" {% if enabled %} data-enabled="true"
         {% endif %}>{{ label|safe }}</span>
     {% endfor %}
 </div>
-
 {% endsection %}
+
+{% section id='permissions' title='access control' classes='grid-span-2' %}
+<div id="permission-settings"></div>
+{% endsection %}
+
 
 {% if user_superuser or access_control %}
 
-{% section id='server-access' title='access control' %}
-
+{% section id='server-access' title='manage bot' %}
 <div class="form">
     <a href="{% url 'web:leave' guild_id=discord.server_id %}" class="btn btn-outline-danger">
         Remove bot from server</a>
 </div>
-
 {% endsection %}
 
 {% endif %}

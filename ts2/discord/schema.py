@@ -18,7 +18,8 @@ from typing import Protocol
 
 from django.db.models import BigIntegerField
 from django.http import HttpRequest
-from graphene import ID, Argument, Enum, Field, List, ObjectType, String
+from graphene import (ID, Argument, Enum, Field, List, NonNull, ObjectType,
+                      String)
 from graphene_django import DjangoObjectType
 from graphene_django.converter import (convert_django_field,
                                        convert_field_to_string)
@@ -26,10 +27,16 @@ from graphene_django.converter import (convert_django_field,
 from . import forms, models
 from .apps import get_commands
 from .middleware import get_ctx
-from .models import Server
+from .models import PermissionField, Server
 from .utils.graphql import FormMutationMixin, ModelMutation
 
 convert_django_field.register(BigIntegerField, convert_field_to_string)
+
+
+@convert_django_field.register(PermissionField)
+def convert_perm_field(field, *args, **kwargs):
+    return List(NonNull(String), required=not field.null)
+
 
 ChannelTypeEnum = Enum.from_enum(models.ChannelTypeEnum)
 
@@ -53,7 +60,7 @@ class ServerType(DjangoObjectType):
         model = Server
         fields = (
             'snowflake', 'prefix', 'disabled',
-            'name', 'perms',
+            'name', 'perms', 'readable', 'writable',
             'channels', 'roles',
         )
 
@@ -127,6 +134,25 @@ class ServerModelSyncMutation(ServerFormMutation):
     server = Field(ServerType)
 
 
+class ServerPermMutation(ServerModelMutation):
+    class Meta:
+        model = Server
+
+    class Arguments:
+        readable = Argument(List(String), required=True)
+        writable = Argument(List(String), required=True)
+
+    server = Field(ServerType)
+
+    @classmethod
+    def mutate(cls, root, info: HasContext, *, server_id: str,
+               readable: list[str], writable: list[str]):
+        instance = cls.get_instance(info.context, server_id)
+        instance.fill_permissions(readable, writable)
+        instance.save()
+        return cls(instance)
+
+
 class ServerQuery(ObjectType):
     server = Field(ServerType, server_id=ID(required=True))
 
@@ -147,3 +173,4 @@ class ServerMutation(ObjectType):
     update_prefix = ServerPrefixMutation.Field()
     update_extensions = ServerExtensionsMutation.Field()
     update_models = ServerModelSyncMutation.Field()
+    update_perms = ServerPermMutation.Field()

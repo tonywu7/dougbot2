@@ -251,7 +251,7 @@ def set_logging_conf(req: HttpRequest, server: Server, changes: list):
 
     for change in changes:
         if not has_logging_conf_permission(user, change.key):
-            raise PermissionDenied('Insufficient permission.')
+            raise PermissionDenied('Insufficient permissions.')
 
     logging = server.logging.copy()
 

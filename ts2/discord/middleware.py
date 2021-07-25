@@ -170,12 +170,15 @@ class DiscordContext:
         permissions = defaultdict(set)
         for k, v in user_guilds.items():
             perms = v.perms
-            server = servers.get(k)
             if perms.manage_guild:
                 permissions[k] |= {'read', 'write', 'execute'}
-            elif server and perms >= server.writable:
+                continue
+            server = servers.get(k)
+            if not server:
+                continue
+            elif int(server.writable) and perms >= server.writable:
                 permissions[k] |= {'read', 'write'}
-            elif server and perms >= server.readable:
+            elif int(server.readable) and perms >= server.readable:
                 permissions[k].add('read')
         permissions = defaultdict(set, {k: frozenset(v) for k, v in permissions.items()})
 
@@ -197,7 +200,13 @@ class DiscordContext:
 
     def assert_access(self, access: AccessLevel, server_id: Optional[Union[str, int]] = None) -> None:
         if not self.check_access(access, server_id):
+            if self.check_access('read', server_id):
+                raise PermissionDenied('You are in read-only mode.')
             raise PermissionDenied('Insufficient permissions.')
+
+    @property
+    def readonly(self) -> bool:
+        return self.permissions[self.server_id] == frozenset({'read'})
 
     @property
     def info(self) -> Optional[PartialGuild]:
@@ -243,9 +252,10 @@ class DiscordContext:
 
     def fetch_server(self, server_id: Union[str, int], access: Literal['read', 'write'],
                      deny=True, queryset=Server.objects) -> Optional[Server]:
+        if deny:
+            self.assert_access(access, server_id)
+            return queryset.get(snowflake=server_id)
         if not self.check_access(access, server_id):
-            if deny:
-                raise PermissionDenied('Insufficient permissions.')
             return None
         return queryset.get(snowflake=server_id)
 

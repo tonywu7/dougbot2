@@ -55,6 +55,8 @@ import {
     LoggingConfigQuery,
     UpdateLoggingMutation,
     UpdateLoggingMutationVariables,
+    UpdatePermsMutation,
+    UpdatePermsMutationVariables,
 } from './@types/graphql/schema'
 
 import SERVER_DETAILS from './graphql/query/server-details.graphql'
@@ -62,6 +64,7 @@ import BOT_DETAILS from './graphql/query/bot-details.graphql'
 import UPDATE_PREFIX from './graphql/mutation/update-prefix.graphql'
 import UPDATE_MODELS from './graphql/mutation/update-models.graphql'
 import UPDATE_EXTENSIONS from './graphql/mutation/update-extensions.graphql'
+import UPDATE_PERMS from './graphql/mutation/update-perms.graphql'
 
 import LOGGING_CONFIG from './graphql/query/logging-config.graphql'
 import UPDATE_LOGGING from './graphql/mutation/update-logging.graphql'
@@ -95,8 +98,12 @@ const notifyError = onError((err) => {
         )
     }
     if (err.graphQLErrors && err.graphQLErrors.length) {
+        let errors: Record<string, string> = {}
         for (let e of err.graphQLErrors) {
-            displayNotification(Color.DANGER, e.message, e.name || 'Error', {
+            errors[e.message] = e.name
+        }
+        for (let [msg, name] of Object.entries(errors)) {
+            displayNotification(Color.DANGER, msg, name || 'Error', {
                 autohide: false,
             })
         }
@@ -195,14 +202,14 @@ export class Role implements ItemCandidate {
     readonly id: string
     readonly name: string
     readonly order: number
-    readonly perms: number
+    readonly perms: string[]
     readonly color: number
 
     constructor(data: Omit<RoleType, 'guild'>) {
         this.id = data.snowflake
         this.name = data.name
         this.order = data.order
-        this.perms = Number(data.perms)
+        this.perms = data.perms
         this.color = data.color || 0x7289da
     }
 
@@ -278,13 +285,16 @@ const QUERIES: Record<keyof QueryResults, DocumentNode> = {
 
 class Server {
     private client: ApolloClient<NormalizedCacheObject>
+    private queries: Partial<QueryResults> = {}
 
     private commands: Command[] = []
 
     private id: string
     private prefix: string | undefined
 
-    private queries: Partial<QueryResults> = {}
+    private perms: string[] = []
+    private readable: string[] = []
+    private writable: string[] = []
 
     private channels: Channel[] = []
     private roles: Role[] = []
@@ -359,6 +369,9 @@ class Server {
         if (refreshed) {
             let info = this.queries.serverInfo!.server!
             this.prefix = info.prefix
+            this.perms = info.perms
+            this.readable = info.readable
+            this.writable = info.writable
             this.channels = info.channels
                 .map((d) => new Channel(d))
                 .sort((a, b) => a.order - b.order)
@@ -401,6 +414,16 @@ class Server {
         return this.prefix!
     }
 
+    async getReadablePerms(): Promise<string[]> {
+        await this.fetchServerDetails()
+        return this.readable
+    }
+
+    async getWritablePerms(): Promise<string[]> {
+        await this.fetchServerDetails()
+        return this.writable
+    }
+
     async getChannels(): Promise<Channel[]> {
         await this.fetchServerDetails()
         return this.channels
@@ -427,13 +450,14 @@ class Server {
     }
 
     async setPrefix(prefix: string): Promise<void> {
-        await this.client.mutate<
+        let data = await this.client.mutate<
             UpdatePrefixMutation,
             Partial<UpdatePrefixMutationVariables>
         >({
             mutation: UPDATE_PREFIX,
             variables: { prefix: prefix },
         })
+        this.prefix = data.data?.updatePrefix?.server?.prefix!
     }
 
     async setExtensions(extensions: string[]): Promise<void> {
@@ -444,6 +468,18 @@ class Server {
             mutation: UPDATE_EXTENSIONS,
             variables: { extensions: extensions },
         })
+    }
+
+    async setPerms(readable: string[], writable: string[]) {
+        let res = await this.client.mutate<
+            UpdatePermsMutation,
+            Omit<UpdatePermsMutationVariables, 'serverId'>
+        >({
+            mutation: UPDATE_PERMS,
+            variables: { readable, writable },
+        })
+        this.readable = res.data?.updatePerms?.server?.readable!
+        this.writable = res.data?.updatePerms?.server?.writable!
     }
 
     async updateModels(): Promise<void> {

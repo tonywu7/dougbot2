@@ -19,13 +19,12 @@ import {
     Channel,
     LoggingConfig,
     LoggingConfigSubmission,
-    Role,
     server,
 } from '../../server'
 
 import FormContainer from '../../components/input/FormContainer.vue'
 import ItemSelect from '../../components/input/ItemSelect.vue'
-import { dataDiscordModel, setupDiscordModel } from '../../components/discord'
+import { setupDiscordModel } from '../../components/discord'
 import { pickBy } from 'lodash'
 import { ChannelEnum } from '../../@types/graphql/schema'
 import { displayNotification } from '../../components/utils/modal'
