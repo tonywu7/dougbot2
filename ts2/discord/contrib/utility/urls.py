@@ -16,5 +16,5 @@ public_views = [
 ]
 
 urlpatterns = [
-    *public_views,
+    # *public_views,
 ]

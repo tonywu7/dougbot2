@@ -77,7 +77,12 @@ class SidebarLinkNode(Node):
             snowflake = context['discord'].server_id
             url = reverse(view, kwargs={'guild_id': snowflake})
         except (AttributeError, KeyError, NoReverseMatch):
-            url = reverse(view)
+            url = None
+        try:
+            if not url:
+                url = reverse(view)
+        except NoReverseMatch:
+            return mark_safe('')
         if 'request' in context and view == context['request'].resolver_match.view_name:
             classes = ' class="sidebar-active"'
             if mark_active:
@@ -106,6 +111,9 @@ class SidebarSectionNode(Node):
         with context.push():
             context['mark_active'] = mark_active_cb
             content = self.nodelist.render(context)
+
+        if not content or content.isspace():
+            return mark_safe('')
 
         parent_id = unwrap(context, self.parent_id)
         chapter_id = unwrap(context, self.id)
