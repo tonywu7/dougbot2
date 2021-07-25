@@ -1,20 +1,22 @@
 <template>
     <div :class="['timezone-list-container', {'loading': loading}]">
         <div class="timezone-list">
-            <form-container v-for="(tz, index) in data" :key="tz">
-                <template v-slot:form-fields>
-                    <item-select label="Role" :items="roles" v-model:choices="tz.roles"
-                        @update:choices="() => updateClockAt(index)">
-                    </item-select>
-                    <item-select label="Timezone" :items="zones" v-model:choices="tz.zones" :options="{multiple: false}"
-                        @update:choices="() => updateClockAt(index)">
-                    </item-select>
-                    <div class="clock">
-                        <span class="local-time" v-html="clocks[index].time"></span>
-                        <span class="field-label timezone-name" v-html="clocks[index].zone"></span>
-                    </div>
-                </template>
-            </form-container>
+            <transition-group name="fade">
+                <form-container v-for="(tz, index) in data" :key="tz">
+                    <template v-slot:form-fields>
+                        <item-select label="Role" :items="roles" v-model:choices="tz.roles"
+                            @update:choices="() => updateClockAt(index)">
+                        </item-select>
+                        <item-select label="Timezone" :items="zones" v-model:choices="tz.zones"
+                            :options="{multiple: false}" @update:choices="() => updateClockAt(index)">
+                        </item-select>
+                        <div class="clock">
+                            <span class="local-time" v-html="clocks[index].time"></span>
+                            <span class="field-label timezone-name" v-html="clocks[index].zone"></span>
+                        </div>
+                    </template>
+                </form-container>
+            </transition-group>
         </div>
         <div class="timezone-list-actions">
             <button type="button" class="btn btn-success btn-new" @click="createTimezone">Set timezone for a new

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from decouple import Config, RepositoryIni
+from decouple import Config, RepositoryEmpty, RepositoryIni
 
 APP_NAME = 'telescope2'
 
@@ -12,6 +12,11 @@ RESOURCE_BUILD_DIR = PROJECT_DIR / 'web' / 'bundle' / 'build'
 
 secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
 discord_conf = Config(RepositoryIni(BASE_DIR / 'discord.ini'))
+
+try:
+    instance_conf = Config(RepositoryIni(BASE_DIR / 'settings.ini'))
+except FileNotFoundError:
+    instance_conf = Config(RepositoryEmpty())
 
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
@@ -208,3 +213,10 @@ def config_caches(redis_host):
 
     return (CACHES, CACHEOPS_REDIS, CACHEOPS_DEFAULTS,
             CACHEOPS, CACHE_MIDDLEWARE_ALIAS)
+
+
+allowed_guilds: str = instance_conf('SERVER_WHITELIST', None)
+if allowed_guilds:
+    ALLOWED_GUILDS = {int(s.strip()) for s in allowed_guilds.split(' ')}
+else:
+    ALLOWED_GUILDS = set()

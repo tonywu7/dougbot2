@@ -57,7 +57,7 @@ class SectionNode(Node):
         return mark_safe(
             f'<section {section_id} {classes}>'
             f'<header><h3>{mark_safe(title)}</h3></header>'
-            f'<div class="interactive-text section-content">{content}</div></section>',
+            f'<div class="section-content">{content}</div></section>',
         )
 
 

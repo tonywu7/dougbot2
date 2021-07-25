@@ -26,6 +26,7 @@ from urllib.parse import urlencode
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
@@ -179,7 +180,13 @@ class DiscordContext:
                 permissions[k] |= {'read', 'write'}
             elif int(server.readable) and perms >= server.readable:
                 permissions[k].add('read')
-        permissions = defaultdict(set, {k: frozenset(v) for k, v in permissions.items()})
+
+        whitelist: set[int] = settings.ALLOWED_GUILDS
+        permissions = defaultdict(set, {
+            k: frozenset(v) for k, v
+            in permissions.items()
+            if not whitelist or k in whitelist
+        })
 
         if 'read' in permissions[guild_id]:
             current = servers.get(guild_id)
@@ -223,7 +230,7 @@ class DiscordContext:
     @property
     def pending_servers(self) -> dict[int, PartialGuild]:
         return {k: v for k, v in self.servers.items()
-                if not v.joined and v.perms.manage_guild}
+                if not v.joined and self.check_access('execute', k)}
 
     @property
     def extensions(self) -> dict[str, tuple[bool, CommandAppConfig]]:
