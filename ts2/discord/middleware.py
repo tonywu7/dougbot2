@@ -26,7 +26,6 @@ from urllib.parse import urlencode
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
 from django.apps import apps
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
@@ -35,11 +34,11 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
-                               PartialGuild, PartialUser)
-from ts2.discord.models import Server
-
+from .apps import server_allowed
 from .config import CommandAppConfig, Extensions
+from .fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
+                    PartialGuild, PartialUser)
+from .models import Server
 
 
 def _http_safe_method(req: HttpRequest) -> bool:
@@ -181,11 +180,10 @@ class DiscordContext:
             elif int(server.readable) and perms >= server.readable:
                 permissions[k].add('read')
 
-        whitelist: set[int] = settings.ALLOWED_GUILDS
         permissions = defaultdict(set, {
             k: frozenset(v) for k, v
             in permissions.items()
-            if not whitelist or k in whitelist
+            if server_allowed(k)
         })
 
         if 'read' in permissions[guild_id]:

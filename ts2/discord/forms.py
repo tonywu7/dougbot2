@@ -16,7 +16,6 @@
 
 from typing import Union
 
-from asgiref.sync import async_to_sync
 from django import forms
 from django.apps import apps
 from django.http import HttpRequest
@@ -69,8 +68,7 @@ class ServerModelSyncForm(forms.ModelForm):
         model = Server
         fields = ()
 
-    @async_to_sync
-    async def save(self, commit=True):
+    def save(self, commit=True):
         app = DiscordBotConfig.get()
         thread = app.bot_thread
 

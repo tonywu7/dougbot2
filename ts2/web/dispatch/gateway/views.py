@@ -18,6 +18,8 @@ from typing import Optional
 
 import simplejson as json
 from asgiref.sync import async_to_sync
+from discord import Forbidden
+from discord.ext.commands import Bot
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -29,6 +31,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import View
 
+from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
                                bot_invite_url, create_session)
 from ts2.discord.models import Server
@@ -39,10 +42,10 @@ from ...models import User, manage_permissions_required
 from ...utils.http import HTTPCreated
 
 
-def verify_state(req: HttpRequest) -> tuple[str, Optional[dict]]:
+def verify_state(req: HttpRequest, sub=None, aud=None) -> tuple[str, Optional[dict]]:
     cookie_token = req.COOKIES.get('state')
     params_token = req.GET.get('state')
-    state, token = validate_token(req, params_token)
+    state, token = validate_token(req, params_token, sub, aud)
     if state == 'valid':
         if cookie_token == params_token:
             return 'valid', token
@@ -137,10 +140,33 @@ def join(req: HttpRequest) -> HttpResponse:
     guild_id = req.POST.get('guild_id')
     if not guild_id:
         raise SuspiciousOperation('Invalid parameters.')
+    try:
+        guild_id = int(guild_id)
+    except ValueError:
+        raise SuspiciousOperation('Invalid parameters.')
     redirect_uri, token = bot_invite_url(req, guild_id)
     res = redirect(redirect_uri, status=307)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res
+
+
+def cleanup_unauthorized_join(guild_id: str):
+    apps = DiscordBotConfig.get()
+    thread = apps.bot_thread
+
+    async def leave(bot: Bot):
+        try:
+            guild = await bot.fetch_guild(int(guild_id))
+        except Forbidden:
+            return
+        await guild.leave()
+
+    thread.run_coroutine(leave(thread.client))
+
+    try:
+        Server.objects.get(snowflake=guild_id).delete()
+    except Server.DoesNotExist:
+        pass
 
 
 class CreateServerProfileView(View):
@@ -148,9 +174,10 @@ class CreateServerProfileView(View):
     @login_required
     @manage_permissions_required
     def get(req: HttpRequest) -> HttpResponse:
-        state, token = verify_state(req)
         guild_id = req.GET.get('guild_id')
+        state, token = verify_state(req, sub=guild_id, aud=req.user.pk)
         if state != 'valid' or not guild_id:
+            cleanup_unauthorized_join(guild_id)
             raise SuspiciousOperation('Bad credentials.')
         return render(req, 'ts2/gateway/joined.html', {
             'form': ServerCreationForm(data={

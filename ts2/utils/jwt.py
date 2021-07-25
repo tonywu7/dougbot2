@@ -34,8 +34,8 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
     now = utcnow()
     payload['iss'] = iss = get_current_site(req).domain
     if sub:
-        payload['sub'] = sub
-    payload['aud'] = aud or iss
+        payload['sub'] = str(sub)
+    payload['aud'] = str(aud or iss)
     payload['iat'] = now.timestamp()
     if isinstance(exp, (int, float)):
         exp = timedelta(seconds=exp)
@@ -49,15 +49,17 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
     return jwt.encode(payload, settings.SECRET_KEY, 'HS256')
 
 
-def validate_token(req: HttpRequest, token: str, aud=None) -> tuple[str, Optional[dict]]:
+def validate_token(req: HttpRequest, token: str, sub=None, aud=None) -> tuple[str, Optional[dict]]:
     iss = get_current_site(req).domain
-    aud = aud or iss
+    aud = str(aud or iss)
     try:
         decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'],
                              issuer=iss, audience=aud)
     except jwt.ExpiredSignatureError:
         return 'expired', None
     except jwt.InvalidTokenError:
+        return 'invalid', None
+    if sub and decoded.get('sub') != str(sub):
         return 'invalid', None
     decoded = {k.replace('ts2:', ''): v for k, v in decoded.items()}
     return 'valid', decoded

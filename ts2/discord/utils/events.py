@@ -23,9 +23,9 @@ from collections.abc import Callable, Coroutine, Iterable
 from functools import wraps
 from typing import Any, Optional
 
-from discord import (Client, Emoji, Message, PartialEmoji,
+from discord import (Client, Emoji, Forbidden, Message, PartialEmoji,
                      RawReactionActionEvent)
-from discord.ext.commands import Context
+from discord.ext.commands import BotMissingPermissions, Context
 
 Decorator = Callable[[Callable], Callable]
 EventFilter = Callable[..., Coroutine[Any, Any, bool]]
@@ -90,6 +90,8 @@ class Responder:
     async def init(self) -> bool:
         try:
             return await self.on_start()
+        except Forbidden as e:
+            raise BotMissingPermissions([]) from e
         except Exception as e:
             self.log.debug(f'{type(e).__name__} while starting paginator: {e}\n')
             return False

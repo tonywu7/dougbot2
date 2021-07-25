@@ -33,11 +33,10 @@ from django.db.models.query import QuerySet
 from more_itertools import always_reversible
 
 from ts2.utils.datetime import utcnow, utctimestamp
-from ts2.utils.db import async_atomic
 from ts2.utils.importutil import objpath
 
 from . import cog, models
-from .apps import DiscordBotConfig
+from .apps import DiscordBotConfig, server_allowed
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext.acl import acl
@@ -212,11 +211,6 @@ class Robot(Bot):
 
     @classmethod
     @sync_to_async(thread_sensitive=False)
-    def create_server(cls, guild: Guild):
-        Server(snowflake=guild.id).save()
-
-    @classmethod
-    @sync_to_async(thread_sensitive=False)
     def sync_server(cls, guild: Guild, *, roles=True, channels=True, layout=True):
         try:
             server: Server = (
@@ -225,7 +219,7 @@ class Robot(Bot):
                 .get(pk=guild.id)
             )
         except Server.DoesNotExist:
-            server = Server(snowflake=guild.id)
+            return
         server.name = guild.name
         server.perms = guild.default_role.permissions.value
         server.save()
@@ -244,17 +238,17 @@ class Robot(Bot):
         @sync_to_async
         def get():
             return Server.objects.get(pk=guild_id).prefix
-        try:
-            return [await get(), f'<@!{bot_id}> ']
-        except Server.DoesNotExist:
-            return [cls.DEFAULT_PREFIX, f'<@!{bot_id}> ']
+        return [await get(), f'<@!{bot_id}> ']
 
     @classmethod
     async def which_prefix(cls, bot: Bot, msg: Message):
         bot_id = bot.user.id
         if msg.guild is None:
             return [cls.DEFAULT_PREFIX, f'<@!{bot_id}> ']
-        return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
+        try:
+            return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
+        except Server.DoesNotExist:
+            return ['\x00']
 
     @classmethod
     def schedule_refresh(cls):
@@ -264,8 +258,8 @@ class Robot(Bot):
         ctx: Circumstances = await super().get_context(message, cls=cls)
         if ctx.command and ctx.command.hidden:
             ctx.command = None
-            return ctx
-        await ctx.init()
+        if ctx.command:
+            await ctx.init()
         return ctx
 
     def dispatch(self, event_name, *args, **kwargs):
@@ -383,16 +377,9 @@ def add_event_listeners(self: Robot):
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
         self.log.info(f'Joined {guild}')
-        try:
-            async with async_atomic():
-                await self.create_server(guild)
-        except IntegrityError:
-            pass
-        try:
-            async with async_atomic():
-                await self.sync_server(guild)
-        except IntegrityError:
-            pass
+        if not server_allowed(guild.id):
+            self.log.warning(f'{guild} is not in the list of allowed guilds!')
+            return await guild.leave()
 
     @self.listen('on_guild_channel_create')
     @self.listen('on_guild_channel_update')
@@ -417,6 +404,9 @@ def add_event_listeners(self: Robot):
 
     @self.listen('on_guild_available')
     async def update_server_initial(guild: Guild):
+        if not server_allowed(guild.id):
+            self.log.warning(f'{guild} is not in the list of allowed guilds!')
+            return await guild.leave()
         await self.sync_server(guild)
 
 

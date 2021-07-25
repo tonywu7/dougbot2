@@ -61,6 +61,7 @@ def complete_endpoint(req: HttpRequest, endpoint: str, params: str = '', hash_: 
 
 def oauth_url(req: HttpRequest, scope: str, redirect: str, claims: Optional[dict] = None, **queries):
     redirect = complete_endpoint(req, redirect)
+    claims = claims or {}
     token = gen_token(req, settings.JWT_DEFAULT_EXP, **claims)
     params = {
         **queries,
@@ -88,7 +89,8 @@ def app_auth_url(req: HttpRequest, redirect: Optional[str] = None) -> tuple[str,
 
 def bot_invite_url(req: HttpRequest, guild_id: str | int) -> tuple[str, str]:
     from .bot import Robot
-    return oauth_url(req, 'bot', reverse('web:authorized'), guild_id=guild_id,
+    claims = {'sub': int(guild_id), 'aud': req.user.pk}
+    return oauth_url(req, 'bot', reverse('web:authorized'), claims=claims, guild_id=guild_id,
                      permissions=Robot.DEFAULT_PERMS.value, disable_guild_select='true')
 
 
