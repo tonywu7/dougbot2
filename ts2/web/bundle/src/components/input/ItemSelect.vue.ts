@@ -92,6 +92,7 @@ export default defineComponent({
             ctx,
             _currentFocus: 0,
             dropdownShow: false,
+            overflowDirection: 'normal',
         }
     },
     computed: {
@@ -139,6 +140,7 @@ export default defineComponent({
         activate(ev?: FocusEvent) {
             this.searchInput?.focus()
             if (this.dropdownShow) return
+            this.setOverflow()
             this.dropdownShow = true
             this.currentFocus = 0
         },
@@ -159,6 +161,14 @@ export default defineComponent({
                     setTimeout(() => this.searchInput?.focus())
                 }
             })
+        },
+        setOverflow() {
+            let rect = this.searchElem!.getBoundingClientRect()
+            if (rect.bottom + 0.4 * window.innerHeight > window.innerHeight) {
+                this.overflowDirection = 'flipped'
+            } else {
+                this.overflowDirection = 'normal'
+            }
         },
         hasFocusWithin(): boolean {
             return Boolean(

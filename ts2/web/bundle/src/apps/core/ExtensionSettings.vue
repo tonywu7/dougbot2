@@ -8,7 +8,7 @@
         </template>
         <template v-slot:form-after>
             <button type="button" :class="['btn btn-primary', processing ? 'disabled' : '']" @click="submit">
-                Save preference
+                Save
             </button>
         </template>
     </form-container>

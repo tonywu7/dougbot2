@@ -3,20 +3,20 @@
         <form-container>
             <template v-slot:form-fields>
                 <div>
-                    <p>Grant members having <strong class="emphasis">all of</strong> the following permissions
-                        <strong class="emphasis read">read</strong> access to bot settings:</p>
+                    <p>Grant a member <strong class="emphasis read">read</strong> access to bot settings if they have
+                        <strong class="emphasis">all of</strong> the following permissions:</p>
                     <item-select :items="permissions" v-model:choices="readable">
                     </item-select>
                 </div>
                 <div>
-                    <p>Grant members having <strong class="emphasis">all of</strong> the following permissions
-                        <strong class="emphasis read-write">read and write</strong> access to bot settings:</p>
+                    <p>Grant a member <strong class="emphasis read-write">read and write</strong> access to bot settings
+                        if they have <strong class="emphasis">all of</strong> the following permissions:</p>
                     <item-select :items="permissions" v-model:choices="writable">
                     </item-select>
                 </div>
             </template>
             <template v-slot:form-after>
-                <button type="button" :class="['btn btn-primary', buttonState]" @click="submit">Save preference</button>
+                <button type="button" :class="['btn btn-primary', buttonState]" @click="submit">Save</button>
             </template>
         </form-container>
     </div>

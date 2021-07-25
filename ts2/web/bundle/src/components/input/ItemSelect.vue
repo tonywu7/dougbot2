@@ -6,8 +6,8 @@
             </label>
         </template>
         <label v-else-if="label" v-html="label" class="field-label"></label>
-        <div ref="searchElem" class="item-select-field" :aria-expanded="dropdownShow" @click="activate"
-            @focus="activate" @blur="deactivate">
+        <div ref="searchElem" :class="['item-select-field', overflowDirection]" :aria-expanded="dropdownShow"
+            @click="activate" @focus="activate" @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
                 :style="getItemStyles(item, true)" v-html="safe(item.content)" @click="(e) => deselect(item, e)"
                 @focusin="(e) => e.stopPropagation()"></button>
@@ -33,7 +33,7 @@
     @use "sass:color";
     @import '../../styles/colors';
 
-    $hairline-color: color.scale($color-text, $alpha: -75%);
+    $hairline-color: color.scale($color-text, $lightness: -75%);
     $field-padding: 6px;
 
     .item-select {
@@ -42,6 +42,8 @@
     }
 
     .item-select-field {
+        position: relative;
+
         display: inline;
         line-height: 1.8;
 
@@ -57,6 +59,38 @@
 
         >* {
             margin: 0;
+        }
+
+        &[aria-expanded="true"] {
+            box-shadow: 0 0 4px 4px rgba(40, 55, 115, 0.12), 0 0 8px 8px rgba(40, 55, 115, 0.10);
+
+            .dropdown-menu {
+                box-shadow: 0 0 4px 4px rgba(0, 0, 0, 0.12), 0 0 8px 8px rgba(0, 0, 0, 0.09);
+            }
+
+            &.normal {
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+
+                .dropdown-menu {
+                    top: calc(100% + 1px);
+                    border-top-left-radius: 0;
+                    border-top-right-radius: 0;
+                    border-top-width: 0;
+                }
+            }
+
+            &.flipped {
+                border-top-left-radius: 0;
+                border-top-right-radius: 0;
+
+                .dropdown-menu {
+                    bottom: calc(100% + 1px);
+                    border-bottom-left-radius: 0;
+                    border-bottom-right-radius: 0;
+                    border-bottom-width: 0;
+                }
+            }
         }
     }
 
@@ -118,13 +152,14 @@
     }
 
     .dropdown-menu {
-        width: 100%;
+        width: calc(100% + 2px);
         max-height: 40vh;
         padding: 6pt;
         overflow-y: scroll;
         z-index: 2000;
-        top: 100%;
-        left: 0;
+        left: -1px;
+        background-color: $bw-grey-2;
+        border: 1px solid $hairline-color;
     }
 
     .dropdown-item {
@@ -145,11 +180,11 @@
         }
 
         &.has-focus {
-            background-color: $bw-grey-6;
+            background-color: $bw-grey-4;
         }
 
         &:active {
-            background-color: $bw-grey-7;
+            background-color: $bw-grey-6;
             color: $bw-grey-14;
             box-shadow: var(--box-shadow-focus-bright);
         }

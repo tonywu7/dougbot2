@@ -9,7 +9,7 @@
             </input-field>
         </template>
         <template v-slot:form-after>
-            <button type="button" :class="['btn btn-primary', buttonState]" @click="submit">Save preference</button>
+            <button type="button" :class="['btn btn-primary', buttonState]" @click="submit">Save</button>
         </template>
     </form-container>
 </template>
