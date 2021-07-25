@@ -24,6 +24,7 @@ import {
     ApolloClientOptions,
     ApolloQueryResult,
     FetchResult,
+    ApolloError,
 } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
@@ -301,6 +302,8 @@ class Server {
     private logging: LoggingConfig[] = []
     private acl: ACL[] = []
 
+    private POSTdisabled?: ApolloError
+
     constructor(endpoint: string | null, server: string | null) {
         this.id = server || ''
 
@@ -342,7 +345,27 @@ class Server {
         mutation: DocumentNode,
         variables?: V
     ): Promise<FetchResult<T>> {
-        return await this.client.mutate<T>({ mutation, variables })
+        if (this.POSTdisabled) {
+            displayNotification(
+                Color.DANGER,
+                this.POSTdisabled.message,
+                this.POSTdisabled.name
+            )
+            throw this.POSTdisabled
+        }
+        try {
+            return await this.client.mutate<T>({ mutation, variables })
+        } catch (e) {
+            let err = e as ApolloError
+            let msg = err.message.toLowerCase()
+            if (
+                msg.includes('insufficient permissions') ||
+                msg.includes('read-only mode')
+            ) {
+                this.POSTdisabled = e
+            }
+            throw e
+        }
     }
 
     async fetchQuery<K extends keyof QueryResults, T = QueryResults[K]>(
@@ -450,64 +473,52 @@ class Server {
     }
 
     async setPrefix(prefix: string): Promise<void> {
-        let data = await this.client.mutate<
+        let data = await this.mutate<
             UpdatePrefixMutation,
             Partial<UpdatePrefixMutationVariables>
-        >({
-            mutation: UPDATE_PREFIX,
-            variables: { prefix: prefix },
-        })
+        >(UPDATE_PREFIX, { prefix: prefix })
         this.prefix = data.data?.updatePrefix?.server?.prefix!
     }
 
     async setExtensions(extensions: string[]): Promise<void> {
-        await this.client.mutate<
+        await this.mutate<
             UpdateExtensionsMutation,
             Partial<UpdateExtensionsMutationVariables>
-        >({
-            mutation: UPDATE_EXTENSIONS,
-            variables: { extensions: extensions },
-        })
+        >(UPDATE_EXTENSIONS, { extensions: extensions })
     }
 
     async setPerms(readable: string[], writable: string[]) {
-        let res = await this.client.mutate<
+        let res = await this.mutate<
             UpdatePermsMutation,
             Omit<UpdatePermsMutationVariables, 'serverId'>
-        >({
-            mutation: UPDATE_PERMS,
-            variables: { readable, writable },
-        })
+        >(UPDATE_PERMS, { readable, writable })
         this.readable = res.data?.updatePerms?.server?.readable!
         this.writable = res.data?.updatePerms?.server?.writable!
     }
 
     async updateModels(): Promise<void> {
-        await this.client.mutate({ mutation: UPDATE_MODELS })
+        await this.mutate(UPDATE_MODELS)
     }
 
     async updateACLs(acls: ACL[]): Promise<ACL[]> {
         let [remove, update] = partition(acls, (d) => d.deleted)
         update = update.map((d) => omit(d, 'deleted'))
         let removeKeys = remove.map((d) => d.name)
-        let res = await this.client.mutate<UpdateACLMutation>({
-            mutation: UPDATE_ACL,
-            variables: { names: removeKeys, changes: update },
+        let res = await this.mutate<UpdateACLMutation>(UPDATE_ACL, {
+            names: removeKeys,
+            changes: update,
         })
         return res.data!.updateACL!.acl!.map((d) => new ACL(d!))
     }
 
     async updateLogging(logging: LoggingConfigSubmission[]): Promise<void> {
-        await this.client.mutate<
+        await this.mutate<
             UpdateLoggingMutation,
             Partial<UpdateLoggingMutationVariables>
-        >({
-            mutation: UPDATE_LOGGING,
-            variables: {
-                config: logging.map((conf) =>
-                    pick(conf, ['key', 'channel', 'role'])
-                ),
-            },
+        >(UPDATE_LOGGING, {
+            config: logging.map((conf) =>
+                pick(conf, ['key', 'channel', 'role'])
+            ),
         })
     }
 }
