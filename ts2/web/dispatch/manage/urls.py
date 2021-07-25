@@ -13,7 +13,7 @@ class ManageRedirectView(RedirectView):
 
 urlpatterns = [
     re_path(r'^$', ManageRedirectView.as_view()),
-    re_path(r'^index$', views.index, name='manage.index'),
+    re_path(r'^home$', views.index, name='manage.index'),
     re_path(r'^core$', views.core, name='manage.core'),
     re_path(r'^acl$', views.acl_config, name='manage.acl'),
     re_path(r'^logging$', views.logging_config, name='manage.logging'),

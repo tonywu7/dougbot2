@@ -59,9 +59,9 @@ def complete_endpoint(req: HttpRequest, endpoint: str, params: str = '', hash_: 
     return urlunsplit((req.scheme, site.domain, endpoint, params, hash_))
 
 
-def oauth_url(req: HttpRequest, scope: str, redirect: str, token=None, **queries):
+def oauth_url(req: HttpRequest, scope: str, redirect: str, claims: Optional[dict] = None, **queries):
     redirect = complete_endpoint(req, redirect)
-    token = token or gen_token(req, settings.JWT_DEFAULT_EXP)
+    token = gen_token(req, settings.JWT_DEFAULT_EXP, **claims)
     params = {
         **queries,
         'client_id': settings.DISCORD_CLIENT_ID,
@@ -78,8 +78,12 @@ def api_endpoint(endpoint: str) -> str:
     return f'{OAUTH2_PROTOCOL}://{OAUTH2_DOMAIN}/api{endpoint}'
 
 
-def app_auth_url(req: HttpRequest) -> tuple[str, str]:
-    return oauth_url(req, 'identify guilds', reverse('web:create_user'))
+def app_auth_url(req: HttpRequest, redirect: Optional[str] = None) -> tuple[str, str]:
+    if redirect:
+        claims = {'redirect': redirect}
+    else:
+        claims = {}
+    return oauth_url(req, 'identify guilds', reverse('web:create_user'), claims)
 
 
 def bot_invite_url(req: HttpRequest, guild_id: str | int) -> tuple[str, str]:

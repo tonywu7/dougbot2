@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Optional
+
 import simplejson as json
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -37,19 +39,19 @@ from ...models import User, manage_permissions_required
 from ...utils.http import HTTPCreated
 
 
-def verify_state(req: HttpRequest):
+def verify_state(req: HttpRequest) -> tuple[str, Optional[dict]]:
     cookie_token = req.COOKIES.get('state')
     params_token = req.GET.get('state')
-    state = validate_token(req, params_token)
+    state, token = validate_token(req, params_token)
     if state == 'valid':
         if cookie_token == params_token:
-            return 'valid'
-        return 'invalid'
-    return state
+            return 'valid', token
+        return 'invalid', token
+    return state, token
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
-    redirect_uri, token = app_auth_url(req)
+    redirect_uri, token = app_auth_url(req, req.GET.get('continue'))
     res = redirect(redirect_uri)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
     return res
@@ -80,7 +82,8 @@ class CreateUserView(View):
 
     @async_to_sync
     async def get(self, req: HttpRequest) -> HttpResponse:
-        state = verify_state(req)
+        state, claims = verify_state(req)
+        handoff = claims.get('redirect', '')
         code = req.GET.get('code')
 
         if state != 'valid' or not code:
@@ -92,7 +95,7 @@ class CreateUserView(View):
         if tokens is None:
             return render(req, 'ts2/gateway/invalid-login.html', {'login_state': 'incorrect_credentials'})
 
-        return render(req, 'ts2/gateway/postlogin.html', {'form': UserCreationForm(data=tokens)})
+        return render(req, 'ts2/gateway/postlogin.html', {'form': UserCreationForm(data={**tokens, 'handoff': handoff})})
 
     def post(self, req: HttpRequest) -> HttpResponse:
         invalid_data = redirect(reverse('web:login_invalid', kwargs={'reason': 'invalid_payload'}))
@@ -107,7 +110,7 @@ class CreateUserView(View):
             return invalid_data
 
         (username, snowflake, access_token,
-         refresh_token, expires_at) = form.to_tuple()
+         refresh_token, expires_at, *args) = form.to_tuple()
 
         try:
             user = User.objects.get(snowflake=snowflake)
@@ -145,7 +148,7 @@ class CreateServerProfileView(View):
     @login_required
     @manage_permissions_required
     def get(req: HttpRequest) -> HttpResponse:
-        state = verify_state(req)
+        state, token = verify_state(req)
         guild_id = req.GET.get('guild_id')
         if state != 'valid' or not guild_id:
             raise SuspiciousOperation('Bad credentials.')
@@ -181,6 +184,7 @@ class CreateServerProfileView(View):
         return redirect(reverse('web:manage.index', kwargs={'guild_id': snowflake}))
 
 
+@login_required
 @require_POST
 def refresh_servers(req: HttpRequest):
     return redirect(req.POST.get('dest', reverse('web:index')))

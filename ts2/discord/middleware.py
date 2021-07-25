@@ -21,18 +21,17 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import wraps
 from typing import Literal, Optional, Union
+from urllib.parse import urlencode
 
 from asgiref.sync import sync_to_async
 from discord.errors import HTTPException
 from django.apps import apps
-from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import REDIRECT_FIELD_NAME, logout
+from django.contrib.auth import logout
 from django.contrib.auth.models import User
-from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import redirect, render, resolve_url
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
@@ -283,7 +282,10 @@ class DiscordContextMiddleware:
         context = await DiscordContext.create(guilds, guild_id, token, request.user, profile)
 
         if context.server_id and context.info is None:
-            return redirect(reverse('web:index'))
+            if request.user.is_authenticated:
+                return redirect(reverse('web:index'))
+            handoff = {'continue': request.get_full_path()}
+            return redirect(f'{reverse("web:login")}?{urlencode(handoff)}')
         if context.server and context.server.disabled:
             return handle_server_disabled(request)
 
@@ -315,23 +317,28 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> Optional[DiscordContext]:
         return None
 
 
-def require_server_access(
-    permission: AccessLevel,
-    login_url: Optional[str] = None,
-    redirect_field_name=REDIRECT_FIELD_NAME,
-):
+def require_server_presence(f):
+    @wraps(f)
+    def check_server(request: HttpRequest, *args, **kwargs):
+        ctx = get_ctx(request)
+        if not ctx.server:
+            return redirect('web:manage.index', kwargs={'guild_id': ctx.server_id})
+        return f(request, *args, **kwargs)
+    return check_server
+
+
+def require_server_access(permission: AccessLevel, exists: bool = True):
     def wrapper(view_func):
         @wraps(view_func)
         def check_perm(request: HttpRequest, *args, **kwargs):
             ctx = get_ctx(request, logout=False)
-            login_url_ = login_url or settings.LOGIN_URL
-            resolved_login_url = resolve_url(login_url_)
             if not ctx or not ctx.check_access(permission):
-                return redirect_to_login(
-                    request.get_full_path(),
-                    resolved_login_url,
-                    redirect_field_name,
-                )
+                return redirect(reverse('web:index'))
+            if exists and not ctx.server:
+                return redirect(reverse(
+                    'web:manage.index',
+                    kwargs={'guild_id': ctx.server_id},
+                ))
             return view_func(request, *args, **kwargs)
         return check_perm
     return wrapper

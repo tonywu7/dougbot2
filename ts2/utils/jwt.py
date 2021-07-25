@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta
+from typing import Optional
 
 import jwt
 from django.conf import settings
@@ -29,7 +30,7 @@ from ts2.utils.datetime import utcnow
 
 def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: str = '', aud: str = '',
               nbf: datetime | timedelta = timedelta(seconds=0), **claims) -> str:
-    payload = {**claims}
+    payload = {f'ts2:{k}': v for k, v in claims.items()}
     now = utcnow()
     payload['iss'] = iss = get_current_site(req).domain
     if sub:
@@ -48,14 +49,15 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
     return jwt.encode(payload, settings.SECRET_KEY, 'HS256')
 
 
-def validate_token(req: HttpRequest, token: str, aud=None) -> bool:
+def validate_token(req: HttpRequest, token: str, aud=None) -> tuple[str, Optional[dict]]:
     iss = get_current_site(req).domain
     aud = aud or iss
     try:
-        jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'],
-                   issuer=iss, audience=aud)
+        decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'],
+                             issuer=iss, audience=aud)
     except jwt.ExpiredSignatureError:
-        return 'expired'
+        return 'expired', None
     except jwt.InvalidTokenError:
-        return 'invalid'
-    return 'valid'
+        return 'invalid', None
+    decoded = {k.replace('ts2:', ''): v for k, v in decoded.items()}
+    return 'valid', decoded

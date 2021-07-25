@@ -131,7 +131,7 @@ export class DiscordClient {
             return null
         }
         if (res.status === 401) {
-            window.location.href = '/web/logout'
+            window.location.href = '/logout'
             return null
         }
         let data: Record<string, any> = await res.json()

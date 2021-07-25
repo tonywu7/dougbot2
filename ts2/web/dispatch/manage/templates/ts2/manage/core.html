@@ -43,24 +43,16 @@
 
 {% section id='server-access' title='manage bot' %}
 <div class="form">
+    <a href="#" id="sync-models" class="btn btn-outline-warning btn-submit">Synchronize models</a>
     <a href="{% url 'web:leave' guild_id=discord.server_id %}" class="btn btn-outline-danger">
         Remove bot from server</a>
-</div>
-{% endsection %}
-
-{% endif %}
-
-{% if user_superuser or access_control %}
-{% section id='server-debug' title='debug' %}
-
-<div class="form">
-    <a href="#" id="sync-models" class="btn btn-outline-warning btn-submit">Synchronize models</a>
     <a href="{% url 'web:reset' guild_id=discord.server_id %}" class="btn btn-outline-danger">
         Reset server settings
     </a>
 </div>
-
 {% endsection %}
+
 {% endif %}
+
 
 {% endblock %}

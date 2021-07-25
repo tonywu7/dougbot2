@@ -31,6 +31,8 @@ class UserCreationForm(forms.Form):
     refresh_token = forms.CharField()
     expires_at = forms.IntegerField()
 
+    handoff = forms.CharField(required=False)
+
     @property
     def itemgetter(self) -> itemgetter:
         return itemgetter(*self.fields.keys())

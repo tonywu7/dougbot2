@@ -52,7 +52,13 @@ async function discordOAuth2() {
     if (res.status === 403) {
         window.location.href = authInfo.dataset.onForbidden!
     } else {
-        window.location.href = homepage()
+        let redirect = loginForm.get('handoff')?.toString()
+        console.log(redirect)
+        if (redirect) {
+            window.location.href = redirect
+        } else {
+            window.location.href = homepage()
+        }
     }
 }
 
@@ -62,7 +68,7 @@ async function initDiscord() {
 
     let accessToken = userInfoElem.dataset.accessToken
     if (accessToken === undefined || accessToken === 'None')
-        window.location.href = '/web/logout'
+        window.location.href = '/logout'
 
     discord = new DiscordClient(accessToken!)
 }

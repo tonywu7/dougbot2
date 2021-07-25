@@ -38,6 +38,7 @@ def user_invited_guild(user: User, guild_id: str) -> bool:
 
 
 @login_required
+@require_server_access('read', exists=False)
 def index(req: HttpRequest, **kwargs) -> HttpResponse:
     ctx = get_ctx(req)
     if ctx.server or ctx.check_access('execute'):
