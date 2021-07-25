@@ -98,7 +98,7 @@ def E(s: str) -> str:
     return f':{s}:'
 
 
-def a(href: str, text: str) -> str:
+def a(text: str, href: str) -> str:
     return f'[{text}]({href})'
 
 

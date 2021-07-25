@@ -32,6 +32,38 @@ from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.markdown import code, strong, tag, traffic_light
 from ts2.discord.utils.models import HypotheticalMember, HypotheticalRole
 
+PERMISSIONS = """\
+(Underscores are required)
+
+**General server permissions**
+`manage_channels`, `manage_emojis`, `manage_server`,
+`manage_roles`/`manage_permissions`, `manage_webhooks`,
+`view_audit_log`, `view_channel`, `view_guild_insights`,
+
+**Membership permissions**
+`create_instant_invite`,
+`manage_nicknames`, `change_nickname`,
+`kick_members`, `ban_members`,
+
+**Text channel permissions**
+`read_messages`, `send_messages`,
+`attach_files`, `embed_links`,
+`add_reactions`, `external_emojis`/`use_external_emojis`,
+`mention_everyone`, `manage_messages`,
+`read_message_history`, `send_tts_messages`,
+`use_slash_commands`,
+
+**Voice channel permissions**
+`connect`, `speak`, `stream`,
+`use_voice_activation`,
+`priority_speaker`,
+`mute_members`, `move_members`,
+`deafen_members`, `request_to_speak`,
+
+**Privileged permission**
+`administrator`
+"""
+
 
 class Utilities(
     Gear, name='Utilities', order=50,
@@ -116,36 +148,3 @@ class Utilities(
                 lines.append(unioned(subjects, HypotheticalRole))
 
         await ctx.send('\n'.join(lines))
-
-
-PERMISSIONS = """\
-(Underscores are required)
-
-**General server permissions**
-`manage_channels`, `manage_emojis`, `manage_server`,
-`manage_roles`/`manage_permissions`, `manage_webhooks`,
-`view_audit_log`, `view_channel`, `view_guild_insights`,
-
-**Membership permissions**
-`create_instant_invite`,
-`manage_nicknames`, `change_nickname`,
-`kick_members`, `ban_members`,
-
-**Text channel permissions**
-`read_messages`, `send_messages`,
-`attach_files`, `embed_links`,
-`add_reactions`, `external_emojis`/`use_external_emojis`,
-`mention_everyone`, `manage_messages`,
-`read_message_history`, `send_tts_messages`,
-`use_slash_commands`,
-
-**Voice channel permissions**
-`connect`, `speak`, `stream`,
-`use_voice_activation`,
-`priority_speaker`,
-`mute_members`, `move_members`,
-`deafen_members`, `request_to_speak`,
-
-**Privileged permission**
-`administrator`
-"""

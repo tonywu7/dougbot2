@@ -427,7 +427,7 @@ class Documentation:
 
         sections['Syntax'] = self.format_examples(
             {**invocations, **subcommands}.items(),
-            transform=lambda s: a('https://.', strong(s)),
+            transform=lambda s: a(strong(s), 'https://.'),
         )
         arguments = [f'{strong(arg.key)}: {arg.describe()}'
                      for arg in self.arguments.values()

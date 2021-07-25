@@ -216,7 +216,7 @@ class Personalize(
         tz = pytz.timezone(tzname)
         return await commit_tz(tz, location=place, delete=True)
 
-    @conf.command('date-format', aliases=('datefmt',))
+    @conf.command('dateformat', aliases=('datefmt',))
     @doc.description('Configure how dates are formatted for date/time related commands.')
     @doc.argument('help', signature='-help', node='-help')
     @doc.argument('reset', signature='-reset', node='-reset')

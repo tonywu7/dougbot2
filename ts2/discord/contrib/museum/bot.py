@@ -34,7 +34,7 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Choice, doc
-from ts2.discord.utils.markdown import a, strong, tag, tag_literal
+from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import ParagraphStream, chapterize
 from ts2.utils.datetime import utcnow
 from ts2.utils.db import async_atomic
@@ -103,7 +103,7 @@ class Museum(
         def as_noun(begin_or_end: str) -> str:
             return strong('beginning' if begin_or_end == 'begin' else 'end')
 
-        msg_url = a(href=message.jump_url, text='this message')
+        msg_url = a('this message', href=message.jump_url)
         msg_id = message.id
         channel_id = ctx.channel.id
         channel = tag(ctx.channel)
@@ -248,8 +248,8 @@ class StoryCollector:
         dt_start: DateTime = instance(start_msg.created_at).in_timezone(settings.TIME_ZONE)
         dt_end: DateTime = instance(end_msg.created_at).in_timezone(settings.TIME_ZONE)
         description = (f'Story in {tag(self.ctx.channel)} '
-                       f'from {a(start_msg.jump_url, dt_start.format("D MMM Y at HH:mm:ss zz"))} '
-                       f'to {a(end_msg.jump_url, dt_end.format("D MMM Y at HH:mm:ss zz"))}')
+                       f'from {a(timestamp(dt_start, "long"), start_msg.jump_url)} '
+                       f'to {a(timestamp(dt_end, "long"), end_msg.jump_url)}')
 
         stat = Embed(title='📊 Statistics', description=description)
         stat.add_field(name='Word count', value=len(tokens))

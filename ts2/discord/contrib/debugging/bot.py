@@ -135,7 +135,7 @@ class Debugging(
     @doc.discussion('Detail', (
         f'All command invocations are ignored and all events (including {code("on_message")})'
         " are silently dropped.\nThe name of this command comes from nginx's"
-        f' {a("https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#nginx", "HTTP 444")}'
+        f' {a("HTTP 444", "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#nginx")}'
         ' status code.'
     ))
     @doc.restriction(is_owner)

@@ -57,7 +57,7 @@ class OEISEntry:
     def to_embed(self) -> Embed2:
         embed = (
             Embed2(title=self.title, description=self.description, timestamp=self.created)
-            .add_field(name='Source', value=a(self.url, 'View on OEIS'))
+            .add_field(name='Source', value=a('View on OEIS', self.url))
             .set_author(name='The On-Line Encyclopedia of Integer Sequences®',
                         icon_url='https://oeis.org/oeis_logo.png',
                         url=self.url)

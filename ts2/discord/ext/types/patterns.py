@@ -59,22 +59,24 @@ class Choice(Converter):
             case_sensitive=False,
         )
 
-        if case_sensitive:
-            choices = choices
-        else:
-            choices = {c.lower(): None for c in choices}
-
         fullname = concise_name + ': ' + coord_conj(*[f'"{w}"' for w in choices], conj='or')
         desc = QuantifiedNP(
             fullname, concise=concise_name,
             predicative='case sensitive' if case_sensitive else '',
         )
 
+        if case_sensitive:
+            choices = choices
+        else:
+            choices = {c.lower(): None for c in choices}
+
         @classmethod
         async def convert(cls, ctx, arg: str):
             if not case_sensitive:
-                arg = arg.lower()
-            if arg in choices:
+                to_match = arg.lower()
+            else:
+                to_match = arg
+            if to_match in choices:
                 return arg
             raise InvalidChoices(desc, arg)
 
@@ -87,6 +89,31 @@ class Choice(Converter):
 class CaseInsensitive(Converter):
     async def convert(self, ctx, arg: str):
         return arg.lower()
+
+
+class Range(Converter):
+    def __class_getitem__(cls, item: tuple[int, int]):
+        lower, upper = unpack_varargs(item, ('lower', 'upper'))
+
+        desc = QuantifiedNP(
+            f'number between {lower} and {upper}, inclusive',
+            concise=f'number between {lower} and {upper}',
+        )
+
+        @classmethod
+        async def convert(cls, ctx, arg: str):
+            try:
+                num = float(arg)
+            except ValueError:
+                raise InvalidRange(desc, arg)
+            if not lower <= num <= upper:
+                raise InvalidRange(desc, arg)
+            return num
+
+        __dict__ = {'convert': convert}
+        t = type(cls.__name__, (Converter,), __dict__)
+        add_type_description(t, desc)
+        return t
 
 
 class RegExp(Converter):
@@ -122,6 +149,13 @@ class InvalidChoices(BadArgument):
         super().__init__(message=message, *args)
 
 
+class InvalidRange(BadArgument):
+    def __init__(self, num_range: QuantifiedNP, found: str, *args):
+        self.received = found
+        message = f'Invalid value "{found}". Must be {num_range.a()}'
+        super().__init__(message=message, *args)
+
+
 class RegExpMismatch(BadArgument):
     def __init__(self, expected: QuantifiedNP, arg: str, pattern: re.Pattern, *args):
         self.expected = expected
@@ -140,4 +174,10 @@ async def explains_regexp(ctx, exc: RegExpMismatch) -> tuple[str, int]:
 @explains(InvalidChoices, 'Invalid choices', priority=5)
 @prepend_argument_hint(True, sep='\n⚠️ ')
 async def explains_invalid_choices(ctx, exc: InvalidChoices) -> tuple[str, int]:
-    return f'Got {strong(escape_markdown(exc.received))} instead.', 45
+    return strong(escape_markdown(str(exc))), 45
+
+
+@explains(InvalidRange, 'Number out of range', priority=5)
+@prepend_argument_hint(True, sep='\n⚠️ ')
+async def explains_invalid_range(ctx, exc: InvalidChoices) -> tuple[str, int]:
+    return strong(escape_markdown(str(exc))), 30

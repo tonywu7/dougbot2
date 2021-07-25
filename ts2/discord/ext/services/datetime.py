@@ -61,7 +61,7 @@ def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:
 
 
 @accepts('IANA tz code', predicative=(
-    f'see {a("https://en.wikipedia.org/wiki/List_of_tz_database_time_zones", "list of timezones")}'
+    f'see {a("list of timezones", "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")}'
 ))
 class Timezone(Converter, pytz.BaseTzInfo):
     def __init__(self) -> None:

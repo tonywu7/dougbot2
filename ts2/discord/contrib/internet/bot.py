@@ -27,7 +27,8 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
 from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
-from ts2.discord.utils.common import Color2, Embed2, async_first, code, tag
+from ts2.discord.ext.services.rand import FakerLocales, get_faker
+from ts2.discord.utils.common import Color2, Embed2, a, async_first, code, tag
 
 from .models import RoleTimezone
 
@@ -186,3 +187,18 @@ class Internet(
         elif role_tz:
             result = result.set_color(role_tz.role.color)
         return await ctx.reply(embed=result)
+
+    @command('lipsum')
+    @doc.description(
+        f'{a("Lorem ipsum", "https://www.lipsum.com/")} dolor sit amet: '
+        'generate random text.',
+    )
+    @doc.argument('language', 'The language in which the text should be generated.')
+    @doc.invocation((), 'Generate a paragraph.')
+    @doc.invocation(('language',), 'Generate a paragraph in one of the supported languages.')
+    async def lipsum(self, ctx: Circumstances, language: Optional[FakerLocales] = 'la'):
+        fake = get_faker(language)
+        sentences = fake.sentences(5)
+        if language == 'la':
+            sentences = ['Lorem ipsum dolor sit amet, consectetur adipiscing elit.', *sentences]
+        return await ctx.response(ctx, content=' '.join(sentences)).deleter().run()
