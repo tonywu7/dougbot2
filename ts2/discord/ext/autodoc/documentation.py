@@ -36,7 +36,6 @@ from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import a, blockquote, mta_arrow_bracket, pre, strong
 from ...utils.pagination import page_embed2, page_plaintext
 from .exceptions import BadDocumentation, MissingDescription
-from .explanation import readable_perm_name
 from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
 
 _Converter = Union[Converter, type[Converter]]
@@ -76,6 +75,10 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
 }
 
 _type_converters: list[tuple[_Annotation, Callable[[_Annotation], _Annotation]]] = []
+
+
+def readable_perm_name(p: str) -> str:
+    return p.replace('_', ' ').replace('guild', 'server').title().replace('Tts', 'TTS')
 
 
 def _record_perm_check(place: str, **perms: bool) -> list[str]:

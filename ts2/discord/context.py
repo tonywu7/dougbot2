@@ -20,7 +20,7 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from functools import wraps
-from typing import Optional
+from typing import Any, Optional
 
 import attr
 from asgiref.sync import sync_to_async
@@ -62,8 +62,8 @@ class ResponseInit:
     reference: Optional[Message | MessageReference] = attr.ib(default=None)
     mention_author: bool = attr.ib(default=False)
 
-    callbacks: list[Callable[[Message], Coroutine]] = attr.ib(init=False, default=attr.Factory(list))
-    responders: list[Callable[[Message], Responder]] = attr.ib(init=False, default=attr.Factory(list))
+    callbacks: list[Callable[[Message], Coroutine]] = attr.ib(default=attr.Factory(list))
+    responders: list[Callable[[Message], Responder]] = attr.ib(default=attr.Factory(list))
 
     def timed(self, ttl: float):
         return attr.evolve(self, delete_after=ttl)
@@ -86,15 +86,18 @@ class ResponseInit:
         init.responders = [*self.responders, responder_init]
         return init
 
+    def callback(self, cb: Callable[[Message], Coroutine[None, None, Any]]):
+        init = attr.evolve(self)
+        init.callbacks = [*self.callbacks, cb]
+        return init
+
     def deleter(self):
         return self.responder(lambda msg: DeleteResponder(self.context, msg))
 
     def suppress(self):
         async def callback(msg: Message):
             return await msg.edit(suppress=True)
-        init = attr.evolve(self)
-        init.callbacks = [*init.callbacks, callback]
-        return init
+        return self.callback(callback)
 
     async def run(self, message: Optional[Message] = None):
         if not message:

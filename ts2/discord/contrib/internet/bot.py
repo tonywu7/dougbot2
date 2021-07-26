@@ -75,8 +75,12 @@ class Internet(
         except aiohttp.ClientError:
             await ctx.reply('Network error while searching on OEIS')
             raise
-        await ctx.reply(embed=sequence.to_embed())
-        await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')
+
+        async def more_result(*args, **kwargs):
+            await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')
+
+        await (ctx.response(ctx, embed=sequence.to_embed())
+               .callback(more_result).deleter().run())
 
     @command('time')
     @doc.description('Get local time of a server member or a timezone.')
@@ -188,7 +192,7 @@ class Internet(
             result = result.set_color(role_tz.role.color)
         return await ctx.reply(embed=result)
 
-    @command('lipsum')
+    @command('lipsum', aliases=('lorem',))
     @doc.description(
         f'{a("Lorem ipsum", "https://www.lipsum.com/")} dolor sit amet: '
         'generate random text.',

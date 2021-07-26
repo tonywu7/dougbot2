@@ -29,13 +29,17 @@ from pendulum import duration
 
 from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 from . import exceptions
+from .documentation import readable_perm_name
 from .lang import pl_cat_predicative, pluralize
+from .manual import Manual
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
 _ExceptionHandler = Callable[[Context, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
 
 exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: dict[_ExceptionType, str] = {}
+
+get_manual: Callable[[Context], Manual] = None
 
 BUCKET_DESCRIPTIONS = {
     BucketType.default: 'globally',
@@ -66,6 +70,11 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
             exception_names[exc] = name
         return f
     return wrapper
+
+
+def set_manual_getter(getter: Callable[[Context], Manual]):
+    global get_manual
+    get_manual = getter
 
 
 async def reply_command_failure(ctx: Context, title: str, msg: str,
@@ -100,8 +109,10 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             should_log = await f(ctx, exc)
             if not should_log:
                 return
+            if not get_manual:
+                return
             msg, autodelete = should_log
-            man = ctx.bot.manual
+            man = get_manual(ctx)
             doc = man.lookup(ctx.command.qualified_name)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
             arg_info = f'\n> {ctx.full_invoked_with} {arg_info}'
@@ -156,10 +167,6 @@ def describe_concurrency(number: int, bucket: BucketType):
     info = (f'maximum {number} {pluralize(number, "call")} '
             f'running at the same time {bucket_type}')
     return info
-
-
-def readable_perm_name(p: str) -> str:
-    return p.replace('_', ' ').replace('guild', 'server').title().replace('Tts', 'TTS')
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
@@ -287,6 +294,20 @@ async def on_missing_perms(ctx, exc):
     perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
     explanation = f'You are missing the {perms}.'
     return explanation, 20
+
+
+@explains(errors.CommandNotFound, 'Command not found', 100)
+async def on_cmd_not_found(ctx: Context, exc: errors.CommandNotFound):
+    if not get_manual:
+        return False
+    cmd = ctx.invoked_with
+    if ctx.invoked_parents:
+        cmd = f'{" ".join(ctx.invoked_parents)} {cmd}'
+    try:
+        get_manual(ctx).lookup(cmd)
+        return False
+    except exceptions.NoSuchCommand as e:
+        return str(e), 20
 
 
 @explains(Exception, 'Error', -100)

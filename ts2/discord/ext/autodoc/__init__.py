@@ -3,7 +3,7 @@ from .decorators import (accepts, accepts_reply, argument, concurrent,
                          invocation, restriction, use_syntax_whitelist)
 from .documentation import Documentation
 from .exceptions import NoSuchCommand, NotAcceptable, ReplyRequired, SendHelp
-from .explanation import explain_exception, explains
+from .explanation import explain_exception, explains, set_manual_getter
 from .manual import Manual
 
 __all__ = [
@@ -27,4 +27,5 @@ __all__ = [
     'Documentation',
     'explains',
     'explain_exception',
+    'set_manual_getter',
 ]

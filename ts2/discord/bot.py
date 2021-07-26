@@ -41,7 +41,7 @@ from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext.acl import acl
 from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
-                          explain_exception, explains)
+                          explain_exception, explains, set_manual_getter)
 from .ext.logging import log_command_errors, log_exception
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
@@ -169,6 +169,7 @@ class Robot(Bot):
     def _create_manual(self):
         self.manual = Manual.from_bot(self)
         self.manual.finalize()
+        set_manual_getter(lambda ctx: ctx.bot.manual)
 
     @classmethod
     def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
