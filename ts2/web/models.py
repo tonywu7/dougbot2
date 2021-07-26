@@ -118,9 +118,10 @@ class FeatureType(models.TextChoices):
 
 
 class Feature(models.Model):
-    ftype = models.CharField(max_length=32, choices=FeatureType.choices)
-    status = models.CharField(max_length=32, choices=FeatureStatus.choices)
-    name = models.TextField()
+    ftype: str = models.CharField(max_length=32, choices=FeatureType.choices)
+    status: str = models.CharField(max_length=32, choices=FeatureStatus.choices)
+    name: str = models.TextField()
+    slug: str = models.SlugField(blank=True)
 
     def __str__(self):
         return f'Feature [{self.ftype}] {self.name} ({self.status})'

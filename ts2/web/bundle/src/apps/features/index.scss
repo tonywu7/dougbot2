@@ -2,6 +2,7 @@
 
 @import "../../styles/colors";
 @import "../../styles/typefaces";
+@import "./features";
 
 .feature-grid {
     display: flex;
@@ -16,6 +17,8 @@
     }
 
     .feature-item {
+        position: relative;
+
         display: flex;
         flex-flow: row nowrap;
         gap: 0.5rem;
@@ -29,7 +32,26 @@
         }
 
         &:hover {
-            background-color: change-color($color: $yellow, $alpha: 0.08);
+            background-color: change-color($color: $yellow, $alpha: 0.1);
+
+            .feature-type {
+                opacity: 1;
+            }
+        }
+
+        &.highlighted {
+            @keyframes highlight-anim {
+                from {
+                    background-color: change-color($color: $yellow, $alpha: 0.5);
+                }
+                35% {
+                    background-color: change-color($color: $yellow, $alpha: 0.5);
+                }
+                to {
+                    background-color: transparent;
+                }
+            }
+            animation: 2s ease-out normal 0s none 1 highlight-anim;
         }
     }
 
@@ -118,57 +140,6 @@
                 color: $green-400;
                 border-color: $green-400;
             }
-        }
-    }
-
-    .feature-type {
-        display: inline-block;
-
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: $bw-grey-8;
-
-        margin-inline-start: 0.3rem;
-        width: 8rem;
-
-        &::before {
-            content: "#";
-            margin-inline-end: 0.5rem;
-        }
-
-        &.type-special {
-            color: $orange;
-        }
-
-        &.type-command {
-            $font-color: $pink;
-            color: adjust-color($font-color, $saturation: -20%);
-        }
-
-        &.type-infrastructure {
-            $font-color: $yellow-600;
-            color: adjust-color($font-color, $saturation: -20%);
-        }
-
-        &.type-system {
-            $font-color: $blue-600;
-            color: adjust-color($font-color, $saturation: -20%);
-        }
-
-        &.type-integration {
-            $font-color: $purple;
-            color: adjust-color($font-color, $saturation: -20%);
-        }
-
-        &.type-doc,
-        &.type-qol {
-            $font-color: $indigo-600;
-            color: adjust-color($font-color, $saturation: -20%);
-        }
-
-        &.type-web {
-            $font-color: $teal-600;
-            color: adjust-color($font-color, $saturation: -20%);
         }
     }
 }

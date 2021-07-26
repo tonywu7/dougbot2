@@ -35,12 +35,17 @@
     left: -0.7rem;
     padding: 0 0 0 0.6rem;
 
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: visible;
     text-overflow: ellipsis;
+    height: 1.2em;
 
     font-size: 2.5rem;
-    font-weight: 750;
+    font-weight: 900;
     line-height: 1;
+    letter-spacing: -2.4px;
+
+    width: 100%;
 }
 
 .branding {
@@ -97,7 +102,7 @@
         border: none;
         background-color: transparent;
 
-        @media screen and (min-width: 768px) {
+        @media screen and (min-width: 1024px) {
             &:first-of-type .accordion-header {
                 padding-top: 3rem;
             }
@@ -216,4 +221,64 @@
 .http-status code {
     position: relative;
     top: -2px;
+}
+
+#license {
+    background-color: $bw-grey-13;
+
+    padding: 1rem;
+
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 0.5rem;
+
+    .anchor {
+        left: -2em;
+        color: $bw-grey-13;
+    }
+
+    p {
+        color: black;
+        font-weight: 400;
+        font-family: $sans-serif-fonts;
+        line-height: 1.5;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    a {
+        font-family: $sans-serif-fonts;
+    }
+
+    strong,
+    em {
+        color: black;
+    }
+
+    h3 {
+        margin: 0;
+        letter-spacing: -0.5px;
+        color: black;
+        font-family: $sans-serif-fonts;
+    }
+
+    .license-description {
+        display: flex;
+        flex-flow: row nowrap;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .license-label {
+        flex: 0 0 auto;
+
+        img {
+            height: 48px;
+        }
+    }
+
+    .license-text {
+        flex: 0 1 auto;
+    }
 }

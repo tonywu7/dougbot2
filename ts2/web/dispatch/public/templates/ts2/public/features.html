@@ -24,8 +24,11 @@
         </span>
         <span class="feature-content">
             {{ feature.name }}
-            <span class="feature-type type-{{ feature.ftype }}">{{ feature.get_ftype_display }}</span>
+            <span class="feature-type type-{{ feature.ftype }}">#{{ feature.get_ftype_display }}</span>
         </span>
+        {% if feature.slug %}
+        <span id="{{ feature.slug }}" class="anchor-position">&nbsp;</span>
+        {% endif %}
     </li>
     {% endfor %}
 </ul>

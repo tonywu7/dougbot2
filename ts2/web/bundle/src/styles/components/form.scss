@@ -6,6 +6,9 @@
     border-radius: 6pt;
     border: 1px solid color.scale($color-text, $alpha: -75%);
 
+    font-size: 1rem;
+    line-height: 1.5;
+
     display: flex;
     flex-flow: column nowrap;
     justify-content: space-between;
@@ -36,6 +39,12 @@
     }
 }
 
+.form-fields {
+    display: flex;
+    flex-flow: column nowrap;
+    gap: 1.2rem;
+}
+
 .form-before {
     margin-block-end: 1rem;
 }
@@ -48,7 +57,7 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     font-weight: 400;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     line-height: 1;
 
     &.modified {
@@ -72,34 +81,4 @@
 
 .field-error p {
     color: $red-500;
-}
-
-.input-group {
-    border-radius: 0.5rem;
-
-    .form-control {
-        background-color: $bw-grey-2;
-        border-width: 1px;
-    }
-
-    .input-group-text,
-    .form-control {
-        border: 1px solid;
-    }
-
-    .input-group-text,
-    .form-control {
-        border-color: color.scale($color-text, $alpha: -50%);
-    }
-
-    &
-        > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
-        border-left-color: #00000000;
-    }
-
-    .input-group-text {
-        font-weight: 700;
-        color: $bw-grey-15;
-        background-color: $bw-grey-4;
-    }
 }

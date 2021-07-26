@@ -47,3 +47,9 @@ def site_info(req: HttpRequest):
     return {
         'CURRENT_DOMAIN': site.domain,
     }
+
+
+def instance_constants(req: HttpRequest):
+    return {
+        'INSTANCE': getattr(settings, 'INSTANCE_CONSTANTS', {})
+    }

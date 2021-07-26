@@ -10,6 +10,8 @@
                 </input-field>
                 <input-field v-if="pathLabel" type="text" name="path" :label="pathLabel"
                     :options="{showChanged: false, autocomplete: 'off'}" v-model:value="path"></input-field>
+                <p v-if="pathLabel" class="interactive-text">If you know what you are doing, you should file an issue on
+                    the <a href="/github">GitHub repo</a> instead.</p>
             </template>
         </template>
         <template v-if="topic !== 0" v-slot:form-after>
@@ -19,8 +21,23 @@
 </template>
 <script lang="ts" src="./BugReport.vue.ts"></script>
 <style lang="scss" scoped>
+    @import "../../styles/typefaces";
+
     :deep(.form-after) {
         display: flex;
         flex-flow: column nowrap;
+    }
+
+    .article-view .main-content p {
+        font-family: $ui-fonts;
+    }
+
+    :deep(.field-after) {
+        p {
+            font-family: $ui-fonts;
+            font-size: .8rem;
+            font-weight: 400;
+            margin: 0;
+        }
     }
 </style>

@@ -60,15 +60,10 @@ a.dropdown-toggle:focus {
     }
 
     &:focus,
-    &:hover {
+    &:hover,
+    &:active {
         background-color: $primary;
         color: color-contrast($primary);
-    }
-
-    &:active,
-    &.active {
-        background-color: var(--button-color);
-        color: var(--button-color-text);
     }
 
     @media screen and (max-width: 768px) {

@@ -1,6 +1,14 @@
 {% extends 'ts2/commons/base.html' %}
 {% load static %}
 
+{% block apps %}
+<script defer src="{% static '/telescope2/article.bundle.js' %}"></script>
+{% endblock %}
+
+{% block app_styles %}
+<link rel="stylesheet" href="{% static '/telescope2/article.css' %}">
+{% endblock %}
+
 {% block view_modifier %}article-view{% endblock %}
 
 {% block body %}

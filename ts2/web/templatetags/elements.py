@@ -24,8 +24,9 @@ from django.template import Context, Library, Node, NodeList, Variable, loader
 from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
 
-from ts2.web.utils.templates import (create_tag_parser, domtokenlist,
-                                     optional_attr, unwrap)
+from ..models import Feature
+from ..utils.templates import (create_tag_parser, domtokenlist, optional_attr,
+                               unwrap)
 
 register = Library()
 
@@ -61,6 +62,17 @@ class SectionNode(Node):
         )
 
 
+def reverse_universal(ctx: Context, view: str, **kwargs):
+    try:
+        snowflake = ctx['discord'].server_id
+        url = reverse(view, kwargs={'guild_id': snowflake, **kwargs})
+    except (AttributeError, KeyError, NoReverseMatch):
+        url = None
+    if not url:
+        url = reverse(view, kwargs=kwargs)
+    return url
+
+
 @create_tag_parser(register, 'sidebarlink')
 class SidebarLinkNode(Node):
     def __init__(self, view: Variable, name: Variable, icon: Variable, **url_kwargs):
@@ -76,13 +88,7 @@ class SidebarLinkNode(Node):
         name = unwrap(context, self.name)
         url_kwargs = unwrap(context, self.kwargs)
         try:
-            snowflake = context['discord'].server_id
-            url = reverse(view, kwargs={'guild_id': snowflake, **url_kwargs})
-        except (AttributeError, KeyError, NoReverseMatch):
-            url = None
-        try:
-            if not url:
-                url = reverse(view, kwargs=url_kwargs)
+            url = reverse_universal(context, view, **url_kwargs)
         except NoReverseMatch:
             return mark_safe('')
         if 'request' in context and view == context['request'].resolver_match.view_name:
@@ -141,3 +147,26 @@ class SidebarSectionNode(Node):
 def bootstrap5switch(field):
     template = loader.get_template('telescope2/elements/switch.html')
     return template.render({'field': field})
+
+
+@register.simple_tag(name='featurelink', takes_context=True)
+def featurenode(context: Context, slug: str):
+    try:
+        feature: Feature = Feature.objects.filter(slug=slug).get()
+    except Feature.DoesNotExist:
+        return mark_safe(
+            '<span class="text-danger">'
+            f'Feature #{slug} (not found)</span>',
+        )
+    url = reverse_universal(context, 'web:features')
+    return mark_safe(
+        f'<a href="{url}#{feature.slug}" '
+        f'    class="feature-link feature-type type-{feature.ftype}">'
+        f'Feature {feature.id} #{feature.slug}'
+        '</a>',
+    )
+
+
+@register.simple_tag(name='url-universal', takes_context=True)
+def universal_url(context: Context, endpoint: str, **kwargs):
+    return reverse_universal(context, endpoint, **kwargs)

@@ -15,9 +15,6 @@
 <script lang="ts" src="./FormContainer.vue.ts"></script>
 
 <style lang="scss" scoped>
-    .form-fields {
-        display: flex;
-        flex-flow: column nowrap;
-        gap: 1.2rem;
-    }
+    @import "../../styles/colors";
+    @import "../../styles/components/form";
 </style>

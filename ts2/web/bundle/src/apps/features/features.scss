@@ -1,0 +1,47 @@
+.feature-type {
+    display: inline-block;
+
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: $bw-grey-8;
+
+    margin-inline-start: 0.3rem;
+    width: 8rem;
+
+    opacity: 0.5;
+
+    &.type-special {
+        color: $orange;
+    }
+
+    &.type-command {
+        $font-color: $pink;
+        color: $font-color;
+    }
+
+    &.type-infrastructure {
+        $font-color: $yellow;
+        color: $font-color;
+    }
+
+    &.type-system {
+        $font-color: $blue;
+        color: $font-color;
+    }
+
+    &.type-integration {
+        $font-color: $purple;
+        color: $font-color;
+    }
+
+    &.type-doc,
+    &.type-qol {
+        $font-color: $indigo;
+        color: $font-color;
+    }
+
+    &.type-web {
+        $font-color: $teal;
+        color: $font-color;
+    }
+}

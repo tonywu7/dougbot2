@@ -220,3 +220,10 @@ if allowed_guilds:
     ALLOWED_GUILDS = {int(s.strip()) for s in allowed_guilds.split(' ')}
 else:
     ALLOWED_GUILDS = set()
+
+INSTANCE_CONSTANTS = {}
+
+for k in [
+    'GITHUB_REPO',
+]:
+    INSTANCE_CONSTANTS[k] = instance_conf(k, None)

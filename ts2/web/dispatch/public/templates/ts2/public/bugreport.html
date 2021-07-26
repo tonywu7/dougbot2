@@ -1,20 +1,27 @@
-{% extends 'ts2/web/base.html' %}
+{% extends 'ts2/commons/article.html' %}
 {% load inspect elements static %}
 
 {% block apps %}
+{{ block.super }}
 <script defer src="{% static '/telescope2/bugreport.bundle.js' %}"></script>
 {% endblock %}
 
 {% block app_styles %}
+{{ block.super }}
 <link rel="stylesheet" href="{% static '/telescope2/bugreport.css' %}">
 {% endblock %}
 
 {% block title %}Feedback & bug report{% endblock %}
-{% block main_title %}Feedback & bug report{% endblock %}
 
-{% block sections %}
-{% section id='report' title='report' classes="grid-span-2" %}
-{% csrf_token %}
-<div id="bug-report" data-action="{{ endpoint }}"></div>
-{% endsection %}
+{% block article %}
+
+<header>
+    <h1>Feedback & bug report</h1>
+</header>
+
+<section>
+    {% csrf_token %}
+    <div id="bug-report" data-action="{{ endpoint }}"></div>
+</section>
+
 {% endblock %}
