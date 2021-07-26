@@ -16,8 +16,9 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.template import TemplateDoesNotExist
 from django.views.generic import View
 
 from ...forms import FeedbackForm
@@ -54,3 +55,10 @@ class BugReportView(View):
             messages.success(req, 'Report submitted. Thank you!')
         return render(req, 'ts2/public/bugreport.html',
                       {'endpoint': req.get_full_path()}, status=status)
+
+
+def blog(req: HttpRequest, dest: str, **kwargs) -> HttpResponse:
+    try:
+        return render(req, f'ts2/public/blog/{dest}.html')
+    except TemplateDoesNotExist:
+        raise Http404()

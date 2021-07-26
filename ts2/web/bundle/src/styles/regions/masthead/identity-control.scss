@@ -21,6 +21,7 @@ figure.profile-picture {
     max-height: 2rem;
     text-overflow: ellipsis;
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .server-refresh {

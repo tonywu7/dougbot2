@@ -13,7 +13,7 @@
 {% block main_title %}Feedback & bug report{% endblock %}
 
 {% block sections %}
-{% section id='report' title='report' classes="grid-span-all" %}
+{% section id='report' title='report' classes="grid-span-2" %}
 {% csrf_token %}
 <div id="bug-report" data-action="{{ endpoint }}"></div>
 {% endsection %}

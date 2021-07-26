@@ -203,7 +203,7 @@ def create_tag_parser(library: template.Library, start: str, end: Optional[str] 
                     raise template.TemplateSyntaxError(
                         f'Forbidden keyword argument name "{k}"',
                     )
-                if k not in values and accepts_kwargs:
+                if k not in values and not accepts_kwargs:
                     raise template.TemplateSyntaxError(
                         f'{func} does not accept additional keyword arguments',
                     )

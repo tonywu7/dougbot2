@@ -13,6 +13,7 @@ class IndexRedirectView(RedirectView):
 universal_urls = [
     re_path(r'^features/?$', views.feature_tracker, name='features'),
     re_path(r'^bug-report/?$', views.BugReportView.as_view(), name='bugreport'),
+    re_path(r'^blog/(?P<dest>.+)', views.blog, name='blog'),
 ]
 
 urlpatterns = [

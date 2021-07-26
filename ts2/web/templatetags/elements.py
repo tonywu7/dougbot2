@@ -62,25 +62,27 @@ class SectionNode(Node):
 
 
 @create_tag_parser(register, 'sidebarlink')
-@dataclass
 class SidebarLinkNode(Node):
-    view: Variable
-    name: Variable
-    icon: Variable
+    def __init__(self, view: Variable, name: Variable, icon: Variable, **url_kwargs):
+        self.view = view
+        self.name = name
+        self.icon = icon
+        self.kwargs = url_kwargs
 
     def render(self, context: Context) -> str:
         mark_active: Optional[Callable] = context.get('mark_active')
         view = unwrap(context, self.view)
         icon = unwrap(context, self.icon)
         name = unwrap(context, self.name)
+        url_kwargs = unwrap(context, self.kwargs)
         try:
             snowflake = context['discord'].server_id
-            url = reverse(view, kwargs={'guild_id': snowflake})
+            url = reverse(view, kwargs={'guild_id': snowflake, **url_kwargs})
         except (AttributeError, KeyError, NoReverseMatch):
             url = None
         try:
             if not url:
-                url = reverse(view)
+                url = reverse(view, kwargs=url_kwargs)
         except NoReverseMatch:
             return mark_safe('')
         if 'request' in context and view == context['request'].resolver_match.view_name:
@@ -115,30 +117,24 @@ class SidebarSectionNode(Node):
         if not content or content.isspace():
             return mark_safe('')
 
-        parent_id = unwrap(context, self.parent_id)
-        chapter_id = unwrap(context, self.id)
-        body_id = f'{chapter_id}-routes'
-        name = unwrap(context, self.name)
-        icon = unwrap(context, self.icon)
+        ctx = {'content': content}
+        ctx['parent_id'] = unwrap(context, self.parent_id)
+        ctx['chapter_id'] = chapter_id = unwrap(context, self.id)
+        ctx['body_id'] = f'{chapter_id}-routes'
+        ctx['name'] = unwrap(context, self.name)
+        ctx['icon'] = mark_safe(unwrap(context, self.icon))
 
         if active_route:
-            header_cls = 'accordion-button'
-            body_cls = 'collapse show'
-            expanded = 'true'
+            ctx['header_cls'] = 'accordion-button'
+            ctx['body_cls'] = 'collapse show'
+            ctx['expanded'] = 'true'
         else:
-            header_cls = 'accordion-button collapsed'
-            body_cls = 'collapse'
-            expanded = 'false'
+            ctx['header_cls'] = 'accordion-button collapsed'
+            ctx['body_cls'] = 'collapse'
+            ctx['expanded'] = 'false'
 
-        return mark_safe(
-            '<div class="accordion-item">'
-            f'    <h2 id="{chapter_id}" class="accordion-header {header_cls}" data-bs-toggle="collapse"'
-            f'         data-bs-target="#{body_id}" role="button" aria-expanded="{expanded}">'
-            f'        {icon}<span tabindex="0">{name}</span></h2>'
-            f'    <div id="{body_id}" class="accordion-collapse {body_cls}" data-bs-parent="#{parent_id}">'
-            f'        <div class="accordion-body"><ul>{content}</ul>'
-            '</div></div></div>',
-        )
+        tmpl = loader.get_template('ts2/web/elements/sidebar-section.html')
+        return tmpl.render(ctx)
 
 
 @register.simple_tag(name='bs5switch')

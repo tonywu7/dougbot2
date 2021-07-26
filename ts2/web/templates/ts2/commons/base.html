@@ -63,12 +63,13 @@
     {% endblock %}
 </head>
 
-<body>
+<body class="{% block view_modifier %}{% endblock %}">
     <section class="masthead-container">
         {% include 'ts2/commons/masthead.html' %}
     </section>
     <section class="main-container">
-        <aside class="main-sidebar accordion accordion-flush" id="sidebar">
+        <aside class="main-sidebar accordion accordion-flush" id="sidebar" data-bs-backdrop="false"
+            data-bs-scroll="true">
             {% include 'ts2/commons/sidebar.html' %}
         </aside>
         {% block body %}

@@ -1,9 +1,9 @@
 {% load elements contrib %}
-<div class="sidebar-content">
+<section class="auth-control">
+    {% include 'ts2/web/identities.html' %}
+</section>
 
-    <section class="auth-control">
-        {% include 'ts2/web/identities.html' %}
-    </section>
+<div class="sidebar-content">
 
     {% if user_authenticated and discord.info %}
 
@@ -27,6 +27,7 @@
     {% endif %}
 
     {% chapter 'extras' name='Extras' icon='<i class="bi bi-star-fill"></i>' %}
+    {% sidebarlink 'web:blog' 'About' '<i class="bi bi-star"></i>' dest='about' %}
     {% sidebarlink 'web:features' 'Feature tracker' '<i class="bi bi-kanban"></i>' %}
     {% sidebarlink 'web:bugreport' 'Feedback & bug report' '<i class="bi bi-bug"></i>' %}
     {% endchapter %}

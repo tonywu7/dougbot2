@@ -18,12 +18,11 @@
 
 <div class="paragraph">
     <p class="large-icon"><span><i class="bi bi-person-check-fill"></i></span></p>
-    <p><strong>Define constraints on who can use which commands in a certain channel.</strong></p>
-    <p>Every time a member invokes
-        a command, the bot finds all constraints applied to that command in the channel. Each constraint defines some
-        requirements about the member's roles.</p>
-    <p>If <strong>all</strong> constraints for that command are satisfied,
-        the command will run.</p>
+    <p><strong>Define rules on who can use which commands in a certain channel.</strong></p>
+    <p>Every time a member invokes a command, the bot finds all rules matching the command, channel, and the member's
+        roles.</p>
+    <p>Rules are checked in the order of how specific they are. If at least one of all the rules on the same specificity
+        level allows the command, the command will run.</p>
 </div>
 
 {% section id='acl-inspector' title='inspector' classes='grid-span-2' %}

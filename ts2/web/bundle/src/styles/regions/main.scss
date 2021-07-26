@@ -1,3 +1,5 @@
+@import "./mixin.scss";
+
 .main-container {
     --sidebar-width: 288px;
 
@@ -46,29 +48,8 @@
     }
 
     @media screen and (max-width: 1024px) {
-        position: fixed;
-        z-index: 1000;
-
-        height: calc(100vh - var(--masthead-height));
-        right: 0;
-        left: 0;
-        bottom: 100vh;
-
-        overflow-x: hidden;
-        overflow-y: scroll;
-
-        .sidebar-content {
-            position: static;
-        }
-
-        &.sidebar-visible {
-            bottom: 0;
-        }
-
-        transition: bottom 0.35s cubic-bezier(0.09, 1.07, 0.26, 1);
-
-        padding: 1rem 0;
-        background-color: $bw-grey-1;
+        @include sidebar-offcanvas();
+        @include sidebar-offcanvas-from-top();
     }
 }
 
