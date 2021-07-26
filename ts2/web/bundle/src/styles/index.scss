@@ -1,15 +1,19 @@
-@use 'styles';
 @use "sass:color";
 
 @import "colors";
+@import "utilities";
 @import "typefaces";
-@import "transitions";
 
+@import "../../node_modules/bootstrap/scss/buttons";
+@import "../../node_modules/bootstrap/scss/accordion";
+
+@import "styles";
+@import "transitions";
 @import "regions/index";
 @import "components/index";
 
 .main-title {
-    margin-bottom: 2rem;
+    margin: 0 0 2rem 0;
     letter-spacing: -2px;
 
     max-width: 100%;
@@ -24,30 +28,42 @@
     }
 }
 
-.bot-name {
+.server-name {
+    display: inline-block;
+
     position: relative;
-    left: -1.3rem;
+    left: -0.7rem;
     padding: 0 0 0 0.6rem;
 
-    overflow: hidden;
+    overflow: visible;
     text-overflow: ellipsis;
 
     font-size: 2.5rem;
     font-weight: 750;
     line-height: 1;
-
-    border-left: 0.6rem solid;
 }
 
-#branding h1 {
-    font-size: 1.6rem;
-    margin: 0;
+.branding {
+    display: inline-block;
 
+    position: relative;
+    font-size: 1.6rem;
     left: -1.06rem;
 
+    margin: 0;
+    padding: 0 0 0 0.6rem;
+
+    color: $color-text;
+
     font-weight: 700;
-    border-left: 0.45rem solid var(--accent);
+    line-height: 1;
+
+    border-left: 0.45rem solid #{$color-accent};
     letter-spacing: -1px;
+
+    overflow: visible;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
     a {
         color: $color-text;
@@ -56,6 +72,14 @@
     @media screen and (max-width: 1024px) {
         left: -1.3rem;
         padding: 0 0 0 0.9rem;
+    }
+
+    &.branding-large {
+        font-size: 2.5rem;
+        font-weight: 750;
+        letter-spacing: -1.5px;
+        border-left-width: 0.55rem;
+        left: -1.16rem;
     }
 }
 
@@ -103,10 +127,11 @@
         }
 
         .accordion-header {
+            margin: 0;
             padding: 1rem 1rem 1rem 1.2rem;
             cursor: pointer;
             background-color: $bw-grey-2;
-            box-shadow: var(--box-shadow-1);
+            box-shadow: $box-shadow-1;
             font-weight: 700;
         }
 
@@ -129,7 +154,7 @@
         }
 
         ul {
-            margin: 0 0 0 1.8rem;
+            margin: 0 0 0 0.9rem;
             padding: 0;
             display: flex;
             flex-flow: column nowrap;
@@ -145,10 +170,10 @@
         }
 
         .sidebar-active {
-            color: var(--accent);
+            color: #{$color-accent};
 
             a {
-                color: var(--accent);
+                color: #{$color-accent};
             }
         }
     }
@@ -185,5 +210,10 @@
         ),
         $yellow;
     color: black;
-    box-shadow: var(--box-shadow-3);
+    box-shadow: $box-shadow-3;
+}
+
+.http-status code {
+    position: relative;
+    top: -2px;
 }

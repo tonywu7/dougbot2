@@ -3,14 +3,15 @@
         <form-container>
             <template v-slot:form-fields>
                 <div>
-                    <p>Grant a member <strong class="emphasis read">read</strong> access to bot settings if they have
-                        <strong class="emphasis">all of</strong> the following permissions:</p>
+                    <p class="interactive-text">Grant a member <strong class="emphasis read">read</strong> access to bot
+                        settings if they have <strong class="emphasis">all of</strong> the following permissions:</p>
                     <item-select :items="permissions" v-model:choices="readable">
                     </item-select>
                 </div>
                 <div>
-                    <p>Grant a member <strong class="emphasis read-write">read and write</strong> access to bot settings
-                        if they have <strong class="emphasis">all of</strong> the following permissions:</p>
+                    <p class="interactive-text">Grant a member <strong class="emphasis read-write">read and
+                            write</strong> access to bot settings if they have <strong class="emphasis">all of</strong>
+                        the following permissions:</p>
                     <item-select :items="permissions" v-model:choices="writable">
                     </item-select>
                 </div>
@@ -23,14 +24,14 @@
 </template>
 <script lang="ts" src="./PermissionSettings.vue.ts"></script>
 <style lang="scss">
-    @import "../../styles/colors.scss";
+    @import "../../styles/colors";
 
     .emphasis {
         text-decoration: underline;
     }
 
     .read {
-        color: $blue-300;
+        color: $blue;
     }
 
     .read-write {

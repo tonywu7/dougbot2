@@ -40,7 +40,7 @@
         &:focus,
         &:active {
             box-shadow: none;
-            border-color: var(--accent);
+            border-color: $color-accent;
         }
 
         &::placeholder {

@@ -1,5 +1,5 @@
-@import "../../vendor/bootstrap/5.0.2/scss/functions";
-@import "../../vendor/bootstrap/5.0.2/scss/variables";
+@use "sass:color";
+@import "../../node_modules/bootstrap/scss/functions";
 
 $gray-950: #111114;
 $gray-850: #26262c;
@@ -10,8 +10,6 @@ $pepper-orange-2: #c83a0c;
 $pepper-yellow-1: #d67c01;
 $pepper-violet-1: #fe1df6;
 $pepper-violet-2: #9d12e1;
-
-$district-sky: #17a1e5;
 
 /* from YouTube */
 $play-button-red: #ff0000;
@@ -60,26 +58,95 @@ $bw-grey-13: #e6e6ea;
 $bw-grey-14: #efeff1;
 $bw-grey-15: #f7f7f8;
 
+$server-blurple: #7289da;
+
+$server-blue: #3498db;
+$server-gold: #f1c40f;
+$server-green: #2ecc71;
+$server-magenta: #e91e63;
+$server-orange: #e67e22;
+$server-purple: #9b59b6;
+$server-red: #e74c3c;
+$server-teal: #1abc9c;
+
+$server-dark-blue: #206694;
+$server-dark-gold: #c27c0e;
+$server-dark-gray: #607d8b;
+$server-dark-green: #1f8b4c;
+$server-dark-magenta: #ad1457;
+$server-dark-orange: #a84300;
+$server-dark-purple: #71368a;
+$server-dark-red: #992d22;
+$server-dark-teal: #11806a;
+
+$server-dark-theme: #36393f;
+
+$server-darker-gray: #546e7a;
+$server-greyple: #99aab5;
+$server-light-gray: #979c9f;
+$server-lighter-gray: #95a5a6;
+
+$blue: $server-blue;
+$indigo: #6610f2;
+$purple: $server-purple;
+$pink: #d63384;
+$red: $server-red;
+$orange: $server-orange;
+$yellow: $server-gold;
+$green: color.adjust($server-dark-green, $lightness: 5%);
+$teal: $server-teal;
+$cyan: #0dcaf0;
+
+$primary: color.adjust($server-blurple, $lightness: -7.5%);
+$secondary: $server-darker-gray;
+$success: color.adjust($server-dark-green, $lightness: -1%);
+$danger: color.adjust($server-red, $lightness: -8%);
+$warning: $server-gold;
+$info: $server-blue;
+
 $color-text-brighter: $bw-grey-13;
 $color-text: $bw-grey-11;
 $color-text-muted: $bw-grey-9;
-
 $color-bg: $bw-grey-1;
 
-$color-em: $chat-marine;
-$color-strong: $chat-purple-9;
-$color-anchor: $chat-purple-9;
-
-$color-heading: $pepper-orange-0;
-
-$color-error: $chat-cherry;
-$color-warning: $chat-orange;
+$color-em: shade-color($cyan, 20%);
+$color-strong: $pink;
+$color-anchor: $server-blue;
 
 $body-bg: $color-bg;
 $body-color: $color-text;
 
-$link-color: $cyan-500;
+$link-color: $color-anchor;
 $link-shade-percentage: -20%;
 
 $link-hover-color: shift-color($link-color, $link-shade-percentage);
 $link-hover-decoration: underline;
+
+$color-heading: $pepper-orange-0;
+$color-accent: color.adjust($pepper-yellow-1, $saturation: 10%, $lightness: 10%);
+$color-accent-25: color.change($color-accent, $alpha: 0.25);
+$color-accent-50: color.change($color-accent, $alpha: 0.5);
+$color-accent-75: color.change($color-accent, $alpha: 0.75);
+
+$color-accent-desat: color.adjust($color-accent, $lightness: 10%, $saturation: -10%);
+
+$color-error: $server-red;
+$color-warning: $server-gold;
+
+$box-shadow-1: 0 4px 4px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.09);
+$box-shadow-2: 0 0 4px 4px rgba(0, 0, 0, 0.12), 0 0 8px 8px rgba(0, 0, 0, 0.09);
+$box-shadow-3: 0 0 2px 2px rgba(0, 0, 0, 0.15), 0 0 4px 4px rgba(0, 0, 0, 0.12);
+$box-shadow-focus: 0 0 0 0.2rem color.change($primary, $alpha: 0.25);
+$box-shadow-focus-inset: inset 0 0 0 0.2rem color.change($primary, $alpha: 0.25);
+$box-shadow-focus-bright: 0 0 0 0.2rem color.change($primary, $alpha: 0.75);
+
+$accordion-icon-color: $color-text;
+$accordion-icon-active-color: $color-accent;
+$accordion-button-active-color: $color-accent;
+
+$input-btn-padding-y: 0.2rem;
+$input-btn-padding-x: 0.6rem;
+$input-btn-font-size: 1rem;
+
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/mixins";

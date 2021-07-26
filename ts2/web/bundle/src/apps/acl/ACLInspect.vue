@@ -1,6 +1,6 @@
 <template>
     <div class="form">
-        <h4>Test out access control settings:</h4>
+        <h4 class="title">Test out access control settings:</h4>
         <div>
             <item-select label="In channel" :items="channels" v-model:error="errors.channels"
                 v-model:choices="selected.channels" :options="{multiple: false}">
@@ -36,6 +36,10 @@
 </template>
 <script lang="ts" src="./ACLInspect.vue.ts"></script>
 <style lang="scss" scoped>
+    .title {
+        margin-top: 0;
+    }
+
     .item-select {
         margin: .8rem 0;
     }

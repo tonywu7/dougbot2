@@ -11,6 +11,8 @@
 </template>
 <script lang="ts" src="./InputSelect.vue.ts"></script>
 <style lang="scss" scoped>
+    @import '../../styles/colors';
+
     .flex-select-container {
         display: flex;
         flex-flow: row nowrap;
@@ -32,7 +34,7 @@
         overflow-x: hidden;
 
         &:focus-within {
-            box-shadow: var(--box-shadow-focus);
+            box-shadow: $box-shadow-focus;
         }
 
         >.actionable {

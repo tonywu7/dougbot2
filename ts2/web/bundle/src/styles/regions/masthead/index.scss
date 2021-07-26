@@ -19,7 +19,7 @@
     padding: var(--masthead-space-vertical) var(--masthead-space-horizontal);
 
     background-color: $bw-grey-2;
-    box-shadow: var(--box-shadow-1);
+    box-shadow: $box-shadow-1;
 
     nav {
         width: 100%;
@@ -71,7 +71,7 @@
     }
 
     a {
-        color: var(--color-text);
+        color: #{$color-text};
     }
 
     i.bi {

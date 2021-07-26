@@ -1,24 +1,10 @@
 @use 'sass:color';
+@use '../../node_modules/bootstrap/scss/functions';
 
 @import "typefaces";
 @import "colors";
 
 :root {
-    --accent: #{$blue-400};
-    --primary: #{adjust-color($blue-800, $saturation: -50%)};
-    --secondary: #{$gray-850};
-
-    --box-shadow-1: 0 4px 4px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.09);
-    --box-shadow-2: 0 0 4px 4px rgba(0, 0, 0, 0.12), 0 0 8px 8px rgba(0, 0, 0, 0.09);
-    --box-shadow-3: 0 0 2px 2px rgba(0, 0, 0, 0.15), 0 0 4px 4px rgba(0, 0, 0, 0.12);
-    --box-shadow-focus: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    --box-shadow-focus-inset: inset 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    --box-shadow-focus-bright: 0 0 0 0.2rem rgba(0, 123, 255, 0.75);
-
-    --color-bg: #{$color-bg};
-    --color-anchor: #{$chat-muted-sky};
-    --color-text: #{$color-text};
-
     @media screen and (max-width: 1024px) {
         font-size: 11pt;
     }
@@ -28,8 +14,13 @@
     box-sizing: border-box;
 
     &:focus {
-        box-shadow: var(--box-shadow-focus);
+        box-shadow: $box-shadow-focus;
     }
+}
+
+::selection {
+    background: $color-accent;
+    color: color-contrast($color-accent);
 }
 
 html {
@@ -41,8 +32,8 @@ html {
 }
 
 body {
-    background-color: var(--color-bg);
-    color: var(--color-text);
+    background-color: #{$color-bg};
+    color: #{$color-text};
 
     font-family: $ui-fonts;
     font-size: 14px;
@@ -58,11 +49,11 @@ p {
 }
 
 a {
-    color: var(--color-anchor);
+    color: #{$color-anchor};
     text-decoration: none;
 
     &:hover {
-        color: var(--color-anchor);
+        color: #{$color-anchor};
         text-decoration: underline;
     }
 
@@ -89,7 +80,13 @@ h6 {
     letter-spacing: -0.5px;
 }
 
+h1,
+h2 {
+    margin-top: 2.5rem;
+}
+
 h3 {
+    margin-top: 1.5rem;
     font-size: 1.5rem;
 }
 
@@ -99,6 +96,31 @@ h4 {
 
 h5 {
     font-size: 1rem;
+}
+
+h4,
+h5,
+h6 {
+    margin-top: 1rem;
+}
+
+
+cite {
+    font-style: normal;
+}
+
+figure {
+    width: 100%;
+    margin: 2em 0 2em;
+
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+
+    img {
+        width: 90%;
+        margin: 0 auto 0;
+    }
 }
 
 input {
@@ -123,41 +145,34 @@ code {
     position: relative;
 }
 
-.ui-text-no-select {
-    user-select: none;
-}
-
-.btn,
-.interactive-text,
-p {
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: -0.4px;
-}
-
-.btn {
-    padding: 0.2rem 0.6rem;
-}
-
-h1 .http-status code {
-    position: relative;
-    top: -2px;
-}
-
-.bi::before {
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-}
-
 .text-on {
-    color: $teal-500;
+    color: $green-500;
     font-weight: 600;
 }
 
 .text-off {
     color: $red-500;
     font-weight: 600;
+}
+
+.ui-text-no-select {
+    user-select: none;
+}
+
+.interactive-text {
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: -0.4px;
+}
+
+.btn {
+    letter-spacing: -0.4px;
+}
+
+.bi::before {
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
 }
 
 .large-icon {
@@ -183,11 +198,10 @@ h1 .http-status code {
 
     &::after {
         color: $color-text;
-        background-image: $chevron-down-svg-light;
     }
 
     &:not(.collapsed) {
-        color: var(--accent);
+        color: #{$color-accent};
     }
 }
 
@@ -199,6 +213,6 @@ h1 .http-status code {
     }
 }
 
-.errorlist {
-    color: $red;
+.section-header {
+    margin-top: 0;
 }

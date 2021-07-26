@@ -1,11 +1,7 @@
 <nav id="masthead">
-    <section id="branding">
-        <header>
-            <h1 id="site-name" class="bot-name">
-                <a href="{% url 'web:index' %}" tabindex="0">{{ BRANDING_SHORT }}</a>
-            </h1>
-        </header>
-    </section>
+    <h1 id="site-name" class="branding">
+        <a href="{% url 'web:index' %}" tabindex="0">{{ BRANDING_SHORT }}</a>
+    </h1>
     <section id="auth-control" class="auth-control masthead-opt-group">
         {% include 'ts2/web/identities.html' %}
     </section>

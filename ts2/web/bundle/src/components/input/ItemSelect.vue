@@ -62,7 +62,7 @@
         }
 
         &[aria-expanded="true"] {
-            box-shadow: 0 0 4px 4px rgba(40, 55, 115, 0.12), 0 0 8px 8px rgba(40, 55, 115, 0.10);
+            box-shadow: 0 0 4px 4px color.change($color-accent, $alpha: .08), 0 0 8px 8px color.change($color-accent, $alpha: .05);
 
             .dropdown-menu {
                 box-shadow: 0 0 4px 4px rgba(0, 0, 0, 0.12), 0 0 8px 8px rgba(0, 0, 0, 0.09);
@@ -186,7 +186,7 @@
         &:active {
             background-color: $bw-grey-6;
             color: $bw-grey-14;
-            box-shadow: var(--box-shadow-focus-bright);
+            box-shadow: $box-shadow-focus-bright;
         }
 
         cursor: pointer;

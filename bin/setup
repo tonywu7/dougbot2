@@ -18,7 +18,7 @@ python3 -m nltk.downloader -d /usr/local/share/nltk_data stopwords punkt
 python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[settings]\nSECRET_KEY={SECRET}', flush=True)" > $TARGET/secrets.ini
 
 # Initialize database
-python3 manage.py migrate --skip-checks
+python3 manage.py migrate
 
 # Collect assets
 yes yes | python3 manage.py collectstatic

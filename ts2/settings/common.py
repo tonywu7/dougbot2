@@ -158,8 +158,8 @@ for k in discord_secrets:
 
 ASGI_APPLICATION = 'ts2.asgi.application'
 
-BRANDING_FULL = 'telescope2'
-BRANDING_SHORT = 'telescope2'
+BRANDING_FULL = instance_conf('BRANDING_FULL', 'telescope2')
+BRANDING_SHORT = instance_conf('BRANDING_SHORT', 'telescope2')
 
 JWT_DEFAULT_EXP = 300
 

@@ -56,7 +56,7 @@ class SectionNode(Node):
         classes = optional_attr('class', domtokenlist('main-section', unwrap(context, self.classes)))
         return mark_safe(
             f'<section {section_id} {classes}>'
-            f'<header><h3>{mark_safe(title)}</h3></header>'
+            f'<header><h3 class="section-header">{mark_safe(title)}</h3></header>'
             f'<div class="section-content">{content}</div></section>',
         )
 
