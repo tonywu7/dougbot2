@@ -66,9 +66,9 @@ class Choice(Converter):
         )
 
         if case_sensitive:
-            choices = choices
+            choices = {c: c for c in choices}
         else:
-            choices = {c.lower(): None for c in choices}
+            choices = {c.lower(): c for c in choices}
 
         @classmethod
         async def convert(cls, ctx, arg: str):
@@ -76,8 +76,9 @@ class Choice(Converter):
                 to_match = arg.lower()
             else:
                 to_match = arg
-            if to_match in choices:
-                return arg
+            matched = choices.get(to_match)
+            if matched is not None:
+                return matched
             raise InvalidChoices(desc, arg)
 
         __dict__ = {'convert': convert}
