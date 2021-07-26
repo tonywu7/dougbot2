@@ -79,7 +79,7 @@ export default defineComponent({
         const candidateList = ref<HTMLUListElement>()
         return { container, searchElem, searchInput, candidateList }
     },
-    // emits: ['update:choices', 'update:error'],
+    emits: ['update:choices', 'update:error'],
     data() {
         let selected: Record<string, ItemCandidate> = {}
         let index = createIndex(Object.values(this.items))

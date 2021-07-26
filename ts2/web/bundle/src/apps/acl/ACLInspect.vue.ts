@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { defineComponent } from 'vue'
-import { dataDiscordModel, setupDiscordModel } from '../../components/discord'
+import { setupDiscordModel } from '../../components/discord'
 import ItemSelect from '../../components/input/ItemSelect.vue'
 import { ACLTestOptions } from './ACLRule.vue'
 

@@ -30,7 +30,7 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { DocumentNode, stripIgnoredCharacters } from 'graphql'
 
-import { getCSRF } from './utils/site'
+import { getCSRF, isReadonly } from './utils/site'
 
 import { displayNotification } from './components/utils/modal'
 import { Color } from './components/modal/bootstrap'
@@ -345,6 +345,14 @@ class Server {
         mutation: DocumentNode,
         variables?: V
     ): Promise<FetchResult<T>> {
+        if (isReadonly()) {
+            displayNotification(
+                Color.WARNING,
+                'You are in read-only mode.',
+                'Write-access disabled'
+            )
+            throw new Error('Read-only mode')
+        }
         if (this.POSTdisabled) {
             displayNotification(
                 Color.DANGER,

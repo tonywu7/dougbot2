@@ -56,7 +56,12 @@
         }
     }
 
+    .test-result {
+        font-size: 1rem;
+    }
+
     .result-arg {
+        display: inline-block;
         text-decoration: 2px underline;
     }
 

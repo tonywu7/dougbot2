@@ -23,7 +23,7 @@
         "@types/d3": "^6.7.0",
         "@types/lodash": "^4.14.167",
         "@types/lunr": "^2.3.3",
-        "@vue/compiler-sfc": "^3.1.4",
+        "@vue/compiler-sfc": "^3.1.5",
         "bootstrap": "^5.0.2",
         "concurrently": "^6.2.0",
         "css-loader": "^5.2.6",
@@ -38,7 +38,7 @@
         "style-loader": "^2.0.0",
         "ts-loader": "^9.2.3",
         "typescript": "^4.3.4",
-        "vue": "^3.1.4",
+        "vue": "^3.1.5",
         "vue-loader": "^16.3.0",
         "webpack": "^5.39.1",
         "webpack-cli": "^4.7.2"

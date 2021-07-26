@@ -17,6 +17,7 @@
 import { Color } from './components/modal/bootstrap'
 import { displayNotification } from './components/utils/modal'
 import { initTooltips } from './utils/responsive'
+import { isReadonly } from './utils/site'
 
 export function homepage(): string {
     return document.querySelector<HTMLAnchorElement>('#site-name a')!.href
@@ -72,6 +73,7 @@ function displayServerMessages() {
 }
 
 export function init() {
+    isReadonly()
     initTopMenu()
     initWidgets()
     displayServerMessages()

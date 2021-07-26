@@ -2,7 +2,6 @@ import { defineComponent, ref } from 'vue'
 
 import ACLList from './ACLList.vue'
 import ACLInspect from './ACLInspect.vue'
-import { dataDiscordModel } from '../../components/discord'
 import { ACLTestOptions, filterACL, testACL } from './ACLRule.vue'
 
 export default defineComponent({

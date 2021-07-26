@@ -165,7 +165,7 @@
     }
 
     .btn-delete {
-        margin: 0;
+        margin: 1rem 0 0 0;
         align-self: flex-start;
     }
 

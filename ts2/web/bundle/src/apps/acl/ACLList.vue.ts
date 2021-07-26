@@ -23,6 +23,7 @@ import { Color } from '../../components/modal/bootstrap'
 
 export default defineComponent({
     components: { 'acl-rule': ACLRule },
+    emits: ['update:data'],
     setup() {
         let rules: Ref<ACL[]> = ref([])
         let loading = ref(true)
@@ -68,9 +69,11 @@ export default defineComponent({
             let name = this.untitled()
             rule.name = name
             this.created.push(rule)
+            this.$emit('update:data')
         },
         updateRule(item: ACL, index: number) {
             this.changed[index] = item
+            this.$emit('update:data')
         },
         assertUniqueNames(items: ACL[]): void {
             let names: Set<string> = new Set()
