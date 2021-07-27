@@ -79,6 +79,7 @@ TEMPLATES = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'csp.middleware.CSPMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -227,3 +228,30 @@ for k in [
     'GITHUB_REPO',
 ]:
     INSTANCE_CONSTANTS[k] = instance_conf(k, None)
+
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = (
+    "'self'", "'unsafe-inline'", 'data:',
+    'https://fonts.googleapis.com',
+    'https://cdn.jsdelivr.net',
+    'https://rsms.me',
+)
+CSP_FONT_SRC = (
+    "'self'", 'https://fonts.gstatic.com',
+    'https://cdn.jsdelivr.net',
+    'https://rsms.me',
+)
+CSP_CONNECT_SRC = (
+    "'self'", 'https://discord.com',
+)
+CSP_SCRIPT_SRC = (
+    "'self'", 'https://cdn.jsdelivr.net',
+    'https://cdnjs.cloudflare.com',
+)
+CSP_WORKER_SRC = ("'self'", 'blob:')
+CSP_CHILD_SRC = ("'self'", 'blob:')
+CSP_IMG_SRC = (
+    "'self'", 'data:', 'https://cdn.discordapp.com',
+    'https://upload.wikimedia.org',
+)

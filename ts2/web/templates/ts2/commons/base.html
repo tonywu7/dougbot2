@@ -10,12 +10,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% endblock %}
 
-    {% block meta_security %}
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://cdn.jsdelivr.net https://rsms.me; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://rsms.me; connect-src 'self' https://discord.com; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; worker-src 'self' blob:; child-src 'self' blob:; img-src 'self' https://cdn.discordapp.com data: https://upload.wikimedia.org/">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    {% endblock %}
-
     <title>{% block title %}{% basefilename %}{% endblock %} | {{ BRANDING_FULL }}</title>
 
     {% block styles %}

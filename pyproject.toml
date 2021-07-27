@@ -48,6 +48,7 @@ python-Levenshtein = "^0.12.2"
 redis = "^3.5.3"
 Unidecode = "^1.2.0"
 Faker = "^8.10.2"
+django-csp = "^3.7"
 
 [tool.poetry.dev-dependencies]
 logging_tree = "^1.9"
