@@ -27,7 +27,11 @@
         </span>
     </section>
 </nav>
-
-{% if discord.readonly %}
-<div id="readonly-mode" role="presentation">Read-only mode</div>
-{% endif %}
+<div id="banners" role="presentation">
+    {% if discord.readonly %}
+    <div id="readonly-mode" class="banner">Read-only mode</div>
+    {% endif %}
+    <noscript>
+        <div id="noscript" class="banner">This website requires JavaScript to properly function.</div>
+    </noscript>
+</div>

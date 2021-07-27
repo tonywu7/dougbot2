@@ -98,18 +98,27 @@
     }
 }
 
-#readonly-mode {
+#banners {
     position: absolute;
     left: 0;
     top: 100%;
     width: 100%;
+    display: flex;
+    flex-flow: column-reverse nowrap;
+}
+
+.banner {
     font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
     padding: 0.175rem 0.5rem;
     text-align: center;
     user-select: none;
+    box-shadow: $box-shadow-3;
+}
+
+#readonly-mode {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     background: repeating-linear-gradient(
             135deg,
             transparent,
@@ -119,7 +128,12 @@
         ),
         $yellow;
     color: black;
-    box-shadow: $box-shadow-3;
+}
+
+#noscript {
+    font-weight: 700;
+    background-color: color.adjust($red, $lightness: 30%);
+    color: $red;
 }
 
 .http-status code {
