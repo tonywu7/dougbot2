@@ -166,9 +166,15 @@ def featurenode(context: Context, slug: str):
         )
     url = reverse_universal(context, 'web:features')
     return mark_safe(
-        f'<a href="{url}#{feature.slug}" '
-        f'    class="feature-link feature-type type-{feature.ftype}">'
-        f'Feature {feature.id} #{feature.slug}'
+        f'<a href="{url}#{feature.slug}" class="feature-link">'
+        f'  <span class="feature-type type-{feature.ftype}">'
+        f'    Feature {feature.id} #{feature.slug}'
+        '   </span>'
+        '   <span class="feature-status">'
+        f'    <span class="status status-{feature.status}">'
+        f'      {feature.get_status_display()}'
+        f'    </span>'
+        '   </span>'
         '</a>',
     )
 
