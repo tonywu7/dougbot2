@@ -5,13 +5,13 @@
             <input-select label="What type of feedback" name="topic" :options="reportTypes" v-model:value="topic">
             </input-select>
             <template v-if="topic !== 0">
+                <p v-if="pathLabel" class="interactive-text">(If you know how, you may file an issue
+                    on the <a href="/github">GitHub repo</a> instead.)</p>
                 <input-field type="textarea" name="summary" label="Description" :hint="summaryHint"
                     :options="{showChanged: false, required: true}" v-model:value="summary">
                 </input-field>
                 <input-field v-if="pathLabel" type="text" name="path" :label="pathLabel"
                     :options="{showChanged: false, autocomplete: 'off'}" v-model:value="path"></input-field>
-                <p v-if="pathLabel" class="interactive-text">If you know what you are doing, you should file an issue on
-                    the <a href="/github">GitHub repo</a> instead.</p>
             </template>
         </template>
         <template v-if="topic !== 0" v-slot:form-after>
@@ -30,6 +30,7 @@
 
     .article-view .main-content p {
         font-family: $ui-fonts;
+        margin: 0;
     }
 
     :deep(.field-after) {

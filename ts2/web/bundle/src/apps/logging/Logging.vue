@@ -61,7 +61,6 @@
 
     .btn-success {
         height: 2.5rem;
-        font-weight: 700;
     }
 
     :deep(.form-before) {

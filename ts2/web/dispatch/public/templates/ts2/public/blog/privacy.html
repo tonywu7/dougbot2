@@ -92,25 +92,13 @@
             servers.</li>
     </ul>
 
-    <p><strong>Knowing what servers you are in</strong> is necessary for the bot to work. The bot needs this information
-        to know which part of the website you are allowed to see, so that it doesn't accidentally show you details about
-        servers that you are not in, or allow you to change server and bot settings that you are not supposed to change.
-    </p>
-
     <p>The bot also receives an <em>"access token"</em> and a <em>"refresh token"</em> associated with your Discord
         account. These are keys given by Discord to let the bot continue to read the above information in the future, so
         that you don't have to login every time you open a new page.</p>
 
-    <h4>User profile</h4>
-
     <p>The first time you ever login on this website, a <em>user profile</em> is automatically created behind the scene
         and saved to a database. The profile contains all the information mentioned above <em>except for the list of
             servers you are in.</em></p>
-
-    <p>Info about your servers <em>are never saved,</em> and are instead
-        retrieved from Discord every time the bot needs it. To improve website performance, however, every time this
-        information is downloaded, it is temporarily kept (cached) in the server's memory for up to 300 seconds; this
-        memory cache is not visible to the public internet.</p>
 
     <p>Your user profile is used for the following purposes, and will remain in the database until you request to remove
         it:</p>
@@ -121,6 +109,18 @@
         <li>Creating a link to your Discord profile picture from your user ID (to be displayed on the webpage; the
             server does not fetch nor save your profile pictures).</li>
     </ul>
+
+    <h4>Servers you are in</h4>
+
+    <p><strong>Knowing what servers you are in</strong> is necessary for the bot to work. The bot needs this information
+        to know which part of the website you are allowed to see, so that it doesn't accidentally show you details about
+        servers that you are not in, or allow you to change server and bot settings that you are not supposed to change.
+    </p>
+
+    <p>Info about your servers <em>is never saved,</em> and is instead
+        retrieved from Discord every time the bot needs it. To improve website performance, however, every time this
+        information is downloaded, it is temporarily kept (cached) in the server's memory for up to 300 seconds; this
+        memory cache is not visible to the public internet.</p>
 
     <h4>Cookies</h4>
 
