@@ -1,0 +1,32 @@
+{% extends 'ts2/commons/article.html' %}
+
+{% block title %}Removing your account{% endblock %}
+
+{% block article %}
+<h1><span class="text-warning">Removal request</span></h1>
+
+<p>You are about to delete all information about you from this website:</p>
+
+<ul>
+    <li>You will be logged out.</li>
+    <li>The site will forget about your Discord user ID and username, and will no longer have access to the servers you
+        are in.</li>
+    <li>The bot will remain functional in servers that you joined the bot to. However, these servers will now be
+        unlinked from you. Currently, this means no one will be able to remove the bot from the server through the
+        website (you can still simply kick the bot if you want to remove it.</li>
+    <li><span class="text-danger">If you have configured preferences (such as timezones) through bot commands, they will
+            be deleted.</span></li>
+    <li><span class="text-warning">A user profile will still be created again if you use those bot features, and
+            depending on what bot functions you use, additional info about you over Discord may still be saved after
+            this removal, as long as you share any server with the bot.</span></li>
+</ul>
+
+<form method="POST">
+    {% csrf_token %}
+    <span class="token-list">
+        <button class="btn btn-outline-danger" type="submit">Yes, delete my account</button>
+        <a href="{% url 'web:index' %}" class="btn btn-outline-light">Cancel and go back</a>
+    </span>
+</form>
+
+{% endblock %}

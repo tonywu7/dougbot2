@@ -17,12 +17,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.template import TemplateDoesNotExist
 from django.views.generic import View
 
 from ...forms import FeedbackForm
 from ...models import Feature
+from .removal import rm
 
 
 def index(req: HttpRequest) -> HttpResponse:
@@ -55,6 +56,19 @@ class BugReportView(View):
             messages.success(req, 'Report submitted. Thank you!')
         return render(req, 'ts2/public/bugreport.html',
                       {'endpoint': req.get_full_path()}, status=status)
+
+
+class InfoRemovalRequestView(View):
+    @staticmethod
+    @login_required
+    def get(req: HttpRequest, **kwargs) -> HttpResponse:
+        return render(req, 'ts2/public/removal.html')
+
+    @staticmethod
+    @login_required
+    def post(req: HttpRequest, **kwargs) -> HttpResponse:
+        rm(req)
+        return redirect('web:index')
 
 
 def blog(req: HttpRequest, dest: str, **kwargs) -> HttpResponse:
