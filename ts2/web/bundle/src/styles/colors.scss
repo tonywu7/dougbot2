@@ -151,6 +151,9 @@ $input-btn-font-size: 1rem;
 @import "../../node_modules/bootstrap/scss/variables";
 @import "../../node_modules/bootstrap/scss/mixins";
 
+$display-width-medium: 900px;
+$display-width-small: 768px;
+
 $mta-arrow-east: escape-svg(
     'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="13.17" fill="currentColor" viewBox="0 0 16 13.17"><polygon class="cls-1" points="16 6.58 9.43 0 6.96 2.46 9.33 4.82 0 4.82 0 8.3 9.37 8.3 6.96 10.71 9.43 13.17 16 6.59 15.99 6.58 16 6.58"/></svg>'
 );

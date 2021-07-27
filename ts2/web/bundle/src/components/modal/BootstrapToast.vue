@@ -28,7 +28,7 @@
 
     :deep(*) {
         .toast {
-            @media screen and (max-width: 768px) {
+            @media screen and (max-width: $display-width-small) {
                 background-color: $gray-200;
             }
         }

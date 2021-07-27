@@ -9,7 +9,7 @@
 
     padding: 1.5rem var(--masthead-space-horizontal) 0 0;
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         padding: 1rem var(--masthead-space-horizontal);
     }
 }

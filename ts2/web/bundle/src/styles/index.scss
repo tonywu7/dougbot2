@@ -22,7 +22,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         height: 3.2rem;
         letter-spacing: -1.5px;
     }
@@ -74,7 +74,7 @@
         color: $color-text;
     }
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         left: -1.3rem;
         padding: 0 0 0 0.9rem;
     }
@@ -85,6 +85,10 @@
         letter-spacing: -1.5px;
         border-left-width: 0.55rem;
         left: -1.16rem;
+
+        @media screen and (max-width: $display-width-small) {
+            left: -5vw;
+        }
     }
 }
 

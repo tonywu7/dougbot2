@@ -27,6 +27,8 @@
 </template>
 <script lang="ts" src="./TimezoneList.vue.ts"></script>
 <style lang="scss" scoped>
+    @import '../../styles/colors';
+
     .timezone-list-container {
         display: flex;
         flex-flow: column nowrap;
@@ -58,7 +60,7 @@
             justify-self: stretch;
         }
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: $display-width-small) {
             grid-template-columns: 1fr;
         }
     }
@@ -70,7 +72,7 @@
         justify-content: center;
         align-items: center;
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: $display-width-small) {
             flex-flow: row-reverse;
             justify-content: space-between;
         }
@@ -80,7 +82,7 @@
         font-weight: 300;
         font-size: 1.4rem;
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: $display-width-small) {
             font-size: 1.2rem;
         }
     }

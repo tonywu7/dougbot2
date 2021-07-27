@@ -31,7 +31,7 @@
             margin: 0;
             flex: 1 1 45%;
 
-            @media screen and (max-width: 768px) {
+            @media screen and (max-width: $display-width-small) {
                 flex: 1 0 100%;
             }
         }

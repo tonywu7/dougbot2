@@ -3,7 +3,7 @@
     --masthead-space-vertical: 10px;
     --masthead-space-horizontal: 40px;
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         --masthead-space-horizontal: 1.3rem;
     }
 }
@@ -90,7 +90,7 @@
 }
 
 #auth-control {
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         display: none;
     }
 }
@@ -99,7 +99,7 @@
     display: none;
     cursor: pointer;
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         display: flex;
     }
 
@@ -122,6 +122,10 @@
         position: relative;
         top: 1px;
     }
+}
+
+#static-links {
+    display: none;
 }
 
 @import "./identity-control";

@@ -20,7 +20,7 @@
         flex-flow: column nowrap;
     }
 
-    @media screen and (min-width: 1024px) {
+    @media screen and (min-width: $display-width-medium) {
         #masthead {
             justify-content: flex-start;
 
@@ -44,6 +44,11 @@
                     background-color: $color-accent;
                     color: color-contrast($color-accent);
                 }
+            }
+
+            #static-links {
+                display: block;
+                margin-left: auto;
             }
         }
 
@@ -110,7 +115,7 @@
         box-shadow: none;
     }
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         position: static;
         padding: unset;
         i.bi {
@@ -140,12 +145,12 @@
     margin-left: 24vw;
     margin-right: 24vw;
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         margin-left: 20vw;
         margin-right: 20vw;
     }
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         margin-left: 5vw;
         margin-right: 5vw;
     }
@@ -165,6 +170,11 @@
             margin: 0 0 1rem;
             border-inline-start: 4px solid #ff980b;
             padding-inline-start: 0.7rem;
+
+            @media screen and (max-width: $display-width-small) {
+                left: -5vw;
+                padding-inline-start: calc(5vw - 4px);
+            }
         }
     }
 
@@ -287,7 +297,7 @@
         display: none;
     }
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -306,11 +316,11 @@
     color: $bw-grey-9;
     width: 21vw;
 
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         width: 18vw;
     }
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         display: none;
     }
 

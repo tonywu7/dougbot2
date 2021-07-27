@@ -38,11 +38,11 @@
             grid-template-columns: 1fr;
         }
 
-        @media screen and (min-width: 768px) and (max-width: 1152px) {
+        @media screen and (min-width: $display-width-small) and (max-width: 1152px) {
             grid-template-columns: 1fr 1fr;
         }
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: $display-width-small) {
             grid-template-columns: 1fr;
         }
     }

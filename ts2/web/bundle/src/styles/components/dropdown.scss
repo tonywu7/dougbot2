@@ -68,7 +68,7 @@ a.dropdown-toggle:focus {
         color: color-contrast($primary);
     }
 
-    @media screen and (max-width: 768px) {
+    @media screen and (max-width: $display-width-small) {
         white-space: normal;
     }
 }

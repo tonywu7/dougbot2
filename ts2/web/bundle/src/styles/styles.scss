@@ -5,7 +5,7 @@
 @import "colors";
 
 :root {
-    @media screen and (max-width: 1024px) {
+    @media screen and (max-width: $display-width-medium) {
         font-size: 11pt;
     }
 }
@@ -207,7 +207,7 @@ code {
         line-height: 1;
         text-align: center;
 
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: $display-width-small) {
             font-size: 3rem;
             padding: 0 0 1rem;
         }
