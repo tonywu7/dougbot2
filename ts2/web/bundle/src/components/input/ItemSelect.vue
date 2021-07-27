@@ -158,7 +158,7 @@
         overflow-y: scroll;
         z-index: 2000;
         left: -1px;
-        background-color: $bw-grey-2;
+        background-color: $bw-grey-3;
         border: 1px solid $hairline-color;
     }
 

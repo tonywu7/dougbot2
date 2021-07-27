@@ -4,6 +4,7 @@
 @import "../../styles/colors";
 @import "../../styles/typefaces";
 @import "../features/features";
+@import "../../../node_modules/tocbot/src/scss/tocbot";
 
 .article-view {
     background-color: $bw-grey-3;
@@ -140,8 +141,8 @@
     margin-right: 24vw;
 
     @media screen and (max-width: 1024px) {
-        margin-left: 15vw;
-        margin-right: 15vw;
+        margin-left: 20vw;
+        margin-right: 20vw;
     }
 
     @media screen and (max-width: 768px) {
@@ -294,4 +295,56 @@
 .icon {
     position: relative;
     top: -1px;
+}
+
+.toc {
+    position: fixed;
+    top: calc(var(--masthead-height) + 2rem);
+    right: 0;
+    padding: 0 1rem 0 0;
+
+    color: $bw-grey-9;
+    width: 21vw;
+
+    @media screen and (max-width: 1024px) {
+        width: 18vw;
+    }
+
+    @media screen and (max-width: 768px) {
+        display: none;
+    }
+
+    & > .toc-list {
+        padding-left: 12px;
+    }
+
+    .toc-list {
+        display: flex;
+        flex-flow: column nowrap;
+    }
+
+    .toc-list-item {
+        display: flex;
+        flex-flow: column nowrap;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .toc-link {
+        font-size: 0.9rem;
+        margin: 3pt 0;
+
+        &::before {
+            background-color: $bw-grey-6;
+            margin-top: -3pt;
+        }
+    }
+
+    .is-active-link {
+        color: $color-text;
+
+        &::before {
+            background-color: $color-accent;
+        }
+    }
 }

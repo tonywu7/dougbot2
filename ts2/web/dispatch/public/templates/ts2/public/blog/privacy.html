@@ -12,6 +12,9 @@
 <blockquote class="blockquote-danger">
     <i class="bi bi-exclamation-triangle-fill"></i> This is not a legal document.
 </blockquote>
+<blockquote class="blockquote-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i> The Service's GDPR compliance has not been evaluated.
+</blockquote>
 
 <section>
     <header>
@@ -52,22 +55,121 @@
     <p>Here is a list of all the information related to you the bot currently may process:</p>
 
     <ul>
-        <li>Your Discord ID <strong class="text-red">[stored]</strong></li>
-        <li>Your Discord user name <strong class="text-red">[stored]</strong></li>
+        <li>Discord ID <strong class="text-red">[stored]</strong></li>
+        <li>Discord user name <strong class="text-red">[stored]</strong></li>
         <li>Discord OAuth tokens <strong class="text-red">[stored]</strong></li>
         <li>Servers you are in <strong class="text-green">[transient]</strong></li>
-        <li>Your profile picture URL <strong class="text-green">[transient]</strong></li>
+        <li>Profile picture URL <strong class="text-green">[transient]</strong></li>
         <li>Browser sessions <strong class="text-blue">[on your device]</strong></li>
-        <li>Settings & preferences <strong class="text-red">[stored]</strong></li>
-        <li>Your server permissions <strong class="text-green">[transient]</strong></li>
-        <li>Your server nickname <strong class="text-green">[transient]</strong></li>
-        <li>Your server messages <strong class="text-green">[transient]</strong></li>
-        <li>Your message reactions <strong class="text-green">[transient]</strong></li>
+        <li>Bot settings & preferences <strong class="text-red">[stored]</strong></li>
+        <li>Server permissions <strong class="text-green">[transient]</strong></li>
+        <li>Server nickname <strong class="text-green">[transient]</strong></li>
+        <li>Server messages & reactions <strong class="text-green">[transient]</strong></li>
     </ul>
+
+    <h4>Data sharing</h4>
+
+    <p><strong>No other third-party entity has access to information associated with you that Discord provides to
+            us.</strong> This information includes your Discord ID, user name, messages, as well as details about the
+        servers that you are in.</p>
+
+    <p>Your Discord information remains on the server that operates the bot, and is only ever served outside of the
+        server in two places:</p>
+
+    <ul>
+        <li>Through this website when you are logged in;</li>
+        <li>Through the bot whenever you interact with it.</li>
+    </ul>
+
+</section>
+
+<section>
+    <header>
+        <h3>Discord bot</h3>
+    </header>
+
+    <p>
+        Regardless of whether you use this website or not, the Discord bot may retrieve, process, and/or store info
+        about your Discord activities.
+    </p>
+
+    <h4>User-generated content</h4>
+
+    <p><strong>User-generated content</strong> are data that you create when you use Discord, such as your messages,
+        images, videos, uploaded files, and reactions.</p>
+
+    <p>Currently, no information that the bot stores falls under this category. In the future, there may be new
+        functions that require the bot to keep in the database copies of content created by members, such as
+        messages,
+        images, links, and attachments.</p>
+
+    <p>Most likely, such information will be stored after anonymization, meaning they are stored without referencing
+        a
+        certain user. If it is not possible, or if attribution is needed, then there will be a way for you to delete
+        any
+        content stored and associated with you.</p>
+
+    <h4>Information that you explicitly provide to the bot</h4>
+
+    <p>Certain components of the bot allow per-user customization, such as setting your user timezones. The bot
+        stores
+        what is necessary to its database. Intermediate information, such as addresses that you provide, are not
+        stored.
+    </p>
+
+    <p><strong>Much like all other Discord content, such information is implicitly public.</strong> The bot may
+        display
+        such content in the server channels it operates when other users interact with the bot. The bot does not
+        ever ask you for <strong>personally identifiable information (PII)</strong>, nor should you send such
+        information over Discord.
+    </p>
+
+    <p>The bot also has mechanisms to allow you to delete the bot's command responses and to preemptively delete
+        your
+        interactions with the bot if they may contain personal information.
+    </p>
+
+    <h4>Third-party data providers</h4>
+
+    <p>Some functions of the bot require downloading data from third-party sources on your behalf, such as when you
+        look
+        up a location, time, or video. Downloaded data may be cached or stored in the database. Currently, no such
+        data
+        is stored and no such data is linked to your Discord account.</p>
+
+    <p>The query (command arguments) that you provide when you look up something using the bot may be logged by the
+        program and saved to the server for debugging purposes, but such logs are not linked to your account: the
+        log
+        will see what is being requested and when, but not who requested it.</p>
+
+    <p>The following are all the providers currently in use:</p>
+
+    <ul>
+        <li><a href="https://nominatim.openstreetmap.org/">OpenStreetMap/Nominatim</a></li>
+        <li><a href="https://oeis.org/">The On-Line Encyclopedia of Integer Sequences®</a></li>
+    </ul>
+
+    <h4>Internal cache</h4>
+
+    <p>To make the bot as responsive and performant as possible, <a
+            href="https://discordpy.readthedocs.io/"><em>discord.py,</em></a>
+        which the bot is built on, will keep as much information about the servers it is in as possible. This
+        includes
+        all members' user ID, names, nicknames, channels, roles, and recent message history in the server. We have
+        no
+        control over this process, but the info is only used to make the bot function, and is <em>transient:</em>
+        only kept in memory and may be deleted at anytime.
+    </p>
+</section>
+
+<section>
+    <header>
+        <h3>The website</h3>
+    </header>
 
     <h4>Using this website when logged out</h4>
 
-    <p>No <strong>Personally Identifiable Information (PII)</strong> is collected from you when you browse this website
+    <p>No personally identifiable information is collected from you when you browse this website
         anonymously (i.e. not logged-in). However, when you open this website through any means, the <em>IP address</em>
         from which the web request is made, and the <a
             href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent"><em>user agent</em></a> (some
@@ -138,36 +240,6 @@
         <li><code>message</code>: Used by Django to temporarily store notifications that it needs to display to you.
         </li>
     </ul>
-
-    <h4>Discord bot</h4>
-
-    <p>
-        Regardless of whether you use this website or not, the Discord bot may retrieve, process, and/or store info
-        about your Discord activities.
-    </p>
-
-    <h5>Information that you explicitly provide to the bot:</h5>
-
-    <p>Certain components of the bot allow per-user customization, such as setting your user timezones. The bot stores
-        what is necessary to its database. Intermediate information, such as addresses that you provide, are not stored.
-    </p>
-
-    <h5>Internal cache:</h5>
-
-    <p>To make the bot as responsive and performant as possible, <em>discord.py,</em> which the bot is built on, will
-        keep as much information about the servers it is in as possible, including all members' user ID, names,
-        nicknames, channels , roles, and recent message history in the server. We have no control over this process, but
-        the info is only used to make the bot run, and is transient: kept in memory and may be deleted at anytime.</p>
-
-    <h5>User generated content:</h5>
-
-    <p>Currently, no information that the bot stores falls under this category. In the future, there may be new
-        functions that require the bot to keep in the database copies of content created by members, such as messages,
-        images, links, and attachments.</p>
-
-    <p>Most likely, such information will be stored after anonymization, meaning they are stored without referencing a
-        certain user. If it is not possible, or if attribution is needed, then there will be a way for you to delete any
-        content stored and associated with you.</p>
 </section>
 
 {% endblock %}

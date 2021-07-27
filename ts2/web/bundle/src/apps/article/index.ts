@@ -19,6 +19,8 @@ import './article.scss'
 import { flatten } from 'lodash'
 import { slugify } from '../../utils/data'
 
+import * as tocbot from 'tocbot'
+
 function createLandmarks() {
     if (!document.body.classList.contains('article-view')) return
     let headings = flatten([
@@ -26,6 +28,7 @@ function createLandmarks() {
             ...a.querySelectorAll<HTMLElement>('h1, h2, h3, h4, .landmark'),
         ]),
     ]) as HTMLElement[]
+
     for (let heading of headings) {
         if (heading.classList.contains('no-landmark')) continue
         let text = heading.textContent
@@ -35,7 +38,7 @@ function createLandmarks() {
             landmark.id = id
             landmark.setAttribute('role', 'presentation')
             landmark.classList.add('anchor-position')
-            landmark.textContent = '\xa0'
+            landmark.textContent = text
             let anchor = document.createElement('a')
             anchor.id = `anchor-${id}`
             anchor.href = `#${id}`
@@ -48,6 +51,25 @@ function createLandmarks() {
             heading.classList.add('anchor-container')
         }
     }
+
+    tocbot.init({
+        tocSelector: '.toc',
+        contentSelector: 'article',
+        headingSelector:
+            'h2 .anchor-position, h3 .anchor-position, h4 .anchor-position',
+        hasInnerContainers: true,
+        collapseDepth: 3,
+        includeHtml: true,
+        scrollSmooth: false,
+        orderedList: false,
+        headingObjectCallback: (obj, elem) => {
+            let item = obj as any
+            let parent = elem.parentElement as HTMLHeadingElement
+            item.textContent = parent.textContent
+            item.headingLevel = Number(parent.tagName.charAt(1))
+            return item
+        },
+    })
 }
 
 window.addEventListener('DOMContentLoaded', () => {

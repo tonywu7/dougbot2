@@ -2,6 +2,9 @@
 {% load static %}
 
 {% block apps %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.12.3/tocbot.min.js"
+    integrity="sha512-8u1QblAcGUuhEv26YgTYO3+OtPL7l37qiYoPQtahVTaiLn/H3Z/K16TOXJ3U7PDYBiJWCWKM0a+ELUDGDgED2Q=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script defer src="{% static '/telescope2/article.bundle.js' %}"></script>
 {% endblock %}
 
@@ -12,6 +15,7 @@
 {% block view_modifier %}article-view{% endblock %}
 
 {% block body %}
+<nav class="toc"></nav>
 <article class="main-content">
     {% block article %}
     {% endblock %}

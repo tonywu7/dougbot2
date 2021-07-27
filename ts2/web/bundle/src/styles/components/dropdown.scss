@@ -1,4 +1,5 @@
 @use '../../../node_modules/bootstrap/scss/functions';
+@import "../colors";
 
 a.dropdown-toggle:focus {
     text-decoration: underline;
@@ -8,7 +9,8 @@ a.dropdown-toggle:focus {
     max-width: 100vw;
     overflow: hidden;
 
-    background-color: $bw-grey-3;
+    background-color: $bw-grey-4;
+    box-shadow: $box-shadow-1;
 
     .dropdown-header {
         color: $color-text-muted;
