@@ -32,13 +32,15 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from .apps import server_allowed
 from .config import CommandAppConfig, Extensions
 from .fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
                     PartialGuild, PartialUser)
 from .models import Server
+
+GUILD_ID = 'guild_id'
 
 
 def _http_safe_method(req: HttpRequest) -> bool:
@@ -118,13 +120,13 @@ async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
     ctx = get_ctx(req, logout=False)
     if ctx:
         await disable_server(ctx.server)
-    return redirect(reverse('web:manage.index', kwargs={'guild_id': ctx.server_id}))
+    return redirect(reverse('web:manage.index', kwargs={GUILD_ID: ctx.server_id}))
 
 
 def handle_server_disabled(req: HttpRequest) -> HttpResponse:
     message_server_disabled(req)
     ctx = get_ctx(req)
-    redirect_url = reverse('web:manage.index', kwargs={'guild_id': ctx.server_id})
+    redirect_url = reverse('web:manage.index', kwargs={GUILD_ID: ctx.server_id})
     if redirect_url == req.path:
         return render(req, 'ts2/manage/index.html')
     return redirect(redirect_url)
@@ -283,12 +285,12 @@ class DiscordContextMiddleware:
         except Logout:
             return await logout_current_user(request)
 
-        guild_id: str = view_kwargs.get('guild_id')
+        guild_id: str = view_kwargs.get(GUILD_ID)
         context = await DiscordContext.create(guilds, guild_id, token, request.user, profile)
 
         if context.server_id and context.info is None:
             if request.user.is_authenticated:
-                return redirect(reverse('web:index'))
+                return redirect(maybe_public_url(request))
             handoff = {'next': request.get_full_path()}
             return redirect(f'{reverse("web:login")}?{urlencode(handoff)}')
         if context.server and context.server.disabled:
@@ -327,7 +329,7 @@ def require_server_presence(f):
     def check_server(request: HttpRequest, *args, **kwargs):
         ctx = get_ctx(request)
         if not ctx.server:
-            return redirect('web:manage.index', kwargs={'guild_id': ctx.server_id})
+            return redirect('web:manage.index', kwargs={GUILD_ID: ctx.server_id})
         return f(request, *args, **kwargs)
     return check_server
 
@@ -342,8 +344,33 @@ def require_server_access(permission: AccessLevel, exists: bool = True):
             if exists and not ctx.server:
                 return redirect(reverse(
                     'web:manage.index',
-                    kwargs={'guild_id': ctx.server_id},
+                    kwargs={GUILD_ID: ctx.server_id},
                 ))
             return view_func(request, *args, **kwargs)
         return check_perm
+    return wrapper
+
+
+def maybe_public_url(request: HttpRequest) -> str:
+    resolved = request.resolver_match
+    kwargs = {**resolved.kwargs}
+    kwargs.pop(GUILD_ID, None)
+    try:
+        public = reverse(resolved.view_name, kwargs=kwargs)
+    except NoReverseMatch:
+        return reverse('web:index')
+    return public
+
+
+def optional_server_access(permission: AccessLevel):
+    def wrapper(view_func):
+        @wraps(view_func)
+        def check_perms(request: HttpRequest, *args, guild_id=None, **kwargs):
+            if not guild_id:
+                return view_func(request, *args, **kwargs)
+            ctx = get_ctx(request, logout=False)
+            if ctx and ctx.check_access(permission):
+                return view_func(request, *args, guild_id=guild_id, **kwargs)
+            return redirect(maybe_public_url(request))
+        return check_perms
     return wrapper

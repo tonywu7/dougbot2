@@ -21,6 +21,8 @@ from django.shortcuts import redirect, render
 from django.template import TemplateDoesNotExist
 from django.views.generic import View
 
+from ts2.discord.middleware import optional_server_access
+
 from ...forms import FeedbackForm
 from ...models import Feature
 from .removal import rm
@@ -30,6 +32,7 @@ def index(req: HttpRequest) -> HttpResponse:
     return render(req, 'ts2/public/index.html')
 
 
+@optional_server_access('read')
 def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/public/features.html', {
         'features': Feature.objects.order_by('status', 'ftype', 'name').all(),
@@ -39,11 +42,13 @@ def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
 class BugReportView(View):
     @staticmethod
     @login_required
+    @optional_server_access('read')
     def get(req: HttpRequest, **kwargs) -> HttpResponse:
         return render(req, 'ts2/public/bugreport.html', {'endpoint': req.get_full_path()})
 
     @staticmethod
     @login_required
+    @optional_server_access('read')
     def post(req: HttpRequest, **kwargs) -> HttpResponse:
         form = FeedbackForm({**req.POST.dict(), 'user': req.user})
         try:
@@ -61,16 +66,19 @@ class BugReportView(View):
 class InfoRemovalRequestView(View):
     @staticmethod
     @login_required
+    @optional_server_access('read')
     def get(req: HttpRequest, **kwargs) -> HttpResponse:
         return render(req, 'ts2/public/removal.html')
 
     @staticmethod
     @login_required
+    @optional_server_access('read')
     def post(req: HttpRequest, **kwargs) -> HttpResponse:
         rm(req)
         return redirect('web:index')
 
 
+@optional_server_access('read')
 def blog(req: HttpRequest, dest: str, **kwargs) -> HttpResponse:
     try:
         return render(req, f'ts2/public/blog/{dest}.html')

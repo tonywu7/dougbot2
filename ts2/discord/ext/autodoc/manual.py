@@ -149,10 +149,10 @@ class Manual:
             aliased = self.aliases[query]
             return self.commands[aliased]
         except KeyError:
-            match = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
-            if match:
-                match = match[0]
-            raise NoSuchCommand(query, match)
+            matched = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
+            if matched:
+                matched = matched[0]
+            raise NoSuchCommand(query, matched)
 
     def hidden_commands(self) -> dict[str, Documentation]:
         return {k: v for k, v in self.commands.items() if v.hidden}

@@ -75,8 +75,8 @@ def reverse_universal(ctx: Context, view: str, **kwargs):
 
 
 def is_current_view(req: HttpRequest, view: str, **kwargs):
-    match = req.resolver_match
-    return view == match.view_name and set(kwargs.items()) <= set(match.kwargs.items())
+    resolved = req.resolver_match
+    return view == resolved.view_name and set(kwargs.items()) <= set(resolved.kwargs.items())
 
 
 @create_tag_parser(register, 'sidebarlink')
