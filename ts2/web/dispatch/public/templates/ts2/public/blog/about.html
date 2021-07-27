@@ -13,12 +13,12 @@
     <header>
         <h3>What is this?</h3>
     </header>
-    <blockquote>Yet another Discord bot for the DougDoug Discord server.</blockquote>
+    <blockquote>Yet another Discord bot for the <a href="/discord">DougDoug Discord server.</a></blockquote>
     <p>
         We've been using <a href="https://yagpdb.xyz/" class="external">@Frank</a> for quite a while now, and
         its custom commands are awesome. But its drawback is also in the name — being a general-purpose bot
         means it doesn't integrate deeply with the server nor offer truly unique customization, <strong>nor can it
-            expend a lot of computing power.</strong>
+            expend a lot of computing power for us.</strong>
     </p>
     <p>With <a href="https://www.youtube.com/watch?v=XvK4py0EE5s">@Frank,</a> there's no way to, for example:</p>
     <ul>
@@ -42,40 +42,11 @@
     <p>Writing an in-house bot from scratch also paves the way for <em>two special features down the road:</em>
         {% featurelink 'district-soundfinder' %} and {% featurelink 'district-encyclopedia' %} (and as many other
         features as I can humanly-possibly implement). Feel free to make suggestions through the <a
-            href="{% url-universal 'web:bugreport' %}">feedback form</a>!</p>
+            href="{% url-universal 'web:bugreport' %}">feedback form!</a></p>
 
 </section>
 
-<section>
-    <header>
-        <h3>What tools do you use?</h3>
-    </header>
-    <p>The bot is in Python using <a href="https://discordpy.readthedocs.io/">discord.py</a>, but organized as <a
-            href="https://www.djangoproject.com/">Django</a> apps (which also drives this website).
-        It is hosted on <a href="https://aws.amazon.com/">AWS.</a></p>
-    <p>Interactive stuff on the webpage are written using <a href="https://v3.vuejs.org/">Vue</a> in <a
-            href="https://www.typescriptlang.org/">TypeScript</a> and styles are written in <a
-            href="https://sass-lang.com/">Sass</a>.</p>
-</section>
-
-<section>
-    <header>
-        <h3>Can I run this bot?</h3>
-    </header>
-    <p><strong>Yes.</strong></p>
-    <p>The bot as it is currently hosted on <code>{{ CURRENT_DOMAIN }}</code> is only usable in the DougDoug Discord
-        server — you'll notice that you can't join the bot anywhere else even if you had logged in. But nothing stops
-        you from forking the bot's source code, <a href="https://discord.com/developers/applications">make a Discord
-            app</a>, and host the bot yourself.</p>
-    <p>In fact, one of the initial design choices I had for the bot is that <em>it should be as versatile and easy to
-            use as possible,</em> which is also the reason there is the control panel on the website, and login is done
-        using Discord accounts. The bot does not need a frontend to function, but having a frontend makes it easy for
-        people (your peer moderators, for example) to setup the bot without dealing with all the underlying moving
-        parts.</p>
-    <p>With that being said, you do need to know how to use <a href="https://docker-curriculum.com/">Docker</a>.
-        Follow the <a href="/github">README on GitHub</a> and file issues for any bug you find!
-    </p>
-</section>
+<hr>
 
 <section>
     <header>
@@ -132,6 +103,39 @@
                 ddarknut/better</a>
         </li>
     </ul>
+</section>
+
+<hr>
+
+<section>
+    <header>
+        <h3>What tools do you use?</h3>
+    </header>
+    <p>The bot is written in Python using <a href="https://discordpy.readthedocs.io/">discord.py</a>, but organized as
+        <a href="https://www.djangoproject.com/">Django</a> apps (which also drives this website).
+        It is hosted on <a href="https://aws.amazon.com/">AWS.</a></p>
+    <p>Interactive stuff on the webpage are written using <a href="https://v3.vuejs.org/">Vue</a> in <a
+            href="https://www.typescriptlang.org/">TypeScript</a> and styles are written in <a
+            href="https://sass-lang.com/">Sass</a>.</p>
+</section>
+
+<section>
+    <header>
+        <h3>Can I run this bot?</h3>
+    </header>
+    <p><strong>Yes.</strong></p>
+    <p>The bot as it is currently hosted on <code>{{ CURRENT_DOMAIN }}</code> is only usable in the DougDoug Discord
+        server — you'll notice that you can't join the bot anywhere else even if you had logged in. But nothing stops
+        you from forking the bot's source code, <a href="https://discord.com/developers/applications">make a Discord
+            app</a>, and host the bot yourself.</p>
+    <p>In fact, one of the initial design choices I had for the bot is that <em>it should be as versatile and easy to
+            use as possible,</em> which is also the reason there is the control panel on the website, and login is done
+        using Discord accounts. The bot does not need a frontend to function, but having a frontend makes it easy for
+        people (your peer moderators, for example) to setup the bot without dealing with all the underlying moving
+        parts.</p>
+    <p>With that being said, you do need to know how to use <a href="https://docker-curriculum.com/">Docker.</a>
+        Follow the <a href="/github">README on GitHub</a> and file issues for any bug you find!
+    </p>
 </section>
 
 <hr>

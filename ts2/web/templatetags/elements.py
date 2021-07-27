@@ -20,6 +20,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Optional
 
+from django.http import HttpRequest
 from django.template import Context, Library, Node, NodeList, Variable, loader
 from django.urls import NoReverseMatch, reverse
 from django.utils.safestring import mark_safe
@@ -73,6 +74,11 @@ def reverse_universal(ctx: Context, view: str, **kwargs):
     return url
 
 
+def is_current_view(req: HttpRequest, view: str, **kwargs):
+    match = req.resolver_match
+    return view == match.view_name and set(kwargs.items()) <= set(match.kwargs.items())
+
+
 @create_tag_parser(register, 'sidebarlink')
 class SidebarLinkNode(Node):
     def __init__(self, view: Variable, name: Variable, icon: Variable, **url_kwargs):
@@ -91,7 +97,7 @@ class SidebarLinkNode(Node):
             url = reverse_universal(context, view, **url_kwargs)
         except NoReverseMatch:
             return mark_safe('')
-        if 'request' in context and view == context['request'].resolver_match.view_name:
+        if 'request' in context and is_current_view(context['request'], view, **url_kwargs):
             classes = ' class="sidebar-active"'
             if mark_active:
                 mark_active(url)

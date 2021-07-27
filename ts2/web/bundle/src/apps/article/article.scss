@@ -179,6 +179,10 @@
         }
     }
 
+    > :first-child {
+        margin-top: 0;
+    }
+
     p,
     ol,
     ul {
@@ -219,6 +223,11 @@
         font-weight: 500;
     }
 
+    em > a,
+    a > em {
+        text-decoration: underline;
+    }
+
     mark {
         background-color: color.adjust($server-gold, $hue: 10deg, $lightness: -40%);
         color: $server-gold;
@@ -234,6 +243,17 @@
         background-color: color.change($color-accent-desat, $alpha: 0.05);
         color: $color-accent;
         border-left: 3px solid $color-accent;
+
+        &.blockquote-danger {
+            background-color: color.change($red, $alpha: 0.05);
+            color: $red;
+            border-color: $red;
+        }
+
+        a {
+            text-decoration: underline;
+            color: inherit;
+        }
     }
 
     strong a,

@@ -190,6 +190,14 @@ class DiscordFetch:
         form.add_field('refresh_token', refresh_token)
         return await self.request_token(form)
 
+    async def revoke_token(self, refresh_token: str) -> None:
+        form = aiohttp.FormData()
+        form.add_field('client_id', settings.DISCORD_CLIENT_ID)
+        form.add_field('client_secret', settings.DISCORD_CLIENT_SECRET)
+        form.add_field('token', refresh_token)
+        async with self._session.post('https://discord.com/api/oauth2/token/revoke', data=form) as res:
+            return await res.json()
+
     async def _throttle(self, endpoint, res: aiohttp.ClientResponse):
         if res.status == 429:
             await self._wait(20)

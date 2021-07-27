@@ -17,6 +17,8 @@
 }
 
 .main-sidebar {
+    // background-color: $bw-grey-2;
+
     .sidebar-content {
         position: sticky;
         top: var(--masthead-height);
@@ -50,6 +52,100 @@
     @media screen and (max-width: 1024px) {
         @include sidebar-offcanvas();
         @include sidebar-offcanvas-from-top();
+    }
+
+    .accordion-item {
+        --item-distance: 0.5rem;
+
+        @media screen and (max-width: 1024px) {
+            span {
+                font-size: 1.1rem;
+            }
+            --item-distance: 0.6rem;
+        }
+
+        border: none;
+        background-color: transparent;
+
+        @media screen and (min-width: 1024px) {
+            &:first-of-type .accordion-header {
+                padding-top: 3rem;
+            }
+        }
+
+        .accordion-button.collapsed {
+            border-radius: 0;
+        }
+
+        .accordion-header,
+        li {
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+
+            letter-spacing: -0.5px;
+            font-size: 1.1rem;
+            line-height: 1rem;
+
+            user-select: none;
+
+            i.bi::before {
+                font-size: 1.2rem;
+                margin: 0 8pt 0 0;
+                vertical-align: middle;
+            }
+        }
+
+        .accordion-header {
+            margin: 0;
+            padding: 1rem 1rem 1rem 1.2rem;
+            cursor: pointer;
+            background-color: $bw-grey-2;
+            box-shadow: $box-shadow-1;
+            font-weight: 700;
+        }
+
+        .accordion-body {
+            margin: 1rem 0;
+            background-color: transparent;
+            padding: var(--item-distance) 1rem var(--item-distance) 1.2rem;
+        }
+
+        li {
+            padding: 0 0.5rem 0 0;
+            margin: var(--item-distance) 0;
+
+            &:first-child {
+                margin-block-start: 0;
+            }
+            &:last-child {
+                margin-block-end: 0;
+            }
+        }
+
+        ul {
+            margin: 0 0 0 0.9rem;
+            padding: 0;
+            display: flex;
+            flex-flow: column nowrap;
+
+            li {
+                font-weight: 500;
+                font-size: 0.95rem;
+            }
+        }
+
+        a {
+            color: $color-text;
+        }
+
+        .sidebar-active {
+            color: #{$color-accent};
+
+            a {
+                color: #{$color-accent};
+            }
+        }
     }
 }
 

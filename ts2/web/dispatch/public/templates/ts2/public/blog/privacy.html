@@ -1,0 +1,173 @@
+{% extends 'ts2/commons/article.html' %}
+{% load elements %}
+
+{% block title %}About{% endblock %}
+
+{% block article %}
+
+<header>
+    <h1>Data privacy</h1>
+</header>
+
+<blockquote class="blockquote-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i> This is not a legal document.
+</blockquote>
+
+<section>
+    <header>
+        <h3>About this page</h3>
+    </header>
+
+    <p>
+        This page tries to explain and clarify how the bot processes different kinds of data.
+    </p>
+
+    <p>
+        <strong>The "Service" or the "bot"</strong> means both this website (at <code>{{ CURRENT_DOMAIN }}</code>) and
+        this Discord bot.
+    </p>
+    <p>
+        <strong>The "User" or "you"</strong> means both you as a viewer of this website and you as a Discord user when
+        interacting with the bot, either directly or indirectly. In other words, details on this page is meaningful to
+        you so long as you are a member of at least one servers in which the bot operates.
+    </p>
+</section>
+
+<section>
+    <header>
+        <h3>Request deletion</h3>
+    </header>
+
+    <p>You may request the bot to delete all data associated with you (linked to your Discord account) at <a
+            href="{% url-universal 'web:removal' %}">this page.</a></p>
+</section>
+
+<section>
+    <header>
+        <h3>Information we collect, store, and use</h3>
+    </header>
+
+    <h4><strong>Summary</strong></h4>
+
+    <p>Here is a list of all the information related to you the bot currently may process:</p>
+
+    <ul>
+        <li>Your Discord ID <strong class="text-red">[stored]</strong></li>
+        <li>Your Discord user name <strong class="text-red">[stored]</strong></li>
+        <li>Discord OAuth tokens <strong class="text-red">[stored]</strong></li>
+        <li>Servers you are in <strong class="text-green">[transient]</strong></li>
+        <li>Your profile picture URL <strong class="text-green">[transient]</strong></li>
+        <li>Browser sessions <strong class="text-blue">[on your device]</strong></li>
+        <li>Settings & preferences <strong class="text-red">[stored]</strong></li>
+        <li>Your server permissions <strong class="text-green">[transient]</strong></li>
+        <li>Your server nickname <strong class="text-green">[transient]</strong></li>
+        <li>Your server messages <strong class="text-green">[transient]</strong></li>
+        <li>Your message reactions <strong class="text-green">[transient]</strong></li>
+    </ul>
+
+    <h4>Using this website when logged out</h4>
+
+    <p>No <strong>Personally Identifiable Information (PII)</strong> is collected from you when you browse this website
+        anonymously (i.e. not logged-in). However, when you open this website through any means, the <em>IP address</em>
+        from which the web request is made, and the <a
+            href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent"><em>user agent</em></a> (some
+        text that describes your browser or application) — and only these two kinds of information — will be logged on
+        the server for the sake of debugging. They are not used for any other purposes, and are routinely deleted.
+    </p>
+
+    <h4>Login & Discord authentication</h4>
+
+    <p>This website uses a standard called <a href="https://en.wikipedia.org/wiki/OAuth"><em>OAuth</em></a>:
+        instead of requiring you to create and maintain a separate account, you log in using your Discord account
+        directly.
+    </p>
+
+    <p>When you login through Discord, the bot gets to know the following things about you (Discord will also tell you
+        about this):</p>
+
+    <ul>
+        <li>Your Discord user ID;</li>
+        <li>Your Discord username;</li>
+        <li>The IDs and names of all the servers you are in, and the server-wide permission that you have in each of the
+            servers.</li>
+    </ul>
+
+    <p><strong>Knowing what servers you are in</strong> is necessary for the bot to work. The bot needs this information
+        to know which part of the website you are allowed to see, so that it doesn't accidentally show you details about
+        servers that you are not in, or allow you to change server and bot settings that you are not supposed to change.
+    </p>
+
+    <p>The bot also receives an <em>"access token"</em> and a <em>"refresh token"</em> associated with your Discord
+        account. These are keys given by Discord to let the bot continue to read the above information in the future, so
+        that you don't have to login every time you open a new page.</p>
+
+    <h4>User profile</h4>
+
+    <p>The first time you ever login on this website, a <em>user profile</em> is automatically created behind the scene
+        and saved to a database. The profile contains all the information mentioned above <em>except for the list of
+            servers you are in.</em></p>
+
+    <p>Info about your servers <em>are never saved,</em> and are instead
+        retrieved from Discord every time the bot needs it. To improve website performance, however, every time this
+        information is downloaded, it is temporarily kept (cached) in the server's memory for up to 300 seconds; this
+        memory cache is not visible to the public internet.</p>
+
+    <p>Your user profile is used for the following purposes, and will remain in the database until you request to remove
+        it:</p>
+
+    <ul>
+        <li>Keeping track of your login status;</li>
+        <li>Keeping track of which server you invited the bot to, and show you additional options based on that;</li>
+        <li>Creating a link to your Discord profile picture from your user ID (to be displayed on the webpage; the
+            server does not fetch nor save your profile pictures).</li>
+    </ul>
+
+    <h4>Cookies</h4>
+
+    <p>This website only uses the following types of cookies; all are essential to the functioning of the site:</p>
+
+    <ul>
+        <li><code>sessionid</code>: Used by Django (the web framework this site relies on) to keep track of if you are
+            logged in or not;</li>
+        <li><code>state</code>: A cookie (<a href="https://jwt.io/introduction"><em>JSON Web Token</em></a>) created
+            when you go through the login process; it contains the time when you open the login page and a randomly
+            generated identifier not linked to you (to prevent someone else from reusing your token if it is somehow
+            leaked); it expires 300 seconds after it is created;</li>
+        <li><code>csrftoken</code>: Randomly generated text used to prevent someone else from imitating you and make
+            changes to your server/bot settings that you did not intend to make.</li>
+        <li><code>message</code>: Used by Django to temporarily store notifications that it needs to display to you.
+        </li>
+    </ul>
+
+    <h4>Discord bot</h4>
+
+    <p>
+        Regardless of whether you use this website or not, the Discord bot may retrieve, process, and/or store info
+        about your Discord activities.
+    </p>
+
+    <h5>Information that you explicitly provide to the bot:</h5>
+
+    <p>Certain components of the bot allow per-user customization, such as setting your user timezones. The bot stores
+        what is necessary to its database. Intermediate information, such as addresses that you provide, are not stored.
+    </p>
+
+    <h5>Internal cache:</h5>
+
+    <p>To make the bot as responsive and performant as possible, <em>discord.py,</em> which the bot is built on, will
+        keep as much information about the servers it is in as possible, including all members' user ID, names,
+        nicknames, channels , roles, and recent message history in the server. We have no control over this process, but
+        the info is only used to make the bot run, and is transient: kept in memory and may be deleted at anytime.</p>
+
+    <h5>User generated content:</h5>
+
+    <p>Currently, no information that the bot stores falls under this category. In the future, there may be new
+        functions that require the bot to keep in the database copies of content created by members, such as messages,
+        images, links, and attachments.</p>
+
+    <p>Most likely, such information will be stored after anonymization, meaning they are stored without referencing a
+        certain user. If it is not possible, or if attribution is needed, then there will be a way for you to delete any
+        content stored and associated with you.</p>
+</section>
+
+{% endblock %}
