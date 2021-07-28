@@ -44,4 +44,4 @@ docker compose build
 docker compose run web ./bin/migrate
 ```
 
-The bot will be online and the web interface will be at `localhost:8086`.
+The bot will be online and the web interface will be at `localhost:8088`.

@@ -23,7 +23,7 @@ services:
     server:
         build: ./nginx
         ports:
-            - "8000:80"
+            - "8088:80"
         depends_on:
             - web
 
