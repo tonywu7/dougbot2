@@ -38,7 +38,7 @@ def httpstatus(context):
     if not msg:
         return ''
     return mark_safe(
-        f'<span class="text-{level} http-status">HTTP <code><a href="'
+        f'<span class="text-{level} http-status">HTTP <a href="'
         f'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{err}">'
-        f'{err}</a></code> {msg}</span>',
+        f'<code>{err}</code></a> {msg}</span>',
     )

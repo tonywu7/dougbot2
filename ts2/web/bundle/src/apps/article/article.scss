@@ -358,3 +358,14 @@
         }
     }
 }
+
+.http-status {
+    a {
+        font-size: inherit;
+        color: inherit;
+    }
+    code {
+        position: relative;
+        top: -2px;
+    }
+}
