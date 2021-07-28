@@ -7,6 +7,8 @@
 With [**Docker:**](https://www.docker.com/products/docker-desktop)
 
 ```sh
+git clone --recurse-submodules -j8 git@github.com:tonyzbf/telescope2.git
+cd telescope2
 docker compose build
 ```
 
