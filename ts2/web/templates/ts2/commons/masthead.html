@@ -7,7 +7,7 @@
     </section>
     <section id="top-menu-toggle" tabindex="0">
         <span class="interactive-text top-menu-toggle-content">
-            {% if user_authenticated %}
+            {% if user_authenticated and discord %}
             <span class="identity-control">
                 {% if discord.info %}
                 <figure class="profile-picture guild-profile">
@@ -15,12 +15,10 @@
                         alt="icon for server {{ discord.info.name }}">
                 </figure>
                 {% endif %}
-                {% if discord.user_profile.icon_url %}
                 <figure class="profile-picture user-profile">
                     <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
                         alt="icon for user {{ discord.username }}">
                 </figure>
-                {% endif %}
             </span>
             {% endif %}
             <span class="top-menu">

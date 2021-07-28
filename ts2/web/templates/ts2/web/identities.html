@@ -1,4 +1,4 @@
-{% if user_authenticated %}
+{% if user_authenticated and discord %}
 <div id="server-select" class="nav-control interactive-text">
     <div class="dropdown">
         <a class="guild-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
@@ -47,7 +47,7 @@
 </div>
 {% endif %}
 <div id="discord-login" class="nav-control interactive-text">
-    {% if user_authenticated %}
+    {% if user_authenticated and discord %}
     <div class="dropdown">
         <a class="login-control identity-control" href="#" data-bs-toggle="dropdown" tabindex="0" role="button">
             <figure class="profile-picture user-profile">
