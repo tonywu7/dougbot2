@@ -93,7 +93,8 @@ def pl_cat_predicative(category: str, terms: list[str], sep=' ', conj='and') -> 
 
 class QuantifiedNP:
     def __init__(self, *nouns, concise: str = None, attributive: str = '',
-                 predicative: str = '', conjunction: str = 'or', definite=False):
+                 predicative: str = '', conjunction: str = 'or',
+                 definite=False, uncountable=False):
         if not nouns:
             raise ValueError('One or more noun terms required')
 
@@ -104,7 +105,9 @@ class QuantifiedNP:
             'predicative': predicative,
             'conjunction': conjunction,
             'definite': definite,
+            'uncountable': uncountable,
         }
+        self.uncountable = uncountable
         self.definite = definite
 
         if concise is None:
@@ -137,12 +140,11 @@ class QuantifiedNP:
         term = f'{self.attr_singular}{self.nouns_singular}'
         if self.definite:
             art = 'the'
+        elif self.uncountable:
+            return self.some()
         else:
             art = inflection.a(self.attr_singular or self.nouns_singular).split(' ')[0]
         return f'{art} {term}{self.predicative}'
-
-    def one(self):
-        return f'one {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def one_of(self):
         return f'one of {self.attr_singular}{self.nouns_singular}{self.predicative}'
@@ -151,9 +153,13 @@ class QuantifiedNP:
         return f'no {self.attr_singular}{self.nouns_singular}{self.predicative}'
 
     def zero_or_more(self):
+        if self.uncountable:
+            return self.some()
         return f'zero or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
 
     def one_or_more(self):
+        if self.uncountable:
+            return self.some()
         return f'one or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
 
     def some(self):

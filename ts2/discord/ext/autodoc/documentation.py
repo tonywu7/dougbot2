@@ -55,7 +55,7 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
     int: QuantifiedNP('whole number'),
     float: QuantifiedNP('number', attributive='whole or decimal'),
 
-    str: QuantifiedNP('text'),
+    str: QuantifiedNP('text', uncountable=True),
     bool: QuantifiedNP('yes or no', concise='yes/no'),
 
     discord.Member: QuantifiedNP('id', 'name', 'mention', concise='user', attributive="Discord user's"),
