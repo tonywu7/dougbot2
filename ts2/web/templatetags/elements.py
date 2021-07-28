@@ -76,6 +76,8 @@ def reverse_universal(ctx: Context, view: str, **kwargs):
 
 def is_current_view(req: HttpRequest, view: str, **kwargs):
     resolved = req.resolver_match
+    if not resolved:
+        return False
     return view == resolved.view_name and set(kwargs.items()) <= set(resolved.kwargs.items())
 
 
