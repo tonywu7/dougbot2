@@ -4,7 +4,7 @@ from decouple import Config, RepositoryEmpty, RepositoryIni
 
 APP_NAME = 'telescope2'
 
-__version__ = '0.0.1'
+__version__ = '0.10.0-rc.1'
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 INSTANCE_DIR = PROJECT_DIR.with_name('instance')
