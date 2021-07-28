@@ -15,10 +15,12 @@
                         alt="icon for server {{ discord.info.name }}">
                 </figure>
                 {% endif %}
+                {% if discord.user_profile.icon_url %}
                 <figure class="profile-picture user-profile">
                     <img src="{{ discord.user_profile.icon_url }}" class="rounded-circle"
                         alt="icon for user {{ discord.username }}">
                 </figure>
+                {% endif %}
             </span>
             {% endif %}
             <span class="top-menu">
