@@ -90,7 +90,7 @@
             margin: 0;
         }
 
-        :deep(.form-control) {
+        :deep(.form-control[type='text']) {
             font-size: 1.4rem;
             font-weight: 300;
             letter-spacing: -0.3px;
@@ -107,7 +107,7 @@
     .acl-header.acl-deleted {
         color: $red;
 
-        :deep(.form-control) {
+        :deep(.form-control[type='text']) {
             color: $red;
             border-color: $red;
             text-decoration: solid line-through 1px;
