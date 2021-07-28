@@ -20,6 +20,7 @@ from operator import itemgetter
 
 from django import forms
 
+from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.models import Server
 
 from .models import BugReport
@@ -47,6 +48,25 @@ class ServerCreationForm(forms.ModelForm):
     class Meta:
         model = Server
         fields = ['snowflake', 'invited_by', 'disabled']
+
+
+    def save(self, *args, **kwargs):
+        server = super().save(*args, **kwargs)
+
+        apps = DiscordBotConfig.get()
+        thread = apps.bot_thread
+
+        async def sync_models(bot):
+            try:
+                guild = await bot.fetch_guild(server.snowflake)
+            except Exception as e:
+                import logging
+                logging.getLogger().error(e, exc_info=e)
+            guild._channels = {c.id: c for c in await guild.fetch_channels()}
+            await bot.sync_server(guild)
+
+        thread.run_coroutine(sync_models(thread.client))
+        return server
 
 
 class FeedbackForm(forms.ModelForm):

@@ -22,8 +22,14 @@ docker compose run web ./bin/init
 
 You will be prompted for you Discord app ID, secret, and bot token.
 
-This will also setup a Django superuser for site administration.
+This will also setup additional Django settings and a Django superuser for site administration.
 You will need to fill in:
+
+For settings:
+
+- `ALLOWED_HOSTS`: space-separated lists of hosts to whitelist; should be your website.
+
+For creating the superuser:
 
 - Your Discord user name `username#discriminator`;
 - Your Discord ID (must be correct or the control panel will flag you as a regular user when you login with your Discord account);
