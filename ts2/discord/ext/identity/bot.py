@@ -118,6 +118,7 @@ class Personalize(
 
     @command('gdpr', aliases=('export',))
     @doc.description('Get a copy of everything the bot knows about you via DM.')
+    @doc.hidden
     async def gdpr(self, ctx: Circumstances):
         pass
 

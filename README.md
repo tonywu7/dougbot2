@@ -2,6 +2,8 @@
 
 **Yet another Discord bot for the DougDoug Discord server.**
 
+[bot.dougdistrict.xyz](https://bot.dougdistrict.xyz)
+
 ### Install
 
 With [**Docker:**](https://www.docker.com/products/docker-desktop)
@@ -41,3 +43,5 @@ Pull updates, then
 docker compose build
 docker compose run web ./bin/migrate
 ```
+
+The bot will be online and the web interface will be at `localhost:8086`.
