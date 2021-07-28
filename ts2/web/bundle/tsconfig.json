@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "./build/ts2",
+        "outDir": "../../../build/ts2/source",
         "rootDir": ".",
         "module": "ES6",
         "target": "ES6",

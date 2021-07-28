@@ -165,7 +165,7 @@ TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
 def timestamp(t: datetime | float | int, f: _TIMESTAMP_FORMATS) -> str:
     if isinstance(t, datetime):
         t = t.timestamp()
-    return f'<t:{t}:{TIMESTAMP_PROCESSOR[f]}>'
+    return f'<t:{t:.0f}:{TIMESTAMP_PROCESSOR[f]}>'
 
 
 Markdown.output_formats['plain'] = unmark_element

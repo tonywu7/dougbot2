@@ -2,6 +2,7 @@
 {% load static manifest %}
 
 {% block apps %}
+{{ block.super }}
 <script defer src="{% manifest 'login.js' %}"></script>
 {% endblock %}
 

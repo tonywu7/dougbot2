@@ -7,14 +7,14 @@ APP_NAME = 'telescope2'
 __version__ = '0.0.1'
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-BASE_DIR = PROJECT_DIR.with_name('instance')
-RESOURCE_BUILD_DIR = PROJECT_DIR / 'web' / 'bundle' / 'build'
+INSTANCE_DIR = PROJECT_DIR.with_name('instance')
+RESOURCE_BUILD_DIR = PROJECT_DIR.with_name('build')
 
-secrets_conf = Config(RepositoryIni(BASE_DIR / 'secrets.ini'))
-discord_conf = Config(RepositoryIni(BASE_DIR / 'discord.ini'))
+secrets_conf = Config(RepositoryIni(INSTANCE_DIR / 'secrets.ini'))
+discord_conf = Config(RepositoryIni(INSTANCE_DIR / 'discord.ini'))
 
 try:
-    instance_conf = Config(RepositoryIni(BASE_DIR / 'settings.ini'))
+    instance_conf = Config(RepositoryIni(INSTANCE_DIR / 'settings.ini'))
 except FileNotFoundError:
     instance_conf = Config(RepositoryEmpty())
 
@@ -99,7 +99,7 @@ WSGI_APPLICATION = 'ts2.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'index.sqlite3',
+        'NAME': INSTANCE_DIR / 'index.sqlite3',
     },
 }
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -139,7 +139,7 @@ USE_TZ = True
 
 LOGIN_URL = 'web:login'
 
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = PROJECT_DIR.with_name('dist')
 STATICFILES_DIRS = [
     RESOURCE_BUILD_DIR,
     PROJECT_DIR / 'web' / 'static',

@@ -338,7 +338,7 @@ class Robot(Bot):
         category = category[1:]
         rich_help = doc.rich_helps[category]
         if category == 'normal':
-            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} full {query}" for more info')
+            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} -full {query}" for more info')
 
         await ctx.response(ctx, embed=rich_help).reply().deleter().run()
 

@@ -10,8 +10,9 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const devMode = process.env.NODE_ENV !== 'production'
 
 const BASE = path.resolve(__dirname)
+const PROJECT = path.join(BASE, '..', '..', '..')
 const SOURCE = path.resolve(BASE, 'src')
-const DEST = path.resolve(BASE, 'build', 'ts2')
+const DEST = path.resolve(PROJECT, 'build', 'ts2')
 const APP_ROOT = path.resolve(SOURCE, 'apps')
 
 const APPS = readdirSync(APP_ROOT, { withFileTypes: true })

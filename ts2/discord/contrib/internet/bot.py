@@ -51,7 +51,6 @@ class Internet(
     @doc.invocation(('integers', 'a_number'), False)
     @doc.example('1 1 2 3 5 8', 'Find the Fibonnacci numbers.')
     @doc.example('A018226', 'Find the magic numbers.')
-    @doc.concurrent(1, BucketType.guild)
     @doc.cooldown(1, 10, BucketType.guild)
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
                    a_number: Optional[RegExp[Literal[r'A\d+'], Literal['A-number'], Literal['such as A0000045']]] = None):

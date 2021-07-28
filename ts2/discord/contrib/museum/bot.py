@@ -193,7 +193,7 @@ class StoryCollector:
         warn = Embed(description=f'⚠️ {message}')
         await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run()
 
-    async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=8192):
+    async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=2048):
         async for msg in self.iter_messages(channel, begin_id, end_id):
             self.messages.append(msg)
             self.stream.append(msg.content)

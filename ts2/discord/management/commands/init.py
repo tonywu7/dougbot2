@@ -67,7 +67,7 @@ class Command(BaseCommand):
         with open(template, 'r') as f:
             tmpl = f.read() % form.formdata_filled
 
-        instance_dir: Path = settings.BASE_DIR
+        instance_dir: Path = settings.INSTANCE_DIR
         target = instance_dir / 'discord.ini'
         with open(target, 'w+') as f:
             f.write(tmpl)

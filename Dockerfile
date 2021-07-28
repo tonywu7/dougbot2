@@ -36,8 +36,8 @@ RUN apt-get update && \
     apt-get -y install libmemcached-dev
 
 # Finalize file system
-COPY --from=assets /application /application
 COPY --from=build /application/.venv /application/.venv
+COPY --from=assets /application/build /application/build
 RUN python3 -m venv /application/.venv
 COPY ./ /application/
 

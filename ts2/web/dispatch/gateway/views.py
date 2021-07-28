@@ -85,7 +85,13 @@ class CreateUserView(View):
 
     @async_to_sync
     async def get(self, req: HttpRequest) -> HttpResponse:
+        if req.GET.get('error') == 'access_denied':
+            return redirect('web:index')
+
         state, claims = verify_state(req)
+        if not claims:
+            return redirect('web:index')
+
         handoff = claims.get('redirect', '')
         code = req.GET.get('code')
 

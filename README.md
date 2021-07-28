@@ -1,3 +1,41 @@
 # telescope2
 
 **Yet another Discord bot for the DougDoug Discord server.**
+
+### Install
+
+With [**Docker:**](https://www.docker.com/products/docker-desktop)
+
+```sh
+docker compose build
+```
+
+### Setup
+
+```sh
+docker compose run web ./bin/init
+```
+
+You will be prompted for you Discord app ID, secret, and bot token.
+
+This will also setup a Django superuser for site administration.
+You will need to fill in:
+
+- Your Discord user name `username#discriminator`;
+- Your Discord ID (must be correct or the control panel will flag you as a regular user when you login with your Discord account);
+- A _new_ password for the superuser. **This is not your Discord password.**
+
+### Run
+
+```sh
+docker compose up
+```
+
+### Updates
+
+Pull updates, then
+
+```sh
+docker compose build
+docker compose run web ./bin/migrate
+```
