@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "./build/telescope2",
+        "outDir": "./build/ts2",
         "rootDir": ".",
         "module": "ES6",
         "target": "ES6",
@@ -16,7 +16,6 @@
             "node_modules/@types",
             "src/scripts/@types"
         ],
-        "sourceMap": true
     },
     "include": ["./src/**/*.ts", "./src/**/*.js"],
 }

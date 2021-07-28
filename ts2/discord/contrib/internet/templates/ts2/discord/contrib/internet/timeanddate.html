@@ -1,12 +1,12 @@
 {% extends 'ts2/web/base.html' %}
-{% load static elements %}
+{% load static elements manifest %}
 
 {% block apps %}
-<script defer src="{% static '/telescope2/timezones.bundle.js' %}"></script>
+<script defer src="{% manifest 'timezones.js' %}"></script>
 {% endblock %}
 
 {% block app_styles %}
-<link rel="stylesheet" href="{% static '/telescope2/timezones.css' %}">
+<link rel="stylesheet" href="{% manifest 'timezones.css' %}">
 {% endblock %}
 
 {% block title %}Time & date - {{ discord.info.name|default:'server' }}{% endblock %}
@@ -18,7 +18,7 @@
 {% csrf_token %}
 
 {% section id='role-timezone' title='role timezones' classes='grid-span-all' %}
-<div id="timezone-list" data-tzsrc="{% static 'ts2/discord/contrib/internet/tz.json' %}"></div>
+<div id="timezone-list"></div>
 {% endsection %}
 
 {% endblock %}

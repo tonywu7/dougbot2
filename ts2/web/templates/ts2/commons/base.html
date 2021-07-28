@@ -1,4 +1,4 @@
-{% load inspect static %}
+{% load inspect static manifest %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -27,7 +27,7 @@
         integrity="sha256-djO3wMl9GeaC/u6K+ic4Uj/LKhRUSlUFcsruzS7v5ms=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
     {% if not DEBUG %}
-    <link rel="stylesheet" href="{% static '/telescope2/index.css' %}">
+    <link rel="stylesheet" href="{% manifest 'index.css' %}">
     {% block app_styles %}
     {% endblock %}
     {% endif %}
@@ -51,10 +51,10 @@
         integrity="sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {% endif %}
-    <script src="{% static '/telescope2/runtime.bundle.js' %}"></script>
-    <script src="{% static '/telescope2/vendor.bundle.js' %}"></script>
-    <script src="{% static '/telescope2/index.bundle.js' %}"></script>
-    <script src="{% static '/telescope2/gql.bundle.js' %}"></script>
+    <script src="{% manifest 'runtime.js' %}"></script>
+    <script src="{% manifest 'vendor.js' %}"></script>
+    <script src="{% manifest 'index.js' %}"></script>
+    <script src="{% manifest 'gql.js' %}"></script>
     {% block apps %}
     {% endblock %}
     {% endblock %}

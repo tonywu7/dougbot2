@@ -1,12 +1,12 @@
 {% extends 'ts2/web/base.html' %}
-{% load inspect elements static %}
+{% load inspect elements static manifest %}
 
 {% block apps %}
-<script defer src="{% static '/telescope2/logging.bundle.js' %}"></script>
+<script defer src="{% manifest 'logging.js' %}"></script>
 {% endblock %}
 
 {% block app_styles %}
-<link rel="stylesheet" href="{% static '/telescope2/logging.css' %}">
+<link rel="stylesheet" href="{% manifest 'logging.css' %}">
 {% endblock %}
 
 {% block title %}Logging - {{ discord.info.name|default:'server' }}{% endblock %}

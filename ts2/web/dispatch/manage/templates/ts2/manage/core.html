@@ -1,12 +1,12 @@
 {% extends 'ts2/web/base.html' %}
-{% load static inspect elements %}
+{% load static inspect elements manifest %}
 
 {% block apps %}
-<script defer src="{% static '/telescope2/core.bundle.js' %}"></script>
+<script defer src="{% manifest 'core.js' %}"></script>
 {% endblock %}
 
 {% block app_styles %}
-<link rel="stylesheet" href="{% static '/telescope2/core.css' %}">
+<link rel="stylesheet" href="{% manifest 'core.css' %}">
 {% endblock %}
 
 {% block title %}Core settings - {{ discord.info.name|default:'server' }}{% endblock %}

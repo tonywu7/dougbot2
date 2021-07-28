@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'manifest_loader',
     'django_extensions',
     'ts2.web',
     'ts2.web.dispatch.public',

@@ -1,12 +1,12 @@
 {% extends 'ts2/web/base.html' %}
-{% load elements static  %}
+{% load elements static manifest %}
 
 {% block apps %}
-<script defer src="{% static '/telescope2/acl.bundle.js' %}"></script>
+<script defer src="{% manifest 'acl.js' %}"></script>
 {% endblock %}
 
 {% block app_styles %}
-<link rel="stylesheet" href="{% static '/telescope2/acl.css' %}">
+<link rel="stylesheet" href="{% manifest 'acl.css' %}">
 {% endblock %}
 
 {% block title %}Access control - {{ discord.info.name|default:'server' }}{% endblock %}

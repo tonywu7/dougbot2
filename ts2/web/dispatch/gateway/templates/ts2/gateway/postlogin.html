@@ -1,8 +1,8 @@
 {% extends 'ts2/commons/article.html' %}
-{% load static %}
+{% load static manifest %}
 
 {% block apps %}
-<script defer src="{% static '/telescope2/login.bundle.js' %}"></script>
+<script defer src="{% manifest 'login.js' %}"></script>
 {% endblock %}
 
 {% block title %}Logging in ...{% endblock %}
