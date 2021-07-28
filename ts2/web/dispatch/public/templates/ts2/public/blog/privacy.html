@@ -69,8 +69,8 @@
 
     <h4>Data sharing</h4>
 
-    <p><strong>No other third-party entity has access to information associated with you that Discord provides to
-            us.</strong> This information includes your Discord ID, user name, messages, as well as details about the
+    <p><strong>No other third-party entity has access to information associated with you that Discord provides us
+            with.</strong> This information includes your Discord ID, user name, messages, as well as details about the
         servers that you are in.</p>
 
     <p>Your Discord information remains on the server that operates the bot, and is only ever served outside of the
@@ -104,10 +104,8 @@
         images, links, and attachments.</p>
 
     <p>Most likely, such information will be stored after anonymization, meaning they are stored without referencing
-        a
-        certain user. If it is not possible, or if attribution is needed, then there will be a way for you to delete
-        any
-        content stored and associated with you.</p>
+        a certain user. If it is not possible, or if attribution is needed, then there will be a way for you to delete
+        any content stored and associated with you.</p>
 
     <h4>Information that you explicitly provide to the bot</h4>
 
@@ -130,34 +128,29 @@
 
     <h4>Third-party data providers</h4>
 
-    <p>Some functions of the bot require downloading data from third-party sources on your behalf, such as when you
-        look
-        up a location, time, or video. Downloaded data may be cached or stored in the database. Currently, no such
-        data
+    <p>Some functions of the bot require downloading data from third-party sources on your behalf, such as when you look
+        up a location, time, or video. Downloaded data may be cached or stored in the database. Currently, no such data
         is stored and no such data is linked to your Discord account.</p>
 
-    <p>The query (command arguments) that you provide when you look up something using the bot may be logged by the
-        program and saved to the server for debugging purposes, but such logs are not linked to your account: the
-        log
-        will see what is being requested and when, but not who requested it.</p>
+    <p>The query (command arguments) that you provide when you use such functions may be logged by the program and saved
+        to the server for debugging purposes. Such logs are not linked to your account: the log will record what is
+        being requested and when, but not who requested it.</p>
 
     <p>The following are all the providers currently in use:</p>
 
     <ul>
-        <li><a href="https://nominatim.openstreetmap.org/">OpenStreetMap/Nominatim</a></li>
         <li><a href="https://oeis.org/">The On-Line Encyclopedia of Integer Sequences®</a></li>
+        <li><a href="https://nominatim.openstreetmap.org/">OpenStreetMap/Nominatim</a></li>
     </ul>
 
     <h4>Internal cache</h4>
 
     <p>To make the bot as responsive and performant as possible, <a
             href="https://discordpy.readthedocs.io/"><em>discord.py,</em></a>
-        which the bot is built on, will keep as much information about the servers it is in as possible. This
-        includes
-        all members' user ID, names, nicknames, channels, roles, and recent message history in the server. We have
-        no
-        control over this process, but the info is only used to make the bot function, and is <em>transient:</em>
-        only kept in memory and may be deleted at anytime.
+        which the bot is built on, will cache information about the servers it is in. This includes all members' user
+        ID, names, nicknames, channels, roles, and recent message history in the server. We have no control over this
+        process, but the info is only used to make the bot function, and is <em>transient:</em> only kept in memory and
+        may be deleted at anytime.
     </p>
 </section>
 

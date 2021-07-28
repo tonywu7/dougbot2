@@ -46,7 +46,9 @@ class ServerExtensionsForm(forms.ModelForm):
 
     def clean_extensions(self):
         data: Union[str, list[str]] = self.cleaned_data['extensions']
-        if isinstance(data, str):
+        if not data:
+            data = set()
+        elif isinstance(data, str):
             data = set(data.split(','))
         else:
             data = set(data)
