@@ -29,7 +29,7 @@ export default defineComponent({
                 channel,
                 category
             )
-            this.inspectorState = testACL(rules, new Set(Object.keys(roles)))
+            this.inspectorState = testACL(rules, roles)
         },
         clearInspector() {
             this.inspectorState = undefined

@@ -180,6 +180,9 @@ class CreateServerProfileView(View):
     @login_required
     @manage_permissions_required
     def get(req: HttpRequest) -> HttpResponse:
+        if req.GET.get('error') == 'access_denied':
+            return redirect('web:index')
+
         guild_id = req.GET.get('guild_id')
         state, token = verify_state(req, sub=guild_id, aud=req.user.pk)
         if state != 'valid' or not guild_id:
