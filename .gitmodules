@@ -1,6 +1,0 @@
-[submodule "vendors/duckcord.py"]
-	path = vendors/duckcord.py
-	url = git@github.com:tonyzbf/duckcord.py.git
-[submodule "vendors/telescope2-admin"]
-	path = vendors/telescope2-admin
-	url = git@github.com:tonyzbf/telescope2-admin.git
