@@ -13,6 +13,7 @@ services:
         command: "./bin/manage web"
         volumes:
             - instance:/application/instance
+            - static:/application/dist
         ports:
             - "8086:8086"
         expose:
@@ -24,6 +25,8 @@ services:
         build: ./nginx
         ports:
             - "8088:80"
+        volumes:
+            - static:/www
         depends_on:
             - web
 
@@ -39,3 +42,4 @@ services:
 
 volumes:
     instance:
+    static:

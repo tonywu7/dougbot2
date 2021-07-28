@@ -1,4 +1,4 @@
-# init.py
+# initdiscord.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify

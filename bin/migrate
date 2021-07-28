@@ -1,4 +1,6 @@
 #!/bin/bash
 source /application/.venv/bin/activate
+set -eux
 
+yes yes | python3 manage.py collectstatic -c
 python3 manage.py migrate

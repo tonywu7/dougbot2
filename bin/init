@@ -1,6 +1,20 @@
 #!/bin/bash
 source /application/.venv/bin/activate
+set -eux
 
+TARGET=$(pwd)/instance
+mkdir -p $TARGET
+
+# Collect static
+yes yes | python3 manage.py collectstatic -c
+
+# Apply migrations
 python3 manage.py migrate --skip-checks
-python3 manage.py init
+
+# Generate random secret
+python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[settings]\nSECRET_KEY={SECRET}', flush=True)" > $TARGET/secrets.ini
+
+# Prompt for instance data
+python3 manage.py initdiscord
+python3 manage.py initserver
 python3 manage.py createsuperuser
