@@ -68,7 +68,7 @@ async function initDiscord() {
 
     let accessToken = userInfoElem.dataset.accessToken
     if (accessToken === undefined || accessToken === 'None')
-        window.location.href = '/logout'
+        window.location.href = '/gateway/logout'
 
     discord = new DiscordClient(accessToken!)
 }

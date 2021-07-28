@@ -11,10 +11,4 @@
         </div>
     </form>
 </template>
-
 <script lang="ts" src="./FormContainer.vue.ts"></script>
-
-<style lang="scss" scoped>
-    @import "../../styles/colors";
-    @import "../../styles/components/form";
-</style>
