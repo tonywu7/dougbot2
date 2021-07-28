@@ -72,6 +72,8 @@ TEMPLATES = [
                 'ts2.web.contexts.site_info',
                 'ts2.web.contexts.user_info',
                 'ts2.web.contexts.discord_info',
+                'ts2.web.contexts.instance_constants',
+                'ts2.web.contexts.opengraph',
             ],
         },
     },
@@ -160,9 +162,6 @@ for k in discord_secrets:
 
 ASGI_APPLICATION = 'ts2.asgi.application'
 
-BRANDING_FULL = instance_conf('BRANDING_FULL', 'telescope2')
-BRANDING_SHORT = instance_conf('BRANDING_SHORT', 'telescope2')
-
 JWT_DEFAULT_EXP = 300
 
 USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonyzbf/telescope2)'
@@ -223,13 +222,16 @@ if allowed_guilds:
 else:
     ALLOWED_GUILDS = set()
 
-INSTANCE_CONSTANTS = {}
+INSTANCE_CONSTANTS = {
+    'BRANDING_FULL': 'telescope2',
+    'BRANDING_SHORT': 'ts2',
+    'SITE_COLOR': '0d6efd',
+    'SITE_DESCRIPTION': '',
+    'SITE_TWITTER': '',
+}
 
-for k in [
-    'GITHUB_REPO',
-]:
-    INSTANCE_CONSTANTS[k] = instance_conf(k, None)
-
+for k, v in INSTANCE_CONSTANTS.items():
+    INSTANCE_CONSTANTS[k] = instance_conf(k, v)
 
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_STYLE_SRC = (

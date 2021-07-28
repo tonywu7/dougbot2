@@ -35,11 +35,7 @@ def discord_info(req: HttpRequest):
 
 
 def application_info(req: HttpRequest):
-    return {
-        'BRANDING_FULL': settings.BRANDING_FULL,
-        'BRANDING_SHORT': settings.BRANDING_SHORT,
-        'DEBUG': settings.DEBUG,
-    }
+    return {'DEBUG': settings.DEBUG}
 
 
 def site_info(req: HttpRequest):
@@ -50,6 +46,17 @@ def site_info(req: HttpRequest):
 
 
 def instance_constants(req: HttpRequest):
+    return settings.INSTANCE_CONSTANTS
+
+
+def opengraph(req: HttpRequest):
+    const = instance_constants(req)
+    graph = {
+        'color': const['SITE_COLOR'],
+        'title': const['BRANDING_FULL'],
+        'description': const['SITE_DESCRIPTION'],
+        'twitter': const['SITE_TWITTER'],
+    }
     return {
-        'INSTANCE': getattr(settings, 'INSTANCE_CONSTANTS', {})
+        'opengraph': graph,
     }

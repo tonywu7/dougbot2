@@ -39,7 +39,7 @@
 {% endsection %}
 
 
-{% if user_superuser or access_control %}
+{% if req.user.is_superuser or access_control %}
 
 {% section id='server-access' title='manage bot' %}
 <div class="form">

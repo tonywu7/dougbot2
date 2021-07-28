@@ -1,7 +1,16 @@
 {% extends 'ts2/commons/article.html' %}
 {% load elements %}
 
-{% block title %}About{% endblock %}
+{% block title %}Data Privacy{% endblock %}
+
+{% block graph_details %}
+{% with description='Explains and clarifies how the bot processes different kinds of data.' %}
+<meta property="og:title" content="Data Privacy | {{ BRANDING_FULL }}" />
+<meta name="twitter:title" content="Data Privacy | {{ BRANDING_FULL }}" />
+<meta property="og:description" content="{{ description }}" />
+<meta name="twitter:description" content="{{ description }}" />
+{% endwith %}
+{% endblock %}
 
 {% block article %}
 

@@ -24,7 +24,7 @@ from django.views.generic import View
 from ts2.discord.middleware import optional_server_access
 
 from ...forms import FeedbackForm
-from ...models import Feature
+from ...models import Feature, PageInfo
 from .removal import rm
 
 
@@ -36,6 +36,7 @@ def index(req: HttpRequest) -> HttpResponse:
 def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/public/features.html', {
         'features': Feature.objects.order_by('status', 'ftype', 'name').all(),
+        'pageinfo': PageInfo(description='Feature tracker'),
     })
 
 
@@ -44,7 +45,10 @@ class BugReportView(View):
     @login_required
     @optional_server_access('read')
     def get(req: HttpRequest, **kwargs) -> HttpResponse:
-        return render(req, 'ts2/public/bugreport.html', {'endpoint': req.get_full_path()})
+        return render(req, 'ts2/public/bugreport.html', {
+            'endpoint': req.get_full_path(),
+            'pageinfo': PageInfo(description='Bug report'),
+        })
 
     @staticmethod
     @login_required
@@ -68,7 +72,9 @@ class InfoRemovalRequestView(View):
     @login_required
     @optional_server_access('read')
     def get(req: HttpRequest, **kwargs) -> HttpResponse:
-        return render(req, 'ts2/public/removal.html')
+        return render(req, 'ts2/public/removal.html', {
+            'pageinfo': PageInfo(description='Data deletion request'),
+        })
 
     @staticmethod
     @login_required

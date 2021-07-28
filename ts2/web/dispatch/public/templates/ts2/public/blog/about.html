@@ -3,6 +3,13 @@
 
 {% block title %}About{% endblock %}
 
+{% block graph_details %}
+<meta property="og:title" content="About | {{ BRANDING_FULL }}" />
+<meta name="twitter:title" content="About | {{ BRANDING_FULL }}" />
+<meta property="og:description" content="{{ pageinfo.description|default:opengraph.description }}" />
+<meta name="twitter:description" content="{{ pageinfo.description|default:opengraph.description }}" />
+{% endblock %}
+
 {% block article %}
 
 <header>

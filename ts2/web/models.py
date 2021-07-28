@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -143,3 +144,11 @@ class BugReport(models.Model):
 
     def __str__(self) -> str:
         return f'{self.user}: {self.summary}'
+
+
+@dataclass
+class PageInfo:
+    color: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    twitter: Optional[str] = None

@@ -10,7 +10,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% endblock %}
 
-    <title>{% block title %}{% basefilename %}{% endblock %} | {{ BRANDING_FULL }}</title>
+    {% block graph_common %}
+    <meta name="theme-color" content="#{{ pageinfo.color|default:opengraph.color }}">
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="{{ pageinfo.twitter|default:opengraph.twitter }}" />
+    {% endblock %}
+
+    {% block graph_details %}
+    <meta property="og:title" content="{{ pageinfo.title|default:opengraph.title }}" />
+    <meta name="twitter:title" content="{{ pageinfo.title|default:opengraph.title }}" />
+    <meta property="og:description" content="{{ pageinfo.description|default:opengraph.description }}" />
+    <meta name="twitter:description" content="{{ pageinfo.description|default:opengraph.description }}" />
+    {% endblock %}
+
+    <title>{% block title %}{{ pageinfo.title|default:opengraph.title }}{% endblock %} | {{ BRANDING_FULL }}</title>
 
     {% block styles %}
     <link rel="icon" href="{% static 'favicon.ico' %}">
