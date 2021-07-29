@@ -1,0 +1,102 @@
+@mixin overflow-frame($width, $height, $decor-size, $decor-color, $scroll-rect, $scroll-item) {
+    position: relative;
+    max-width: $width;
+    overflow: hidden;
+
+    .overflow-decor {
+        position: absolute;
+        z-index: 499;
+        width: 2px;
+        height: $height;
+        top: 0;
+        right: -2px;
+        box-shadow: 0 0 $decor-size * .8 $decor-size * .8 $decor-color;
+    }
+
+    #{$scroll-rect} {
+        max-height: $height;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    #{$scroll-item} {
+        max-height: $height;
+        white-space: nowrap;
+    }
+
+    #{$scroll-item}::after {
+        display: inline-block;
+        width: $decor-size * 1.2;
+        content: '\00a0';
+        opacity: 0;
+    }
+}
+
+@mixin flex-token-list($direction, $wrap, $gap: .25rem) {
+    display: inline-flex;
+    flex-flow: $direction $wrap;
+
+    .token-label {
+        font-weight: 700;
+    }
+
+    &>* {
+        --token-gap: #{$gap};
+
+        @if $wrap==wrap {
+            white-space: normal;
+        }
+
+        @else {
+            white-space: nowrap;
+        }
+    }
+
+    @if $direction==row {
+        align-items: center;
+
+        &>*:not(:last-child) {
+            margin-inline-end: #{var(--token-gap)};
+            margin-bottom: 0;
+        }
+    }
+
+    @else if $direction==column {
+        align-items: flex-start;
+
+        &>* {
+            width: 100%;
+        }
+
+        &>*:not(:last-child) {
+            margin-inline-end: 0;
+            margin-bottom: #{var(--token-gap)};
+        }
+    }
+}
+
+@mixin flex-select {
+    display: block;
+    position: relative;
+    overflow-x: hidden;
+
+    >span.actionable {
+        pointer-events: none;
+    }
+
+    >select {
+        position: absolute;
+        cursor: pointer;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        opacity: 0;
+        padding: 0;
+        margin: 0;
+    }
+}
