@@ -191,7 +191,7 @@ class Robot(Bot):
 
     @classmethod
     def _sync_models(cls, model: AdaptableModel, designated: list[DiscordModel],
-                     registered: QuerySet[AdaptableModel]):
+                     registered: QuerySet):
         designated = {r.id: r for r in designated}
         registered_ids: set[int] = {d['snowflake'] for d in registered.values('snowflake')}
         to_delete = registered.exclude(snowflake__in=designated.keys())

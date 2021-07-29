@@ -117,6 +117,7 @@ class ResponseInit:
             del args['context']
             del args['callbacks']
             del args['responders']
+            del args['direct_message']
             if len(args['files']) == 1:
                 args['file'] = args['files'].pop()
             message = await self.send(**args)
