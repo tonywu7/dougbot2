@@ -95,7 +95,7 @@ export function filterACL(
 
 function aclApplicable(r: ACL, roles: Set<string>) {
     let target = new Set(r.roles)
-    let applicable = !roles.size
+    let applicable = !r.roles.length
     if (!applicable) {
         if (r.modifier === ACLRoleModifier.NONE) {
             applicable = ![...target].filter((x) => roles.has(x)).length
