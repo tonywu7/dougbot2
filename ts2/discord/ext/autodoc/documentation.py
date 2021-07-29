@@ -33,6 +33,7 @@ from django.utils.text import camel_case_to_spaces
 from more_itertools import partition, split_at
 
 from ...utils.duckcord.embeds import Embed2
+from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, mta_arrow_bracket, pre, strong
 from ...utils.pagination import page_embed2, page_plaintext
 from .exceptions import BadDocumentation, MissingDescription
@@ -317,17 +318,10 @@ class Documentation:
                   standalone=getattr(cmd, 'invoke_without_command', True),
                   aliases=cmd.aliases)
         doc.infer_arguments(cmd.params)
-        memo = cls.retrieve_memo(cmd)
+        memo = get_memo(cmd, '__command_doc__', '_callback', default=[])
         for f in reversed(memo):
             f(doc, cmd)
         return doc
-
-    @classmethod
-    def retrieve_memo(cls, cmd: Command) -> list[Callable[[Command], Command]]:
-        memo = getattr(cmd, '__command_doc__', [])
-        if not memo:
-            memo = getattr(cmd._callback, '__command_doc__', [])
-        return memo
 
     def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
         if options is None:

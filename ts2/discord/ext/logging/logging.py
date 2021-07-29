@@ -101,6 +101,9 @@ bypassed = {
     errors.CommandNotFound,
     errors.ArgumentParsingError,
     errors.UserInputError,
+    errors.CheckFailure,
+    errors.NoPrivateMessage,
+    errors.PrivateMessageOnly,
 }
 
 
@@ -155,7 +158,10 @@ class ContextualLogger:
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
-        config: LoggingConfig = self.ctx.log_config[msg_class]
+        try:
+            config: LoggingConfig = self.ctx.log_config[msg_class]
+        except AttributeError:
+            raise LookupError
         channel = config['channel']
         channel: TextChannel = self.ctx.guild.get_channel(channel)
         if not isinstance(channel, TextChannel):

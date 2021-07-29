@@ -32,20 +32,19 @@ from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
 from .models import Server
-from .utils.common import (DeleteResponder, Embed2, Responder, run_responders,
-                           start_responders, tag)
+from .utils.common import (DeleteResponder, Embed2, Responder,
+                           is_direct_message, run_responders, start_responders,
+                           tag)
 
 
-def _guard(err: str):
-    def wrapper(f):
-        @wraps(f)
-        def wrapped(self):
-            try:
-                return f(self)
-            except AttributeError:
-                raise ValueError(err)
-        return wrapped
-    return wrapper
+def requires_server(f):
+    @wraps(f)
+    def wrapped(self):
+        try:
+            return f(self)
+        except AttributeError:
+            raise NotInServer()
+    return wrapped
 
 
 @attr.s
@@ -168,12 +167,16 @@ class Circumstances(Context):
         self.response = ResponseInit
 
     @property
-    @_guard('Context is missing server instance')
+    def is_direct_message(self):
+        return is_direct_message(self.channel)
+
+    @property
+    @requires_server
     def server(self):
         return self._server
 
     @property
-    @_guard('Context is missing server instance')
+    @requires_server
     def log_config(self) -> dict:
         return self._logging_conf
 
@@ -253,3 +256,8 @@ class CommandContextError(CommandInvokeError):
     def __init__(self, exc: Exception):
         self.original = exc
         super().__init__('Command context raised an exception: {0.__class__.__name__}: {0}'.format(exc))
+
+
+class NotInServer(CommandInvokeError, AttributeError):
+    def __init__(self):
+        super().__init__('Context is missing server instance.')

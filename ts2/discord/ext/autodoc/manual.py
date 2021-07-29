@@ -19,13 +19,14 @@ from __future__ import annotations
 from collections import defaultdict
 
 import attr
+from discord import DMChannel
 from discord.ext.commands import Bot, Command, Context
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten
 
 from ...utils.common import (Color2, DeleteResponder, Embed2, EmbedPagination,
                              TextPagination, blockquote, chapterize_items, em,
-                             start_responders, strong)
+                             is_direct_message, start_responders, strong)
 from ...utils.duckcord.embeds import EmbedField
 from .documentation import Documentation
 from .exceptions import NoSuchCommand
@@ -167,7 +168,8 @@ class Manual:
     async def send_toc(self, ctx: Context):
         front_embed = self.toc_rich[0][1]
         msg = await ctx.author.send(embed=front_embed)
-        await ctx.send('Mail has been delivered!', delete_after=20)
+        if not is_direct_message(ctx):
+            await ctx.send('Mail has been delivered!', delete_after=20)
         pagination = self.toc_rich
         paginator = pagination(ctx.bot, msg, 300, ctx.author.id)
         deleter = DeleteResponder(ctx, msg)

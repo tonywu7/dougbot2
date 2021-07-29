@@ -1,4 +1,5 @@
 from . import autodoc as doc
+from . import dm
 from .autodoc import lang
 from .identity.models import Member, User
 from .types.functional import Maybe
@@ -15,4 +16,5 @@ __all__ = [
     'RegExp',
     'Maybe',
     'Range',
+    'dm',
 ]

@@ -28,6 +28,7 @@ from ...cog import Gear
 from ...context import Circumstances
 from ...ext import autodoc as doc
 from ...ext.autodoc import NotAcceptable
+from ...ext.dm import accepts_dms
 from ...ext.types.functional import Maybe
 from ...ext.types.patterns import Constant
 from ...utils.common import Embed2, EmbedPagination, a, arrow, code, verbatim
@@ -123,6 +124,7 @@ class Personalize(
         pass
 
     @command('me', invoke_without_command=True)
+    @accepts_dms
     @doc.description('Print your settings within the bot.')
     async def me(self, ctx: Circumstances):
         profile: User = await User.async_get(ctx.author)
@@ -142,6 +144,7 @@ class Personalize(
         return await ctx.reply(embed=res)
 
     @group('my', aliases=('conf',))
+    @accepts_dms
     @doc.description('Configure various preferences.')
     @doc.hidden
     async def conf(self, ctx: Circumstances):

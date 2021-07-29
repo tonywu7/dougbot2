@@ -25,8 +25,7 @@ from discord.ext import commands
 from discord.ext.commands import Cog, Command, Context
 from more_itertools import always_iterable
 
-from ts2.utils.functional import memoize
-
+from ...utils.functional import memoize
 from .documentation import (CheckDecorator, CheckWrapper, Documentation,
                             add_type_converter, add_type_description)
 from .exceptions import ReplyRequired

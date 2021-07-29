@@ -15,19 +15,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from asgiref.sync import sync_to_async
-from discord import DMChannel, TextChannel
+from discord import TextChannel
 from discord.ext.commands import CheckFailure, Context, Group
 from django.db.models import Q
 from more_itertools import bucket
 
+from ...utils.common import is_direct_message
 from ...utils.markdown import strong, tag
 from ..autodoc import explains
 from ..logging import ignore_exception
 from .models import AccessControl, ACLRoleModifier
-
-
-def is_direct_message(ctx: Context):
-    return isinstance(ctx.channel, DMChannel)
 
 
 def applicable(ac: AccessControl, roles: set[int]) -> bool:

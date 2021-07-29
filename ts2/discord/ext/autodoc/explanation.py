@@ -27,6 +27,7 @@ from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
 from pendulum import duration
 
+from ...utils.common import is_direct_message
 from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
@@ -115,7 +116,7 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             man = get_manual(ctx)
             doc = man.lookup(ctx.command.qualified_name)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
-            arg_info = f'\n> {ctx.full_invoked_with} {arg_info}'
+            arg_info = f'\n> {ctx.full_invoked_with} {arg_info}\n'
             if supply_arg_type:
                 arg_info = f'{arg_info}\n{strong(arg)}: {arg.describe()}'
             msg = f'{arg_info}{sep}{msg}'
@@ -187,29 +188,46 @@ async def on_missing_any_role(ctx, exc):
     return explanation, 20
 
 
+@explains(errors.CheckFailure, 'Not allowed', -10)
+async def on_generic_check_failure(ctx, exc):
+    return 'You are not allowed to use this command.', 20
+
+
+@explains(errors.CheckAnyFailure, 'Not allowed', -10)
+async def on_check_any_failure(ctx, exc: errors.CheckAnyFailure):
+    reasons = '\n'.join([f'- {e}' for e in exc.errors])
+    return f'You are not allowed to use this command:\n{reasons}', 20
+
+
+@explains(errors.NoPrivateMessage, 'Server-only', -10)
+@explains(errors.PrivateMessageOnly, 'Server-only', -10)
+async def on_wrong_context(ctx, exc):
+    return False
+
+
 @explains(errors.ExpectedClosingQuoteError, 'No closing quote found')
 async def on_unexpected_eof(ctx, exc: errors.ExpectedClosingQuoteError):
     return (f'Expected another {code(exc.close_quote)} at the end. '
-            'Make sure your opening and closing quotes match.'), 20
+            'Make sure your opening and closing quotes match.'), 60
 
 
 @explains(errors.UnexpectedQuoteError, 'Unexpected quote')
 @append_matching_quotes_hint()
 async def on_unexpected_quote(ctx, exc: errors.UnexpectedQuoteError):
-    return f'\n> {indicate_eol(ctx.view, "red")} ⚠️ Did not expect a {code(exc.quote)} here', 30
+    return f'\n> {indicate_eol(ctx.view, "red")} ⚠️ Did not expect a {code(exc.quote)} here', 60
 
 
 @explains(errors.InvalidEndOfQuotedStringError, 'Missing spaces after quotes')
 @append_matching_quotes_hint()
 async def on_unexpected_char_after_quote(ctx, exc: errors.InvalidEndOfQuotedStringError):
     return (f'\n> {indicate_eol(ctx.view, "red")} ⚠️ There should be a space before this '
-            f'character {code(exc.char)} after the quote.'), 30
+            f'character {code(exc.char)} after the quote.'), 60
 
 
 @explains(errors.MissingRequiredArgument, 'Not enough arguments')
 @prepend_argument_hint(True, sep='\n⚠️ ')
 async def on_missing_args(ctx, exc):
-    return 'This argument is missing.', 20
+    return 'This argument is missing.', 60
 
 
 @explains(errors.TooManyArguments, 'Too many arguments')
@@ -299,6 +317,8 @@ async def on_missing_perms(ctx, exc):
 @explains(errors.CommandNotFound, 'Command not found', 100)
 async def on_cmd_not_found(ctx: Context, exc: errors.CommandNotFound):
     if not get_manual:
+        return False
+    if is_direct_message(ctx):
         return False
     cmd = ctx.invoked_with
     if ctx.invoked_parents:
