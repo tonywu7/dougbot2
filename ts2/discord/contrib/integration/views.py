@@ -15,11 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 
 
 async def twitch_view(req: HttpRequest, **kwargs) -> HttpResponse:
-    return HttpResponse(status=204)
+    return render(req, 'ts2/web/generic/coming-soon.html', {'headline': 'Twitch'})
 
 
 async def reddit_view(req: HttpRequest, **kwargs) -> HttpResponse:
-    return HttpResponse(status=204)
+    return render(req, 'ts2/web/generic/coming-soon.html', {'headline': 'Reddit'})
