@@ -172,6 +172,7 @@ export type MutationupdatePermsArgs = {
 export type Query = {
   __typename?: 'Query';
   timezones?: Maybe<Array<Maybe<RoleTimezoneType>>>;
+  templates?: Maybe<Array<Maybe<StringTemplateType>>>;
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
   logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
   bot?: Maybe<BotType>;
@@ -180,6 +181,11 @@ export type Query = {
 
 
 export type QuerytimezonesArgs = {
+  serverId: Scalars['ID'];
+};
+
+
+export type QuerytemplatesArgs = {
   serverId: Scalars['ID'];
 };
 
@@ -261,6 +267,14 @@ export type ServerType = {
   channels: Array<ChannelType>;
   roles: Array<RoleType>;
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
+};
+
+export type StringTemplateType = {
+  __typename?: 'StringTemplateType';
+  id: Scalars['ID'];
+  source: Scalars['String'];
+  server: ServerType;
+  name: Scalars['String'];
 };
 
 export type UpdateACLMutationVariables = Exact<{

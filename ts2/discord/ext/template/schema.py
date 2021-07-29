@@ -14,30 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import ObjectType, Schema
+from graphene import ID, List, ObjectType
+from graphene_django import DjangoObjectType
 
-from ts2.discord.contrib.schema import InternetMutation, InternetQuery
-from ts2.discord.ext.schema import (ACLMutation, ACLQuery, LoggingMutation,
-                                    LoggingQuery, TemplateQuery)
-from ts2.discord.schema import BotQuery, ServerMutation, ServerQuery
-
-
-class Query(
-    ServerQuery, BotQuery,
-    LoggingQuery, ACLQuery,
-    TemplateQuery, InternetQuery,
-    ObjectType,
-):
-    pass
+from ...middleware import get_ctx
+from .models import StringTemplate
 
 
-class Mutation(
-    ServerMutation,
-    LoggingMutation, ACLMutation,
-    InternetMutation,
-    ObjectType,
-):
-    pass
+class StringTemplateType(DjangoObjectType):
+    class Meta:
+        model = StringTemplate
+        fields = ('id', 'source', 'server', 'name')
 
 
-schema = Schema(query=Query, mutation=Mutation)
+class TemplateQuery(ObjectType):
+    templates = List(StringTemplateType, server_id=ID(required=True))
+
+    @classmethod
+    def resolve_acl(cls, root, info, server_id):
+        server = get_ctx(info.context).fetch_server(server_id, 'read')
+        return [StringTemplateType(m) for m in server.templates.all()]

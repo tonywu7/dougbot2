@@ -1,4 +1,4 @@
-# schema.py
+# apps.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,30 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import ObjectType, Schema
-
-from ts2.discord.contrib.schema import InternetMutation, InternetQuery
-from ts2.discord.ext.schema import (ACLMutation, ACLQuery, LoggingMutation,
-                                    LoggingQuery, TemplateQuery)
-from ts2.discord.schema import BotQuery, ServerMutation, ServerQuery
+from django.apps import AppConfig
 
 
-class Query(
-    ServerQuery, BotQuery,
-    LoggingQuery, ACLQuery,
-    TemplateQuery, InternetQuery,
-    ObjectType,
-):
-    pass
-
-
-class Mutation(
-    ServerMutation,
-    LoggingMutation, ACLMutation,
-    InternetMutation,
-    ObjectType,
-):
-    pass
-
-
-schema = Schema(query=Query, mutation=Mutation)
+class TemplateAppConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'ts2.discord.ext.template'

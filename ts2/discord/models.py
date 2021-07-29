@@ -267,27 +267,3 @@ class Blacklisted(Entity):
     class Meta:
         verbose_name = 'blacklisted entity'
         verbose_name_plural = 'blacklisted entities'
-
-
-class BaseTemplate(models.Model):
-    class Meta:
-        abstract = True
-
-    source: str = models.TextField(blank=True)
-
-    def __str__(self) -> str:
-        meta = self._meta
-        return f'{meta.app_label}/{meta.model_name}/{self.id}.html'
-
-
-class StringTemplate(BaseTemplate):
-    server: Server = models.ForeignKey(Server, on_delete=CASCADE, related_name='templates')
-    name: str = models.CharField(max_length=120)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['server_id', 'name'],
-                name='uq_%(app_label)s_%(class)s_server_id_name',
-            ),
-        ]

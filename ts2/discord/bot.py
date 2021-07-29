@@ -249,7 +249,7 @@ class Robot(Bot):
     async def which_prefix(cls, bot: Bot, msg: Message):
         bot_id = bot.user.id
         if msg.guild is None:
-            return [cls.DEFAULT_PREFIX, f'<@!{bot_id}> ']
+            return ['']
         try:
             return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
         except Server.DoesNotExist:

@@ -50,7 +50,7 @@ class ModelLoader(BaseLoader):
 
 class AsyncEnvironment(Environment):
     @sync_to_async
-    def aget_template(self, name: str | Template, parent=None, globals=None) -> Template:
+    def get_template_async(self, name: str | Template, parent=None, globals=None) -> Template:
         return self.get_template(name, parent, globals)
 
 

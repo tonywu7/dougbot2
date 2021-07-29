@@ -83,12 +83,6 @@ class RoleType(DjangoObjectType):
         fields = ('snowflake', 'name', 'guild', 'color', 'perms', 'order')
 
 
-class StringTemplateType(DjangoObjectType):
-    class Meta:
-        model = models.StringTemplate
-        fields = ('id', 'source', 'server', 'name')
-
-
 class ServerModelMutation(ModelMutation[Server]):
     @classmethod
     def get_instance(cls, req: HttpRequest, server_id: str) -> Server:
