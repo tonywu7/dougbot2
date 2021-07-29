@@ -134,7 +134,11 @@ class Manual:
 
         fields = [EmbedField(k, v, False) for k, v in self.toc.items()]
         chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
-        embeds = [Embed2(fields=chapter, color=self.color) for chapter in chapters]
+        embeds = [Embed2(fields=chapter, color=self.color)
+                  for chapter in chapters]
+        embeds = [e.set_footer(text=('Use "help [command]" to see'
+                                     ' how to use a command'))
+                  for e in embeds]
         self.toc_rich = EmbedPagination(embeds, self.title, True)
 
         fields = [f'{strong(k)}\n{v}' for k, v in self.toc.items()]
@@ -151,7 +155,8 @@ class Manual:
             aliased = self.aliases[query]
             return self.commands[aliased]
         except KeyError:
-            matched = fuzzy.extractOne(query, self.commands.keys(), score_cutoff=65)
+            matched = fuzzy.extractOne(query, self.commands.keys(),
+                                       score_cutoff=65)
             if matched:
                 matched = matched[0]
             raise NoSuchCommand(query, matched)
