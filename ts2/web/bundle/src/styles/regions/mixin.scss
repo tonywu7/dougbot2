@@ -19,14 +19,14 @@
 }
 
 @mixin sidebar-offcanvas-from-top {
-    transition: bottom 0.35s cubic-bezier(0.09, 1.07, 0.26, 1);
+    transition: top 0.35s cubic-bezier(0.09, 1.07, 0.26, 1);
 
     right: 0;
     left: 0;
-    bottom: 100vh;
+    top: -100vh;
 
     &.sidebar-visible {
-        bottom: 0;
+        top: var(--masthead-height);
     }
 }
 

@@ -40,22 +40,33 @@ export default defineComponent({
             required: true,
         },
     },
-    setup() {
+    setup(props) {
         let settings: Ref<LoggingConfig[]> = ref([])
+        let logging: Ref<Record<string, LoggingSelection>> = ref(
+            Object.assign(
+                {},
+                ...props.conf.map((c) => ({
+                    [c.key]: { roles: [], channels: [] },
+                }))
+            )
+        )
         let { roles, channels } = setupDiscordModel()
         let loading = ref(true)
         onMounted(async () => {
             settings.value.push(...(await server.getLogging()))
+            for (let c of settings.value) {
+                let reconstructed: LoggingSelection = {
+                    channels: [c.channel!],
+                    roles: [],
+                }
+                if (c.role) {
+                    reconstructed.roles!.push(c.role!)
+                }
+                logging.value[c.key] = reconstructed
+            }
             loading.value = false
         })
-        return { settings, roles, channels, loading }
-    },
-    data() {
-        let logging: Record<string, LoggingSelection> = Object.assign(
-            {},
-            ...this.conf.map((c) => ({ [c.key]: { roles: [], channels: [] } }))
-        )
-        return { logging }
+        return { settings, roles, channels, loading, logging }
     },
     computed: {
         textChannels(): Record<string, Channel> {
@@ -90,23 +101,6 @@ export default defineComponent({
                 return
             }
             displayNotification(Color.SUCCESS, 'Settings saved.')
-        },
-    },
-    watch: {
-        settings: {
-            handler(conf: LoggingConfig[]) {
-                for (let c of conf) {
-                    let reconstructed: LoggingSelection = {
-                        channels: [c.channel!],
-                        roles: [],
-                    }
-                    if (c.role) {
-                        reconstructed.roles!.push(c.role!)
-                    }
-                    this.logging[c.key] = reconstructed
-                }
-            },
-            deep: true,
         },
     },
 })

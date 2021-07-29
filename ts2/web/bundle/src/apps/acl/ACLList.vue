@@ -15,15 +15,22 @@
 </template>
 <script lang="ts" src="./ACLList.vue.ts"></script>
 <style lang="scss" scoped>
-    .acl-list-container,
-    .acl-list {
+    .acl-list-container {
         display: flex;
         flex-flow: column nowrap;
-        gap: 1rem;
+
+        > :not(:first-child) {
+            margin-block-start: 1rem;
+        }
     }
 
     .acl-list {
+        display: flex;
         flex-direction: column-reverse;
+
+        > :not(:first-child) {
+            margin-block-end: 1rem;
+        }
     }
 
     .acl-list-actions {

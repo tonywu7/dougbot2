@@ -93,6 +93,7 @@ export default defineComponent({
             _currentFocus: 0,
             dropdownShow: false,
             overflowDirection: 'normal',
+            dragging: false,
         }
     },
     computed: {
@@ -261,7 +262,7 @@ export default defineComponent({
             }
             return styles
         },
-        select(item: ItemCandidate) {
+        select(item: ItemCandidate, ev?: Event) {
             if (!this.options.multiple) {
                 Object.keys(this.selected).forEach(
                     (k) => delete this.selected[k]
@@ -275,6 +276,12 @@ export default defineComponent({
             ev?.stopPropagation()
             delete this.selected[item.id]
             this.update()
+        },
+        handleTouch(item: ItemCandidate, ev?: Event) {
+            if (!this.dragging) {
+                this.select(item)
+            }
+            this.dragging = false
         },
         update() {
             this.$emit('update:choices', Object.keys(this.selected))
