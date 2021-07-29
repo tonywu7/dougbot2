@@ -36,7 +36,7 @@ from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.importutil import objpath
 
 from . import cog, models
-from .apps import DiscordBotConfig, server_allowed
+from .apps import DiscordBotConfig, get_constant, server_allowed
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext.acl import acl
@@ -87,7 +87,7 @@ class Gatekeeper:
 
     async def match(self, *entities: Object) -> bool:
         blacklisted = await self.blacklisted()
-        return any(o.id in blacklisted for o in entities)
+        return any(o.id in blacklisted for o in entities if o)
 
     @sync_to_async
     def blacklisted(self) -> set[int]:
@@ -100,7 +100,7 @@ class Gatekeeper:
         return not await self.match(member)
 
     async def on_raw_reaction_add(self, evt: RawReactionActionEvent):
-        entities = [Object(id_) for id_ in (evt.guild_id, evt.channel_id,
+        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
                                             evt.message_id, evt.user_id)]
         return not await self.match(*entities)
 
@@ -168,6 +168,10 @@ class Robot(Bot):
 
     def _create_manual(self):
         self.manual = Manual.from_bot(self)
+        self.manual.title = f'{get_constant("branding_full")}: Command list'
+        color = get_constant('site_color')
+        if color:
+            self.manual.color = int(color, 16)
         self.manual.finalize()
         set_manual_getter(lambda ctx: ctx.bot.manual)
 

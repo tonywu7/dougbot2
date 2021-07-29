@@ -22,7 +22,7 @@ from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from textwrap import shorten
 from typing import Generic, TypeVar, Union
 
-from discord import (Client, Embed, Member, Message, PartialEmoji,
+from discord import (Client, Embed, Member, Message, Object, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
 from more_itertools import split_before
@@ -202,7 +202,10 @@ class Paginator(EmoteResponder):
         self.provider = provider
 
     async def handle(self, event: RawReactionActionEvent) -> bool:
-        await self.message.remove_reaction(event.emoji, event.member)
+        try:
+            await self.message.remove_reaction(event.emoji, Object(event.user_id))
+        except Exception:
+            pass
         text, embed = self.provider(event.emoji)
         if not text and not embed:
             return

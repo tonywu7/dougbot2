@@ -99,3 +99,7 @@ def get_commands(req: HttpRequest) -> Optional[list[str]]:
 def server_allowed(server_id: int):
     allowed = settings.ALLOWED_GUILDS
     return not allowed or server_id in allowed
+
+
+def get_constant(k: str, default=None):
+    return settings.INSTANCE_CONSTANTS.get(k.upper(), default)

@@ -23,11 +23,10 @@ from discord.ext.commands import Bot, Command, Context
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten
 
-from ...utils.duckcord.embeds import Embed2, EmbedField
-from ...utils.events import DeleteResponder, run_responders
-from ...utils.markdown import blockquote, em, strong
-from ...utils.pagination import (EmbedPagination, TextPagination,
-                                 chapterize_items)
+from ...utils.common import (Color2, DeleteResponder, Embed2, EmbedPagination,
+                             TextPagination, blockquote, chapterize_items, em,
+                             start_responders, strong)
+from ...utils.duckcord.embeds import EmbedField
 from .documentation import Documentation
 from .exceptions import NoSuchCommand
 
@@ -44,6 +43,9 @@ class Manual:
     toc: dict[str, str] = attr.ib(factory=dict)
     toc_rich: EmbedPagination = attr.ib(default=None)
     toc_text: TextPagination = attr.ib(default=None)
+
+    title: str = attr.ib(default='Command help')
+    color: Color2 = attr.ib(default=Color2.blue())
 
     frozen: bool = attr.ib(default=False)
 
@@ -132,13 +134,13 @@ class Manual:
 
         fields = [EmbedField(k, v, False) for k, v in self.toc.items()]
         chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
-        embeds = [Embed2(fields=chapter) for chapter in chapters]
-        self.toc_rich = EmbedPagination(embeds, 'Command list', True)
+        embeds = [Embed2(fields=chapter, color=self.color) for chapter in chapters]
+        self.toc_rich = EmbedPagination(embeds, self.title, True)
 
         fields = [f'{strong(k)}\n{v}' for k, v in self.toc.items()]
         chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
         texts = ['\n\n'.join(chapter) for chapter in chapters]
-        self.toc_text = TextPagination(texts, 'Command list')
+        self.toc_text = TextPagination(texts, self.title)
 
     def lookup(self, query: str) -> Documentation:
         try:
@@ -159,8 +161,9 @@ class Manual:
 
     async def send_toc(self, ctx: Context):
         front_embed = self.toc_rich[0][1]
-        msg = await ctx.reply(embed=front_embed)
+        msg = await ctx.author.send(embed=front_embed)
+        await ctx.send('Mail has been delivered!', delete_after=20)
         pagination = self.toc_rich
         paginator = pagination(ctx.bot, msg, 300, ctx.author.id)
         deleter = DeleteResponder(ctx, msg)
-        await run_responders(paginator, deleter)
+        start_responders(paginator, deleter)

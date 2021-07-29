@@ -287,7 +287,7 @@ class Personalize(
     ):
         if help:
             msg, paginator = await DATEFORMAT_HELP.reply(ctx, 720)
-            await ctx.response(ctx).deleter().responder(lambda msg: paginator).run(msg)
+            return await ctx.response(ctx).deleter().responder(lambda msg: paginator).run(msg)
 
         profile: User = await User.async_get(ctx.author)
         if reset:
