@@ -5,14 +5,21 @@ set -eux
 TARGET=$(pwd)/instance
 mkdir -p $TARGET
 
+# Copy empty settings files
+if [[ ! -e $TARGET/discord.ini ]]; then
+    printf "[settings]\nDISCORD_CLIENT_ID=\nDISCORD_CLIENT_SECRET=\nDISCORD_BOT_TOKEN=\n" > $TARGET/discord.ini
+fi
+
+# Generate random secret
+if [[ ! -e $TARGET/secrets.ini ]]; then
+python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[settings]\nSECRET_KEY={SECRET}', flush=True)" > $TARGET/secrets.ini
+fi
+
 # Collect static
 yes yes | python3 manage.py collectstatic -c
 
 # Apply migrations
 python3 manage.py migrate --skip-checks
-
-# Generate random secret
-python3 -c "import secrets; SECRET = secrets.token_urlsafe(32); print(f'[settings]\nSECRET_KEY={SECRET}', flush=True)" > $TARGET/secrets.ini
 
 # Prompt for instance data
 python3 manage.py initdiscord

@@ -50,7 +50,7 @@ ENV PYTHONHASHSEED=random
 
 # Setup project
 ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
-RUN NO_CACHE=true ./bin/setup
+RUN ./bin/setup
 
 RUN adduser -u 5555 --disabled-password --gecos "" ts2 && \
     chown -R ts2 /application

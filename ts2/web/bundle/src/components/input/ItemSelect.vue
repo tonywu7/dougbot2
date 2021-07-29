@@ -19,7 +19,7 @@
                 <li v-for="(item, index) in candidates" :key="item.id" role="button"
                     :class="['dropdown-item', {'has-focus': index == currentFocus}]" :style="getItemStyles(item, false)"
                     :aria-selected="index == currentFocus" v-html="safe(item.content)" @click="(e) => select(item)"
-                    @touchmove="() => dragging = true" @touchend="(e) => handleTouch(item, e)"
+                    @touchmove.passive="() => dragging = true" @touchend="(e) => handleTouch(item, e)"
                     @mouseenter="currentFocus = index">
                 </li>
             </ul>

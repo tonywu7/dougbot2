@@ -17,7 +17,9 @@
 import { Ref, ref, onMounted } from 'vue'
 import { Role, Channel, Command, server } from '../server'
 
-export function setupDiscordModel() {
+export function setupDiscordModel(
+    onModelLoaded: () => Promise<void> = () => Promise.resolve()
+) {
     let roles: Ref<Record<string, Role>> = ref({})
     let channels: Ref<Record<string, Channel>> = ref({})
     let commands: Ref<Record<string, Command>> = ref({})
@@ -34,6 +36,7 @@ export function setupDiscordModel() {
             commands.value,
             ...(await server.getCommands()).map((d) => ({ [d.id]: d }))
         )
+        await onModelLoaded()
     })
     return { roles, channels, commands }
 }

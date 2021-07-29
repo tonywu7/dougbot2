@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { defineComponent, onMounted, PropType, Ref, ref } from 'vue'
+import { defineComponent, PropType, Ref, ref } from 'vue'
 import {
     Channel,
     LoggingConfig,
@@ -50,9 +50,7 @@ export default defineComponent({
                 }))
             )
         )
-        let { roles, channels } = setupDiscordModel()
-        let loading = ref(true)
-        onMounted(async () => {
+        let { roles, channels } = setupDiscordModel(async () => {
             settings.value.push(...(await server.getLogging()))
             for (let c of settings.value) {
                 let reconstructed: LoggingSelection = {
@@ -66,6 +64,7 @@ export default defineComponent({
             }
             loading.value = false
         })
+        let loading = ref(true)
         return { settings, roles, channels, loading, logging }
     },
     computed: {
