@@ -147,6 +147,7 @@ class ContextualLogger:
     def __init__(self, prefix: str, ctx: Context):
         self.prefix = prefix
         self.ctx = ctx
+        self._log = logging.getLogger('discord.logger')
 
     async def log(self, msg_class: str, level: int, msg: str, *args,
                   exc_info: Optional[BaseException] = None,
@@ -186,8 +187,11 @@ class ContextualLogger:
         else:
             mentions = AllowedMentions.none()
 
-        await channel.send(content=msg, allowed_mentions=mentions, embed=embed)
-        await report_exception(channel, exc_info)
+        try:
+            await channel.send(content=msg, allowed_mentions=mentions, embed=embed)
+            await report_exception(channel, exc_info)
+        except Exception as e:
+            self._log.error(f'Error while delivering logs: {e}', exc_info=e)
 
     debug = partialmethod(log, level=logging.DEBUG)
     info = partialmethod(log, level=logging.INFO)
