@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 import attr
-from discord import DMChannel
+from discord import Forbidden
 from discord.ext.commands import Bot, Command, Context
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten
@@ -167,7 +167,10 @@ class Manual:
 
     async def send_toc(self, ctx: Context):
         front_embed = self.toc_rich[0][1]
-        msg = await ctx.author.send(embed=front_embed)
+        try:
+            msg = await ctx.author.send(embed=front_embed)
+        except Forbidden:
+            return
         if not is_direct_message(ctx):
             await ctx.send('Mail has been delivered!', delete_after=20)
         pagination = self.toc_rich

@@ -24,7 +24,7 @@ from typing import Any, Optional
 
 import attr
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, File, Guild, Member, Message,
+from discord import (AllowedMentions, File, Forbidden, Guild, Member, Message,
                      MessageReference, TextChannel, User)
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context
@@ -102,11 +102,13 @@ class ResponseInit:
     def dm(self):
         return attr.evolve(self, direct_message=True)
 
-    @property
-    def send(self):
+    async def send(self, *args, **kwargs) -> Optional[Message]:
         if self.direct_message:
-            return self.context.author.send
-        return self.context.send
+            try:
+                return await self.context.author.send(*args, **kwargs)
+            except Forbidden:
+                return
+        return await self.context.send(*args, **kwargs)
 
     async def run(self, message: Optional[Message] = None, thread: bool = True):
         if not message:
@@ -120,6 +122,8 @@ class ResponseInit:
             if len(args['files']) == 1:
                 args['file'] = args['files'].pop()
             message = await self.send(**args)
+        if not message:
+            return
         for cb in self.callbacks:
             await cb(message)
         if self.responders:
@@ -228,6 +232,14 @@ class Circumstances(Context):
     @property
     def raw_input(self) -> str:
         return self.view.buffer[len(self.full_invoked_with):].strip()
+
+    async def send_dm_safe(self, content: Optional[str] = None,
+                           embed: Optional[Embed2] = None,
+                           **kwargs) -> Optional[Message]:
+        try:
+            return await self.author.send(content=content, embed=embed, **kwargs)
+        except Forbidden:
+            return
 
     async def send_help(self, query: str = None, category='normal'):
         query = query or self.command.qualified_name

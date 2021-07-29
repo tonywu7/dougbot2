@@ -16,7 +16,7 @@
 
 import logging
 
-from discord.ext.commands import Bot, Cog, CogMeta
+from discord.ext.commands import Bot, Cog, CogMeta, Context
 from discord.ext.commands.errors import DisabledCommand
 
 
@@ -35,11 +35,16 @@ class Gear(Cog, metaclass=GearMeta):
         self.log = logging.getLogger(f'discord.logging.ext.{label}')
 
 
-async def cog_enabled_check(ctx) -> bool:
+async def cog_enabled_check(ctx: Context) -> bool:
+    from .models import Server
     if await ctx.bot.is_owner(ctx.author):
         return True
+    try:
+        server: Server = ctx.server
+    except AttributeError:
+        return True
     extension = ctx.cog
-    if not (extension is None or extension.app_label in ctx.server.extensions):
+    if not (extension is None or extension.app_label in server.extensions):
         raise ModuleDisabled(extension)
     return True
 
