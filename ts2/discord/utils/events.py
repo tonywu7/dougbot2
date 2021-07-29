@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from collections.abc import Callable, Coroutine, Iterable
 from functools import wraps
@@ -43,7 +44,7 @@ def event_filter(ev_filter: EventFilter) -> Decorator:
 
 
 def emote_no_bots(event: RawReactionActionEvent):
-    return event.member and not event.member.bot
+    return not event.member or not event.member.bot
 
 
 def emote_added(event: RawReactionActionEvent):
@@ -52,7 +53,7 @@ def emote_added(event: RawReactionActionEvent):
 
 def reaction_from(*ids: int):
     def check(event: RawReactionActionEvent, ids=frozenset(ids)):
-        return event.member and event.member.id in ids
+        return event.user_id in ids
     return check
 
 
@@ -116,9 +117,13 @@ class Responder:
             except asyncio.TimeoutError:
                 continue
 
-            stop = await self.handle(evt)
-            if stop:
-                break
+            try:
+                stop = await self.handle(evt)
+            except Exception as e:
+                self.log.debug(f'{type(e).__name__} while handling reactions: {e}\n')
+            else:
+                if stop:
+                    break
 
         await self.cleanup()
 
@@ -179,3 +184,14 @@ async def run_responders(*responders: Responder):
     if not should_run:
         return []
     return await asyncio.gather(*should_run, return_exceptions=True)
+
+
+def start_responders(*responders: Responder):
+    loop = asyncio.get_running_loop()
+
+    def run():
+        future = asyncio.run_coroutine_threadsafe(run_responders(*responders), loop)
+        return future.result()
+
+    thread = threading.Thread(target=run, daemon=True)
+    return thread.start()

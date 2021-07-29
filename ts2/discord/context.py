@@ -33,7 +33,7 @@ from django.db import transaction
 
 from .models import Server
 from .utils.common import (DeleteResponder, Embed2, Responder, run_responders,
-                           tag)
+                           start_responders, tag)
 
 
 def _guard(err: str):
@@ -64,6 +64,7 @@ class ResponseInit:
 
     callbacks: list[Callable[[Message], Coroutine]] = attr.ib(default=attr.Factory(list))
     responders: list[Callable[[Message], Responder]] = attr.ib(default=attr.Factory(list))
+    direct_message: bool = attr.ib(default=False)
 
     def timed(self, ttl: float):
         return attr.evolve(self, delete_after=ttl)
@@ -99,7 +100,16 @@ class ResponseInit:
             return await msg.edit(suppress=True)
         return self.callback(callback)
 
-    async def run(self, message: Optional[Message] = None):
+    def dm(self):
+        return attr.evolve(self, direct_message=True)
+
+    @property
+    def send(self):
+        if self.direct_message:
+            return self.context.author.send
+        return self.context.send
+
+    async def run(self, message: Optional[Message] = None, thread: bool = True):
         if not message:
             if self.isempty:
                 return
@@ -109,12 +119,15 @@ class ResponseInit:
             del args['responders']
             if len(args['files']) == 1:
                 args['file'] = args['files'].pop()
-            message = await self.context.send(**args)
+            message = await self.send(**args)
         for cb in self.callbacks:
             await cb(message)
         if self.responders:
             tasks = [r(message) for r in self.responders]
-            await run_responders(*tasks)
+            if thread:
+                start_responders(*tasks)
+            else:
+                await run_responders(*tasks)
         return message
 
     @property

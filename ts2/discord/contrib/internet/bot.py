@@ -52,6 +52,7 @@ class Internet(
     @doc.example('1 1 2 3 5 8', 'Find the Fibonnacci numbers.')
     @doc.example('A018226', 'Find the magic numbers.')
     @doc.cooldown(1, 10, BucketType.guild)
+    @doc.concurrent(1, BucketType.guild)
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
                    a_number: Optional[RegExp[Literal[r'A\d+'], Literal['A-number'], Literal['such as A0000045']]] = None):
         if integers:
@@ -79,7 +80,7 @@ class Internet(
             await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')
 
         await (ctx.response(ctx, embed=sequence.to_embed())
-               .callback(more_result).deleter().run())
+               .callback(more_result).deleter().run(thread=True))
 
     @command('time')
     @doc.description('Get local time of a server member or a timezone.')
