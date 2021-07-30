@@ -9,10 +9,11 @@
 <link rel="stylesheet" href="{% manifest 'features.css' %}">
 {% endblock %}
 
-{% block title %}Feature tracker{% endblock %}
-{% block main_title %}Feature tracker{% endblock %}
+{% block title %}Project tracker{% endblock %}
+{% block main_title %}Project tracker{% endblock %}
 
 {% block sections %}
+
 {% section id='features' title='features' classes="grid-span-all" %}
 <ul class="feature-grid">
     {% for feature in features %}
@@ -33,4 +34,5 @@
     {% endfor %}
 </ul>
 {% endsection %}
+
 {% endblock %}

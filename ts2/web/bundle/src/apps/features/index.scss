@@ -10,11 +10,6 @@
     align-items: stretch;
 
     padding: 0;
-    gap: 0.2rem;
-
-    @media screen and (max-width: $display-width-small) {
-        gap: 1rem;
-    }
 
     .feature-item {
         position: relative;
@@ -53,12 +48,17 @@
             }
             animation: 2s ease-out normal 0s none 1 highlight-anim;
         }
+
+        .anchor-position {
+            bottom: calc(var(--masthead-height) + 2.4rem);
+        }
     }
 
     .feature-content {
         flex: 1 1 auto;
-        letter-spacing: -0.01px;
-        font-size: 0.95rem;
+        letter-spacing: -0.1px;
+        font-size: 0.85rem;
+        font-weight: 500;
     }
 
     .feature-type {
@@ -68,8 +68,9 @@
 
     .feature-status {
         width: 7.5rem;
+        flex: 0 0 auto;
         @media screen and (max-width: $display-width-small) {
             text-align: right;
-        }    
+        }
     }
 }

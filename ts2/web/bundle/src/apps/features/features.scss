@@ -1,8 +1,8 @@
 .feature-type {
     display: inline-block;
 
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 400;
     color: $bw-grey-8;
     line-height: 1;
 
@@ -13,12 +13,12 @@
     }
 
     &.type-command {
-        $font-color: $pink;
+        $font-color: $server-gold;
         color: $font-color;
     }
 
     &.type-infrastructure {
-        $font-color: $yellow;
+        $font-color: $server-magenta;
         color: $font-color;
     }
 
@@ -48,7 +48,7 @@
     display: inline-block;
 
     text-transform: uppercase;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     line-height: 1;

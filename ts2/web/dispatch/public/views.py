@@ -36,7 +36,7 @@ def index(req: HttpRequest) -> HttpResponse:
 def feature_tracker(req: HttpRequest, **kwargs) -> HttpResponse:
     return render(req, 'ts2/public/features.html', {
         'features': Feature.objects.order_by('status', 'ftype', 'name').all(),
-        'pageinfo': PageInfo(description='Feature tracker'),
+        'pageinfo': PageInfo(description='Project tracker'),
     })
 
 
