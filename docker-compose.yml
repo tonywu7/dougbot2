@@ -40,6 +40,16 @@ services:
         depends_on:
             - web
 
+    backup:
+        image: telescope2
+        environment:
+            - DJANGO_SETTINGS_MODULE=ts2.settings.deployment
+        command: "./bin/manage startbackup -o backups"
+        volumes:
+            - instance:/application/instance
+            - backups:/application/backups
+
 volumes:
     instance:
     static:
+    backups:

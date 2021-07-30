@@ -6,6 +6,7 @@ set -eux
 
 TARGET=$(pwd)/instance
 
+mkdir backups
 mkdir $(pwd)/dist
 mkdir $TARGET
 

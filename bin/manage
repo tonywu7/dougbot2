@@ -8,5 +8,5 @@ elif [[ $1 == "bot" ]]
 then
     python3 manage.py runclient;
 else
-    python3 manage.py $1;
+    python3 manage.py "$@";
 fi
