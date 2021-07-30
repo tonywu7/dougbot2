@@ -45,7 +45,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '-t', '--interval', action='store', dest='interval',
             help='Interval for backups in seconds. Default is 3600',
-            type=int, default=10,
+            type=int, default=3600,
         )
 
     def handle(self, *args, target: str, prefix: str, interval: int, **options):
@@ -55,7 +55,7 @@ class Command(BaseCommand):
         if not dst.is_dir():
             raise ValueError(f'{dst} is not a folder.')
         try:
-            asyncio.run(self.run(dst, prefix, interval))
+            asyncio.run(self.run(dst, interval, prefix))
         except KeyboardInterrupt:
             return
 
@@ -105,9 +105,9 @@ class Command(BaseCommand):
                 except OSError:
                     pass
 
-    async def run(self, dst: Path, prefix: str = 'backup', interval=10):
+    async def run(self, dst: Path, interval: int, prefix: str = 'backup'):
         src: Path = settings.INSTANCE_DIR
         while True:
             self.archive(src, dst, prefix)
-            self.clean(src, dst, prefix, (30,))
+            self.clean(src, dst, prefix, (86400,))
             await asyncio.sleep(interval)
