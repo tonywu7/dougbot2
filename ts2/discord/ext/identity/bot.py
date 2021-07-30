@@ -31,7 +31,9 @@ from ...ext.autodoc import NotAcceptable
 from ...ext.dm import accepts_dms
 from ...ext.types.functional import Maybe
 from ...ext.types.patterns import Constant
-from ...utils.common import Embed2, EmbedPagination, a, arrow, code, verbatim
+from ...utils.duckcord.embeds import Embed2
+from ...utils.markdown import a, arrow, code, verbatim
+from ...utils.pagination import EmbedPagination
 from ..services import ServiceUnavailable
 from ..services.datetime import Timezone, get_tzfinder
 from ..services.osm import (Latitude, Longitude, format_coarse_location,

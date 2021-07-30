@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from discord.ext.commands.errors import BadArgument, UserInputError
+from discord.utils import escape_markdown
 
 from ...utils.markdown import strong
 
@@ -49,9 +50,9 @@ class NoSuchCommand(ValueError):
     def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
         super().__init__(*args)
         if potential_match:
-            self.message = f'No command named {strong(query)}. Did you mean {strong(potential_match)}?'
+            self.message = f'No command named {strong(escape_markdown(query))}. Did you mean {strong(potential_match)}?'
         else:
-            self.message = f'No command named {strong(query)}.'
+            self.message = f'No command named {strong(escape_markdown(query))}.'
 
     def __str__(self) -> str:
         return self.message

@@ -41,8 +41,7 @@ from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext import dm
 from .ext.acl import acl
-from .ext.autodoc import (Documentation, Manual, NoSuchCommand,
-                          explain_exception, explains, set_manual_getter)
+from .ext.autodoc import Documentation, Manual, explain_exception, explains
 from .ext.logging import log_command_errors, log_exception
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
@@ -169,13 +168,11 @@ class Robot(Bot):
             self.add_cog(cog_cls(label, self))
 
     def _create_manual(self):
-        self.manual = Manual.from_bot(self)
-        self.manual.title = f'{get_constant("branding_full")}: Command list'
+        title = f'{get_constant("branding_full")}: Command list'
         color = get_constant('site_color')
         if color:
-            self.manual.color = int(color, 16)
-        self.manual.finalize()
-        set_manual_getter(lambda ctx: ctx.bot.manual)
+            color = int(color, 16)
+        doc.init_bot(self, title, color)
 
     @classmethod
     def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
@@ -328,26 +325,7 @@ class Robot(Bot):
     @doc.example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
     async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = '-normal',
                         *, query: str = ''):
-        man = ctx.bot.manual
-        query = query.lower()
-
-        if not query:
-            return await man.send_toc(ctx)
-
-        if query[:len(ctx.prefix)] == ctx.prefix:
-            query = query[len(ctx.prefix):]
-
-        try:
-            doc = man.lookup(query)
-        except NoSuchCommand as exc:
-            return await ctx.send(str(exc), delete_after=60)
-
-        category = category[1:]
-        rich_help = doc.rich_helps[category]
-        if category == 'normal':
-            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} -full {query}" for more info')
-
-        await ctx.response(ctx, embed=rich_help).reply().deleter().run()
+        return await ctx.bot.manual.do_help(ctx, category[1:], query)
 
     def is_hidden(self, cmd: Command):
         return self.manual.commands[cmd.qualified_name].hidden

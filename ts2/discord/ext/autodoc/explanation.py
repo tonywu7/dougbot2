@@ -32,15 +32,13 @@ from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
 from .lang import pl_cat_predicative, pluralize
-from .manual import Manual
+from .manual import get_manual
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
 _ExceptionHandler = Callable[[Context, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
 
 exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: dict[_ExceptionType, str] = {}
-
-get_manual: Callable[[Context], Manual] = None
 
 BUCKET_DESCRIPTIONS = {
     BucketType.default: 'globally',
@@ -71,11 +69,6 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
             exception_names[exc] = name
         return f
     return wrapper
-
-
-def set_manual_getter(getter: Callable[[Context], Manual]):
-    global get_manual
-    get_manual = getter
 
 
 async def reply_command_failure(ctx: Context, title: str, msg: str,

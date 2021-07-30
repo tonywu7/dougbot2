@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
+from typing import Optional
 
 import attr
 from discord import Forbidden
@@ -24,12 +26,18 @@ from discord.ext.commands import Bot, Command, Context
 from fuzzywuzzy import process as fuzzy
 from more_itertools import flatten
 
-from ...utils.common import (Color2, DeleteResponder, Embed2, EmbedPagination,
-                             TextPagination, blockquote, chapterize_items, em,
-                             is_direct_message, start_responders, strong)
-from ...utils.duckcord.embeds import EmbedField
+from ...utils.common import is_direct_message
+from ...utils.duckcord.color import Color2
+from ...utils.duckcord.embeds import Embed2, EmbedField
+from ...utils.events import DeleteResponder, start_responders
+from ...utils.markdown import blockquote, em, strong
+from ...utils.pagination import (EmbedPagination, TextPagination,
+                                 chapterize_items)
+from ...utils.response import ResponseInit
 from .documentation import Documentation
 from .exceptions import NoSuchCommand
+
+get_manual: Callable[[Context], Manual] = None
 
 
 @attr.s
@@ -177,3 +185,37 @@ class Manual:
         paginator = pagination(ctx.bot, msg, 300, ctx.author.id)
         deleter = DeleteResponder(ctx, msg)
         start_responders(paginator, deleter)
+
+    async def do_help(self, ctx: Context, category: str = 'normal',
+                      query: Optional[str] = None):
+        if not query:
+            return await self.send_toc(ctx)
+        query = query.lower().removeprefix(ctx.prefix)
+        try:
+            doc = self.lookup(query)
+        except NoSuchCommand as exc:
+            return await ctx.send(str(exc), delete_after=60)
+        try:
+            rich_help = doc.rich_helps[category]
+        except KeyError:
+            rich_help = doc.rich_helps['normal']
+        if category == 'normal':
+            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} -full {query}" for more info')
+        await ResponseInit(ctx, embed=rich_help).reply().deleter().run()
+
+
+def set_manual_getter(getter: Callable[[Context], Manual]):
+    global get_manual
+    get_manual = getter
+
+
+def init_bot(bot: Bot, title: str = 'Command list',
+             color: Optional[int] = None) -> Manual:
+    manual = Manual.from_bot(bot)
+    manual.title = title
+    if color:
+        manual.color = color
+    manual.finalize()
+    bot.manual = manual
+    set_manual_getter(lambda ctx: ctx.bot.manual)
+    return manual
