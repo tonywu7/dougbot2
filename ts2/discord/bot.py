@@ -16,27 +16,25 @@
 
 import asyncio
 import logging
-from collections.abc import Generator, Iterable
-from typing import Optional, Protocol, TypeVar
+from collections.abc import Generator
+from typing import Optional, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Message, Object,
                      Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import Bot, Command, has_guild_permissions
+from discord.ext.commands import Bot, has_guild_permissions
 from discord.utils import escape_markdown
 from django.conf import settings
-from django.core.cache import caches
 from django.db import IntegrityError
 from django.db.models.query import QuerySet
 from more_itertools import always_reversible
 
 from ts2.utils.datetime import utcnow, utctimestamp
-from ts2.utils.importutil import objpath
 
 from . import cog, models
-from .apps import DiscordBotConfig, get_constant, server_allowed
+from .apps import get_app, get_constant, server_allowed
 from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext import dm
@@ -45,7 +43,6 @@ from .ext.autodoc import Documentation, Manual, explain_exception, explains
 from .ext.logging import log_command_errors, log_exception
 from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
-from .utils import ipc
 from .utils.common import is_direct_message
 from .utils.markdown import code, em, strong
 
@@ -53,68 +50,74 @@ T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
 
 AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
+log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
 
 HelpFormat = Choice[[f'-{k}' for k in Documentation.HELP_STYLES], 'info category']
 
 
-class DiscordModel(Protocol):
-    id: int
+@explains(cog.ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: cog.ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
-class CommandIterator(Protocol):
-    commands: Iterable[Command]
+def channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
+    for cat, channels in guild.by_category():
+        if cat:
+            yield cat
+        for c in channels:
+            yield c
 
 
-class Gatekeeper:
-    def __init__(self):
-        self.log = logging.getLogger('discord.gatekeeper')
-        self._query = Blacklisted.objects.values_list('snowflake', flat=True)
+def text_channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
+    for c in channels_ordered_1d(guild):
+        if c.type in (ChannelType.text, ChannelType.news, ChannelType.category):
+            yield c
 
-    @sync_to_async
-    def add(self, obj: Object):
-        try:
-            blacklisted = Blacklisted(snowflake=obj.id)
-            blacklisted.save()
-        except IntegrityError:
-            return
 
-    @sync_to_async
-    def discard(self, obj: Object):
-        try:
-            blacklisted = Blacklisted.objects.get(snowflake=obj.id)
-            blacklisted.delete()
-        except Blacklisted.DoesNotExist:
-            return
+def _sync_models(model: AdaptableModel, designated: list[Object],
+                 registered: QuerySet):
+    designated = {r.id: r for r in designated}
+    registered_ids: set[int] = {d['snowflake'] for d in registered.values('snowflake')}
+    to_delete = registered.exclude(snowflake__in=designated.keys())
+    to_insert = (model.from_discord(r) for k, r in designated.items()
+                 if k not in registered_ids)
+    to_update = (model.from_discord(r) for k, r in designated.items()
+                 if k in registered_ids)
+    to_delete.delete()
+    model.objects.bulk_create(to_insert)
+    model.objects.bulk_update(to_update, model.updatable_fields())
 
-    async def match(self, *entities: Object) -> bool:
-        blacklisted = await self.blacklisted()
-        return any(o.id in blacklisted for o in entities if o)
 
-    @sync_to_async
-    def blacklisted(self) -> set[int]:
-        return set(self._query.all())
+def _sync_layouts(server: Server, guild: Guild):
+    role_order = {r.id: idx for idx, r in enumerate(always_reversible(guild.roles))}
+    channel_order = {c.id: idx for idx, c in enumerate(text_channels_ordered_1d(guild))}
+    server.roles.bulk_update([
+        models.Role(snowflake=k, order=v) for k, v in role_order.items()
+    ], ['order'])
+    server.channels.bulk_update([
+        models.Channel(snowflake=k, order=v) for k, v in channel_order.items()
+    ], ['order'])
 
-    async def on_message(self, message: Message):
-        return not await self.match(message, message.guild, message.channel, message.author)
 
-    async def on_reaction_add(self, reaction, member):
-        return not await self.match(member)
-
-    async def on_raw_reaction_add(self, evt: RawReactionActionEvent):
-        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
-                                            evt.message_id, evt.user_id)]
-        return not await self.match(*entities)
-
-    async def handle(self, event_name: str, *args, **kwargs) -> bool:
-        handler = getattr(self, f'on_{event_name}', None)
-        if not handler:
-            return True
-        try:
-            return await handler(*args, **kwargs)
-        except Exception as e:
-            self.log.error('Error while evaluating gatekeeper '
-                           f'criteria for {event_name}', exc_info=e)
-            return True
+@sync_to_async(thread_sensitive=False)
+def sync_server(guild: Guild, *, roles=True, channels=True, layout=True):
+    try:
+        server: Server = (
+            Server.objects
+            .prefetch_related('channels', 'roles')
+            .get(pk=guild.id)
+        )
+    except Server.DoesNotExist:
+        return
+    server.name = guild.name
+    server.perms = guild.default_role.permissions.value
+    server.save()
+    if roles:
+        _sync_models(models.Role, guild.roles, server.roles)
+    if channels:
+        _sync_models(models.Channel, [*text_channels_ordered_1d(guild)], server.channels)
+    if layout:
+        _sync_layouts(server, guild)
 
 
 class Robot(Bot):
@@ -122,7 +125,6 @@ class Robot(Bot):
     DEFAULT_PERMS = Permissions(805825782)
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
@@ -136,17 +138,9 @@ class Robot(Bot):
 
         add_event_listeners(self)
         register_base_commands(self)
-
-        self._init_ipc()
-        self._load_extensions()
-        self._create_manual()
-
+        load_extensions(self)
+        create_manual(self)
         self.gatekeeper = Gatekeeper()
-
-    def _init_ipc(self):
-        thread = ipc.CachePollingThread('discord')
-        thread.add_event_listener('ts2.discord.bot.refresh', sync_to_async(self._load_extensions))
-        thread.start()
 
     async def _init_client_session(self):
         if hasattr(self, 'request'):
@@ -159,83 +153,6 @@ class Robot(Bot):
 
     def _register_commands(self):
         register_base_commands(self)
-
-    def _load_extensions(self, *args, **kwargs):
-        app = DiscordBotConfig.get()
-        for label, ext in app.ext_map.items():
-            cog_cls = ext.target
-            self.log.debug(f'Loaded extension: {label} {objpath(cog_cls)}')
-            self.add_cog(cog_cls(label, self))
-
-    def _create_manual(self):
-        title = f'{get_constant("branding_full")}: Command list'
-        color = get_constant('site_color')
-        if color:
-            color = int(color, 16)
-        doc.init_bot(self, title, color)
-
-    @classmethod
-    def channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
-        for cat, channels in guild.by_category():
-            if cat:
-                yield cat
-            for c in channels:
-                yield c
-
-    @classmethod
-    def text_channels_ordered_1d(cls, guild: Guild) -> Generator[GuildChannel]:
-        for c in cls.channels_ordered_1d(guild):
-            if c.type in (ChannelType.text, ChannelType.news, ChannelType.category):
-                yield c
-
-    @classmethod
-    def _sync_models(cls, model: AdaptableModel, designated: list[DiscordModel],
-                     registered: QuerySet):
-        designated = {r.id: r for r in designated}
-        registered_ids: set[int] = {d['snowflake'] for d in registered.values('snowflake')}
-        to_delete = registered.exclude(snowflake__in=designated.keys())
-        to_insert = (model.from_discord(r) for k, r in designated.items()
-                     if k not in registered_ids)
-        to_update = (model.from_discord(r) for k, r in designated.items()
-                     if k in registered_ids)
-        to_delete.delete()
-        model.objects.bulk_create(to_insert)
-        model.objects.bulk_update(to_update, model.updatable_fields())
-
-    @classmethod
-    def _sync_layouts(cls, server: Server, guild: Guild):
-        role_order = {r.id: idx for idx, r in enumerate(always_reversible(guild.roles))}
-        channel_order = {c.id: idx for idx, c in enumerate(cls.text_channels_ordered_1d(guild))}
-        server.roles.bulk_update([
-            models.Role(snowflake=k, order=v) for k, v in role_order.items()
-        ], ['order'])
-        server.channels.bulk_update([
-            models.Channel(snowflake=k, order=v) for k, v in channel_order.items()
-        ], ['order'])
-
-    @classmethod
-    @sync_to_async(thread_sensitive=False)
-    def sync_server(cls, guild: Guild, *, roles=True, channels=True, layout=True):
-        try:
-            server: Server = (
-                Server.objects
-                .prefetch_related('channels', 'roles')
-                .get(pk=guild.id)
-            )
-        except Server.DoesNotExist:
-            return
-        server.name = guild.name
-        server.perms = guild.default_role.permissions.value
-        server.save()
-        if roles:
-            cls._sync_models(models.Role, guild.roles, server.roles)
-        if channels:
-            cls._sync_models(models.Channel, [*cls.text_channels_ordered_1d(guild)], server.channels)
-        if layout:
-            cls._sync_layouts(server, guild)
-
-    async def fetch_raw_member(self, guild_id: int, user_id: int) -> dict:
-        return await self._get_state().http.get_member(guild_id, user_id)
 
     @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
@@ -253,10 +170,6 @@ class Robot(Bot):
             return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
         except Server.DoesNotExist:
             return ['\x00']
-
-    @classmethod
-    def schedule_refresh(cls):
-        caches['discord'].set('ts2.discord.bot.refresh', True)
 
     async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=cls)
@@ -327,15 +240,63 @@ class Robot(Bot):
                         *, query: str = ''):
         return await ctx.bot.manual.do_help(ctx, category[1:], query)
 
-    def is_hidden(self, cmd: Command):
+    def is_hidden(self, cmd):
         return self.manual.commands[cmd.qualified_name].hidden
 
-    def is_unreachable(self, cmd: Command):
-        return cmd.hidden
+
+class Gatekeeper:
+    def __init__(self):
+        self.log = logging.getLogger('discord.gatekeeper')
+        self._query = Blacklisted.objects.values_list('snowflake', flat=True)
+
+    @sync_to_async
+    def add(self, obj: Object):
+        try:
+            blacklisted = Blacklisted(snowflake=obj.id)
+            blacklisted.save()
+        except IntegrityError:
+            return
+
+    @sync_to_async
+    def discard(self, obj: Object):
+        try:
+            blacklisted = Blacklisted.objects.get(snowflake=obj.id)
+            blacklisted.delete()
+        except Blacklisted.DoesNotExist:
+            return
+
+    async def match(self, *entities: Object) -> bool:
+        blacklisted = await self.blacklisted()
+        return any(o.id in blacklisted for o in entities if o)
+
+    @sync_to_async
+    def blacklisted(self) -> set[int]:
+        return set(self._query.all())
+
+    async def on_message(self, message: Message):
+        return not await self.match(message, message.guild, message.channel, message.author)
+
+    async def on_reaction_add(self, reaction, member):
+        return not await self.match(member)
+
+    async def on_raw_reaction_add(self, evt: RawReactionActionEvent):
+        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
+                                            evt.message_id, evt.user_id)]
+        return not await self.match(*entities)
+
+    async def handle(self, event_name: str, *args, **kwargs) -> bool:
+        handler = getattr(self, f'on_{event_name}', None)
+        if not handler:
+            return True
+        try:
+            return await handler(*args, **kwargs)
+        except Exception as e:
+            self.log.error('Error while evaluating gatekeeper '
+                           f'criteria for {event_name}', exc_info=e)
+            return True
 
 
 def add_event_listeners(self: Robot):
-
     @self.check_once
     async def command_global_check(ctx: Circumstances) -> bool:
         for check in asyncio.as_completed([
@@ -376,7 +337,7 @@ def add_event_listeners(self: Robot):
     async def update_channels(channel, updated=None):
         updated = updated or channel
         self.log.info(f'Updating channels for {updated.guild}')
-        await self.sync_server(updated.guild, roles=False)
+        await sync_server(updated.guild, roles=False)
 
     @self.listen('on_guild_role_create')
     @self.listen('on_guild_role_update')
@@ -384,23 +345,22 @@ def add_event_listeners(self: Robot):
     async def update_roles(role, updated=None):
         updated = updated or role
         self.log.info(f'Updating roles for {updated.guild}')
-        await self.sync_server(role.guild, channels=False)
+        await sync_server(role.guild, channels=False)
 
     @self.listen('on_guild_update')
     async def update_server(before: Guild, after: Guild):
         self.log.info(f'Updating server info for {after}')
-        await self.sync_server(after, roles=False, channels=False, layout=False)
+        await sync_server(after, roles=False, channels=False, layout=False)
 
     @self.listen('on_guild_available')
     async def update_server_initial(guild: Guild):
         if not server_allowed(guild.id):
             self.log.warning(f'{guild} is not in the list of allowed guilds!')
             return await guild.leave()
-        await self.sync_server(guild)
+        await sync_server(guild)
 
 
 def register_base_commands(self: Robot):
-
     self.command('help')(self.send_help)
 
     @self.command('echo')
@@ -418,6 +378,14 @@ def register_base_commands(self: Robot):
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances):
         await ctx.send(f':PONG {utctimestamp()}')
+
+    @self.group('prefix', invoke_without_command=True)
+    @doc.description('Get the command prefix for the bot in this server.')
+    @doc.invocation((), 'Print the prefix.')
+    async def get_prefix(ctx: Circumstances):
+        prefix = escape_markdown(ctx.server.prefix)
+        example = f'Example: {strong(f"{prefix}echo")}'
+        await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
 
     @self.listen('on_message')
     async def on_ping(msg: Message):
@@ -442,14 +410,6 @@ def register_base_commands(self: Robot):
 
         await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
 
-    @self.group('prefix', invoke_without_command=True)
-    @doc.description('Get the command prefix for the bot in this server.')
-    @doc.invocation((), 'Print the prefix.')
-    async def get_prefix(ctx: Circumstances):
-        prefix = escape_markdown(ctx.server.prefix)
-        example = f'Example: {strong(f"{prefix}echo")}'
-        await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
-
     @get_prefix.command('set')
     @doc.description('Set a new prefix for this server.')
     @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
@@ -464,9 +424,16 @@ def register_base_commands(self: Robot):
             raise
 
 
-@explains(cog.ModuleDisabled, 'Command disabled')
-async def on_disabled(ctx, exc: cog.ModuleDisabled):
-    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+def load_extensions(self: Robot, *args, **kwargs):
+    app = get_app()
+    for label, ext in app.ext_map.items():
+        cog_cls = ext.target
+        self.add_cog(cog_cls(label, self))
 
 
-log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
+def create_manual(self: Robot):
+    title = f'{get_constant("branding_full")}: Command list'
+    color = get_constant('site_color')
+    if color:
+        color = int(color, 16)
+    doc.init_bot(self, title, color)

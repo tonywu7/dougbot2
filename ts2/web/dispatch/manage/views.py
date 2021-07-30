@@ -25,10 +25,11 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import View
 
-from ts2.discord.apps import DiscordBotConfig
+from ts2.discord.apps import get_app
 from ts2.discord.ext.logging import iter_logging_conf
 from ts2.discord.middleware import get_ctx, require_server_access
 from ts2.discord.models import Server
+from ts2.discord.threads import get_thread
 
 from ...models import User, manage_permissions_required
 
@@ -61,7 +62,7 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
 
     enabled = ctx.server.extensions
     exts = [(app.label, app.icon_and_title, app.label in enabled) for app
-            in DiscordBotConfig.ext_map.values()]
+            in get_app().ext_map.values()]
 
     return render(
         req, 'ts2/manage/core.html',
@@ -116,23 +117,6 @@ class DeleteServerProfileView(View):
         if not guild_id:
             raise SuspiciousOperation('Invalid parameters.')
 
-        thread = DiscordBotConfig.get().bot_thread
-
-        async def get(bot):
-            guild: Guild = await bot.fetch_guild(guild_id)
-            return guild, await guild.fetch_member(req.user.snowflake)
-
-        try:
-            result = thread.run_coroutine(get(thread.client))
-        except Forbidden:
-            raise SuspiciousOperation('Insufficient permissions.')
-
-        guild, member = result
-        if not member:
-            raise SuspiciousOperation('Invalid parameters.')
-        if not member.guild_permissions.manage_guild:
-            raise SuspiciousOperation('Insufficient permissions.')
-
         @sync_to_async(thread_sensitive=False)
         def delete_server():
             try:
@@ -141,10 +125,17 @@ class DeleteServerProfileView(View):
                 return
             server.delete()
 
-        async def leave():
-            await guild.leave()
+        async def leave(bot):
+            try:
+                guild: Guild = await bot.fetch_guild(guild_id)
+            except Forbidden:
+                pass
+            else:
+                await guild.leave()
             await delete_server()
-        thread.run_coroutine(leave())
+
+        thread = get_thread()
+        thread.run_coroutine(leave(thread.client))
 
         return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))
 

@@ -16,11 +16,11 @@
 
 from typing import Union
 
+from discord.ext.commands import Bot
 from django import forms
 from django.apps import apps
 from django.http import HttpRequest
 
-from .apps import DiscordBotConfig
 from .config import CommandAppConfig
 from .models import Server
 
@@ -71,16 +71,24 @@ class ServerModelSyncForm(forms.ModelForm):
         fields = ()
 
     def save(self, commit=True):
-        app = DiscordBotConfig.get()
-        thread = app.bot_thread
+        from .bot import sync_server
+        from .threads import get_thread
+        thread = get_thread()
 
-        async def task(bot):
-            guild = await bot.fetch_guild(self.instance.snowflake)
-            guild._channels = {c.id: c for c in await guild.fetch_channels()}
-            guild._roles = {r.id: r for r in await guild.fetch_roles()}
-            await bot.sync_server(guild)
+        async def sync_models(bot: Bot):
+            guild = bot.get_guild(self.instance.snowflake)
+            if not guild:
+                try:
+                    guild = await bot.fetch_guild(self.instance.snowflake)
+                except Exception as e:
+                    import logging
+                    logging.getLogger().error(e, exc_info=e)
+                    return
+                else:
+                    guild._channels = {c.id: c for c in await guild.fetch_channels()}
+            await sync_server(guild)
 
-        thread.run_coroutine(task(thread.client))
+        thread.run_coroutine(sync_models(thread.client))
         return self.instance
 
     def user_tests(self, req: HttpRequest) -> bool:

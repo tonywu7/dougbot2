@@ -21,6 +21,9 @@ from ...utils.markdown import strong
 
 
 class BadDocumentation(UserWarning):
+    def __init__(self, message: str) -> None:
+        self.message = message
+
     def __str__(self) -> str:
         return f'Bad documentation: {self.message}'
 

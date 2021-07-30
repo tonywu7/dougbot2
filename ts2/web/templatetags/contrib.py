@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from django.template import Context, Library, Node, NodeList
 
-from ts2.discord.apps import DiscordBotConfig
+from ts2.discord.apps import get_app
 
 from ..templatetags.elements import SidebarLinkNode, SidebarSectionNode
 from ..utils.templates import create_tag_parser
@@ -32,8 +32,9 @@ class ExtensionListNode(Node):
         super().__init__()
 
     def render(self, context: Context) -> str:
-        url_map = DiscordBotConfig.url_map
-        ext_map = DiscordBotConfig.ext_map
+        app = get_app()
+        url_map = app.url_map
+        ext_map = app.ext_map
         text = []
         for (ext_name, urls), (_, conf) in zip(url_map.items(), ext_map.items()):
             if not urls:

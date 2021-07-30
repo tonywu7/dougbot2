@@ -31,15 +31,15 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import View
 
-from ts2.discord.apps import DiscordBotConfig
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
                                bot_invite_url, create_session)
 from ts2.discord.models import Server
+from ts2.discord.threads import get_thread
 from ts2.utils.jwt import validate_token
 
-from ...forms import ServerCreationForm, UserCreationForm
 from ...models import User, manage_permissions_required
 from ...utils.http import HTTPCreated
+from .forms import ServerCreationForm, UserCreationForm
 
 
 def verify_state(req: HttpRequest, sub=None, aud=None) -> tuple[str, Optional[dict]]:
@@ -157,8 +157,7 @@ def join(req: HttpRequest) -> HttpResponse:
 
 
 def cleanup_unauthorized_join(guild_id: str):
-    apps = DiscordBotConfig.get()
-    thread = apps.bot_thread
+    thread = get_thread()
 
     async def leave(bot: Bot):
         try:

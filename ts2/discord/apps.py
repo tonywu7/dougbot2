@@ -14,10 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 import logging
-from typing import Optional
 
 from django.apps import AppConfig, apps
 from django.conf import settings
@@ -27,7 +24,6 @@ from django.db.backends.signals import connection_created
 from django.http import HttpRequest
 
 from .config import AnnotatedPattern, CommandAppConfig
-from .runner import BotRunner
 
 
 class DiscordBotConfig(AppConfig):
@@ -37,8 +33,6 @@ class DiscordBotConfig(AppConfig):
     ext_map: dict[str, CommandAppConfig] = {}
     url_map: dict[str, list[AnnotatedPattern]] = {}
 
-    bot_thread: BotRunner
-
     def sqlite_pragma(self, *, sender, connection: BaseDatabaseWrapper, **kwargs):
         if connection.vendor == 'sqlite':
             with connection.cursor() as cursor:
@@ -46,26 +40,15 @@ class DiscordBotConfig(AppConfig):
                 cursor.execute('PRAGMA journal_mode=WAL;')
 
     def ready(self) -> None:
-        from .bot import Robot
-
         connection_created.connect(self.sqlite_pragma)
         for k, v in apps.app_configs.items():
             if isinstance(v, CommandAppConfig):
                 self.ext_map[k] = v
                 self.url_map[k] = v.public_views()
 
-        if (not settings.DISCORD_CLIENT_ID
-                or not settings.DISCORD_CLIENT_SECRET
-                or not settings.DISCORD_BOT_TOKEN):
+        if no_credentials():
             logging.getLogger('discord.config').warning('Discord credentials are missing. Will not connect to Discord.')
             return
-
-        self.bot_thread = BotRunner(Robot, {}, run_forever=False, standby=True, daemon=True)
-        self.bot_thread.start()
-
-    @classmethod
-    def get(cls) -> DiscordBotConfig:
-        return apps.get_app_config('discord')
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
@@ -74,26 +57,17 @@ class DiscordBotConfig(AppConfig):
 
 @register('discord')
 def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[CheckMessage]:
-    if (not settings.DISCORD_CLIENT_ID
-            or not settings.DISCORD_CLIENT_SECRET
-            or not settings.DISCORD_BOT_TOKEN):
-
+    if no_credentials():
         return [Error('Discord credentials are missing.',
                       hint='Run the init command to supply them.',
                       id='discord.E010')]
     return []
 
 
-def get_commands(req: HttpRequest) -> Optional[list[str]]:
-    superuser = req.user.is_superuser
-    instance = DiscordBotConfig.get().bot_thread.get_client()
-    if not instance:
-        return None
-    return [*sorted(
-        c.qualified_name for c
-        in instance.walk_commands()
-        if not instance.is_hidden(c) or superuser
-    )]
+def no_credentials():
+    return (not settings.DISCORD_CLIENT_ID
+            or not settings.DISCORD_CLIENT_SECRET
+            or not settings.DISCORD_BOT_TOKEN)
 
 
 def server_allowed(server_id: int):
@@ -101,5 +75,20 @@ def server_allowed(server_id: int):
     return not allowed or server_id in allowed
 
 
+def get_app() -> DiscordBotConfig:
+    return apps.get_app_config('discord')
+
+
 def get_constant(k: str, default=None):
     return settings.INSTANCE_CONSTANTS.get(k.upper(), default)
+
+
+def get_commands(req: HttpRequest) -> list[str]:
+    from .threads import get_thread
+    superuser = req.user.is_superuser
+    bot = get_thread().client
+    return [*sorted(
+        c.qualified_name for c
+        in bot.walk_commands()
+        if not bot.is_hidden(c) or superuser
+    )]

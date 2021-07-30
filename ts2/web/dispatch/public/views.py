@@ -23,8 +23,8 @@ from django.views.generic import View
 
 from ts2.discord.middleware import optional_server_access
 
-from ...forms import FeedbackForm
 from ...models import Feature, PageInfo
+from .forms import FeedbackForm
 from .removal import rm
 
 

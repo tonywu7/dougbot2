@@ -18,8 +18,6 @@ import asyncio
 import logging
 import threading
 from collections.abc import Coroutine
-from contextlib import AbstractContextManager as ContextManager
-from contextlib import contextmanager
 from typing import Any, Generic, Optional, TypeVar
 
 from discord import Client
@@ -33,15 +31,13 @@ U = TypeVar('U', bound=Bot)
 
 class BotRunner(threading.Thread, Generic[T]):
     def __init__(self, client_cls: type[T], client_opts: dict,
-                 run_forever=True, standby=False,
-                 *args, **kwargs) -> None:
+                 listen=True, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.log = logging.getLogger('discord.runner')
 
         self._client_cls = client_cls
         self._client_options = client_opts
-        self._run_forever = run_forever
-        self._standby = standby
+        self._listen = listen
 
         self.loop: asyncio.AbstractEventLoop
         self.client: T
@@ -68,56 +64,17 @@ class BotRunner(threading.Thread, Generic[T]):
             self.client = client
             self.bot_init.notify_all()
 
-        if self._run_forever:
-            loop.create_task(client.start(settings.DISCORD_BOT_TOKEN))
-            loop.run_forever()
+        if self._listen:
+            run = client.start(settings.DISCORD_BOT_TOKEN)
+        else:
+            run = client.login(settings.DISCORD_BOT_TOKEN)
 
-        elif self._standby:
-            loop.run_until_complete(client.login(settings.DISCORD_BOT_TOKEN))
-            self._listen()
-
-    def _listen(self):
-        while True:
-            with self.data_requested:
-                self.data_requested.wait_for(self.has_request)
-            try:
-                self._data = self.loop.run_until_complete(self._request)
-            except Exception as e:
-                self._data = e
-            with self.data_ready:
-                self.data_ready.notify_all()
-                self.del_request()
-
-    def set_request(self, coro: Coroutine):
-        self._request = coro
-
-    def del_request(self):
-        try:
-            del self._request
-        except AttributeError:
-            pass
-
-    def has_request(self):
-        return hasattr(self, '_request')
-
-    def has_result(self):
-        return hasattr(self, '_data')
-
-    def get_result(self):
-        data = self._data
-        del self._data
-        return data
+        asyncio.run_coroutine_threadsafe(run, loop)
+        loop.run_forever()
 
     def run_coroutine(self, coro):
-        with self.data_requested:
-            self.set_request(coro)
-            self.data_requested.notify_all()
-        with self.data_ready:
-            self.data_ready.wait_for(self.has_result)
-            result = self.get_result()
-        if isinstance(result, Exception):
-            raise result
-        return result
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
 
     def bot_initialized(self) -> bool:
         return hasattr(self, 'client')
@@ -136,15 +93,3 @@ class BotRunner(threading.Thread, Generic[T]):
             self.loop.run_until_complete(self.client.close())
             self.loop.close()
         return super().join(timeout=timeout)
-
-    @classmethod
-    @contextmanager
-    def instanstiate(cls, client_cls: type[U], *args, run_forever=False, daemon=True, **kwargs) -> ContextManager[U]:
-        thread = cls(client_cls, *args, run_forever=False, daemon=True, **kwargs)
-        thread.start()
-        with thread.bot_init:
-            thread.bot_init.wait_for(thread.bot_initialized)
-        try:
-            yield thread.client
-        finally:
-            thread.join()
