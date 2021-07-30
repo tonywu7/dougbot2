@@ -24,6 +24,7 @@ from typing import Literal, Optional, Union
 from urllib.parse import urlencode
 
 from asgiref.sync import sync_to_async
+from discord import Guild, Member
 from discord.errors import HTTPException
 from django.apps import apps
 from django.contrib import messages
@@ -155,6 +156,8 @@ class DiscordContext:
     @classmethod
     async def create(cls, guilds: Iterable[PartialGuild], guild_id: Optional[str | int],
                      token: str, user: User, profile: PartialUser) -> DiscordContext:
+        from .threads import get_thread
+
         if guild_id:
             guild_id = int(guild_id)
         user_guilds = {g.id: g for g in guilds}
@@ -164,6 +167,17 @@ class DiscordContext:
             return {s.snowflake: s for s in Server.objects.filter(snowflake__in=user_guilds)}
 
         servers: dict[int, Server] = await get_servers()
+        roles: defaultdict[int, set[int]] = defaultdict(set)
+
+        bot = get_thread().client
+        for k in servers:
+            g: Guild = bot.get_guild(k)
+            if not g:
+                continue
+            m: Member = g.get_member(user.pk)
+            if not m:
+                continue
+            roles[k] = {r.id for r in m.roles}
 
         for v in user_guilds.values():
             v.joined = v.id in servers
@@ -177,9 +191,11 @@ class DiscordContext:
             server = servers.get(k)
             if not server:
                 continue
-            elif int(server.writable) and perms >= server.writable:
+            readable = set(server.readable)
+            writable = set(server.writable)
+            if writable & roles[k]:
                 permissions[k] |= {'read', 'write'}
-            elif int(server.readable) and perms >= server.readable:
+            elif readable & roles[k]:
                 permissions[k].add('read')
 
         permissions = defaultdict(set, {

@@ -55,13 +55,14 @@ class BotType(ObjectType):
 
 class ServerType(DjangoObjectType):
     extensions = List(String)
+    readable = List(NonNull(ID))
+    writable = List(NonNull(ID))
 
     class Meta:
         model = Server
         fields = (
             'snowflake', 'prefix', 'disabled',
-            'name', 'perms', 'readable', 'writable',
-            'channels', 'roles',
+            'name', 'perms', 'channels', 'roles',
         )
 
     @staticmethod
@@ -133,8 +134,8 @@ class ServerPermMutation(ServerModelMutation):
         model = Server
 
     class Arguments:
-        readable = Argument(List(String), required=True)
-        writable = Argument(List(String), required=True)
+        readable = Argument(List(ID), required=True)
+        writable = Argument(List(ID), required=True)
 
     server = Field(ServerType)
 
@@ -142,7 +143,8 @@ class ServerPermMutation(ServerModelMutation):
     def mutate(cls, root, info: HasContext, *, server_id: str,
                readable: list[str], writable: list[str]):
         instance = cls.get_instance(info.context, server_id)
-        instance.fill_permissions(readable, writable)
+        instance.readable = [int(id_) for id_ in readable]
+        instance.writable = [int(id_) for id_ in writable]
         instance.save()
         return cls(instance)
 

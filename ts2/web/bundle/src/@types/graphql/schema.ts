@@ -164,9 +164,9 @@ export type MutationupdateModelsArgs = {
 
 
 export type MutationupdatePermsArgs = {
-  readable: Array<Maybe<Scalars['String']>>;
+  readable: Array<Maybe<Scalars['ID']>>;
   serverId: Scalars['ID'];
-  writable: Array<Maybe<Scalars['String']>>;
+  writable: Array<Maybe<Scalars['ID']>>;
 };
 
 export type Query = {
@@ -262,11 +262,11 @@ export type ServerType = {
   name: Scalars['String'];
   perms: Array<Scalars['String']>;
   prefix: Scalars['String'];
-  readable: Array<Scalars['String']>;
-  writable: Array<Scalars['String']>;
   channels: Array<ChannelType>;
   roles: Array<RoleType>;
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
+  readable?: Maybe<Array<Scalars['ID']>>;
+  writable?: Maybe<Array<Scalars['ID']>>;
 };
 
 export type StringTemplateType = {
@@ -350,8 +350,8 @@ export type UpdateModelsMutation = (
 
 export type UpdatePermsMutationVariables = Exact<{
   serverId: Scalars['ID'];
-  readable: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
-  writable: Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>;
+  readable: Array<Scalars['ID']> | Scalars['ID'];
+  writable: Array<Scalars['ID']> | Scalars['ID'];
 }>;
 
 

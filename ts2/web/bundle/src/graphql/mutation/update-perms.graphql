@@ -1,7 +1,7 @@
 mutation UpdatePerms(
     $serverId: ID!
-    $readable: [String]!
-    $writable: [String]!
+    $readable: [ID!]!
+    $writable: [ID!]!
 ) {
     updatePerms(serverId: $serverId, readable: $readable, writable: $writable) {
         server {

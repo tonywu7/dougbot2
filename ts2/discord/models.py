@@ -175,8 +175,8 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
     logging = models.JSONField(verbose_name='logging config', default=dict)
 
-    readable: Permissions2 = PermissionField(verbose_name='readable perms', default=32)
-    writable: Permissions2 = PermissionField(verbose_name='writable perms', default=32)
+    readable: list[int] = models.JSONField(verbose_name='readable roles', default=list)
+    writable: list[int] = models.JSONField(verbose_name='writable roles', default=list)
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
@@ -206,16 +206,6 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     @classmethod
     def updatable_fields(cls) -> list[str]:
         return ['perms']
-
-    def fill_permissions(self, readable: list[str], writable: list[str]):
-        pr = Permissions2(**{k: True for k in readable if k in Permissions2.VALID_FLAGS})
-        pw = Permissions2(**{k: True for k in writable if k in Permissions2.VALID_FLAGS})
-        if not int(pr):
-            pr = Permissions2(32)
-        if not int(pw):
-            pw = Permissions2(32)
-        self.readable = pr
-        self.writable = pw
 
 
 class Channel(Entity, ModelTranslator[DiscordChannels, 'Channel']):

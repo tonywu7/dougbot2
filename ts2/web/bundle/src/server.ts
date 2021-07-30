@@ -401,8 +401,8 @@ class Server {
             let info = this.queries.serverInfo!.server!
             this.prefix = info.prefix
             this.perms = info.perms
-            this.readable = info.readable
-            this.writable = info.writable
+            this.readable = info.readable || []
+            this.writable = info.writable || []
             this.channels = info.channels
                 .map((d) => new Channel(d))
                 .sort((a, b) => a.order - b.order)
