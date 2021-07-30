@@ -32,7 +32,6 @@ from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
 from .lang import pl_cat_predicative, pluralize
-from .manual import get_manual
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception]]]
 _ExceptionHandler = Callable[[Context, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
@@ -100,6 +99,7 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
         async def handler(ctx: Context, exc: errors.UserInputError):
+            from .manual import get_manual
             should_log = await f(ctx, exc)
             if not should_log:
                 return
@@ -309,6 +309,7 @@ async def on_missing_perms(ctx, exc):
 
 @explains(errors.CommandNotFound, 'Command not found', 100)
 async def on_cmd_not_found(ctx: Context, exc: errors.CommandNotFound):
+    from .manual import get_manual
     if not get_manual:
         return False
     if is_direct_message(ctx):
