@@ -7,4 +7,3 @@ sudo docker-compose down
 sudo docker-compose run --rm bot ./bin/migrate
 sudo docker-compose up -d
 yes | sudo docker container prune
-yes | sudo docker image prune
