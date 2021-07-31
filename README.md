@@ -17,7 +17,7 @@ docker compose build
 ### Setup
 
 ```sh
-docker compose run --rm web ./bin/init
+docker compose run --rm bot ./bin/init
 ```
 
 (Include `--rm` if you don't want Docker to keep the temporary container.)
@@ -51,5 +51,5 @@ Pull updates, then
 
 ```sh
 docker compose build
-docker compose run --rm web ./bin/migrate
+docker compose run --rm bot ./bin/migrate
 ```

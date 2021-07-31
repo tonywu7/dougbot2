@@ -20,6 +20,13 @@
         flex-flow: column nowrap;
     }
 
+    @media screen and (min-width: $display-width-small) {
+        .profile-picture {
+            position: relative;
+            top: -1px;
+        }
+    }
+
     @media screen and (min-width: $display-width-medium) {
         #masthead {
             justify-content: flex-start;
