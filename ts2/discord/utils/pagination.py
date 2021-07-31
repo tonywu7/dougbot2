@@ -194,10 +194,10 @@ def chapterize_fields(
                 maxsplit=1, closing='', opening='',
             )]
             next(fields)
-            page = [attr.evolve(next_field, value=head)]
+            page.append(attr.evolve(next_field, value=head))
             fields.prepend(*[attr.evolve(next_field, value=v) for v in tails])
         else:
-            page = [next(fields)]
+            page.append(next(fields))
     if page:
         yield page
 

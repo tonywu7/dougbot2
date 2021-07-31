@@ -92,7 +92,7 @@ class Utilities(
                     channels[category].append(tag(first))
             for c in cs[1:]:
                 channels[category].append(tag(c))
-        fields = [EmbedField(name=k, value='\n'.join(v), inline=False)
+        fields = [EmbedField(name=k, value='\n'.join(v), inline=True)
                   for k, v in channels.items()]
         pages: list[Embed2] = []
         base_embed = Embed2(title='Channels').decorated(ctx.guild)
