@@ -33,6 +33,6 @@ def get_thread():
             listen=True, daemon=True,
         )
         client_thread.start()
-    with client_thread.bot_init:
-        client_thread.bot_init.wait_for(client_thread.bot_initialized)
+    with client_thread.connect:
+        client_thread.connect.wait_for(client_thread.connected)
     return client_thread

@@ -259,3 +259,5 @@ CSP_IMG_SRC = (
     "'self'", 'data:', 'https://cdn.discordapp.com',
     'https://upload.wikimedia.org',
 )
+
+DISCORD_EAGER_CONNECT = False

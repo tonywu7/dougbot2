@@ -42,9 +42,12 @@ class BotRunner(threading.Thread, Generic[T]):
         self.loop: asyncio.AbstractEventLoop
         self.client: T
 
-        self.bot_init = threading.Condition()
-        self.data_requested = threading.Condition()
-        self.data_ready = threading.Condition()
+        self.init = threading.Condition()
+        self.login = threading.Condition()
+        self.connect = threading.Condition()
+
+        self._logged_in = False
+        self._connected = False
 
         self._request: Coroutine
         self._data: Any
@@ -56,28 +59,47 @@ class BotRunner(threading.Thread, Generic[T]):
             return None
 
     def run_client(self):
-        with self.bot_init:
+        with self.init:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             client = self._client_cls(loop=loop, **self._client_options)
             self.loop = loop
             self.client = client
-            self.bot_init.notify_all()
+            self.init.notify_all()
 
-        if self._listen:
-            run = client.start(settings.DISCORD_BOT_TOKEN)
-        else:
-            run = client.login(settings.DISCORD_BOT_TOKEN)
+        def on_logged_in(*args, **kwargs):
+            self._logged_in = True
+            with self.login:
+                self.login.notify_all()
 
-        asyncio.run_coroutine_threadsafe(run, loop)
+            if self._listen:
+                client.event(on_connect)
+                listen = client.connect()
+                listen = asyncio.run_coroutine_threadsafe(listen, loop)
+
+        async def on_connect(*args, **kwargs):
+            self._connected = True
+            with self.connect:
+                self.connect.notify_all()
+
+        login = client.login(settings.DISCORD_BOT_TOKEN)
+        login = asyncio.run_coroutine_threadsafe(login, loop)
+        login.add_done_callback(on_logged_in)
+
         loop.run_forever()
 
     def run_coroutine(self, coro):
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
-    def bot_initialized(self) -> bool:
+    def initialized(self) -> bool:
         return hasattr(self, 'client')
+
+    def logged_in(self) -> bool:
+        return self._logged_in
+
+    def connected(self) -> bool:
+        return self._connected
 
     def run(self) -> None:
         try:

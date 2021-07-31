@@ -50,6 +50,10 @@ class DiscordBotConfig(AppConfig):
             logging.getLogger('discord.config').warning('Discord credentials are missing. Will not connect to Discord.')
             return
 
+        if getattr(settings, 'DISCORD_EAGER_CONNECT', False):
+            from .threads import get_thread
+            get_thread()
+
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
         return {**self.ext_map}

@@ -9,7 +9,7 @@ services:
         image: telescope2
         build: .
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.settings.deployment
+            - DJANGO_SETTINGS_MODULE=ts2.settings.server
         command: "./bin/manage web"
         volumes:
             - instance:/application/instance
