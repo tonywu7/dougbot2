@@ -49,11 +49,13 @@
 }
 
 .branding {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 
     position: relative;
     font-size: 1.6rem;
     left: -1.06rem;
+    height: 100%;
 
     margin: 0;
     padding: 0 0 0 0.6rem;
@@ -72,6 +74,16 @@
 
     a {
         color: $color-text;
+    }
+
+    .avatar {
+        object-fit: contain;
+        height: 100%;
+        margin-inline-start: 6px;
+
+        img {
+            max-height: 100%;
+        }
     }
 
     @media screen and (max-width: $display-width-medium) {
@@ -117,6 +129,25 @@
     text-align: center;
     user-select: none;
     box-shadow: $box-shadow-3;
+}
+
+.avatar-banner {
+    min-height: 256px;
+    max-height: 20vh;
+
+    margin-bottom: 2rem;
+
+    display: flex;
+    justify-content: center;
+
+    picture {
+        display: flex;
+        justify-content: center;
+    }
+
+    @media screen and (max-width: $display-width-small) {
+        min-height: 128px;
+    }
 }
 
 #readonly-mode {

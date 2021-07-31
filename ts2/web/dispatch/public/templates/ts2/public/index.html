@@ -1,10 +1,21 @@
 {% extends 'ts2/web/base.html' %}
-{% load inspect elements %}
+{% load inspect elements bot %}
 
 {% block title %}Home{% endblock %}
+
+{% block preface %}
+<div class="avatar-banner grid-span-all">
+    <picture>
+        <source srcset="{% avatar 'webp' 1024 %}" type="image/webp">
+        <img class="avatar" src="{% avatar 'png' 1024 %}" alt="Bot avatar">
+    </picture>
+</div>
+{% endblock %}
+
 {% block main_title %}<span class="branding branding-large">{{ BRANDING_FULL }}</span>{% endblock %}
 
 {% block sections %}
+
 {% section id='version-info' title='versions' %}
 {% pkg_version_string %}</p>
 {% endsection %}

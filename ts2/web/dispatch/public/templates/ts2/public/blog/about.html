@@ -1,5 +1,5 @@
 {% extends 'ts2/commons/article.html' %}
-{% load elements %}
+{% load elements bot %}
 
 {% block title %}About{% endblock %}
 
@@ -15,6 +15,13 @@
 <header>
     <h1 class="branding branding-large">{{ BRANDING_FULL }}</h1>
 </header>
+
+<div class="avatar-banner">
+    <picture>
+        <source srcset="{% avatar 'webp' 1024 %}" type="image/webp">
+        <img class="avatar" src="{% avatar 'png' 1024 %}" alt="Bot avatar">
+    </picture>
+</div>
 
 <section>
     <header>
