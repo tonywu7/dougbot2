@@ -264,7 +264,7 @@ def make_logging_config(
                 'level': logging.INFO,
             },
             'discord.fetch': {
-                'level': logging.DEBUG,
+                'level': logging.INFO,
             },
             'discord.gateway': {
                 'level': logging.INFO,

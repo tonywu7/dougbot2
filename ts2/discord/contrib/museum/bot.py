@@ -24,7 +24,7 @@ from typing import Literal, Optional
 
 import nltk
 from asgiref.sync import sync_to_async
-from discord import Embed, Message, MessageReference, Object, TextChannel
+from discord import Message, MessageReference, Object, TextChannel
 from discord.ext.commands import BucketType, command
 from django.conf import settings
 from nltk.corpus import stopwords
@@ -34,9 +34,9 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Choice, doc
+from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import ParagraphStream, chapterize
-from ts2.utils.datetime import utcnow
 from ts2.utils.db import async_atomic
 
 from .models import StoryTask
@@ -118,7 +118,7 @@ class Museum(
 
             if created:
                 reply = SETUP_MSG % reply_ctx
-                embed = Embed(title='New story', description=reply)
+                embed = Embed2(title='New story', description=reply)
                 return await ctx.reply(embed=embed)
 
             set_channel = tag_literal('channel', task.channel)
@@ -126,7 +126,7 @@ class Museum(
             if task.marked_as == begin_or_end:
                 reply = REPLACE_MSG % {**reply_ctx, 'set_channel': set_channel}
                 await self.story_set_task(task, msg_id, channel_id)
-                embed = Embed(title='New story', description=reply)
+                embed = Embed2(title='New story', description=reply)
                 return await ctx.reply(embed=embed)
 
             if task.channel != channel_id:
@@ -190,7 +190,7 @@ class StoryCollector:
             current = Object(current_id)
 
     async def _warn(self, message: str):
-        warn = Embed(description=f'⚠️ {message}')
+        warn = Embed2(description=f'⚠️ {message}')
         await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run()
 
     async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=2048):
@@ -227,7 +227,7 @@ class StoryCollector:
         self.story = story
         return story
 
-    def gen_stats(self) -> Embed:
+    def gen_stats(self) -> Embed2:
         if not self.messages or not self.story:
             raise ValueError('Story is empty')
 
@@ -251,14 +251,17 @@ class StoryCollector:
                        f'from {a(timestamp(dt_start, "long"), start_msg.jump_url)} '
                        f'to {a(timestamp(dt_end, "long"), end_msg.jump_url)}')
 
-        stat = Embed(title='📊 Statistics', description=description)
-        stat.add_field(name='Word count', value=len(tokens))
-        stat.add_field(name='Character count', value=len(self.story))
+        stat = (
+            Embed2(title='📊 Statistics', description=description)
+            .set_timestamp()
+            .add_field(name='Word count', value=len(tokens), inline=True)
+            .add_field(name='Character count', value=len(self.story), inline=True)
+            .set_author(name=self.ctx.me.display_name, icon_url=self.ctx.me.avatar_url)
+            .set_footer(text='Story collector')
+        )
         for contrib in chapterize(contributors, 960):
-            stat.add_field(name='Contributors', value=contrib, inline=False)
-        stat.add_field(name='Top 5 contributors by messages', value=top_5_authors_msgs, inline=False)
-        stat.add_field(name='Most frequent terms', value=most_common_words, inline=False)
-        stat.set_author(name=self.ctx.me.display_name, icon_url=self.ctx.me.avatar_url)
-        stat.set_footer(text='Story collector')
-        stat.timestamp = utcnow()
+            stat = stat.add_field(name='Contributors', value=contrib)
+        stat = stat.add_field(name='Top 5 contributors by messages', value=top_5_authors_msgs)
+        if most_common_words:
+            stat = stat.add_field(name='Most frequent terms', value=most_common_words)
         return stat
