@@ -21,7 +21,9 @@ import logging
 import threading
 import time
 from collections.abc import Callable, Coroutine, Iterable
+from contextlib import suppress
 from functools import wraps
+from itertools import chain
 from typing import Any, Optional, Union
 
 from discord import (Client, Emoji, Forbidden, Member, Message, PartialEmoji,
@@ -116,6 +118,9 @@ class Responder:
                              for k, t in self.events.items()}
                 done, pending = await asyncio.wait(listeners, return_when=asyncio.FIRST_COMPLETED)
                 first = done.pop()
+                with suppress(Exception):
+                    for fut in chain(done, pending):
+                        fut.result()
                 args = first.result()
             except asyncio.TimeoutError:
                 continue

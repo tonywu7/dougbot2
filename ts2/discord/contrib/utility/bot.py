@@ -24,7 +24,7 @@ from discord.ext.commands import Greedy, command, has_guild_permissions
 from discord.utils import escape_markdown
 from more_itertools import split_before
 
-from ts2.discord.bot import Robot
+from ts2.discord.bot import channels_ordered_1d
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
@@ -77,7 +77,7 @@ class Utilities(
     @doc.restriction(has_guild_permissions, manage_channels=True)
     async def channels(self, ctx: Circumstances):
         lines = []
-        for cs in split_before(Robot.channels_ordered_1d(ctx.guild),
+        for cs in split_before(channels_ordered_1d(ctx.guild),
                                lambda c: isinstance(c, CategoryChannel)):
             if cs[0]:
                 if isinstance(cs[0], CategoryChannel):
