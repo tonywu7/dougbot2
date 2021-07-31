@@ -210,7 +210,7 @@ class StoryCollector:
 
         for chapter in chapterize(self.gen_story()):
             await (self.ctx.response(self.ctx, content=chapter)
-                   .mentions(None).suppress().run())
+                   .mentions(None).reply(True).suppress().run())
         await self.ctx.response(self.ctx, embed=self.gen_stats()).reply(notify=True).run()
 
         if self.overflow:

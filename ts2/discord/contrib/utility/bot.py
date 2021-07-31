@@ -16,12 +16,13 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Optional, Union
 
+import attr
 from discord import (CategoryChannel, Member, Role, StageChannel, TextChannel,
                      VoiceChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
-from discord.utils import escape_markdown
 from more_itertools import split_before
 
 from ts2.discord.bot import channels_ordered_1d
@@ -29,7 +30,9 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
-from ts2.discord.utils.markdown import code, strong, tag, traffic_light
+from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
+                                      chapterize, chapterize_fields, code,
+                                      strong, tag, traffic_light)
 from ts2.discord.utils.models import HypotheticalMember, HypotheticalRole
 
 PERMISSIONS = """\
@@ -37,7 +40,7 @@ PERMISSIONS = """\
 
 **General server permissions**
 `manage_channels`, `manage_emojis`, `manage_server`,
-`manage_roles`/`manage_permissions`, `manage_webhooks`,
+`manage_roles`, `manage_webhooks`,
 `view_audit_log`, `view_channel`, `view_guild_insights`,
 
 **Membership permissions**
@@ -48,7 +51,7 @@ PERMISSIONS = """\
 **Text channel permissions**
 `read_messages`, `send_messages`,
 `attach_files`, `embed_links`,
-`add_reactions`, `external_emojis`/`use_external_emojis`,
+`add_reactions`, `external_emojis`,
 `mention_everyone`, `manage_messages`,
 `read_message_history`, `send_tts_messages`,
 `use_slash_commands`,
@@ -76,17 +79,29 @@ class Utilities(
     @doc.description('List all channels in the server.')
     @doc.restriction(has_guild_permissions, manage_channels=True)
     async def channels(self, ctx: Circumstances):
-        lines = []
+        channels: defaultdict[str, list[str]] = defaultdict(list)
         for cs in split_before(channels_ordered_1d(ctx.guild),
                                lambda c: isinstance(c, CategoryChannel)):
-            if cs[0]:
-                if isinstance(cs[0], CategoryChannel):
-                    lines.append(strong(escape_markdown(cs[0].name)))
+            first = cs[0]
+            category = '(no category)'
+            if first:
+                if isinstance(first, CategoryChannel):
+                    category = first.name
+                    channels[category] = []
                 else:
-                    lines.append(tag(cs[0]))
+                    channels[category].append(tag(first))
             for c in cs[1:]:
-                lines.append(tag(c))
-        await ctx.send('\n'.join(lines))
+                channels[category].append(tag(c))
+        fields = [EmbedField(name=k, value='\n'.join(v), inline=False)
+                  for k, v in channels.items()]
+        pages: list[Embed2] = []
+        base_embed = Embed2(title='Channels').decorated(ctx.guild)
+        for fieldset in chapterize_fields(fields, linebreak='newline'):
+            pages.append(attr.evolve(base_embed, fields=fieldset))
+        pagination = EmbedPagination(pages, 'Channels', False)
+        return (await ctx.response(ctx, embed=pagination.get_embed(0))
+                .responder(lambda m: pagination(ctx.bot, m, 300, ctx.author))
+                .run())
 
     @command('roles')
     @doc.description('List all roles in the server, including the color codes.')
@@ -94,8 +109,18 @@ class Utilities(
     async def roles(self, ctx: Circumstances):
         lines = []
         for r in reversed(ctx.guild.roles):
-            lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
-        await ctx.send('\n'.join(lines))
+            if r.color.value:
+                lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
+            else:
+                lines.append(tag(r))
+        body = '\n'.join(lines)
+        sections = chapterize(body, 720, 720, closing='', opening='',
+                              linebreak='newline')
+        pages = [Embed2(description=c).decorated(ctx.guild) for c in sections]
+        pagination = EmbedPagination(pages, 'Roles', False)
+        return (await ctx.response(ctx, embed=pagination.get_embed(0))
+                .responder(lambda m: pagination(ctx.bot, m, 300, ctx.author))
+                .run())
 
     @command('perms', ignore_extra=False)
     @doc.description('Survey role permissions.')

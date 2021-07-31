@@ -14,20 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 import enum
 import re
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from textwrap import shorten
-from typing import Generic, TypeVar, Union
+from typing import Generic, Literal, TypeVar, Union
 
+import attr
 from discord import (Client, Embed, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
-from more_itertools import split_before
+from more_itertools import peekable, split_before
 
-from .duckcord.embeds import Embed2
+from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
 from .markdown import strong, u
 
@@ -106,27 +105,6 @@ class ParagraphStream:
             yield self.sep.join(buffer)
 
 
-def chapterize(text: str, length: int = 1920, leeway=16,
-               closing=' ... ', opening='(continued) ') -> Iterator[str]:
-    if len(text) < length:
-        yield text
-        return
-    while True:
-        cutoff = text[length:length + 1]
-        if not cutoff:
-            yield text
-            return
-        for i in range(length - 1, length - leeway - 1, -1):
-            if text[i:i + 1].isspace():
-                break
-        else:
-            yield text[0:length - leeway] + '-' + closing
-            text = opening + text[length - leeway:]
-            continue
-        yield text[0:i] + closing
-        text = opening + text[i + 1:]
-
-
 def trunc_for_field(text: str) -> str:
     return shorten(text, width=960, placeholder='... (truncated)')
 
@@ -188,6 +166,92 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
     return split_before(items, splitter)
 
 
+def chapterize_fields(
+    fields: Iterable[EmbedField],
+    pagesize: int = 720,
+    linebreak: set[Literal[
+        'exact',
+        'whitespace',
+        'newline',
+    ]] = frozenset({'whitespace'}),
+) -> Iterator[list[EmbedField]]:
+    if sum(len(f) for f in fields) < pagesize:
+        yield [*fields]
+        return
+    page: list[EmbedField] = []
+    fields = peekable(fields)
+    while fields:
+        size = sum(len(f) for f in page)
+        next_field = fields.peek()
+        next_len = len(next_field)
+        if size and size + next_len > pagesize:
+            yield page
+            page = [next(fields)]
+        elif next_len > pagesize:
+            head, *tails = [*chapterize(
+                next_field.value, pagesize,
+                linebreak=linebreak, leeway=pagesize,
+                maxsplit=1, closing='', opening='',
+            )]
+            next(fields)
+            page = [attr.evolve(next_field, value=head)]
+            fields.prepend(*[attr.evolve(next_field, value=v) for v in tails])
+        else:
+            page = [next(fields)]
+    if page:
+        yield page
+
+
+def chapterize(
+    text: str, length: int = 1920, leeway=32,
+    closing=' ... ', opening='(continued) ',
+    linebreak: Literal[
+        'exact',
+        'whitespace',
+        'newline',
+    ] = 'whitespace',
+    maxsplit: int = float('inf'),
+) -> Iterator[str]:
+    if len(text) < length:
+        yield text
+        return
+    split = 0
+    while True:
+        cutoff = text[length:length + 1]
+        if not cutoff:
+            yield text
+            return
+        if linebreak == 'exact':
+            yield text[0:length] + closing
+            text = opening + text[length + 1:]
+            continue
+        if linebreak == 'newline':
+            def check(s: str):
+                return s == '\n'
+        elif linebreak == 'whitespace':
+            check = str.isspace
+        for i in range(length - 1, length - leeway - 1, -1):
+            if check(text[i:i + 1]):
+                break
+        else:
+            before = text[0:length - leeway] + closing
+            if before:
+                yield before
+            text = opening + text[length - leeway:]
+            split += 1
+            if split > maxsplit:
+                yield text
+                return
+            continue
+        before = yield text[0:i] + closing
+        if before:
+            yield before
+        text = opening + text[i + 1:]
+        if split > maxsplit:
+            yield text
+            return
+
+
 def format_page_number(idx: int, total: int, sep: str = '/'):
     if idx < 0:
         idx = total + idx
@@ -213,6 +277,12 @@ class NullPaginator(Paginator):
         pass
 
     async def run(self):
+        return
+
+    async def on_start(self):
+        return
+
+    async def on_finish(self):
         return
 
 
