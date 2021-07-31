@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from typing import Any, TypeVar
 
 import attr
-from discord import Colour, Embed, Member, User
+from discord import Colour, Embed, Guild, Member, User
 
 T = TypeVar('T')
 
@@ -395,6 +395,18 @@ class Embed2:
         return attr.evolve(
             self, author=EmbedAuthor(name=str(person), icon_url=person.avatar_url),
             color=person.color,
+        )
+
+    def decorated(self, guild: Guild):
+        """Return a new embed stylized using the guild's name and icon.
+
+        :param guild: The guild to use.
+        :type guild: :class:`discord.Guild`
+        :return: The resulting embed.
+        :rtype: :class:`Embed2`
+        """
+        return attr.evolve(
+            self, author=EmbedAuthor(name=str(guild), icon_url=guild.icon_url),
         )
 
     def __len__(self) -> int:
