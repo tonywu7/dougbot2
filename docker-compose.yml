@@ -37,6 +37,7 @@ services:
         command: "./bin/manage bot"
         volumes:
             - instance:/application/instance
+            - static:/application/dist
         depends_on:
             - web
 
