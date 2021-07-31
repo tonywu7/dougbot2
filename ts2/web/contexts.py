@@ -19,6 +19,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
 from ts2.discord.middleware import get_ctx
+from ts2.discord.templatetags.bot import avatar
 
 
 def user_info(req: HttpRequest):
@@ -56,6 +57,7 @@ def opengraph(req: HttpRequest):
         'title': const['BRANDING_FULL'],
         'description': const['SITE_DESCRIPTION'],
         'twitter': const['SITE_TWITTER'],
+        'image': avatar('webp', 1024),
     }
     return {
         'opengraph': graph,

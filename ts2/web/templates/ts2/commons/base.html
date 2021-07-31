@@ -16,12 +16,15 @@
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:site" content="{{ pageinfo.twitter|default:opengraph.twitter }}" />
     {% endblock %}
-
     {% block graph_details %}
     <meta property="og:title" content="{{ pageinfo.title|default:opengraph.title }}" />
     <meta name="twitter:title" content="{{ pageinfo.title|default:opengraph.title }}" />
     <meta property="og:description" content="{{ pageinfo.description|default:opengraph.description }}" />
     <meta name="twitter:description" content="{{ pageinfo.description|default:opengraph.description }}" />
+    {% endblock %}
+    {% block graph_image %}
+    <meta property="og:image" content="{{ pageinfo.image|default:opengraph.image }}">
+    <meta name="twitter:image" content="{{ pageinfo.image|default:opengraph.image }}">
     {% endblock %}
 
     <title>{% block title %}{{ pageinfo.title|default:opengraph.title }}{% endblock %} | {{ BRANDING_FULL }}</title>

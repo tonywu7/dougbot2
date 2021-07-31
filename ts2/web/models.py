@@ -152,3 +152,4 @@ class PageInfo:
     title: Optional[str] = None
     description: Optional[str] = None
     twitter: Optional[str] = None
+    image: Optional[str] = None
