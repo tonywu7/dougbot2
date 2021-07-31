@@ -22,7 +22,7 @@ import threading
 import time
 from collections.abc import Callable, Coroutine, Iterable
 from functools import wraps
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from discord import (Client, Emoji, Forbidden, Member, Message, PartialEmoji,
                      RawReactionActionEvent, User)
@@ -71,16 +71,16 @@ def emote_matches(*emotes: str | int):
 
 
 class Responder:
-    def __init__(self, event: str, client: Client, ttl: float) -> None:
+    def __init__(self, events: dict[str, Callable[..., bool]],
+                 client: Client, ttl: float) -> None:
         self.log = logging.getLogger('discord.responder')
-        self.event = event
+        self.events = events
         self.client = client
         self.ttl = ttl
         self.end: float
-        self.tests: list[Callable[..., bool]] = []
 
-    def check(self, args) -> bool:
-        return all(t(args) for t in self.tests)
+    def check(self, event: str, args) -> bool:
+        return all(t(args) for t in self.events[event])
 
     async def on_start(self):
         return True
@@ -112,13 +112,16 @@ class Responder:
                 break
             timeout = self.end - ts
             try:
-                evt = await self.client.wait_for(self.event, check=self.check,
-                                                 timeout=timeout)
+                listeners = {self.client.wait_for(k, check=t, timeout=timeout)
+                             for k, t in self.events.items()}
+                done, pending = await asyncio.wait(listeners, return_when=asyncio.FIRST_COMPLETED)
+                first = done.pop()
+                args = first.result()
             except asyncio.TimeoutError:
                 continue
 
             try:
-                stop = await self.handle(evt)
+                stop = await self.handle(args)
             except Exception as e:
                 self.log.debug(f'{type(e).__name__} while handling reactions: {e}\n')
             else:
@@ -127,7 +130,7 @@ class Responder:
 
         await self.cleanup()
 
-    async def handle(self, event: RawReactionActionEvent) -> Optional[bool]:
+    async def handle(self, args: Union[Any, tuple]) -> Optional[bool]:
         raise NotImplementedError
 
     def __await__(self):
@@ -139,23 +142,28 @@ class EmoteResponder(Responder):
         self, users: Iterable[int | Member], emotes: list[Emoji | PartialEmoji | str],
         message: Message, *args, **kwargs,
     ) -> None:
-        super().__init__('raw_reaction_add', *args, **kwargs)
         self.message = message
         self.emotes: dict[int | str, str | Emoji | PartialEmoji] = {}
+        users = [m.id if isinstance(m, (Member, User)) else m for m in users]
         for e in emotes:
             if isinstance(e, str):
                 self.emotes[e] = e
             elif isinstance(e, (Emoji, PartialEmoji)):
                 self.emotes[e.id] = e
 
-        users = [m.id if isinstance(m, (Member, User)) else m for m in users]
-        self.tests = (
-            emote_no_bots,
-            emote_added,
-            emote_matches(*self.emotes.keys()),
-            reaction_from(*users),
-            reaction_on(self.message.id),
-        )
+        def test(evt: RawReactionActionEvent):
+            return all(t(evt) for t in (
+                emote_no_bots,
+                emote_matches(*self.emotes.keys()),
+                reaction_from(*users),
+                reaction_on(self.message.id),
+            ))
+
+        events = {
+            'raw_reaction_add': test,
+            'raw_reaction_remove': test,
+        }
+        super().__init__(events, *args, **kwargs)
 
     async def on_start(self):
         for emote in self.emotes:
