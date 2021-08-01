@@ -61,8 +61,6 @@ Permissions
 .. py:function:: Permissions2.update(**kwargs) -> Permissions2
 .. automethod:: duckcord.permissions.Permissions2.evolve(**kwargs) -> Permissions2
 
-.. automethod:: duckcord.permissions.Permissions2.devolve(**kwargs) -> Permissions2
-
 .. py:function:: operator==
 .. automethod:: duckcord.permissions.Permissions2.__eq__
 .. py:function:: operator=!
@@ -132,6 +130,10 @@ Permissions
 .. py:function:: operator@
 .. automethod:: duckcord.permissions.Permissions2.__matmul__(other: PermissionOverride) -> Permissions2
 
+.. automethod:: duckcord.permissions.Permissions2.downgrade() -> discord.Permissions
+
+.. automethod:: duckcord.permissions.get_total_perms(*roles, channel, member)
+
 Permission override
 ===================
 
@@ -142,13 +144,14 @@ Permission override
 .. py:function:: PermissionOverride.update(**kwargs: bool) -> PermissionOverride
 .. automethod:: duckcord.permissions.PermissionOverride.evolve(**kwargs) -> PermissionOverride
 
-.. automethod:: duckcord.permissions.PermissionOverride.devolve(**kwargs) -> PermissionOverwrite
-
 .. py:function:: operator|
 .. automethod:: duckcord.permissions.PermissionOverride.__or__(other)
 
 .. py:function:: operator@
 .. automethod:: duckcord.permissions.PermissionOverride.__matmul__(other)
+
+.. automethod:: duckcord.permissions.PermissionOverride.upgrade(discord.PermissionOverwrite) -> PermissionOverride
+.. automethod:: duckcord.permissions.PermissionOverride.downgrade() -> discord.PermissionOverwrite
 
 Embed
 =====

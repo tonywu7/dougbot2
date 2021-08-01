@@ -24,8 +24,10 @@ from __future__ import annotations
 
 from functools import reduce
 from operator import and_, or_
+from typing import Optional
 
-from discord import PermissionOverwrite, Permissions
+from discord import Guild, Member, PermissionOverwrite, Permissions, Role
+from discord.abc import GuildChannel
 from discord.flags import flag_value
 from discord.permissions import permission_alias
 
@@ -53,7 +55,7 @@ class Permissions2(Permissions):
         settings changed, use :meth:`evolve`.
 
         **Not a drop-in replacement.** To get a :class:`discord.Permissions`
-        object, use :meth:`devolve`.
+        object, use :meth:`downgrade`.
     """
 
     VALID_FLAGS: dict[str, int]
@@ -337,7 +339,7 @@ class Permissions2(Permissions):
             ))
         return v
 
-    def devolve(self) -> Permissions:
+    def downgrade(self) -> Permissions:
         """Return an original :class:`discord.Permissions` object with the same\
             settings."""
         return Permissions(self.value)
@@ -389,7 +391,7 @@ class PermissionOverride(PermissionOverwrite):
         settings changed, use :meth:`evolve`.
 
         **Not a drop-in replacement.** To get a
-        :class:`discord.PermissionOverwrite` object, use :meth:`devolve`.
+        :class:`discord.PermissionOverwrite` object, use :meth:`downgrade`.
     """
 
     __slots__ = ('_allowed', '_denied')
@@ -489,13 +491,13 @@ class PermissionOverride(PermissionOverwrite):
     def allowed(self) -> Permissions2:
         """Get the permissions allowed by this override as a\
             :class:`Permissions2` object."""
-        return type(self)(self._allowed)
+        return Permissions2(self._allowed)
 
     @property
     def denied(self) -> Permissions2:
         """Get the permissions denied by this override as a\
             :class:`Permissions2` object."""
-        return type(self)(self._denied)
+        return Permissions2(self._denied)
 
     def pair(self) -> tuple[Permissions2, Permissions2]:
         return self.allowed, self.denied
@@ -513,8 +515,8 @@ class PermissionOverride(PermissionOverwrite):
 
     @classmethod
     def from_pair(cls, allow: Permissions, deny: Permissions):
-        allow = cls(allow.value)
-        deny = cls(deny.value)
+        allow = Permissions2(allow.value)
+        deny = Permissions2(deny.value)
         # Remove duplicate settings with allow taking precedence over deny
         deny -= allow
         return cls._from_values(allow.value, deny.value)
@@ -622,7 +624,49 @@ class PermissionOverride(PermissionOverwrite):
         allowed = (self._allowed | other._allowed) & ~other._denied
         return self._from_values(allowed, denied)
 
-    def devolve(self) -> PermissionOverwrite:
+    @classmethod
+    def upgrade(cls, override: PermissionOverwrite) -> PermissionOverride:
+        return cls.from_pair(*override.pair())
+
+    def downgrade(self) -> PermissionOverwrite:
         """Return an original :class:`discord.PermissionOverwrite` object with the\
             same settings."""
         return PermissionOverwrite.from_pair(*self.pair)
+
+
+def get_total_perms(
+    *roles: Role, channel: Optional[GuildChannel] = None,
+    member: Optional[Member] = None,
+) -> Permissions2:
+    """Calculate the total permissions for a set of roles, optionally in a\
+        channel.
+
+    :param \\*roles: The roles whose permissions will be in effect
+    :type \\*roles: :class:`discord.Role`
+    :param channel: The channel whose overrides will apply, defaults to None
+    :type channel: :class:`discord.abc.GuildChannel`, optional
+    :param member: The member whose override will apply, defaults to None
+    :type member: :class:`discord.Member`, optional
+    :return: The final set of permissions
+    :rtype: :class:`Permissions2`
+    """
+    roles = set(roles)
+    perms = [Permissions2(r.permissions.value) for r in roles]
+    if any(p.administrator for p in perms):
+        return Permissions2.all()
+    combined: Permissions2 = reduce(or_, perms, Permissions2(0))
+    if not channel:
+        return combined
+    guild: Guild = channel.guild
+    everyone = guild.default_role
+    roles.discard(everyone)
+    overrides = {r: PermissionOverride.upgrade(o)
+                 for r, o in channel.overwrites.items()}
+    here = overrides.get(everyone, PermissionOverride())
+    applied = [overrides.get(r, PermissionOverride()) for r in roles]
+    override: PermissionOverride = reduce(or_, applied, PermissionOverride())
+    combined = combined @ here @ override
+    override2 = overrides.get(member)
+    if override2:
+        combined @= override2
+    return combined
