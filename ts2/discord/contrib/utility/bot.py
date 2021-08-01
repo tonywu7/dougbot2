@@ -14,58 +14,106 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from collections import defaultdict
+from itertools import chain
 from typing import Optional, Union
 
 import attr
-from discord import (CategoryChannel, Member, Role, StageChannel, TextChannel,
-                     VoiceChannel)
+from discord import (CategoryChannel, Guild, Member, Role, StageChannel,
+                     TextChannel, VoiceChannel)
+from discord.abc import GuildChannel
 from discord.ext.commands import Greedy, command, has_guild_permissions
-from more_itertools import split_before
+from more_itertools import collapse, first, map_reduce
 
-from ts2.discord.bot import channels_ordered_1d
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
-                                      chapterize, chapterize_fields, code,
+                                      Permissions2, chapterize,
+                                      chapterize_fields, code, get_total_perms,
                                       strong, tag, traffic_light)
-from ts2.discord.utils.models import HypotheticalMember, HypotheticalRole
 
-PERMISSIONS = """\
-(Underscores are required)
+PERMISSIONS = {
+    'General server permissions': [
+        'manage_channels', 'manage_emojis', 'manage_guild',
+        'manage_roles', 'manage_webhooks',
+        'view_audit_log', 'view_guild_insights',
+    ],
+    'Membership permissions': [
+        'create_instant_invite',
+        'manage_nicknames', 'change_nickname',
+        'kick_members', 'ban_members',
+    ],
+    'Text channel permissions': [
+        'read_messages', 'send_messages',
+        'attach_files', 'embed_links',
+        'add_reactions', 'external_emojis',
+        'mention_everyone', 'manage_messages',
+        'read_message_history', 'send_tts_messages',
+        'use_slash_commands',
+    ],
+    'Voice channel permissions': [
+        'connect', 'speak', 'stream',
+        'use_voice_activation',
+        'priority_speaker',
+        'mute_members', 'move_members',
+        'deafen_members', 'request_to_speak',
+    ],
+    'Privileged permission': [
+        'administrator',
+    ],
+}
 
-**General server permissions**
-`manage_channels`, `manage_emojis`, `manage_server`,
-`manage_roles`, `manage_webhooks`,
-`view_audit_log`, `view_channel`, `view_guild_insights`,
+PERM_TEXT = {k: '\n'.join([f'{doc.readable_perm_name(p)}: {code(p)}' for p in v])
+             for k, v in PERMISSIONS.items()}
+PERM_HELP = [Embed2(description=f'{strong(k)}\n{v}')
+             for k, v in PERM_TEXT.items()]
+PERM_HELP = EmbedPagination(PERM_HELP, 'Permissions', False)
 
-**Membership permissions**
-`create_instant_invite`,
-`manage_nicknames`, `change_nickname`,
-`kick_members`, `ban_members`,
+CHANNEL_TYPES = (TextChannel, VoiceChannel, StageChannel)
 
-**Text channel permissions**
-`read_messages`, `send_messages`,
-`attach_files`, `embed_links`,
-`add_reactions`, `external_emojis`,
-`mention_everyone`, `manage_messages`,
-`read_message_history`, `send_tts_messages`,
-`use_slash_commands`,
 
-**Voice channel permissions**
-`connect`, `speak`, `stream`,
-`use_voice_activation`,
-`priority_speaker`,
-`mute_members`, `move_members`,
-`deafen_members`, `request_to_speak`,
+def get_channel_map(guild: Guild) -> dict[Optional[CategoryChannel], list[GuildChannel]]:
+    return {k: v for k, v in guild.by_category()}
 
-**Privileged permission**
-`administrator`
-"""
+
+def category_name(c: Optional[CategoryChannel]) -> str:
+    if c:
+        return c.name
+    return '(no category)'
+
+
+class ChannelFilter:
+    def __init__(self, perm: Optional[Permissions2]):
+        if perm is None:
+            self.target = ()
+        elif perm < Permissions2.text():
+            self.target = TextChannel
+        elif perm < Permissions2.voice():
+            self.target = (VoiceChannel, StageChannel)
+        else:
+            self.target = ()
+
+    def __contains__(self, channel: GuildChannel):
+        return not self.target or isinstance(channel, self.target)
+
+
+class PermFilter:
+    def __init__(self, channel: Optional[GuildChannel]):
+        if channel is None:
+            self.target = Permissions2.all()
+        elif isinstance(channel, TextChannel):
+            self.target = Permissions2.text() | Permissions2.all_channel()
+        elif isinstance(channel, (VoiceChannel, StageChannel)):
+            self.target = Permissions2.voice() | Permissions2.all_channel()
+        else:
+            self.target = Permissions2.all()
+
+    def __contains__(self, perm: Union[str, Permissions2]):
+        if isinstance(perm, str):
+            perm = Permissions2(**{perm: True})
+        return perm < self.target
 
 
 class Utilities(
@@ -79,21 +127,12 @@ class Utilities(
     @doc.description('List all channels in the server.')
     @doc.restriction(has_guild_permissions, manage_channels=True)
     async def channels(self, ctx: Circumstances):
-        channels: defaultdict[str, list[str]] = defaultdict(list)
-        for cs in split_before(channels_ordered_1d(ctx.guild),
-                               lambda c: isinstance(c, CategoryChannel)):
-            first = cs[0]
-            category = '(no category)'
-            if first:
-                if isinstance(first, CategoryChannel):
-                    category = first.name
-                    channels[category] = []
-                else:
-                    channels[category].append(tag(first))
-            for c in cs[1:]:
-                channels[category].append(tag(c))
-        fields = [EmbedField(name=k, value='\n'.join(v), inline=True)
-                  for k, v in channels.items()]
+        channel_map = get_channel_map(ctx.guild)
+        fields: list[EmbedField] = []
+        for category, channels in channel_map.items():
+            name = category_name(category)
+            lines = [tag(ch) for ch in channels]
+            fields.append(EmbedField(name=name, value='\n'.join(lines), inline=True))
         pages: list[Embed2] = []
         base_embed = Embed2(title='Channels').decorated(ctx.guild)
         for fieldset in chapterize_fields(fields, linebreak='newline'):
@@ -101,18 +140,25 @@ class Utilities(
         pagination = EmbedPagination(pages, 'Channels', False)
         return (await ctx.response(ctx, embed=pagination.get_embed(0))
                 .responder(lambda m: pagination(ctx.bot, m, 300, ctx.author))
-                .run())
+                .deleter().run())
 
     @command('roles')
     @doc.description('List all roles in the server, including the color codes.')
+    @doc.argument('role', 'The role to check.')
+    @doc.invocation((), 'List all roles.')
+    @doc.invocation(('role',), 'Show info about the specified role.')
     @doc.restriction(has_guild_permissions, manage_roles=True)
-    async def roles(self, ctx: Circumstances):
-        lines = []
-        for r in reversed(ctx.guild.roles):
+    async def roles(self, ctx: Circumstances, *, role: Optional[Role] = None):
+        def getline(r):
             if r.color.value:
-                lines.append(f'{tag(r)} {code(f"#{r.color.value:06x}")}')
+                return f'{tag(r)} {code(f"#{r.color.value:06x}")}'
             else:
-                lines.append(tag(r))
+                return tag(r)
+
+        if role:
+            lines = [getline(role)]
+        else:
+            lines = [getline(r) for r in reversed(ctx.guild.roles)]
         body = '\n'.join(lines)
         sections = chapterize(body, 720, 720, closing='', opening='',
                               linebreak='newline')
@@ -120,56 +166,145 @@ class Utilities(
         pagination = EmbedPagination(pages, 'Roles', False)
         return (await ctx.response(ctx, embed=pagination.get_embed(0))
                 .responder(lambda m: pagination(ctx.bot, m, 300, ctx.author))
-                .run())
+                .deleter().run())
 
-    @command('perms', ignore_extra=False)
+    @command('perms')
     @doc.description('Survey role permissions.')
     @doc.argument('permission', ('The permission to check.'))
     @doc.argument('roles', 'The role or member whose perms to check.')
-    @doc.argument('channel', 'Check the perms in the context of this channel. If not supplied, check server perms.')
-    @doc.invocation((), 'Show a list of possible permission names.')
+    @doc.argument('channel', (
+        'Check the perms in the context of this channel.'
+        ' If not supplied, check server perms.'
+    ))
+    @doc.invocation((), 'Show a list of permission names.')
     @doc.invocation(('channel',), False)
-    @doc.invocation(('roles',), False)
-    @doc.invocation(('roles', 'channel'), False)
-    @doc.invocation(('permission',), 'Check for all roles whether a role has this permission server-wide.')
-    @doc.invocation(('permission', 'channel'), 'Check for all roles whether a role has this permission in a particular channel.')
-    @doc.invocation(('permission', 'roles'), 'Check if these roles have this permission server-wide.')
-    @doc.invocation(('permission', 'roles', 'channel'), (
-        'Check if these roles have this permission in a channel, '
-        'and if someone with all these roles combined will have this permission.'
+    @doc.invocation(('roles', 'permission'), (
+        'Show if all these roles combined grant'
+        ' this permission in each channel.'
+    ))
+    @doc.invocation(('roles', 'permission', 'channel'), (
+        'Show if all these roles combined grant'
+        ' this permission in this channel.'
+    ))
+    @doc.invocation(('roles',), (
+        'Show the combined server perms of all these roles.'
+    ))
+    @doc.invocation(('roles', 'channel'), (
+        'Show the combined perms of all'
+        ' these roles in this channel.'
+    ))
+    @doc.invocation(('permission',), (
+        'Show for each role in the server'
+        ' if this permission is enabled.'
+    ))
+    @doc.invocation(('permission', 'channel'), (
+        'Show for each role in the server'
+        ' if it has this permission in this channel.'
     ))
     @doc.restriction(has_guild_permissions, manage_roles=True)
-    @doc.example('administrator', f'See which roles have the {code("administrator")} perm.')
-    @doc.example('send_messages #rules', 'See which roles can send messages in the #rules channel.')
-    @doc.example('mention_everyone @everyone @Moderator',
-                 'See whether @everyone and the Moderator role has the "Mention @everyone, @here, and All Roles" perm.')
-    async def perms(self, ctx: Circumstances, permission: Optional[PermissionName], roles: Greedy[Union[Role, Member]],
-                    channel: Optional[Union[TextChannel, VoiceChannel, StageChannel]] = None):
-        if not permission:
-            return await ctx.send(PERMISSIONS)
-
-        lines = []
-        if roles:
-            roles = {r: None for r in roles}.keys()
-        subjects = roles or reversed(ctx.guild.roles)
-
-        def unioned(subjects: list[Union[Role, Member]], cls):
-            s = cls(*subjects)
-            union = ' | '.join([tag(s) for s in subjects])
-            return f'{traffic_light(permission(s, channel))} {union}'
-
+    async def perms(
+        self, ctx: Circumstances,
+        roles: Greedy[Union[Role, Member]],
+        permission: Optional[PermissionName] = None,
+        channel: Optional[Union[
+            TextChannel, VoiceChannel, StageChannel,
+        ]] = None,
+    ):
+        roles: list[Role] = [*collapse([
+            r.roles if isinstance(r, Member) else r
+            for r in roles
+        ])]
+        if not roles and not permission:
+            return (
+                await ctx.response(ctx, embed=PERM_HELP.get_embed(0))
+                .responder(lambda m: PERM_HELP(ctx.bot, m, 300, ctx.author))
+                .deleter().run()
+            )
+        channel_map = get_channel_map(ctx.guild)
         if channel:
-            lines.append(f'Permission: {strong(permission.perm_name)} in {tag(channel)}')
-            for r in subjects:
-                s = HypotheticalMember(r)
-                lines.append(f'{traffic_light(permission(s, channel))} {tag(r)}')
-            if len(roles) > 1:
-                lines.append(unioned(subjects, HypotheticalMember))
+            channels = [channel]
         else:
-            lines.append(f'Permission: {strong(permission.perm_name)}')
-            for r in subjects:
-                lines.append(f'{traffic_light(permission(r))} {tag(r)}')
-            if len(roles) > 1:
-                lines.append(unioned(subjects, HypotheticalRole))
+            channels = []
+        if roles and permission:
+            if not channels:
+                channels = [*chain.from_iterable(channel_map.values())]
+                channels = [c for c in channels if isinstance(c, CHANNEL_TYPES)]
+            title = doc.readable_perm_name(permission.perm_name)
+            title = f'Permission: {title}'
+            pages = self.get_mode_at(roles, permission.get(), channels)
+        elif roles:
+            title = 'Permissions:'
+            pages = self.list_mode_at(roles, channels)
+        elif permission:
+            title = doc.readable_perm_name(permission.perm_name)
+            title = f'Permission: {title}'
+            pages = self.get_perm_at(ctx.guild.roles, permission.get(), channels)
 
-        await ctx.send('\n'.join(lines))
+        pagination = EmbedPagination(pages, title, False)
+        return (await ctx.response(ctx, embed=pagination.get_embed(0))
+                .responder(lambda m: pagination(ctx.bot, m, 600, ctx.author))
+                .deleter().run())
+
+    def get_mode_at(
+        self, roles: list[Role],
+        perm: Permissions2,
+        channels: list[GuildChannel],
+    ) -> list[Embed2]:
+        channel_filter = ChannelFilter(perm)
+        channel_perms = {ch: get_total_perms(*roles, channel=ch)
+                         for ch in channels if ch in channel_filter}
+        result = {ch: combined.administrator or perm < combined
+                  for ch, combined in channel_perms.items()}
+        categorized = map_reduce(result.items(), lambda t: t[0].category)
+        content = {category_name(k): v for k, v in categorized.items()}
+        description = ' '.join(tag(r) for r in roles)
+        return self._perms_embeds(content, description)
+
+    def list_mode_at(
+        self, roles: list[Role],
+        channels: list[GuildChannel],
+    ) -> list[Embed2]:
+        channel = first(channels, None)
+        combined = get_total_perms(*roles, channel=channel)
+        allowed = {*combined}
+        categorized: defaultdict[str, list[tuple[str, bool]]] = defaultdict(list)
+        perm_filter = PermFilter(channel)
+        for k, ps in PERMISSIONS.items():
+            for p in ps:
+                if p in perm_filter:
+                    categorized[k].append((doc.readable_perm_name(p), p in allowed))
+        description = ' '.join(tag(r) for r in roles)
+        if channel:
+            description = f'{description}\nin {tag(channel)}'
+        return self._perms_embeds(categorized, description)
+
+    def get_perm_at(
+        self, roles: list[Role],
+        perm: Permissions2,
+        channels: list[GuildChannel],
+    ) -> list[Embed2]:
+        channel = first(channels, None)
+        role_perms = [(r, get_total_perms(r, channel=channel)) for r in roles]
+        role_allowed = reversed([(tag(r), p.administrator or perm < p)
+                                 for r, p in role_perms])
+        content = {'Roles': role_allowed}
+        if channel:
+            description = strong(f'in {tag(channel)}:')
+        else:
+            description = strong('Server-wide:')
+        return self._perms_embeds(content, description)
+
+    def _perms_embeds(self, content: dict[str, list[tuple[str, bool]]], description: str):
+        content = {
+            k: '\n'.join([
+                f'{traffic_light(t)} {tag(c)}'
+                for c, t in v
+            ]) for k, v in content.items()
+        }
+        fields = [EmbedField(name=k, value=v, inline=True)
+                  for k, v in content.items()]
+        pages: list[Embed2] = []
+        base_embed = Embed2(description=description)
+        for fieldset in chapterize_fields(fields, linebreak='newline'):
+            pages.append(attr.evolve(base_embed, fields=fieldset))
+        return pages

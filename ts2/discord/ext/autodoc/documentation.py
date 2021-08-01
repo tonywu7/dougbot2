@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections import OrderedDict, deque
 from collections.abc import Callable
-from functools import cached_property, partial, reduce
+from functools import cache, cached_property, partial, reduce
 from inspect import Parameter
 from operator import or_
 from typing import Any, Literal, Optional, Union, get_args, get_origin
@@ -78,8 +78,16 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
 _type_converters: list[tuple[_Annotation, Callable[[_Annotation], _Annotation]]] = []
 
 
+@cache
 def readable_perm_name(p: str) -> str:
-    return p.replace('_', ' ').replace('guild', 'server').title().replace('Tts', 'TTS')
+    return (
+        p.replace('_', ' ')
+        .replace('guild', 'server')
+        .replace('create instant invite', 'create invite')
+        .replace('emoji', 'emote')
+        .title()
+        .replace('Tts', 'TTS')
+    )
 
 
 def _record_perm_check(place: str, **perms: bool) -> list[str]:

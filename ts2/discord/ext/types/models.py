@@ -17,25 +17,22 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Optional, overload
 
-from discord import Member, Permissions, Role
-from discord.abc import GuildChannel
+from discord import Role
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 
-from ...utils.models import HypotheticalRole
+from ...utils.duckcord.permissions import Permissions2
 from ..autodoc import accepts
 
 
-@accepts('permission name', predicative=('see [this page](https://discordpy.readthedocs.io/en/'
-                                         'stable/api.html#discord.Permissions) for a list'))
+@accepts('permission name')
 class PermissionName(Converter):
     perm_name: str
 
     async def convert(self, ctx, arg: str) -> Callable[[Role], bool]:
-        if not hasattr(Permissions, arg):
-            if not hasattr(Permissions, arg.replace('server', 'guild')):
+        if not hasattr(Permissions2, arg):
+            if not hasattr(Permissions2, arg.replace('server', 'guild')):
                 raise BadArgument(f'No such permission {arg}')
             else:
                 arg = arg.replace('server', 'guild')
@@ -45,21 +42,5 @@ class PermissionName(Converter):
     def __str__(self):
         return self.perm_name
 
-    @overload
-    def __call__(self, entity: Role, channel: None) -> bool:
-        ...
-
-    @overload
-    def __call__(self, entity: Member, channel: None) -> bool:
-        ...
-
-    @overload
-    def __call__(self, entity: Member, channel: GuildChannel) -> bool:
-        ...
-
-    def __call__(self, entity: Role | Member, channel: Optional[GuildChannel] = None) -> bool:
-        if channel:
-            return getattr(channel.permissions_for(entity), self.perm_name)
-        if isinstance(entity, Member):
-            entity = HypotheticalRole(*entity.roles)
-        return entity.permissions.administrator or getattr(entity.permissions, self.perm_name)
+    def get(self):
+        return Permissions2(**{self.perm_name: True})

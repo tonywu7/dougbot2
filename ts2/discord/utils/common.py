@@ -8,7 +8,7 @@ from .async_ import (async_first, async_get, async_list,  # noqa: F401
 from .duckcord.color import Color2  # noqa: F401
 from .duckcord.embeds import Embed2, EmbedField  # noqa: F401
 from .duckcord.permissions import PermissionOverride  # noqa: F401
-from .duckcord.permissions import Permissions2  # noqa: F401
+from .duckcord.permissions import Permissions2, get_total_perms  # noqa: F401
 from .events import (DeleteResponder, EmoteResponder, Responder,  # noqa: F401
                      emote_added, emote_matches, emote_no_bots, event_filter,
                      run_responders, start_responders)
