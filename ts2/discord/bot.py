@@ -21,7 +21,7 @@ from typing import Optional, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Client, Guild, Message, Object,
+from discord import (AllowedMentions, Client, Guild, Intents, Message, Object,
                      Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import Bot, has_guild_permissions
@@ -128,6 +128,7 @@ class Robot(Bot):
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
+        options['intents'] = Intents.all()
         options.setdefault('case_insensitive', True)
         options.setdefault('strip_after_prefix', True)
         super().__init__(loop=loop, **options)
