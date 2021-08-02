@@ -28,6 +28,8 @@ from discord.utils import escape_markdown
 from pendulum import duration
 
 from ...utils.common import is_direct_message
+from ...utils.duckcord.color import Color2
+from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
@@ -58,6 +60,12 @@ def indicate_extra_text(s: StringView, color='white') -> str:
     return f'{s.buffer[:s.index]} {ARROWS_E[color]} {s.buffer[s.index:]} {ARROWS_W[color]}'
 
 
+def full_invoked_with(self: Context):
+    if self.invoked_parents:
+        return f'{" ".join(self.invoked_parents)} {self.invoked_with}'
+    return self.invoked_with
+
+
 def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
     if not isinstance(exc, tuple):
         exc = (exc,)
@@ -77,8 +85,9 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:
         allowed_mentions = AllowedMentions.none()
-    reply = await ctx.reply(message, delete_after=autodelete, allowed_mentions=allowed_mentions)
-    await reply.edit(suppress=True)
+    embed = Embed2(color=Color2.red(), description=message)
+    await ctx.reply(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
+    # await reply.edit(suppress=True)
 
 
 async def explain_exception(ctx: Context, exc: Exception):
@@ -109,7 +118,7 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             man = get_manual(ctx)
             doc = man.lookup(ctx.command.qualified_name)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
-            arg_info = f'\n> {ctx.full_invoked_with} {arg_info}\n'
+            arg_info = f'\n> {full_invoked_with(ctx)} {arg_info}\n'
             if supply_arg_type:
                 arg_info = f'{arg_info}\n{strong(arg)}: {arg.describe()}'
             msg = f'{arg_info}{sep}{msg}'

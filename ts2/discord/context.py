@@ -130,12 +130,17 @@ class Circumstances(Context):
     @property
     def full_invoked_with(self) -> str:
         if self.invoked_parents:
-            return f'{self.prefix}{" ".join(self.invoked_parents)} {self.invoked_with}'
-        return f'{self.prefix}{self.invoked_with}'
+            return f'{" ".join(self.invoked_parents)} {self.invoked_with}'
+        return self.invoked_with
 
     @property
     def raw_input(self) -> str:
-        return self.view.buffer[len(self.full_invoked_with):].strip()
+        msg: str = self.view.buffer
+        return (
+            msg.removeprefix(self.prefix)
+            .strip()[len(self.full_invoked_with):]
+            .strip()
+        )
 
     async def send_dm_safe(self, content: Optional[str] = None,
                            embed: Optional[Embed2] = None,
