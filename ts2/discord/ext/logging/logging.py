@@ -181,11 +181,11 @@ class ContextualLogger:
         except LookupError:
             return
         msg = f'**{escape_markdown(name)}**\n{msg}'
+        mentions = AllowedMentions.none()
         if role:
             msg = f'{tag(role)}\n{msg}'
-            mentions = AllowedMentions(roles=[role])
-        else:
-            mentions = AllowedMentions.none()
+            if len(role.members) <= 25:
+                mentions = AllowedMentions(roles=[role])
 
         try:
             await channel.send(content=msg, allowed_mentions=mentions, embed=embed)
