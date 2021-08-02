@@ -364,6 +364,11 @@ def add_event_listeners(self: Robot):
 def register_base_commands(self: Robot):
     self.command('help')(self.send_help)
 
+    @self.command('version')
+    @doc.description("Print the bot's current version.")
+    async def version(ctx: Circumstances, *, rest: str = None):
+        return await ctx.send(settings.VERSION)
+
     @self.command('echo')
     @dm.accepts_dms
     @doc.description('Send the command arguments back.')

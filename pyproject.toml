@@ -3,9 +3,9 @@ known_third_party = "discord"
 
 [tool.poetry]
 name = "telescope2"
-version = "0.0.1"
+version = "0.10.0rc2"
 description = ""
-authors = ["tonyzbf <tonyzbf@protonmail.org>"]
+authors = ["tonyzbf <tonyzbf@protonmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9.6"
