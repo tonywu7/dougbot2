@@ -104,9 +104,9 @@ class PermFilter:
         if channel is None:
             self.target = Permissions2.all()
         elif isinstance(channel, TextChannel):
-            self.target = Permissions2.text() | Permissions2.all_channel()
+            self.target = Permissions2.all_channel() - Permissions2.voice()
         elif isinstance(channel, (VoiceChannel, StageChannel)):
-            self.target = Permissions2.voice() | Permissions2.all_channel()
+            self.target = Permissions2.all_channel() - Permissions2.text()
         else:
             self.target = Permissions2.all()
 

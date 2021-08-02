@@ -128,7 +128,7 @@ class Robot(Bot):
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
-        options['intents'] = Intents.all()
+        options.setdefault('intents', Intents.all())
         options.setdefault('case_insensitive', True)
         options.setdefault('strip_after_prefix', True)
         super().__init__(loop=loop, **options)
