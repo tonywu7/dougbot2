@@ -85,9 +85,8 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:
         allowed_mentions = AllowedMentions.none()
-    embed = Embed2(color=Color2.red(), description=message)
+    embed = Embed2(color=Color2.red(), description=message).set_timestamp(None)
     await ctx.reply(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
-    # await reply.edit(suppress=True)
 
 
 async def explain_exception(ctx: Context, exc: Exception):
@@ -345,7 +344,7 @@ async def explains_required_reply(ctx, exc) -> tuple[str, int]:
 
 @explains(exceptions.NotAcceptable, 'Item not acceptable', priority=5)
 async def explains_not_acceptable(ctx, exc) -> tuple[str, int]:
-    return str(exc), 30
+    return str(exc), 60
 
 
 @explains(exceptions.SendHelp, priority=50)

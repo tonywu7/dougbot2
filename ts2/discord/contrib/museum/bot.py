@@ -76,9 +76,10 @@ class Museum(
     ):
         if message is None and reply is None:
             raise NotAcceptable(
-                'Either you did not specify a message, '
-                'or the message is not found, '
-                'or is not readable by the bot.',
+                'You need to specify the message where the story'
+                f' will {begin_or_end} by either passing its URL or message ID,'
+                ' or replying to it.\nIf you did specify it, the bot may not'
+                ' have access to that message.',
             )
 
         if reply:
@@ -119,7 +120,7 @@ class Museum(
             if created:
                 reply = SETUP_MSG % reply_ctx
                 embed = Embed2(title='New story', description=reply)
-                return await ctx.reply(embed=embed)
+                return await ctx.response(ctx, embed=embed).deleter().run()
 
             set_channel = tag_literal('channel', task.channel)
 
@@ -127,7 +128,7 @@ class Museum(
                 reply = REPLACE_MSG % {**reply_ctx, 'set_channel': set_channel}
                 await self.story_set_task(task, msg_id, channel_id)
                 embed = Embed2(title='New story', description=reply)
-                return await ctx.reply(embed=embed)
+                return await ctx.response(ctx, embed=embed).deleter().run()
 
             if task.channel != channel_id:
                 reply = ('The beginning and ending messages are not in the same channel:\n'
