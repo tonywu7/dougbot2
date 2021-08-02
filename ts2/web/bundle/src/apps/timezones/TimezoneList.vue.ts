@@ -58,9 +58,6 @@ async function saveRoleTimezones(
 
 export default defineComponent({
     components: { FormContainer, ItemSelect },
-    props: {
-        tzsrc: { type: String, required: true },
-    },
     setup(props) {
         let roles: Ref<Record<string, Role>> = ref({})
         let orig: Ref<RoleTimezoneType[]> = ref([])
@@ -138,9 +135,6 @@ export default defineComponent({
             updateClockAt,
             setInitialData,
         }
-    },
-    data() {
-        return { zones }
     },
     methods: {
         createTimezone() {

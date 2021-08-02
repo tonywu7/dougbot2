@@ -14,8 +14,9 @@
             <textarea ref="searchInput" type="search" class="item-select-search" wrap="off" autocomplete="off"
                 autocapitalize="none" spellcheck="false" :style="[inputWidth]" :value="search" @focus="activate"
                 @blur="deactivate" @input="updateSearch" @keydown="navigateList"></textarea>
-            <ul ref="candidateList" role="listbox" aria-multiselectable="true" :aria-expanded="dropdownShow"
-                :aria-hidden="!dropdownShow" :class="['dropdown-menu', {show: dropdownShow}]">
+            <ul v-if="dropdownShow" ref="candidateList" role="listbox" aria-multiselectable="true"
+                :aria-expanded="dropdownShow" :aria-hidden="!dropdownShow"
+                :class="['dropdown-menu', {show: dropdownShow}]">
                 <li v-for="(item, index) in candidates" :key="item.id" role="button"
                     :class="['dropdown-item', {'has-focus': index == currentFocus}]" :style="getItemStyles(item, false)"
                     :aria-selected="index == currentFocus" v-html="safe(item.content)" @click="(e) => select(item)"
