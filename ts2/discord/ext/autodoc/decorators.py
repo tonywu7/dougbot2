@@ -14,10 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 from collections.abc import Callable
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 import discord
 from discord import MessageReference
@@ -29,11 +27,20 @@ from ...utils.functional import memoize
 from .documentation import (CheckDecorator, CheckWrapper, Documentation,
                             add_type_converter, add_type_description)
 from .exceptions import ReplyRequired
-from .explanation import BUCKET_DESCRIPTIONS, describe_concurrency
+from .explanation import BUCKET_DESCRIPTIONS, describe_concurrency, explains
 from .lang import QuantifiedNP, pluralize
 
+explains = explains
 
-def example(invocation: str | tuple[str, ...], explanation: str):
+
+def example(invocation: Union[str, tuple[str, ...]], explanation: str):
+    """Add an example of how to use this command to its documentation.
+
+    :param invocation: How people should invoke this specific example.
+    :type invocation: str | tuple[str, ...]
+    :param explanation: What this example does when invoked.
+    :type explanation: str
+    """
     def wrapper(doc: Documentation, f: Command):
         key = tuple(f'{doc.call_sign} {inv}' for inv in always_iterable(invocation))
         doc.examples[key] = explanation
@@ -44,6 +51,7 @@ def example(invocation: str | tuple[str, ...], explanation: str):
 
 
 def description(desc: str):
+    """Set the description of this command."""
     def wrapper(doc: Documentation, f: Command):
         doc.description = desc
 
@@ -53,6 +61,7 @@ def description(desc: str):
 
 
 def discussion(title: str, body: str):
+    """Append an additional section to this command's documentation."""
     def wrapper(doc: Documentation, f: Command):
         doc.discussions[title] = body
 
@@ -62,7 +71,23 @@ def discussion(title: str, body: str):
 
 
 def argument(arg: str, help: str = '', *, node: str = '',
-             signature: str = '', term: Optional[str | QuantifiedNP] = None):
+             signature: str = '', term: Optional[Union[str, QuantifiedNP]] = None):
+    """Describe an argument of this command.
+
+    :param arg: The name of the argument as specified on the signature.
+    :type arg: str
+    :param help: Explanation of the argument, defaults to ''
+    :type help: str, optional
+    :param node: How the argument should be printed as part of the invocation signature,\
+        defaults to '' (autogenerate)
+    :type node: str, optional
+    :param signature: How the argument should be printed as part of the command signature,\
+        defaults to '' (autogenerate)
+    :type signature: str, optional
+    :param term: How the type of the argument should be expressed in plain English,\
+        defaults to None
+    :type term: Optional[Union[str, QuantifiedNP]], optional
+    """
     def wrapper(doc: Documentation, f: Command):
         argument = doc.arguments[arg]
         argument.help = help
@@ -78,7 +103,20 @@ def argument(arg: str, help: str = '', *, node: str = '',
     return deco
 
 
-def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
+def invocation(signature: tuple[str, ...], desc: Union[str, Literal[False]]):
+    """Describe a specific invocation style of this command.
+
+    For commands that accept optional arguments and varargs and vary their
+    behaviors based on what parameters are provided, each possible way to call
+    the command should be documented separately using this decorator.
+
+    :param signature: The set of arguments; a single argument must be\
+        wrapped in a tuple.
+    :type signature: tuple[str, ...]
+    :param desc: What the command will do when this set of arguments are passed.
+    :type desc: Union[str, Literal[False]]
+    :raises KeyError: If the passed signature is not a possible invocation
+    """
     signature: frozenset[str] = frozenset(signature)
 
     def wrapper(doc: Documentation, f: Command):
@@ -98,33 +136,52 @@ def invocation(signature: tuple[str, ...], desc: str | Literal[False]):
 
 
 def use_syntax_whitelist(f):
+    """Mark all possible invocations of this command as invalid.
+
+    By default, all invocations are assumed to be valid. Use this for when
+    there are a large amount of invocation styles but only some of them can
+    be used.
+    """
     def wrapper(doc: Documentation, f: Command):
         doc.ensure_signatures()
         doc.invalid_syntaxes |= doc.invocations.keys()
     return memoize(f, '__command_doc__', wrapper)
 
 
-def restriction(deco_func_or_desc: CheckDecorator | str, *args, **kwargs) -> CheckWrapper:
+def restriction(deco_func: Union[CheckDecorator, None], description: Optional[str] = None, /, **kwargs) -> CheckWrapper:
+    """Document a check for the command.
+
+    If a function is passed, the function will be called with the supplied
+    keyword arguments, the result will be called with the command callback.
+
+    If supported, the function itself will be translated to a description.
+    Otherwise the function's docstring will be used.
+
+    :param deco_func: A decorator function.
+    :type deco_func: Union[CheckDecorator, None]
+    :param description: Description of this check, defaults to None
+    :type description: Optional[str], optional
+    """
     def wrapper(doc: Documentation, f: Command):
-        if callable(deco_func_or_desc):
-            doc.add_restriction(deco_func_or_desc, *args, **kwargs)
-        else:
-            doc.restrictions.append(deco_func_or_desc)
+        doc.add_restriction(deco_func, description, **kwargs)
 
     def deco(f):
-        if callable(deco_func_or_desc):
-            deco_func_or_desc(*args, **kwargs)(f)
+        if callable(deco_func):
+            deco_func(**kwargs)(f)
         return memoize(f, '__command_doc__', wrapper)
     return deco
 
 
 def hidden(f):
+    """Mark this command as hidden in the command table of contents."""
     def wrapper(doc: Documentation, f: Command):
         doc.hidden = True
     return memoize(f, '__command_doc__', wrapper)
 
 
-def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Callable[[discord.Message], Any]):
+def cooldown(maxcalls: int, duration: float, bucket: Union[commands.BucketType, Callable[[discord.Message], Any]]):
+    """Document a cooldown for this command and apply the cooldown."""
+
     def wrapper(doc: Documentation, f: Command):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
         cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "call")} '
@@ -142,6 +199,8 @@ def cooldown(maxcalls: int, duration: float, bucket: commands.BucketType | Calla
 
 
 def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
+    """Document a max concurrency rule for this command and apply the rule."""
+
     def wrapper(doc: Documentation, f: Command):
         doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
 
@@ -152,7 +211,12 @@ def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
 
 
 def accepts_reply(desc: str = 'Reply to a message', required=False):
-    async def inject_reply(self_or_ctx: Cog | Context, *args):
+    """Mark this command as accepting a reply.
+
+    This will add a `before_invoke` callback to the command to retrieve
+    the reply and place it in a keyword argument named `reply`.
+    """
+    async def inject_reply(self_or_ctx: Union[Cog, Context], *args):
         if not isinstance(self_or_ctx, Context):
             ctx = args[0]
         else:
@@ -176,6 +240,7 @@ def accepts_reply(desc: str = 'Reply to a message', required=False):
 
 
 def accepts(*args, **kwargs):
+    """Describe the type of text this converter will take."""
     def wrapper(obj):
         add_type_description(obj, QuantifiedNP(*args, **kwargs))
         return obj

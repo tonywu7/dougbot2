@@ -67,6 +67,33 @@ def full_invoked_with(self: Context):
 
 
 def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
+    """Register this function for explaining the specified Exception.
+
+    The function must take exactly two arguments, the Context and the
+    caught exception.
+
+    The function must return a coroutine, which, when awaited, must return
+        one of the following:
+
+    - A tuple of a string and a number: the string will be the error message,
+        and the number will be the number of seconds before the error message
+        is autodeleted.
+    - The literal False (no other falsy value accepted): the error will be
+        ignored and no further handler will be checked.
+    - The literal None: indicate that this function will not handle this
+        exception and the logging module should keep checking other handlers.
+
+    Setting different priorities allows you to have multiple handlers for
+    the subclass and superclasses of an Exception type.
+
+    :param exc: The type(s) of exceptions this function will handle
+    :type exc: Union[type[Exception], tuple[type[Exception]]]
+    :param name: A short description of this exception to be used as the title
+        of the error message.
+    :type name: Optional[str], optional
+    :param priority: Handlers with a higher priority will be checked first
+    :type priority: int, optional
+    """
     if not isinstance(exc, tuple):
         exc = (exc,)
 
@@ -79,7 +106,7 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
 
 
 async def reply_command_failure(ctx: Context, title: str, msg: str,
-                                autodelete=60, ping=False):
+                                autodelete: float = 60, ping=False):
     if ping:
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:

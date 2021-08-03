@@ -408,10 +408,15 @@ class Documentation:
     def add_subcommand(self, command: Command, doc: Documentation):
         self.subcommands[command.qualified_name] = doc
 
-    def add_restriction(self, wrapper: CheckWrapper, *args, **kwargs):
-        processor = CHECK_TRANSLATOR.get(wrapper)
-        if processor:
-            self.restrictions.extend(processor(*args, **kwargs))
+    def add_restriction(self, wrapper: CheckWrapper, desc: str, /, **kwargs):
+        if desc:
+            self.restrictions.extend(desc)
+        else:
+            processor = CHECK_TRANSLATOR.get(wrapper)
+            if processor:
+                self.restrictions.extend(processor(**kwargs))
+            elif wrapper.__doc__:
+                self.restrictions.extend(wrapper.__doc__)
 
     def finalize(self):
         if self.frozen:
