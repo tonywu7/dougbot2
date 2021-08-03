@@ -59,10 +59,12 @@ class Choice(Converter):
             case_sensitive=False,
         )
 
-        fullname = concise_name + ': ' + coord_conj(*[f'"{w}"' for w in choices], conj='or')
+        predicative = coord_conj(*[f'"{w}"' for w in choices], conj='or')
+        if case_sensitive:
+            predicative = f'{predicative}, case sensitive'
         desc = QuantifiedNP(
-            fullname, concise=concise_name,
-            predicative='case sensitive' if case_sensitive else '',
+            concise_name, concise=concise_name,
+            predicative=predicative,
         )
 
         if case_sensitive:

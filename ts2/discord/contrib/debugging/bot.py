@@ -34,7 +34,9 @@ from ts2.discord.utils.markdown import E, a, code, strong
 
 
 class LoggingLevel(Converter):
+
     async def convert(self, ctx: Circumstances, arg: str) -> int | str:
+        """Convert a logging level name (e.g. DEBUG) to its int value."""
         level = logging.getLevelName(arg)
         if isinstance(level, int):
             return level
@@ -45,6 +47,8 @@ class Debugging(
     Gear, name='Debugging', order=95,
     description='',
 ):
+    """Cog for internal debugging commands."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -105,7 +109,7 @@ class Debugging(
 
     @command('isnotinthesudoersfile')
     @doc.description('[Incident](https://xkcd.com/838/)')
-    @doc.restriction(has_role, 0)
+    @doc.restriction(has_role, item=0)
     @doc.hidden
     async def _sudo(self, ctx: Circumstances, *, args: str = None):
         await ctx.send(f'{ctx.me} is in the sudoers file!')

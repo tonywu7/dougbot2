@@ -190,7 +190,7 @@ def append_quotation_hint():
 
 def describe_concurrency(number: int, bucket: BucketType):
     bucket_type = BUCKET_DESCRIPTIONS[bucket]
-    info = (f'maximum {number} {pluralize(number, "call")} '
+    info = (f'concurrency: maximum {number} {pluralize(number, "call")} '
             f'running at the same time {bucket_type}')
     return info
 

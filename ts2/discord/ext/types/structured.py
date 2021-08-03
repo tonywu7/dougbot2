@@ -21,7 +21,7 @@ from discord.ext.commands.errors import BadArgument
 from ..autodoc import accepts
 
 
-@accepts('TOML code block')
+@accepts('TOML code block', concise='TOML', uncountable=True)
 class CodeBlockParser(Converter):
     lang: str
 

@@ -32,10 +32,10 @@ from discord.utils import escape_markdown
 from django.utils.text import camel_case_to_spaces
 from more_itertools import partition, split_at
 
-from ...utils.duckcord.embeds import Embed2
+from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, mta_arrow_bracket, pre, strong
-from ...utils.pagination import page_embed2, page_plaintext
+from ...utils.pagination import EmbedPagination, chapterize_items
 from .exceptions import BadDocumentation, MissingDescription
 from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
 
@@ -51,6 +51,7 @@ CheckDecorator = Callable[..., CheckWrapper]
 
 log = logging.getLogger('discord.commands')
 
+MANPAGE_MAX_LEN = 500
 
 _type_descriptions: dict[_Annotation, QuantifiedNP] = {
     int: QuantifiedNP('whole number'),
@@ -316,8 +317,7 @@ class Documentation:
     sections: dict[str, str] = attr.ib(factory=dict)
     frozen: bool = attr.ib(default=False)
 
-    text_helps: dict[str, str] = attr.ib(factory=dict)
-    rich_helps: dict[str, Embed2] = attr.ib(factory=dict)
+    rich_help: EmbedPagination = attr.ib(default=None)
 
     @classmethod
     def from_command(cls, cmd: Command) -> Documentation:
@@ -427,7 +427,9 @@ class Documentation:
 
         sections = self.sections
         sections['Synopsis'] = pre('\n'.join(self.synopsis))
-        sections['Description'] = self.description
+
+        if self.aliases:
+            sections['Other names'] = ', '.join(self.aliases)
 
         invocations = {sig.as_node().strip(): sig.description
                        for keys, sig in self.invocations.items()
@@ -439,42 +441,36 @@ class Documentation:
             {**invocations, **subcommands}.items(),
             transform=lambda s: a(strong(s), 'https://.'),
         )
-        arguments = [f'{strong(arg.key)}: {arg.describe()}'
-                     for arg in self.arguments.values()
-                     if not arg.is_hidden]
-        sections['Arguments'] = '\n'.join(arguments)
 
         if self.restrictions:
             sections['Restrictions'] = '\n'.join(self.restrictions)
         if self.examples:
             sections['Examples'] = self.format_examples(self.examples.items())
-        if self.discussions:
-            sections['Discussions'] = self.format_examples(self.discussions.items())
-        if self.aliases:
-            sections['Aliases'] = ', '.join(self.aliases)
+
+        arguments = [f'{strong(arg.key)}: {arg.describe()}'
+                     for arg in self.arguments.values()
+                     if not arg.is_hidden]
+        sections['Arguments'] = '\n'.join(arguments)
+
+        for k, v in self.discussions.items():
+            sections[k] = v
 
         self.assert_documentations()
-
-        for s in self.HELP_STYLES:
-            self.rich_helps[s], self.text_helps[s] = self.generate_help(s)
+        self.rich_help = self.generate_help()
 
     def assert_documentations(self):
-        sections = self.sections
-        if sections['Description'] == '(no description)':
+        if not self.description:
             log.warning(MissingDescription(self.call_sign))
 
-    def generate_help(self, style: str) -> tuple[Embed2, str]:
-        title, chapters = self.HELP_STYLES[style]
-        sections = [(k, self.sections.get(k)) for k in chapters]
-        sections = [(k, v) for k, v in sections if v]
-        kwargs = {
-            'sections': sections,
-            'title': f'{title}: {self.call_sign}',
-            'description': self.description,
-        }
-        rich_help = page_embed2(**kwargs)
-        text_help = page_plaintext(**kwargs)
-        return rich_help, text_help
+    def generate_help(self) -> EmbedPagination:
+        sections = [EmbedField(k, v, False) for k, v
+                    in self.sections.items() if v]
+        chapters = chapterize_items(sections, MANPAGE_MAX_LEN)
+        embeds = [Embed2(fields=chapter) for chapter in chapters]
+        title = f'Help: {self.call_sign}'
+        embeds = [e.set_description(self.description) for e in embeds]
+        rich_help = EmbedPagination(embeds, title, False)
+        return rich_help
 
     def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Argument]:
         args: deque = deque(args)
@@ -496,12 +492,3 @@ class Documentation:
         if arguments:
             stack.append('...')
         return ' '.join(stack), arg
-
-    HELP_STYLES = {
-        'normal': ('Command', ['Syntax', 'Examples', 'Aliases']),
-        'syntax': ('Syntax', ['Syntax']),
-        'short': ('Help', ['Synopsis', 'Aliases']),
-        'full': ('Documentation', ['Synopsis', 'Aliases', 'Syntax', 'Arguments', 'Examples', 'Restrictions', 'Discussions']),
-        'examples': ('Examples', ['Examples']),
-        'signature': ('Type signatures', ['Synopsis', 'Syntax', 'Arguments']),
-    }

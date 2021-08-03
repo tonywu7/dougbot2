@@ -258,9 +258,11 @@ class Personalize(
                     addressdetails=True,
                 )
             except GeocoderTimedOut:
+                await ctx.message.delete(delay=0.1)
                 raise ServiceUnavailable('Searching on OpenStreetMap took too long.')
 
         if not place:
+            await ctx.message.delete(delay=0.1)
             msg = f'Failed to find a location on OpenStreetMap using {verbatim(query)}'
             if bad_coord:
                 msg = f'{msg}\nAdditionally, {bad_coord}'

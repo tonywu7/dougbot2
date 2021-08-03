@@ -17,7 +17,7 @@
 import asyncio
 import logging
 from collections.abc import Generator
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
@@ -39,9 +39,8 @@ from .context import Circumstances, CommandContextError
 from .ext import autodoc as doc
 from .ext import dm
 from .ext.acl import acl
-from .ext.autodoc import Documentation, Manual, explain_exception, explains
+from .ext.autodoc import Manual, explain_exception, explains
 from .ext.logging import log_command_errors, log_exception
-from .ext.types.patterns import Choice
 from .models import Blacklisted, Server
 from .utils.common import is_direct_message
 from .utils.markdown import code, em, strong
@@ -51,8 +50,6 @@ U = TypeVar('U', bound=Bot)
 
 AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
-
-HelpFormat = Choice[[f'-{k}' for k in Documentation.HELP_STYLES], 'info category']
 
 
 @explains(cog.ModuleDisabled, 'Command disabled')
@@ -228,18 +225,11 @@ class Robot(Bot):
     @staticmethod
     @dm.accepts_dms
     @doc.description('Get help about commands.')
-    @doc.argument('category', 'What kind of help info to get.')
     @doc.argument('query', 'A command name, such as "echo" or "prefix set".')
     @doc.invocation((), 'See all commands.')
     @doc.invocation(('query',), 'See help for a command.')
-    @doc.invocation(('category',), False)
-    @doc.invocation(('category', 'query'), 'See specific info about a command, such as argument types.')
-    @doc.example('perms', f'Check help doc for {code("perms")}')
-    @doc.example('-full perms', f'See detailed information about the command {code("perms")}')
-    @doc.example('prefix set', f'Check help doc for {code("prefix set")}, where {code("set")} is a subcommand of {code("prefix")}')
-    async def send_help(ctx: Circumstances, category: Optional[HelpFormat] = '-normal',
-                        *, query: str = ''):
-        return await ctx.bot.manual.do_help(ctx, category[1:], query)
+    async def send_help(ctx: Circumstances, *, query: str = ''):
+        return await ctx.bot.manual.do_help(ctx, query)
 
     def is_hidden(self, cmd):
         return self.manual.commands[cmd.qualified_name].hidden

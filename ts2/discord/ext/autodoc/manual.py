@@ -31,8 +31,7 @@ from ...utils.duckcord.color import Color2
 from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.events import DeleteResponder, start_responders
 from ...utils.markdown import blockquote, em, strong
-from ...utils.pagination import (EmbedPagination, TextPagination,
-                                 chapterize_items)
+from ...utils.pagination import EmbedPagination, chapterize_items
 from ...utils.response import ResponseInit
 from .documentation import Documentation
 from .exceptions import NoSuchCommand
@@ -51,7 +50,6 @@ class Manual:
 
     toc: dict[str, str] = attr.ib(factory=dict)
     toc_rich: EmbedPagination = attr.ib(default=None)
-    toc_text: TextPagination = attr.ib(default=None)
 
     title: str = attr.ib(default='Command help')
     color: Color2 = attr.ib(default=Color2.blue())
@@ -150,11 +148,6 @@ class Manual:
                   for e in embeds]
         self.toc_rich = EmbedPagination(embeds, self.title, True)
 
-        fields = [f'{strong(k)}\n{v}' for k, v in self.toc.items()]
-        chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
-        texts = ['\n\n'.join(chapter) for chapter in chapters]
-        self.toc_text = TextPagination(texts, self.title)
-
     def lookup(self, query: str) -> Documentation:
         try:
             return self.commands[query]
@@ -186,8 +179,7 @@ class Manual:
         deleter = DeleteResponder(ctx, msg)
         start_responders(paginator, deleter)
 
-    async def do_help(self, ctx: Context, category: str = 'normal',
-                      query: Optional[str] = None):
+    async def do_help(self, ctx: Context, query: Optional[str] = None):
         if not query:
             return await self.send_toc(ctx)
         query = query.lower().removeprefix(ctx.prefix)
@@ -195,13 +187,10 @@ class Manual:
             doc = self.lookup(query)
         except NoSuchCommand as exc:
             return await ctx.send(str(exc), delete_after=60)
-        try:
-            rich_help = doc.rich_helps[category]
-        except KeyError:
-            rich_help = doc.rich_helps['normal']
-        if category == 'normal':
-            rich_help = rich_help.set_footer(text=f'Use "{ctx.prefix}{ctx.invoked_with} -full {query}" for more info')
-        await ResponseInit(ctx, embed=rich_help).reply().deleter().run()
+        first = doc.rich_help.get_embed(0)
+        (await ResponseInit(ctx, embed=first).reply()
+         .responder(lambda m: doc.rich_help(ctx.bot, m, 600, ctx.author))
+         .deleter().run())
 
 
 def set_manual_getter(getter: Callable[[Context], Manual]):
