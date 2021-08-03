@@ -80,12 +80,11 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
 
 async def reply_command_failure(ctx: Context, title: str, msg: str,
                                 autodelete=60, ping=False):
-    message = f'⚠️ {strong(title)}\n{msg}'
     if ping:
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:
         allowed_mentions = AllowedMentions.none()
-    embed = Embed2(color=Color2.red(), description=message).set_timestamp(None)
+    embed = Embed2(color=Color2.red(), title=f'Error: {title}', description=msg).set_timestamp(None)
     await ctx.reply(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
 
 
@@ -103,7 +102,7 @@ async def explain_exception(ctx: Context, exc: Exception):
         return await reply_command_failure(ctx, title, msg, autodelete)
 
 
-def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
+def prepend_argument_hint(sep='\n\n'):
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
         async def handler(ctx: Context, exc: errors.UserInputError):
@@ -117,9 +116,7 @@ def prepend_argument_hint(supply_arg_type: bool = True, sep='\n\n'):
             man = get_manual(ctx)
             doc = man.lookup(ctx.command.qualified_name)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
-            arg_info = f'\n> {full_invoked_with(ctx)} {arg_info}\n'
-            if supply_arg_type:
-                arg_info = f'{arg_info}\n{strong(arg)}: {arg.describe()}'
+            arg_info = f'> {full_invoked_with(ctx)} {arg_info}'
             msg = f'{arg_info}{sep}{msg}'
             return msg, autodelete
         return handler
@@ -172,8 +169,12 @@ def describe_concurrency(number: int, bucket: BucketType):
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
-async def on_cooldown(ctx, exc):
-    return f'Try again in {duration(seconds=exc.retry_after).in_words()}', 10
+async def on_cooldown(ctx, exc: errors.CommandOnCooldown):
+    cooldown = exc.cooldown.per
+    return (
+        f'This command has a cooldown of {duration(seconds=cooldown).in_words()}\n'
+        f'Try again in {duration(seconds=exc.retry_after).in_words()}'
+    ), 10
 
 
 @explains(errors.MissingRole, 'Missing roles', 0)
@@ -226,7 +227,7 @@ async def on_unexpected_char_after_quote(ctx, exc: errors.InvalidEndOfQuotedStri
 
 
 @explains(errors.MissingRequiredArgument, 'Not enough arguments')
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def on_missing_args(ctx, exc):
     return 'This argument is missing.', 60
 
@@ -245,25 +246,25 @@ async def on_too_many_args(ctx, exc: errors.TooManyArguments):
     errors.RoleNotFound,
     errors.EmojiNotFound,
 ), 'Not found', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_not_found(ctx: Context, exc) -> tuple[str, int]:
-    return strong(escape_markdown(str(exc))), 30
+    return escape_markdown(str(exc)), 30
 
 
 @explains(errors.PartialEmojiConversionFailure, 'Emote not found', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_emote_not_found(ctx: Context, exc: errors.PartialEmojiConversionFailure) -> tuple[str, int]:
-    return strong(f'{escape_markdown(exc.argument)} is not an emote or is not in a valid Discord emote format.'), 30
+    return f'{escape_markdown(exc.argument)} is not an emote or is not in a valid Discord emote format.', 30
 
 
 @explains(errors.BadInviteArgument, 'Invalid invite')
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_bad_invite(ctx: Context, exc: errors.BadInviteArgument) -> tuple[str, int]:
     return strong(escape_markdown(str(exc))), 30
 
 
 @explains(errors.BadBoolArgument, 'Incorrect value to a true/false argument')
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_bad_boolean(ctx: Context, exc: errors.BadBoolArgument) -> tuple[str, int]:
     return ((strong(escape_markdown(exc.argument)) + ' is not an acceptable answer to a true/false question in English.\n\n')
             + ('The following are considered to be true: '
@@ -273,13 +274,13 @@ async def explains_bad_boolean(ctx: Context, exc: errors.BadBoolArgument) -> tup
 
 
 @explains(errors.ChannelNotReadable, 'No access to channel')
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_channel_not_readable(ctx: Context, exc) -> tuple[str, int]:
-    return strong(escape_markdown(str(exc))), 30
+    return escape_markdown(str(exc)), 30
 
 
 @explains(errors.BadColourArgument, 'Incorrect color format', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_bad_color(ctx: Context, exc: errors.BadColourArgument) -> tuple[str, int]:
     example = code('"rgb(255, 255, 255)"')
     return (f'{strong(escape_markdown(str(exc)))}\n\nTo provide a color in the RGB format that also contains '
@@ -287,15 +288,15 @@ async def explains_bad_color(ctx: Context, exc: errors.BadColourArgument) -> tup
 
 
 @explains(errors.BadUnionArgument, 'Did not understand argument', 0)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def on_bad_union(ctx, exc: errors.BadUnionArgument):
-    return strong('Could not recognize this argument as any of the above.'), 45
+    return 'Could not recognize this argument as any of the above.', 45
 
 
 @explains(errors.BadArgument, 'Did not understand argument', -1)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def on_bad_args(ctx, exc):
-    return strong(escape_markdown(str(exc))), 30
+    return escape_markdown(str(exc)), 30
 
 
 @explains(errors.NotOwner, 'Not owner', priority=100)

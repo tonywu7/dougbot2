@@ -167,18 +167,18 @@ class RegExpMismatch(BadArgument):
 
 
 @explains(RegExpMismatch, 'Pattern mismatch', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_regexp(ctx, exc: RegExpMismatch) -> tuple[str, int]:
     return f'Got {strong(escape_markdown(exc.received))} instead.', 30
 
 
 @explains(InvalidChoices, 'Invalid choices', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_invalid_choices(ctx, exc: InvalidChoices) -> tuple[str, int]:
-    return strong(escape_markdown(str(exc))), 45
+    return escape_markdown(str(exc)), 45
 
 
 @explains(InvalidRange, 'Number out of range', priority=5)
-@prepend_argument_hint(True, sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ')
 async def explains_invalid_range(ctx, exc: InvalidChoices) -> tuple[str, int]:
-    return strong(escape_markdown(str(exc))), 30
+    return escape_markdown(str(exc)), 30
