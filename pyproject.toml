@@ -50,6 +50,7 @@ Unidecode = "^1.2.0"
 Faker = "^8.10.2"
 django-csp = "^3.7"
 django-manifest-loader = "^1.0.0"
+toml = "^0.10.2"
 
 [tool.poetry.dev-dependencies]
 logging_tree = "^1.9"
