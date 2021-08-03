@@ -17,10 +17,8 @@ docker compose build
 ### Setup
 
 ```sh
-docker compose run --rm bot ./bin/init
+docker compose run bot ./bin/init
 ```
-
-(Include `--rm` if you don't want Docker to keep the temporary container.)
 
 You will be prompted for you Discord app ID, secret, and bot token.
 
@@ -51,5 +49,5 @@ Pull updates, then
 
 ```sh
 docker compose build
-docker compose run --rm bot ./bin/migrate
+docker compose run bot ./bin/migrate
 ```

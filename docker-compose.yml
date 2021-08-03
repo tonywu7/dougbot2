@@ -4,6 +4,7 @@ services:
         image: "redis:alpine"
         expose:
             - 6379
+        restart: on-failure
 
     web:
         image: telescope2
@@ -20,6 +21,7 @@ services:
             - 8086
         depends_on:
             - redis
+        restart: on-failure
 
     server:
         build: ./nginx
@@ -29,6 +31,7 @@ services:
             - static:/www
         depends_on:
             - web
+        restart: on-failure
 
     bot:
         image: telescope2
@@ -40,6 +43,7 @@ services:
             - static:/application/dist
         depends_on:
             - web
+        restart: on-failure
 
     backup:
         image: telescope2
@@ -49,6 +53,7 @@ services:
         volumes:
             - instance:/application/instance
             - backups:/application/backups
+        restart: always
 
 volumes:
     instance:
