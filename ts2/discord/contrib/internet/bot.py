@@ -143,7 +143,7 @@ class Internet(
             if not errors:
                 hint = (
                     'Set timezone preference with '
-                    + ctx.fmt_command('my timezone')
+                    + ctx.format_command('my timezone')
                 )
                 msg = lang.address(TIMEZONE_NOT_SET, ctx.author, ctx, has='has')
                 embed = (

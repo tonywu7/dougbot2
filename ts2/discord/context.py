@@ -14,13 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from functools import wraps
-from typing import Optional
+from typing import Optional, Union
 
 from asgiref.sync import sync_to_async
 from discord import Forbidden, Guild, Member, Message, TextChannel, User
@@ -57,14 +55,14 @@ class Circumstances(Context):
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server
 
-        self.me: Member | User
-        self.message: Message | Messageable
+        self.me: Union[Member, User]
+        self.message: Union[Message, Messageable]
         self.command: Command
         self.invoked_with: str
         self.invoked_parents: list[str]
-        self.invoked_subcommand: Command | None
+        self.invoked_subcommand: Optional[Command]
 
-        self.author: Member | Messageable
+        self.author: Union[Member, Messageable]
         self.guild: Guild
         self.channel: TextChannel
 
@@ -123,7 +121,7 @@ class Circumstances(Context):
                 from .ext.logging import log_command_errors
                 log_command_errors(self, r)
 
-    def fmt_command(self, cmd: str):
+    def format_command(self, cmd: str):
         assert cmd in self.bot.manual.commands
         return f'{self.prefix}{cmd}'
 
