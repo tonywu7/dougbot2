@@ -27,8 +27,6 @@ from django.utils.functional import classproperty
 from django.utils.module_loading import import_string
 from django.utils.safestring import SafeString, mark_safe
 
-Extensions = dict[str, 'CommandAppConfig']
-
 
 class CommandAppConfig(AppConfig):
     @classproperty
@@ -46,6 +44,10 @@ class CommandAppConfig(AppConfig):
     @classproperty
     def icon_and_title(cls) -> SafeString:
         return mark_safe(f'{cls.icon} {cls.title}')
+
+    @classproperty
+    def hidden(self) -> bool:
+        return False
 
     label: str
 

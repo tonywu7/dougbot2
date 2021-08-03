@@ -25,7 +25,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import View
 
-from ts2.discord.apps import get_app
+from ts2.discord.apps import get_extensions
 from ts2.discord.ext.logging import iter_logging_conf
 from ts2.discord.middleware import get_ctx, require_server_access
 from ts2.discord.models import Server
@@ -61,8 +61,8 @@ def core(req: HttpRequest, **kwargs) -> HttpResponse:
         access_control = False
 
     enabled = ctx.server.extensions
-    exts = [(app.label, app.icon_and_title, app.label in enabled) for app
-            in get_app().ext_map.values()]
+    exts = [(app.label, app.icon_and_title, app.label in enabled)
+            for app in get_extensions()]
 
     return render(
         req, 'ts2/manage/core.html',

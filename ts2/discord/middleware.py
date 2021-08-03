@@ -26,7 +26,6 @@ from urllib.parse import urlencode
 from asgiref.sync import sync_to_async
 from discord import Guild, Member
 from discord.errors import HTTPException
-from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
@@ -35,8 +34,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
 
-from .apps import server_allowed
-from .config import CommandAppConfig, Extensions
+from .apps import get_extensions, server_allowed
+from .config import CommandAppConfig
 from .fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
                     PartialGuild, PartialUser)
 from .models import Server
@@ -250,7 +249,7 @@ class DiscordContext:
 
     @property
     def extensions(self) -> dict[str, tuple[bool, CommandAppConfig]]:
-        extensions: Extensions = apps.get_app_config('discord').extensions
+        extensions = {conf.label: conf for conf in get_extensions()}
         if not self.server:
             return {label: (False, conf) for label, conf in extensions.items()}
         enabled = self.server.extensions

@@ -96,3 +96,7 @@ def get_commands(req: HttpRequest) -> list[str]:
         in bot.walk_commands()
         if not bot.is_hidden(c) or superuser
     )]
+
+
+def get_extensions() -> list[CommandAppConfig]:
+    return [app for app in get_app().ext_map.values() if not app.hidden]

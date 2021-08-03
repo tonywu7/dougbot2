@@ -18,6 +18,9 @@ import logging
 
 from discord.ext.commands import Bot, Cog, CogMeta, Context
 from discord.ext.commands.errors import DisabledCommand
+from django.apps import apps
+
+from .config import CommandAppConfig
 
 
 class GearMeta(CogMeta):
@@ -43,10 +46,15 @@ async def cog_enabled_check(ctx: Context) -> bool:
         server: Server = ctx.server
     except AttributeError:
         return True
-    extension = ctx.cog
-    if not (extension is None or extension.app_label in server.extensions):
-        raise ModuleDisabled(extension)
-    return True
+    extension: Gear = ctx.cog
+    if not isinstance(extension, Gear):
+        return True
+    if extension.app_label in server.extensions:
+        return True
+    conf: CommandAppConfig = apps.get_app_config(extension.app_label)
+    if conf.hidden:
+        return True
+    raise ModuleDisabled(extension)
 
 
 class ModuleDisabled(DisabledCommand):
