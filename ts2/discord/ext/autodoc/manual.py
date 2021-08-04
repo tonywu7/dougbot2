@@ -61,11 +61,8 @@ class Manual:
         man = Manual()
         sections: dict[tuple[int, str], list[str]] = defaultdict(list)
         descriptions = {}
-        all_commands: dict[str, Command] = {
-            cmd.qualified_name: cmd for cmd
-            in bot.walk_commands()
-            if not cmd.hidden
-        }
+        all_commands: dict[str, Command] = {cmd.qualified_name: cmd for cmd
+                                            in bot.walk_commands()}
 
         for call, cmd in all_commands.items():
             man.commands[call] = Documentation.from_command(cmd)
@@ -149,19 +146,19 @@ class Manual:
         self.toc_rich = EmbedPagination(embeds, self.title, True)
 
     def lookup(self, query: str) -> Documentation:
-        try:
-            return self.commands[query]
-        except KeyError:
-            pass
-        try:
-            aliased = self.aliases[query]
-            return self.commands[aliased]
-        except KeyError:
+        doc = self.commands.get(query)
+        if not doc:
+            aliased = self.aliases.get(query)
+            doc = self.commands.get(aliased)
+        if (not doc or doc.hidden or not doc.standalone):
             matched = fuzzy.extractOne(query, self.commands.keys(),
                                        score_cutoff=65)
             if matched:
                 matched = matched[0]
+            if matched == query:
+                matched = None
             raise NoSuchCommand(query, matched)
+        return doc
 
     def hidden_commands(self) -> dict[str, Documentation]:
         return {k: v for k, v in self.commands.items() if v.hidden}
