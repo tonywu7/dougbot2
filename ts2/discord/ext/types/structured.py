@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import simplejson
 import toml
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
@@ -55,3 +56,15 @@ class TOML(CodeBlockParser):
             return toml.loads(text)
         except toml.TomlDecodeError:
             raise BadArgument('Not a valid TOML markup.')
+
+
+class JSON(CodeBlockParser):
+    lang = 'json'
+    result: dict
+
+    @classmethod
+    def parse(cls, text: str):
+        try:
+            return simplejson.loads(text)
+        except toml.TomlDecodeError:
+            raise BadArgument('Not a valid JSON.')
