@@ -27,7 +27,6 @@ from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
 from pendulum import duration
 
-from ...utils.common import is_direct_message
 from ...utils.duckcord.color import Color2
 from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
@@ -61,9 +60,8 @@ def indicate_extra_text(s: StringView, color='white') -> str:
 
 
 def full_invoked_with(self: Context):
-    if self.invoked_parents:
-        return f'{" ".join(self.invoked_parents)} {self.invoked_with}'
-    return self.invoked_with
+    return ' '.join({**{k: True for k in self.invoked_parents},
+                     self.invoked_with: True}.keys())
 
 
 def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
@@ -343,21 +341,9 @@ async def on_missing_perms(ctx, exc):
     return explanation, 20
 
 
-@explains(errors.CommandNotFound, 'Command not found', 100)
+@explains(errors.CommandNotFound, 'Command not found', -10)
 async def on_cmd_not_found(ctx: Context, exc: errors.CommandNotFound):
-    from .manual import get_manual
-    if not get_manual:
-        return False
-    if is_direct_message(ctx):
-        return False
-    cmd = ctx.invoked_with
-    if ctx.invoked_parents:
-        cmd = f'{" ".join(ctx.invoked_parents)} {cmd}'
-    try:
-        get_manual(ctx).lookup(cmd)
-        return False
-    except exceptions.NoSuchCommand as e:
-        return str(e), 20
+    return False
 
 
 @explains(Exception, 'Error', -100)
