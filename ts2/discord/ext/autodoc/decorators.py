@@ -103,7 +103,7 @@ def argument(arg: str, help: str = '', *, node: str = '',
     return deco
 
 
-def invocation(signature: tuple[str, ...], desc: Union[str, Literal[False]]):
+def invocation(signature: tuple[str, ...], desc: Union[str, None, Literal[False]]):
     """Describe a specific invocation style of this command.
 
     For commands that accept optional arguments and varargs and vary their
@@ -113,15 +113,16 @@ def invocation(signature: tuple[str, ...], desc: Union[str, Literal[False]]):
     :param signature: The set of arguments; a single argument must be\
         wrapped in a tuple.
     :type signature: tuple[str, ...]
-    :param desc: What the command will do when this set of arguments are passed.
-    :type desc: Union[str, Literal[False]]
+    :param desc: What the command will do when this set of arguments are\
+        passed.
+    :type desc: Union[str, bool]
     :raises KeyError: If the passed signature is not a possible invocation
     """
     signature: frozenset[str] = frozenset(signature)
 
     def wrapper(doc: Documentation, f: Command):
         doc.ensure_signatures()
-        if desc:
+        if desc or desc is None:
             doc.invocations[signature].description = desc
             doc.invocations.move_to_end(signature, last=True)
             doc.invalid_syntaxes.discard(signature)

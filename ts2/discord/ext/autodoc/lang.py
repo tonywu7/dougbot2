@@ -19,15 +19,15 @@ from __future__ import annotations
 import re
 from typing import Optional, TypedDict
 
-import inflect
 import unidecode
 from discord import User
 from discord.ext.commands import Context
 from django.db.models import Model
 
 from ...utils.markdown import tag
+from ._compat import engine_
 
-inflection = inflect.engine()
+inflection = engine_()
 
 
 def autoverbose(name: str) -> dict[str, str]:
