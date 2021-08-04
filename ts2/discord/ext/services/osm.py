@@ -33,6 +33,21 @@ from ...ext.autodoc import accepts
 from ...utils.markdown import code, verbatim
 
 
+def parse_point_no_warn(s: str):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        return Point.from_string(s)
+
+
+def parse_point_strict_exc(s: str):
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error', category=UserWarning)
+            return Point.from_string(s)
+    except UserWarning as e:
+        raise ValueError from e
+
+
 @accepts('latitude', predicative=f'such as {code(-41.5)}, {code("41.5N")}, or {code("N 39°")}')
 class Latitude(Converter, float):
     def __init__(self) -> None:
@@ -40,9 +55,7 @@ class Latitude(Converter, float):
 
     async def convert(self, ctx: Circumstances, argument: str) -> float:
         try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(category=UserWarning)
-                point = Point.from_string(f'{argument} 0')
+            point = parse_point_no_warn(f'{argument} 0')
             return point.latitude
         except ValueError:
             raise BadArgument(f'Failed to parse {verbatim(argument)} as a latitude')
@@ -55,9 +68,7 @@ class Longitude(Converter, float):
 
     async def convert(self, ctx: Circumstances, argument: str) -> float:
         try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings(category=UserWarning)
-                point = Point.from_string(f'0 {argument}')
+            point = parse_point_no_warn(f'0 {argument}')
             return point.longitude
         except ValueError:
             raise BadArgument(f'Failed to parse {verbatim(argument)} as a longitude')

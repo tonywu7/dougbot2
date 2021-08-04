@@ -21,7 +21,7 @@ import pytz
 from discord import Member
 from discord.ext.commands import command, group
 from discord.utils import escape_markdown
-from geopy import Location, Point
+from geopy import Location
 from geopy.exc import GeocoderTimedOut
 
 from ...cog import Gear
@@ -37,7 +37,7 @@ from ...utils.pagination import EmbedPagination
 from ..services import ServiceUnavailable
 from ..services.datetime import Timezone, get_tzfinder
 from ..services.osm import (Latitude, Longitude, format_coarse_location,
-                            get_location)
+                            get_location, parse_point_strict_exc)
 from .models import User
 
 
@@ -216,10 +216,10 @@ class Personalize(
         if tz is not None:
             return await commit_tz(tz, notify=False)
 
-        query: Optional[str] = values['location']
         lat: Optional[float] = values['latitude']
         long: Optional[float] = values['longitude']
-        raw_input = ctx.raw_input
+        query: Optional[str] = values['location']
+        raw_input = Maybe.reconstruct(latitude, longitude, location)
 
         tzfinder = get_tzfinder()
         if query is None:
@@ -230,7 +230,7 @@ class Personalize(
 
         bad_coord = None
         try:
-            point = Point.from_string(raw_input)
+            point = parse_point_strict_exc(raw_input)
         except ValueError:
             if lat is not None and long is not None:
                 pass
@@ -253,7 +253,7 @@ class Personalize(
         async with ctx.typing():
             try:
                 place: list[Location] = await ctx.call(
-                    get_location, query=raw_input,
+                    get_location, query=query,
                     addressdetails=True,
                 )
             except GeocoderTimedOut:

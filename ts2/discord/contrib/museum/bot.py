@@ -77,7 +77,7 @@ class Museum(
         if message is None and reply is None:
             raise NotAcceptable(
                 'You need to specify the message where the story'
-                f' will {begin_or_end} by either passing its URL or message ID,'
+                f' will {begin_or_end} by either passing its URL or message ID'
                 ' or replying to it.\nIf you did specify it, the bot may not'
                 ' have access to that message.',
             )

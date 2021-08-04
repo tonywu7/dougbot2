@@ -42,10 +42,12 @@ class DoesConversion(Protocol[T]):
 class Maybe(Converter, Generic[T, U]):
     name = '<param>'
 
-    def __init__(self, result: T = Parameter.empty,
+    def __init__(self, position: int = 0,
+                 result: T = Parameter.empty,
                  default: U = Parameter.empty,
                  argument: Optional[str] = None,
                  error: Optional[Exception] = None):
+        self.position = position
         self.result = result
         self.default = default
         self.argument = argument
@@ -108,12 +110,13 @@ class Maybe(Converter, Generic[T, U]):
 
         @classmethod
         async def convert(_, ctx: Context, arg: str):
+            pos = ctx.view.previous
             try:
                 result = await ctx.command._actual_conversion(ctx, converter, arg, cls)
-                return cls(result, argument=arg)
+                return cls(pos, result, argument=arg)
             except CommandError as e:
                 ctx.view.undo()
-                return cls(default=default, argument=arg, error=e)
+                return cls(pos, default=default, argument=arg, error=e)
 
         __dict__ = {'convert': convert, 'default': default, '_converter': converter}
         return Union[type(cls.__name__, (Maybe,), __dict__), None]
@@ -140,3 +143,23 @@ class Maybe(Converter, Generic[T, U]):
     @classmethod
     def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, Exception]]:
         return cls.asdict(**items), cls.errordict(**items)
+
+    @classmethod
+    def reconstruct(cls, *items: Optional[Maybe]) -> str:
+        args: list[str] = []
+        last_index = 0
+        for item in items:
+            if item is None or not isinstance(item, cls):
+                continue
+            arg = item.argument
+            if arg is None:
+                continue
+            arg = str(arg)
+            if last_index != item.position:
+                args.append(arg)
+                last_index = item.position
+            else:
+                if args:
+                    args.pop()
+                args.append(arg)
+        return ' '.join(args)
