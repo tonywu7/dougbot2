@@ -76,7 +76,7 @@ def _datetime_convert(d: str | datetime | _EMPTY | None) -> datetime:
 class EmbedField(_Serializable):
     name: str = attr.ib(converter=str)
     value: str = attr.ib(converter=str)
-    inline: bool = attr.ib(converter=_optional_convert(bool), default=False)
+    inline: bool = attr.ib(converter=_optional_convert(bool), default=True)
 
     def __len__(self):
         return len(self.name) + len(self.value)
@@ -159,7 +159,8 @@ class Embed2:
     be derived from the template, updating info (such as timestamp) as needed,
     without the need to manually call :meth:`discord.Embed.copy`.
     """
-    timestamp: datetime = attr.ib(factory=utcnow, converter=_datetime_convert, validator=attr.validators.instance_of((datetime, type(_EMPTY))))
+    timestamp: datetime = attr.ib(factory=lambda: _EMPTY, converter=_datetime_convert,
+                                  validator=attr.validators.instance_of((datetime, type(_EMPTY))))
     color: Colour = attr.ib(converter=_optional_convert(lambda c: c if isinstance(c, Colour) else Colour(int(c))),
                             factory=Colour.default)
 
