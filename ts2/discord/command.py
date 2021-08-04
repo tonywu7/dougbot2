@@ -64,7 +64,6 @@ class DelegateMixin:
         return delattr(self.this, name)
 
 
-
 class CommonCommandDelegate(DelegateMixin):
     async def _parse_arguments(self, ctx: Context):
         try:

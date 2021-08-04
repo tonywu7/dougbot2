@@ -37,7 +37,6 @@ from ts2.discord.ext.common import Choice, doc
 from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import ParagraphStream, chapterize
-from ts2.utils.db import async_atomic
 
 from .models import StoryTask
 
@@ -109,32 +108,30 @@ class Museum(
         channel_id = ctx.channel.id
         channel = tag(ctx.channel)
 
-        async with async_atomic():
+        task, created = await self.story_fetch_task(ctx.author.id, begin_or_end, msg_id, channel_id)
+        task: StoryTask
 
-            task, created = await self.story_fetch_task(ctx.author.id, begin_or_end, msg_id, channel_id)
-            task: StoryTask
+        reply_ctx = {'author': tag(ctx.author), 'side': as_noun(begin_or_end),
+                     'msg_url': msg_url, 'channel': channel}
 
-            reply_ctx = {'author': tag(ctx.author), 'side': as_noun(begin_or_end),
-                         'msg_url': msg_url, 'channel': channel}
+        if created:
+            reply = SETUP_MSG % reply_ctx
+            embed = Embed2(title='New story', description=reply)
+            return await ctx.response(ctx, embed=embed).deleter().run()
 
-            if created:
-                reply = SETUP_MSG % reply_ctx
-                embed = Embed2(title='New story', description=reply)
-                return await ctx.response(ctx, embed=embed).deleter().run()
+        set_channel = tag_literal('channel', task.channel)
 
-            set_channel = tag_literal('channel', task.channel)
+        if task.marked_as == begin_or_end:
+            reply = REPLACE_MSG % {**reply_ctx, 'set_channel': set_channel}
+            await self.story_set_task(task, msg_id, channel_id)
+            embed = Embed2(title='New story', description=reply)
+            return await ctx.response(ctx, embed=embed).deleter().run()
 
-            if task.marked_as == begin_or_end:
-                reply = REPLACE_MSG % {**reply_ctx, 'set_channel': set_channel}
-                await self.story_set_task(task, msg_id, channel_id)
-                embed = Embed2(title='New story', description=reply)
-                return await ctx.response(ctx, embed=embed).deleter().run()
-
-            if task.channel != channel_id:
-                reply = ('The beginning and ending messages are not in the same channel:\n'
-                         f'The {as_noun(begin_or_end)} is set in {channel}.\n'
-                         f'The {as_noun(task.marked_as)} is set in {set_channel}.')
-                raise NotAcceptable(reply)
+        if task.channel != channel_id:
+            reply = ('The beginning and ending messages are not in the same channel:\n'
+                     f'The {as_noun(begin_or_end)} is set in {channel}.\n'
+                     f'The {as_noun(task.marked_as)} is set in {set_channel}.')
+            raise NotAcceptable(reply)
 
         target_channel = ctx.guild.get_channel(task.channel)
         if target_channel is None:

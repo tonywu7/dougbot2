@@ -17,6 +17,7 @@
 import asyncio
 import logging
 from collections.abc import Generator
+from contextlib import suppress
 from typing import TypeVar
 
 import aiohttp
@@ -44,6 +45,7 @@ from .ext.autodoc import Manual, explain_exception, explains
 from .ext.logging import log_command_errors, log_exception
 from .models import Blacklisted, Server
 from .utils.common import is_direct_message
+from .utils.db import async_atomic
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
@@ -191,12 +193,16 @@ class Robot(Bot):
         return ctx
 
     async def invoke(self, ctx: Circumstances):
-        await super().invoke(ctx)
-        await self.on_command_returned(ctx)
+        with suppress(RollbackCommand):
+            async with async_atomic():
+                await super().invoke(ctx)
+                await self.on_command_returned(ctx)
+                if ctx.command_failed:
+                    raise RollbackCommand()
 
     async def on_command_returned(self, ctx: Circumstances):
         if ctx.subcommand_not_completed:
-            self.dispatch('command_error', ctx, CommandNotFound())
+            ctx.command.dispatch_error(ctx, CommandNotFound())
 
     async def before_identify_hook(self, shard_id, *, initial=False):
         await self._init_client_session()
@@ -447,3 +453,7 @@ async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
         return False
     except Exception as e:
         return str(e), 20
+
+
+class RollbackCommand(Exception):
+    pass
