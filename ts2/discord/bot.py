@@ -24,7 +24,8 @@ from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Intents, Message, Object,
                      Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import Bot, CommandNotFound, has_guild_permissions
+from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
+                                  has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.db import IntegrityError
@@ -211,13 +212,15 @@ class Robot(Bot):
         except Exception as exc:
             if message.author.bot:
                 raise
+            exc = CommandInvokeError(exc)
             ctx = await self.get_context(message)
-            return await log_command_errors(ctx, exc)
+            return await self.on_command_error(ctx, exc)
 
     async def on_command_error(self, ctx: Circumstances, exc: Exception):
         try:
             await explain_exception(ctx, exc)
         except Exception as exc:
+            exc = CommandInvokeError(exc)
             return await log_command_errors(ctx, exc)
         await log_command_errors(ctx, exc)
 
