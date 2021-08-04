@@ -145,12 +145,12 @@ class Manual:
                   for e in embeds]
         self.toc_rich = EmbedPagination(embeds, self.title, True)
 
-    def lookup(self, query: str) -> Documentation:
+    def lookup(self, query: str, hidden=False) -> Documentation:
         doc = self.commands.get(query)
         if not doc:
             aliased = self.aliases.get(query)
             doc = self.commands.get(aliased)
-        if (not doc or doc.invisible):
+        if (not doc or not hidden and doc.invisible):
             matched = fuzzy.extractOne(query, self.commands.keys(),
                                        score_cutoff=65)
             if matched:
@@ -180,8 +180,9 @@ class Manual:
         if not query:
             return await self.send_toc(ctx)
         query = query.lower().removeprefix(ctx.prefix)
+        show_hidden = await ctx.bot.is_owner(ctx.author)
         try:
-            doc = self.lookup(query)
+            doc = self.lookup(query, show_hidden)
         except NoSuchCommand as exc:
             return await ctx.send(str(exc), delete_after=60)
         first = doc.rich_help.get_embed(0)
