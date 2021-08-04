@@ -61,6 +61,7 @@ class Trac(
 
     @bug.command('create')
     @doc.description('Create a new bug report.')
+    @doc.hidden
     async def create_bug(
         self, ctx: Circumstances,
         topic: Choice[BugReportType.names, Literal['bug report type']],
@@ -82,6 +83,7 @@ class Trac(
 
     @bug.command('get')
     @doc.description('Get a bug report by its ID.')
+    @doc.hidden
     async def get_bug(self, ctx: Circumstances, idx: int):
         @sync_to_async
         def get():

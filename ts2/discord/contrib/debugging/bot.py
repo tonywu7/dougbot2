@@ -51,7 +51,7 @@ class Debugging(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @command('log')
+    @command('stderr')
     @doc.description("Send a message into the bot's log file.")
     @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
     @doc.argument('text', 'The message to log.')

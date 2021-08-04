@@ -19,8 +19,8 @@ from itertools import chain
 from typing import Optional, Union
 
 import attr
-from discord import (CategoryChannel, Guild, Member, Role, StageChannel,
-                     TextChannel, VoiceChannel)
+from discord import (CategoryChannel, Guild, HTTPException, Member, Role,
+                     StageChannel, TextChannel, VoiceChannel)
 from discord.abc import GuildChannel
 from discord.ext.commands import Greedy, command, has_guild_permissions
 from more_itertools import collapse, first, map_reduce
@@ -308,3 +308,46 @@ class Utilities(
         for fieldset in chapterize_fields(fields, linebreak='newline'):
             pages.append(attr.evolve(base_embed, fields=fieldset))
         return pages
+
+    @command('stdout')
+    @doc.description('Send a message to another channel.')
+    @doc.argument('content', 'The text message to send.',
+                  node='content', signature='content')
+    @doc.argument('embed', 'The embed to send.',
+                  node='embed', signature='embed',
+                  term='TOML/JSON string')
+    @doc.argument('channel', ('The channel to send the message to.'
+                              ' If left blank, send to current channel.'))
+    @doc.use_syntax_whitelist
+    @doc.invocation(('content', 'channel'), None)
+    @doc.invocation(('embed', 'channel'), None)
+    @doc.invocation(('content', 'embed', 'channel'), None)
+    @doc.restriction(
+        has_guild_permissions,
+        manage_messages=True,
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+    )
+    async def stdout(
+        self, ctx: Circumstances,
+        content: Optional[str] = None,
+        embed: Optional[dict] = None,
+        channel: Optional[TextChannel] = None,
+    ):
+        if not content and not embed:
+            return
+        if embed:
+            try:
+                embed_obj = Embed2.from_dict(embed)
+            except Exception as e:
+                raise doc.NotAcceptable(f'Invalid embed: {e}')
+        else:
+            embed_obj = None
+        if not channel:
+            channel = ctx.channel
+        try:
+            await channel.send(content, embed=embed_obj)
+        except HTTPException as e:
+            raise doc.NotAcceptable(f'Failed to send message: {e}')
