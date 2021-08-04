@@ -14,7 +14,8 @@ from .events import (DeleteResponder, EmoteResponder, Responder,  # noqa: F401
                      run_responders, start_responders)
 from .markdown import (E, a, arrow, blockquote, code, em, pre,  # noqa: F401
                        redact, strike, strong, tag, tag_literal, timestamp,
-                       traffic_light, u, unmarked, untagged, verbatim)
+                       traffic_light, u, unmarked, untagged, unwrap_codeblock,
+                       verbatim)
 from .pagination import (EmbedPagination, ParagraphStream,  # noqa: F401
                          TextPagination, chapterize, chapterize_fields,
                          chapterize_items, limit_results, page_embed2,

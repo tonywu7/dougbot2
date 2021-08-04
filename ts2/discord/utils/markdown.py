@@ -182,3 +182,13 @@ def untagged(text: str) -> str:
 
 def unmarked(text: str) -> str:
     return _md.convert(text)
+
+
+def unwrap_codeblock(text: str, lang: str) -> str:
+    text = text.strip()
+    sig = f'```{lang}'
+    if not text.startswith(f'{sig}\n'):
+        raise ValueError(f'Code block does not begin with {sig}')
+    if not text.endswith('\n```'):
+        raise ValueError('Code block does not end with ```')
+    return text.removeprefix(f'{sig}\n').removesuffix('```')

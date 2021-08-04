@@ -41,7 +41,9 @@ class Constant(Converter):
         )
 
         @classmethod
-        async def convert(cls, ctx, arg: str):
+        async def convert(cls, ctx, arg: str | bool):
+            if arg is True:
+                return const
             if arg != const:
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg

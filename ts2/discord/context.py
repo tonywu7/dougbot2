@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from functools import wraps
-from inspect import ismethod
 from typing import Optional, Union
 
 from asgiref.sync import sync_to_async
@@ -28,6 +29,7 @@ from discord.ext.commands import Command, Context, Group
 from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
+from .command import CommandDelegate, GroupDelegate
 from .models import Server
 from .utils.common import Embed2, Responder, ResponseInit, is_direct_message
 
@@ -105,7 +107,12 @@ class Circumstances(Context):
     @invoked_subcommand.setter
     def invoked_subcommand(self, cmd: Optional[Command]):
         self.path_append(cmd)
-        self._invoked_subcommand = cmd
+        if isinstance(cmd, Group):
+            self._invoked_subcommand = GroupDelegate(cmd)
+        elif isinstance(cmd, Command):
+            self._invoked_subcommand = CommandDelegate(cmd)
+        else:
+            self._invoked_subcommand = cmd
 
     @property
     def subcommand_passed(self) -> str:
@@ -124,11 +131,9 @@ class Circumstances(Context):
     @property
     def raw_input(self) -> str:
         msg: str = self.view.buffer
-        return (
-            msg.removeprefix(self.prefix)
-            .strip()[len(self.full_invoked_with):]
-            .strip()
-        )
+        return (msg.removeprefix(self.prefix)
+                .strip()[len(self.full_invoked_with):]
+                .strip())
 
     @property
     def materialized_path(self) -> str:
@@ -141,7 +146,7 @@ class Circumstances(Context):
     @property
     def subcommand_not_completed(self):
         cmd = self.command
-        if isinstance(cmd, DelegateMixin):
+        if isinstance(cmd, (CommandDelegate, GroupDelegate)):
             cmd = cmd.unwrap()
         return isinstance(cmd, Group) and not cmd.invoke_without_command
 
@@ -227,67 +232,6 @@ class Circumstances(Context):
 
     def trigger_cooldowns(self, cmd: Command):
         cmd._prepare_cooldowns(self)
-
-
-class DelegateMixin:
-    def __new__(cls, this):
-        obj = object.__new__(cls)
-        obj.__dict__['this'] = this
-        return obj
-
-    def __init__(self, *args, **attrs):
-        return
-
-    def _getattr(self, name: str):
-        this = object.__getattribute__(self, 'this')
-        item = getattr(this, name)
-        if not ismethod(item):
-            return item
-        that = item.__self__
-        if that is not this:
-            return item
-        unbound = getattr(type(that), name)
-        return unbound.__get__(self)
-
-    def unwrap(self):
-        this = self.this
-        while True:
-            if isinstance(this, DelegateMixin):
-                this = this.unwrap()
-            else:
-                break
-        return this
-
-    def __getattribute__(self, name: str):
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            return self._getattr(name)
-
-    def __setattr__(self, name: str, value):
-        return setattr(self.this, name, value)
-
-    def __delattr__(self, name: str):
-        return delattr(self.this, name)
-
-
-class CommonCommandDelegate(DelegateMixin):
-    async def _parse_arguments(self, ctx: Circumstances):
-        return await self._getattr('_parse_arguments')(ctx)
-
-
-class CommandDelegate(CommonCommandDelegate, Command):
-    pass
-
-
-class GroupDelegate(CommonCommandDelegate, Group):
-    pass
-
-
-class CommandContextError(CommandInvokeError):
-    def __init__(self, exc: Exception):
-        self.original = exc
-        super().__init__('Command context raised an exception: {0.__class__.__name__}: {0}'.format(exc))
 
 
 class NotInServer(CommandInvokeError, AttributeError):
