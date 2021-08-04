@@ -22,14 +22,13 @@ import os
 from typing import Literal, Optional, Union
 
 import psutil
-from discord import (Color, Emoji, Invite, Member, Message, PartialEmoji,
-                     PartialMessage, Role, TextChannel)
+from discord import Member, Role, TextChannel
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
-from ts2.discord.ext.common import Constant, RegExp, doc
+from ts2.discord.ext.common import Constant, doc
 from ts2.discord.utils.markdown import E, a, code, strong
 
 
@@ -113,26 +112,6 @@ class Debugging(
     @doc.hidden
     async def _sudo(self, ctx: Circumstances, *, args: str = None):
         await ctx.send(f'{ctx.me} is in the sudoers file!')
-
-    @command('parse', ignore_extra=False)
-    @doc.description('Test converters.')
-    @doc.hidden
-    async def _parse(
-        self, ctx: Circumstances,
-        channel: TextChannel, role: Role, member: Member,
-        role_or_member: Union[Role, Member],
-        regexp_or_bool: Union[RegExp[Literal[r'A+']], bool],
-        message: Message, partial_message: PartialMessage,
-        color: Color, emote: Emoji, partial_emote: PartialEmoji,
-        invite: Invite, truth: bool,
-    ):
-        await ctx.send('All conversions succeeded.')
-
-    @command('sep')
-    @doc.description('Test tokenizer.')
-    @doc.hidden
-    async def _tokenizer(self, ctx: Circumstances, *args: str):
-        await ctx.send('\n'.join([f'{idx}. {s}' for idx, s in enumerate(args)]))
 
     @command('444')
     @doc.description('Globally forbid an entity from interacting with the bot.')
