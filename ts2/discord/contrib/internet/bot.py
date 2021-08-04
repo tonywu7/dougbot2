@@ -139,8 +139,8 @@ class Internet(
             footer_fmt = 'Timezone: %(tz)s (from server role)'
 
         if not timezone:
-            errors = Maybe.errordict(tz=tz, user=user, role=role)
-            if not errors:
+            values = Maybe.asdict(tz=tz, user=user, role=role)
+            if not values:
                 hint = (
                     'Set timezone preference with '
                     + ctx.format_command('my timezone')
@@ -154,7 +154,7 @@ class Internet(
                 )
                 return await ctx.reply(embed=embed, delete_after=20)
 
-            if 'user' not in errors:
+            if 'user' in values:
                 msg = lang.address(TIMEZONE_NOT_SET, user.value, ctx, has='has')
                 embed = (
                     Embed2(description=msg.capitalize())
@@ -163,7 +163,7 @@ class Internet(
                 )
                 return await ctx.reply(embed=embed, delete_after=20)
 
-            elif 'role' not in errors:
+            elif 'role' in values:
                 msg = f'{tag(role.value)} has no associated timezone.'
                 embed = (
                     Embed2(description=msg)
