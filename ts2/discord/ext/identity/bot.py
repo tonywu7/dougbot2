@@ -148,7 +148,6 @@ class Personalize(
     @group('my', aliases=('conf',))
     @accepts_dms
     @doc.description('Configure various preferences.')
-    @doc.hidden
     async def conf(self, ctx: Circumstances):
         pass
 

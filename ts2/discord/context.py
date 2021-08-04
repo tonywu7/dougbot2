@@ -18,12 +18,13 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from functools import wraps
+from inspect import ismethod
 from typing import Optional, Union
 
 from asgiref.sync import sync_to_async
 from discord import Forbidden, Guild, Member, Message, TextChannel, User
 from discord.abc import Messageable
-from discord.ext.commands import Command, Context
+from discord.ext.commands import Command, Context, Group
 from discord.ext.commands.errors import CommandInvokeError
 from django.db import transaction
 
@@ -48,16 +49,18 @@ class Circumstances(Context):
     reply: Callable[..., Coroutine[None, None, Message]]
 
     def __init__(self, **attrs):
-        super().__init__(**attrs)
         from .bot import Robot
         from .ext.logging import ContextualLogger
 
+        self.command_searched = {}
+        self.command_materialized = {}
+
+        super().__init__(**attrs)
         self.log = ContextualLogger('discord.logging', self)
         self._server: Server
 
         self.me: Union[Member, User]
         self.message: Union[Message, Messageable]
-        self.command: Command
         self.invoked_with: str
         self.invoked_parents: list[str]
         self.invoked_subcommand: Optional[Command]
@@ -71,6 +74,76 @@ class Circumstances(Context):
 
         self.session = self.bot.request
         self.response = ResponseInit
+
+    def path_append(self, cmd: Optional[Union[str, Command]]):
+        if isinstance(cmd, Command):
+            for alias in cmd.aliases:
+                self.command_searched.pop(alias, None)
+            self.command_searched[cmd.name] = cmd
+            self.command_materialized[cmd.name] = cmd
+        elif isinstance(cmd, str):
+            self.command_searched[cmd] = None
+
+    @property
+    def command(self) -> Optional[Command]:
+        return self._command
+
+    @command.setter
+    def command(self, cmd):
+        self.path_append(cmd)
+        if isinstance(cmd, Group):
+            self._command = GroupDelegate(cmd)
+        elif isinstance(cmd, Command):
+            self._command = CommandDelegate(cmd)
+        else:
+            self._command = cmd
+
+    @property
+    def invoked_subcommand(self) -> Optional[Command]:
+        return self._invoked_subcommand
+
+    @invoked_subcommand.setter
+    def invoked_subcommand(self, cmd: Optional[Command]):
+        self.path_append(cmd)
+        self._invoked_subcommand = cmd
+
+    @property
+    def subcommand_passed(self) -> str:
+        return self._subcommand_passed
+
+    @subcommand_passed.setter
+    def subcommand_passed(self, cmd: str):
+        self.path_append(cmd)
+        self._subcommand_passed = cmd
+
+    @property
+    def full_invoked_with(self) -> str:
+        return ' '.join({**{k: True for k in self.invoked_parents},
+                         self.invoked_with: True}.keys())
+
+    @property
+    def raw_input(self) -> str:
+        msg: str = self.view.buffer
+        return (
+            msg.removeprefix(self.prefix)
+            .strip()[len(self.full_invoked_with):]
+            .strip()
+        )
+
+    @property
+    def materialized_path(self) -> str:
+        return ' '.join(self.command_materialized)
+
+    @property
+    def searched_path(self) -> str:
+        return ' '.join(self.command_searched)
+
+    @property
+    def subcommand_not_completed(self):
+        cmd = self.command
+        if isinstance(cmd, DelegateMixin):
+            cmd = cmd.unwrap()
+        return isinstance(cmd, Group) and not cmd.invoke_without_command
 
     @property
     def is_direct_message(self):
@@ -125,21 +198,6 @@ class Circumstances(Context):
         assert cmd in self.bot.manual.commands
         return f'{self.prefix}{cmd}'
 
-    @property
-    def full_invoked_with(self) -> str:
-        if self.invoked_parents:
-            return f'{" ".join(self.invoked_parents)} {self.invoked_with}'
-        return self.invoked_with
-
-    @property
-    def raw_input(self) -> str:
-        msg: str = self.view.buffer
-        return (
-            msg.removeprefix(self.prefix)
-            .strip()[len(self.full_invoked_with):]
-            .strip()
-        )
-
     async def send_dm_safe(self, content: Optional[str] = None,
                            embed: Optional[Embed2] = None,
                            **kwargs) -> Optional[Message]:
@@ -169,6 +227,61 @@ class Circumstances(Context):
 
     def trigger_cooldowns(self, cmd: Command):
         cmd._prepare_cooldowns(self)
+
+
+class DelegateMixin:
+    def __new__(cls, this):
+        obj = object.__new__(cls)
+        obj.__dict__['this'] = this
+        return obj
+
+    def __init__(self, *args, **attrs):
+        return
+
+    def _getattr(self, name: str):
+        this = object.__getattribute__(self, 'this')
+        item = getattr(this, name)
+        if not ismethod(item):
+            return item
+        that = item.__self__
+        if that is not this:
+            return item
+        unbound = getattr(type(that), name)
+        return unbound.__get__(self)
+
+    def unwrap(self):
+        this = self.this
+        while True:
+            if isinstance(this, DelegateMixin):
+                this = this.unwrap()
+            else:
+                break
+        return this
+
+    def __getattribute__(self, name: str):
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            return self._getattr(name)
+
+    def __setattr__(self, name: str, value):
+        return setattr(self.this, name, value)
+
+    def __delattr__(self, name: str):
+        return delattr(self.this, name)
+
+
+class CommonCommandDelegate(DelegateMixin):
+    async def _parse_arguments(self, ctx: Circumstances):
+        return await self._getattr('_parse_arguments')(ctx)
+
+
+class CommandDelegate(CommonCommandDelegate, Command):
+    pass
+
+
+class GroupDelegate(CommonCommandDelegate, Group):
+    pass
 
 
 class CommandContextError(CommandInvokeError):

@@ -24,7 +24,7 @@ from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Intents, Message, Object,
                      Permissions, RawReactionActionEvent)
 from discord.abc import ChannelType, GuildChannel
-from discord.ext.commands import Bot, has_guild_permissions
+from discord.ext.commands import Bot, CommandNotFound, has_guild_permissions
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.db import IntegrityError
@@ -35,7 +35,7 @@ from ts2.utils.datetime import utcnow, utctimestamp
 
 from . import cog, models
 from .apps import get_app, get_constant, server_allowed
-from .context import Circumstances, CommandContextError
+from .context import Circumstances
 from .ext import autodoc as doc
 from .ext import dm
 from .ext.acl import acl
@@ -169,14 +169,6 @@ class Robot(Bot):
         except Server.DoesNotExist:
             return ['\x00']
 
-    async def get_context(self, message, *, cls=Circumstances) -> Circumstances:
-        ctx: Circumstances = await super().get_context(message, cls=cls)
-        if ctx.command and ctx.command.hidden:
-            ctx.command = None
-        if ctx.command:
-            await ctx.init()
-        return ctx
-
     def dispatch(self, event_name, *args, **kwargs):
         task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
 
@@ -191,6 +183,22 @@ class Robot(Bot):
             return super(type(self), self).dispatch(event_name, *args, **kwargs)
 
         task.add_done_callback(callback)
+
+    async def get_context(self, message, *args, **kwargs) -> Circumstances:
+        ctx: Circumstances = await super().get_context(message, cls=Circumstances)
+        if ctx.command and ctx.command.hidden:
+            ctx.command = None
+        if ctx.command:
+            await ctx.init()
+        return ctx
+
+    async def invoke(self, ctx: Circumstances):
+        await super().invoke(ctx)
+        await self.on_command_returned(ctx)
+
+    async def on_command_returned(self, ctx: Circumstances):
+        if ctx.subcommand_not_completed:
+            self.dispatch('command_error', ctx, CommandNotFound())
 
     async def before_identify_hook(self, shard_id, *, initial=False):
         await self._init_client_session()
@@ -207,19 +215,13 @@ class Robot(Bot):
             if message.author.bot:
                 raise
             ctx = await self.get_context(message)
-            try:
-                raise CommandContextError(exc) from exc
-            except CommandContextError as exc:
-                return await log_command_errors(ctx, exc)
+            return await log_command_errors(ctx, exc)
 
     async def on_command_error(self, ctx: Circumstances, exc: Exception):
         try:
             await explain_exception(ctx, exc)
         except Exception as exc:
-            try:
-                raise CommandContextError(exc) from exc
-            except CommandContextError as exc:
-                return await log_command_errors(ctx, exc)
+            return await log_command_errors(ctx, exc)
         await log_command_errors(ctx, exc)
 
     @staticmethod
@@ -433,3 +435,15 @@ def create_manual(self: Robot):
     if color:
         color = int(color, 16)
     doc.init_bot(self, title, color)
+
+
+@explains(CommandNotFound, 'Command not found', 100)
+async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
+    if is_direct_message(ctx):
+        return False
+    cmd = ctx.searched_path or ctx.full_invoked_with
+    try:
+        ctx.bot.manual.lookup(cmd)
+        return False
+    except Exception as e:
+        return str(e), 20
