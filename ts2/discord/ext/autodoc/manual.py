@@ -129,7 +129,7 @@ class Manual:
                 lines.append(em(desc))
             for call in sorted(calls):
                 doc = self.commands[call]
-                if doc.hidden or not doc.standalone:
+                if doc.invisible:
                     continue
                 lines.append(f'{strong(call)}: {doc.description}')
             content = '\n'.join(lines)
@@ -150,7 +150,7 @@ class Manual:
         if not doc:
             aliased = self.aliases.get(query)
             doc = self.commands.get(aliased)
-        if (not doc or doc.hidden or not doc.standalone):
+        if (not doc or doc.invisible):
             matched = fuzzy.extractOne(query, self.commands.keys(),
                                        score_cutoff=65)
             if matched:

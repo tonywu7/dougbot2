@@ -149,9 +149,6 @@ class Robot(Bot):
         )
         self.log.info('Started an aiohttp.ClientSession')
 
-    def _register_commands(self):
-        register_base_commands(self)
-
     @classmethod
     async def _get_prefix(cls, *, bot_id: int, guild_id: int):
         @sync_to_async
@@ -233,8 +230,8 @@ class Robot(Bot):
     async def send_help(ctx: Circumstances, *, query: str = ''):
         return await ctx.bot.manual.do_help(ctx, query)
 
-    def is_hidden(self, cmd):
-        return self.manual.commands[cmd.qualified_name].hidden
+    def command_is_hidden(self, cmd):
+        return self.manual.commands[cmd.qualified_name].invisible
 
 
 class Gatekeeper:

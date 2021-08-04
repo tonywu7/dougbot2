@@ -331,6 +331,10 @@ class Documentation:
             f(doc, cmd)
         return doc
 
+    @property
+    def invisible(self):
+        return self.hidden or not self.standalone
+
     def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
         if options is None:
             options = deque(self.arguments.values())

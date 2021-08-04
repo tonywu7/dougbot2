@@ -114,16 +114,18 @@ class Responder:
             timeout = self.end - ts
             listeners = {self.client.wait_for(k, check=t, timeout=timeout)
                          for k, t in self.events.items()}
+            futures = {asyncio.ensure_future(coro) for coro in listeners}
             try:
-                done, pending = await asyncio.wait(listeners, return_when=asyncio.FIRST_COMPLETED)
+                done, pending = await asyncio.wait(futures, return_when=asyncio.FIRST_COMPLETED)
                 first = done.pop()
                 args = first.result()
             except asyncio.TimeoutError:
                 continue
             finally:
-                with suppress(Exception):
-                    for fut in listeners:
-                        fut.exception()
+                for future in futures:
+                    future.cancel()
+                    with suppress(Exception):
+                        future.exception()
 
             try:
                 stop = await self.handle(args)
