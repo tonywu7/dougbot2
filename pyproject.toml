@@ -3,7 +3,7 @@ known_third_party = "discord"
 
 [tool.poetry]
 name = "telescope2"
-version = "0.10.0rc2"
+version = "0.10.0rc3"
 description = ""
 authors = ["tonyzbf <tonyzbf@protonmail.com>"]
 
