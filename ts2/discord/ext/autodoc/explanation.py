@@ -337,7 +337,7 @@ async def on_max_concurrent(ctx, exc):
 @explains(errors.MissingPermissions, 'Missing permissions', 0)
 async def on_missing_perms(ctx, exc):
     perms = pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in exc.missing_perms])
-    explanation = f'You are missing the {perms}.'
+    explanation = f'You are missing the {perms} in this server.'
     return explanation, 20
 
 

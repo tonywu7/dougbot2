@@ -17,7 +17,6 @@
 import enum
 import re
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
-from textwrap import shorten
 from typing import Generic, Literal, TypeVar, Union
 
 import attr
@@ -105,8 +104,11 @@ class ParagraphStream:
             yield self.sep.join(buffer)
 
 
-def trunc_for_field(text: str) -> str:
-    return shorten(text, width=960, placeholder='... (truncated)')
+def trunc_for_field(text: str, size=960, placeholder=' ... (truncated)') -> str:
+    actual_size = size - len(placeholder)
+    if len(text) >= actual_size:
+        return f'{text[:actual_size]}{placeholder}'
+    return text
 
 
 def page_plaintext(sections: tuple[str, str], title=None, description=None, footer=None, divider='') -> str:

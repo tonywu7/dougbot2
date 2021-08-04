@@ -14,25 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import io
 from collections import defaultdict
 from itertools import chain
 from typing import Optional, Union
 
 import attr
-from discord import (CategoryChannel, Guild, HTTPException, Member, Role,
-                     StageChannel, TextChannel, VoiceChannel)
+import simplejson as json
+from discord import (AllowedMentions, CategoryChannel, Emoji, File, Guild,
+                     HTTPException, Member, Message, MessageReference, Object,
+                     PartialEmoji, Role, StageChannel, TextChannel,
+                     VoiceChannel)
 from discord.abc import GuildChannel
 from discord.ext.commands import Greedy, command, has_guild_permissions
-from more_itertools import collapse, first, map_reduce
+from more_itertools import always_iterable, collapse, first, map_reduce
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
-                                      Permissions2, chapterize,
+                                      Permissions2, a, chapterize,
                                       chapterize_fields, code, get_total_perms,
-                                      strong, tag, traffic_light)
+                                      strong, tag, traffic_light,
+                                      trunc_for_field)
+from ts2.utils.datetime import localnow
 
 PERMISSIONS = {
     'General server permissions': [
@@ -82,6 +88,31 @@ def category_name(c: Optional[CategoryChannel]) -> str:
     if c:
         return c.name
     return '(no category)'
+
+
+def get_allowed_mentions(info: dict) -> AllowedMentions:
+    options = {}
+    options['everyone'] = bool(info.get('everyone', False))
+    roles = info.get('roles', False)
+    if roles is True:
+        options['roles'] = True
+    elif roles:
+        options['roles'] = role_ids = []
+        for r in always_iterable(roles):
+            role_ids.append(Object(id=str(r)))
+    else:
+        options['roles'] = False
+    users = info.get('users', True)
+    if users is True:
+        options['users'] = True
+    elif users:
+        options['users'] = user_ids = []
+        for u in always_iterable(users):
+            user_ids.append(Object(id=str(u)))
+    else:
+        options['users'] = False
+    options['replied_user'] = bool(info.get('replied_user', True))
+    return AllowedMentions(**options)
 
 
 class ChannelFilter:
@@ -329,12 +360,14 @@ class Utilities(
         send_messages=True,
         attach_files=True,
         embed_links=True,
+        mention_everyone=True,
     )
     async def stdout(
         self, ctx: Circumstances,
         content: Optional[str] = None,
         embed: Optional[dict] = None,
         channel: Optional[TextChannel] = None,
+        *, mentions: Optional[dict] = None,
     ):
         if not content and not embed:
             return
@@ -347,7 +380,78 @@ class Utilities(
             embed_obj = None
         if not channel:
             channel = ctx.channel
+        if isinstance(mentions, dict):
+            allowed_mentions = get_allowed_mentions(mentions)
+        else:
+            allowed_mentions = None
         try:
-            await channel.send(content, embed=embed_obj)
+            msg = await channel.send(content, embed=embed_obj,
+                                     allowed_mentions=allowed_mentions)
         except HTTPException as e:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
+        url = a('Message created:', msg.jump_url)
+        reply = Embed2(description=f'{url} {code(msg.id)}')
+        await ctx.response(ctx, embed=reply).reply().run()
+
+    @command('ofstream')
+    @doc.description('Send the message content back as a text file.')
+    @doc.argument('text', 'Text message to send back.')
+    @doc.argument('message', 'Another message whose content will be included.')
+    @doc.accepts_reply('Include the replied-to message in the file.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message', 'text', 'reply'), None)
+    async def ofstream(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        *, text: str = None,
+        reply: Optional[MessageReference] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not text and not message:
+            return
+        with io.StringIO() as stream:
+            if text:
+                stream.write(f'{text}\n\n')
+            if message:
+                stream.write(f'BEGIN MESSAGE {message.id}\n')
+                if message.content:
+                    stream.write(f'{message.content}\n')
+                for embed in message.embeds:
+                    stream.write(json.dumps(embed.to_dict()))
+                    stream.write('\n')
+            stream.seek(0)
+            fname = f'message.{localnow().isoformat().replace(":", ".")}.txt'
+            file = File(stream, filename=fname)
+            await ctx.send(file=file)
+
+    @command('react')
+    @doc.description('Add reactions to a message.')
+    @doc.argument('message', 'The message to react to.')
+    @doc.argument('emotes', 'The emotes to use. The bot must be able to use them.')
+    @doc.accepts_reply('React to the replied-to message.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message', 'emotes'), None)
+    @doc.invocation(('reply', 'emotes'), None)
+    async def react(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        emotes: Greedy[Union[str, Emoji, PartialEmoji]],
+        *, reply: Optional[MessageReference] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not message:
+            return
+        failed: list[PartialEmoji] = []
+        for emote in emotes:
+            try:
+                await message.add_reaction(emote)
+            except Exception:
+                failed.append(emote)
+        if failed:
+            failed_list = '\n'.join(code(e) for e in failed)
+            failed_list = trunc_for_field(failed_list, 1920)
+            res = Embed2(description=(f'{strong("Failed to add the following emotes")}'
+                                      f'\n{failed_list}'))
+            return await ctx.response(ctx, embed=res).reply(True).run()
