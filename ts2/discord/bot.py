@@ -202,7 +202,7 @@ class Robot(Bot):
 
     async def on_command_returned(self, ctx: Circumstances):
         if ctx.subcommand_not_completed:
-            ctx.command.dispatch_error(ctx, CommandNotFound())
+            await ctx.command.dispatch_error(ctx, CommandNotFound())
 
     async def before_identify_hook(self, shard_id, *, initial=False):
         await self._init_client_session()
