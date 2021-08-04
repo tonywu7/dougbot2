@@ -1,0 +1,18 @@
+html.writer-html5
+    .rst-content
+    dl[class].py.function:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple) {
+    margin-bottom: 0px;
+}
+
+html.writer-html5
+    .rst-content
+    dl[class]:not(.option-list):not(.field-list):not(.footnote):not(.glossary):not(.simple)
+    > dt.sig.py {
+    font-size: 0.8rem;
+    letter-spacing: -0.2px;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
+}
+
+.rst-content dd .note .doctest:last-child div[class^='highlight'] {
+    margin-bottom: 0;
+}
