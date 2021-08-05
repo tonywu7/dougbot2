@@ -14,14 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import io
 from collections import defaultdict
 from itertools import chain
 from typing import Optional, Union
 
 import attr
-import simplejson as json
-from discord import (AllowedMentions, CategoryChannel, Emoji, File, Guild,
+from discord import (AllowedMentions, CategoryChannel, Emoji, Guild,
                      HTTPException, Member, Message, MessageReference, Object,
                      PartialEmoji, Role, StageChannel, TextChannel,
                      VoiceChannel)
@@ -38,7 +36,6 @@ from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
                                       chapterize_fields, code, get_total_perms,
                                       strong, tag, traffic_light,
                                       trunc_for_field)
-from ts2.utils.datetime import localnow
 
 PERMISSIONS = {
     'General server permissions': [
@@ -392,38 +389,6 @@ class Utilities(
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
         await ctx.response(ctx, embed=reply).reply().run()
-
-    @command('ofstream')
-    @doc.description('Send the message content back as a text file.')
-    @doc.argument('text', 'Text message to send back.')
-    @doc.argument('message', 'Another message whose content will be included.')
-    @doc.accepts_reply('Include the replied-to message in the file.')
-    @doc.use_syntax_whitelist
-    @doc.invocation(('message', 'text', 'reply'), None)
-    async def ofstream(
-        self, ctx: Circumstances,
-        message: Optional[Message],
-        *, text: str = None,
-        reply: Optional[MessageReference] = None,
-    ):
-        if not message and reply:
-            message = reply.resolved
-        if not text and not message:
-            return
-        with io.StringIO() as stream:
-            if text:
-                stream.write(f'{text}\n\n')
-            if message:
-                stream.write(f'BEGIN MESSAGE {message.id}\n')
-                if message.content:
-                    stream.write(f'{message.content}\n')
-                for embed in message.embeds:
-                    stream.write(json.dumps(embed.to_dict()))
-                    stream.write('\n')
-            stream.seek(0)
-            fname = f'message.{localnow().isoformat().replace(":", ".")}.txt'
-            file = File(stream, filename=fname)
-            await ctx.send(file=file)
 
     @command('react')
     @doc.description('Add reactions to a message.')

@@ -17,12 +17,14 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import os
 from typing import Literal, Optional, Union
 
 import psutil
-from discord import Member, Role, TextChannel
+import simplejson as json
+from discord import File, Member, Message, MessageReference, Role, TextChannel
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
@@ -30,6 +32,7 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.common import Constant, doc
 from ts2.discord.utils.markdown import E, a, code, strong
+from ts2.utils.datetime import localnow
 
 
 class LoggingLevel(Converter):
@@ -129,3 +132,36 @@ class Debugging(
             await ctx.bot.gatekeeper.discard(entity)
         else:
             await ctx.bot.gatekeeper.add(entity)
+
+    @command('ofstream')
+    @doc.description('Send the message content back as a text file.')
+    @doc.argument('text', 'Text message to send back.')
+    @doc.argument('message', 'Another message whose content will be included.')
+    @doc.accepts_reply('Include the replied-to message in the file.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message', 'text', 'reply'), None)
+    @doc.hidden
+    async def ofstream(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        *, text: str = None,
+        reply: Optional[MessageReference] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not text and not message:
+            return
+        with io.StringIO() as stream:
+            if text:
+                stream.write(f'{text}\n\n')
+            if message:
+                stream.write(f'BEGIN MESSAGE {message.id}\n')
+                if message.content:
+                    stream.write(f'{message.content}\n')
+                for embed in message.embeds:
+                    stream.write(json.dumps(embed.to_dict()))
+                    stream.write('\n')
+            stream.seek(0)
+            fname = f'message.{localnow().isoformat().replace(":", ".")}.txt'
+            file = File(stream, filename=fname)
+            await ctx.send(file=file)
