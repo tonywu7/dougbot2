@@ -23,20 +23,36 @@
 import asyncio
 from typing import Type, TypeVar
 
-from discord.ext.commands import Context
-from jinja2 import Environment, select_autoescape
+from jinja2 import Environment, StrictUndefined, select_autoescape
+from jinja2.runtime import Context
+from jinja2.utils import missing
 
-from .context import CommandContext
+from .contexts import TemplateContext, set_command_context
 from .filters import register_filters
 
 default_env = None
 
 
+class CommandContext(Context):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cmd_ctx = TemplateContext()
+
+    def resolve_or_missing(self, key: str):
+        res = super().resolve_or_missing(key)
+        if res is not missing:
+            return res
+        try:
+            return self._cmd_ctx[key]
+        except KeyError:
+            return missing
+
+
 class CommandEnvironment(Environment):
     async def render(self, ctx: Context, source: str, variables: dict):
-        cctx = CommandContext(ctx, variables)
+        set_command_context(ctx)
         tmpl = self.from_string(source)
-        return await tmpl.render_async(**cctx)
+        return await tmpl.render_async(**variables)
 
     async def render_timed(self, ctx: Context, source: str,
                            variables: dict, timeout: float = 10):
@@ -44,16 +60,32 @@ class CommandEnvironment(Environment):
         result = await asyncio.wait_for(renderer, timeout=timeout)
         return result
 
+    def getattr(self, obj, attribute: str):
+        # Forbid access to "private" members including magic methods.
+        # Otherwise any template will have access to builtins through
+        # function.__globals__
+        if attribute[0] == '_':
+            return self.undefined('Private member access forbidden.',
+                                  obj=obj, name=attribute)
+        return super().getattr(obj, attribute)
+
 
 T_E = TypeVar('T_E', bound=CommandEnvironment)
+T_C = TypeVar('T_C', bound=CommandContext)
 
 
-def make_environment(class_: Type[T_E] = CommandEnvironment, **options) -> T_E:
+def make_environment(
+    env_cls: Type[T_E] = CommandEnvironment,
+    ctx_cls: Type[T_C] = CommandContext,
+    **options,
+) -> T_E:
     options.setdefault('loader', None)
     options.setdefault('bytecode_cache', None)
     options.setdefault('autoescape', select_autoescape())
+    options.setdefault('undefined', StrictUndefined)
     options['enable_async'] = True
-    env = class_(**options)
+    env = env_cls(**options)
+    env.context_class = ctx_cls
     register_filters(env)
     return env
 

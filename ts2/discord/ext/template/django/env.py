@@ -47,7 +47,9 @@ class ModelLoader(BaseLoader):
         model: type[T] = apps.get_model(app_label, model_name)
         return model.objects.get(id=path.with_suffix('').name)
 
-    def get_source(self, environment: Environment, template: str) -> tuple[str, Optional[str], Optional[Callable[[], bool]]]:
+    def get_source(
+        self, environment: Environment, template: str,
+    ) -> tuple[str, Optional[str], Optional[Callable[[], bool]]]:
         try:
             tmpl = self.get_instance(template)
         except (ObjectDoesNotExist, LookupError) as e:
@@ -57,11 +59,14 @@ class ModelLoader(BaseLoader):
 
 class DjangoEnvironment(CommandEnvironment):
     @sync_to_async
-    def get_template_async(self, name: str | Template, parent=None, globals=None) -> Template:
+    def get_template_async(
+        self, name: str | Template,
+        parent=None, globals=None,
+    ) -> Template:
         return self.get_template(name, parent, globals)
 
 
-def get_environment():
+def make_environment():
     return DjangoEnvironment(
         loader=ModelLoader(),
         bytecode_cache=MemcachedBytecodeCache(caches['jinja2']),

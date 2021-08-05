@@ -20,26 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from collections.abc import Mapping
+from contextvars import ContextVar
 from datetime import datetime, timezone
-from types import FunctionType
 
 from discord.ext.commands import Context
 
+from .models import Member, Message
+from .namespace import AttributeMapping, NamespaceRecord
 
-class _Exposed:
-    def __init__(self):
-        self.attrs: set[str] = set()
-
-    def __call__(self, f: FunctionType):
-        self.attrs.add(f.__name__)
-        return f
-
-    def __iter__(self):
-        return iter(self.attrs)
-
-
-exposed = _Exposed()
+ctx: ContextVar[Context] = ContextVar('ctx')
 
 
 class BaseContext:
@@ -47,39 +36,49 @@ class BaseContext:
 
 
 class DateTimeContext(BaseContext):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    _ns_datetime = NamespaceRecord()
+
+    def __init__(self):
+        super().__init__()
         self._epoch = datetime.now(timezone.utc)
 
     @property
-    @exposed
+    @_ns_datetime
     def now(self) -> datetime:
         return datetime.now(timezone.utc)
 
     @property
-    @exposed
+    @_ns_datetime
     def epoch(self) -> datetime:
         return self._epoch
 
 
-class CommandContext(DateTimeContext, Mapping):
-    def __init__(self, ctx: Context, variables: dict[str], **kwargs):
-        super().__init__(**kwargs)
-        self.ctx = ctx
-        self.namespace = {k: True for k in exposed}
-        self.variables = variables
+class MessageContext(BaseContext):
+    _ns_message = NamespaceRecord()
 
-    def __getitem__(self, k: str):
-        try:
-            return self.variables[k]
-        except KeyError:
-            pass
-        if k not in self.namespace:
-            raise KeyError(k)
-        return getattr(self, k)
+    @property
+    @_ns_message
+    def author(self) -> Member:
+        return Member(self.ctx.author)
 
-    def __iter__(self):
-        return iter({**self.namespace, **self.variables}.keys())
+    @property
+    @_ns_message
+    def message(self) -> Message:
+        return Message(self.ctx.message)
 
-    def __len__(self) -> int:
-        return len({**self.namespace, **self.variables})
+
+class TemplateContext(
+    AttributeMapping,
+    DateTimeContext,
+    MessageContext,
+):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def ctx(self) -> Context:
+        return ctx.get()
+
+
+def set_command_context(context: Context):
+    ctx.set(context)

@@ -185,7 +185,7 @@ class Debugging(
             variables = variables.result
         else:
             variables = {}
-        with ctx.typing():
+        async with ctx.typing():
             try:
                 txt = await env.render_timed(ctx, template.result, variables)
                 return await ctx.send(txt)
