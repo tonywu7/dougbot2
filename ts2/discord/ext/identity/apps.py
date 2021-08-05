@@ -8,6 +8,7 @@ from ...config import CommandAppConfig
 class IdentityConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord.ext.identity'
+    default = True
 
     title = 'Customization'
     icon = mark_safe('<i class="bi bi-sliders"></i>')

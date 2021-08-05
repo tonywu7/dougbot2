@@ -8,6 +8,7 @@ from ts2.discord.config import CommandAppConfig
 class IntegrationConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord.contrib.integration'
+    default = True
 
     title = 'Integration'
     icon = mark_safe('<i class="bi bi-broadcast-pin"></i>')

@@ -29,6 +29,7 @@ from .config import AnnotatedPattern, CommandAppConfig
 class DiscordBotConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord'
+    default = True
 
     ext_map: dict[str, CommandAppConfig] = {}
     url_map: dict[str, list[AnnotatedPattern]] = {}

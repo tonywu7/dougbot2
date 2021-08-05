@@ -8,6 +8,7 @@ from ts2.discord.config import CommandAppConfig
 class MuseumConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord.contrib.museum'
+    default = True
 
     title = 'Archival'
     icon = mark_safe('<i class="bi bi-archive-fill"></i>')

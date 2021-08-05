@@ -8,6 +8,7 @@ from ts2.discord.config import CommandAppConfig
 class TracConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.web.contrib.trac'
+    default = True
 
     title = 'Trac'
     icon = mark_safe('<i class="bi bi-kanban"></i>')

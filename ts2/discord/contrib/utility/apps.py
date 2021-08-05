@@ -8,6 +8,7 @@ from ts2.discord.config import CommandAppConfig
 class BotUtilityConfig(CommandAppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord.contrib.utility'
+    default = True
 
     title = 'Utilities'
     icon = mark_safe('<i class="bi bi-tools"></i>')

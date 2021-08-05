@@ -50,6 +50,7 @@ class CommandAppConfig(AppConfig):
         return False
 
     label: str
+    default = False
 
     def public_views(cls) -> list[AnnotatedPattern]:
         routes: Iterable[URLPattern] = import_string(f'{cls.name}.urls.public_views')

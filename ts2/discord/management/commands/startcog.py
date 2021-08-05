@@ -53,4 +53,7 @@ class Command(StartAppCommand):
             options['directory'] = str(target.resolve())
             os.makedirs(target, exist_ok=False)
         super().handle(**options)
-        logging.getLogger(__name__).info('\nRemember to add the app to INSTALLED_APPS.')
+        logger = logging.getLogger(__name__)
+        logger.info(('\nRemember to add the app to INSTALLED_APPS:'
+                     f'\nName: {qual_name}'
+                     f'\nPath: {target.resolve()}'))
