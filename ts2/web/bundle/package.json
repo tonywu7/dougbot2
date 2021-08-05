@@ -66,9 +66,10 @@
     "scripts": {
         "schema:create": "python ../../../manage.py graphql_schema --schema ts2.web.schema.schema",
         "schema:parse": "graphql-codegen",
-        "watch-schema:create": "npm run schema:create -- --watch",
-        "watch-schema:parse": "npm run schema:parse -- --watch",
-        "schema": "concurrently \"npm:watch-schema*\"",
+        "schema:build": "npm run schema:create && npm run schema:parse",
+        "schema:watch:create": "npm run schema:create -- --watch",
+        "schema:watch:parse": "npm run schema:parse -- --watch",
+        "schema:watch": "concurrently \"npm:schema:watch:*\"",
         "build": "npx webpack --config webpack.config.js"
     }
 }

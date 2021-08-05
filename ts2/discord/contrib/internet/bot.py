@@ -61,20 +61,22 @@ class Internet(
             query = a_number[0]
         else:
             query = None
-        try:
-            oeis = OEIS(ctx.session)
-            if query:
-                sequence, num_results = await oeis.get(query)
-            else:
-                sequence, num_results = await oeis.random()
-        except ValueError as e:
-            reason = str(e)
-            if not integers and not a_number:
-                reason = f'{reason} (Searched for a random A-number {query})'
-            return await ctx.response(ctx, content=reason).timed(20).run()
-        except aiohttp.ClientError:
-            await ctx.reply('Network error while searching on OEIS')
-            raise
+
+        async with ctx.typing():
+            try:
+                oeis = OEIS(ctx.session)
+                if query:
+                    sequence, num_results = await oeis.get(query)
+                else:
+                    sequence, num_results = await oeis.random()
+            except ValueError as e:
+                reason = str(e)
+                if not integers and not a_number:
+                    reason = f'{reason} (Searched for a random A-number {query})'
+                return await ctx.response(ctx, content=reason).timed(20).run()
+            except aiohttp.ClientError:
+                await ctx.reply('Network error while searching on OEIS')
+                raise
 
         async def more_result(*args, **kwargs):
             await ctx.send(f'({num_results - 1} more {lang.pluralize(num_results - 1, "result")})')

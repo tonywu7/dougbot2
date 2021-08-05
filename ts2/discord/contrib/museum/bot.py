@@ -91,7 +91,7 @@ class Museum(
 
         if begin_or_end == 'start':
             begin_or_end = 'begin'
-        if begin_or_end == 'stop':
+        elif begin_or_end == 'stop':
             begin_or_end = 'end'
 
         SETUP_MSG = ('Story requested by %(author)s\n'
