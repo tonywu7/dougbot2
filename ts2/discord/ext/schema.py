@@ -1,6 +1,6 @@
 from .acl.schema import ACLMutation, ACLQuery
 from .logging.schema import LoggingMutation, LoggingQuery, get_logging_conf
-from .template.schema import TemplateQuery
+from .template.django.schema import TemplateQuery
 
 __all__ = [
     'LoggingQuery',

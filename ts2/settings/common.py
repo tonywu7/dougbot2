@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'ts2.discord.apps.DiscordBotConfig',
     'ts2.discord.ext.identity.apps.IdentityConfig',
     'ts2.discord.ext.acl.apps.CommandACLConfig',
-    'ts2.discord.ext.template.apps.TemplateAppConfig',
+    'ts2.discord.ext.template.django.apps.TemplateAppConfig',
     'ts2.discord.contrib.internet.apps.InternetConfig',
     'ts2.discord.contrib.utility.apps.BotUtilityConfig',
     'ts2.discord.contrib.museum.apps.MuseumConfig',

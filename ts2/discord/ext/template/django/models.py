@@ -19,7 +19,7 @@ from __future__ import annotations
 from django.db import models
 from django.db.models import CASCADE
 
-from ...models import Server
+from ....models import Server
 
 
 class BaseTemplate(models.Model):
