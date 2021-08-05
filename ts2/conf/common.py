@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     'ts2.discord',
     'ts2.discord.ext.identity',
     'ts2.discord.ext.acl',
-    'ts2.discord.ext.template.django',
     'ts2.discord.contrib.internet',
     'ts2.discord.contrib.utility',
     'ts2.discord.contrib.museum',
