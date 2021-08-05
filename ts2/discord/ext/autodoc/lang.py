@@ -19,7 +19,6 @@ from __future__ import annotations
 import re
 from typing import Optional, TypedDict
 
-import unidecode
 from discord import User
 from discord.ext.commands import Context
 
@@ -239,7 +238,7 @@ class QuantifiedNPS(QuantifiedNP):
 
 
 def slugify(name: str, sep='-', *, limit=0) -> str:
-    t = re.sub(r'[\W_]+', sep, str(unidecode.unidecode(name))).strip(sep).lower()
+    t = re.sub(r'[\W_]+', sep, str(name).strip(sep).lower())
     if limit > 0:
         t = sep.join(t.split(sep)[:limit])
     return t

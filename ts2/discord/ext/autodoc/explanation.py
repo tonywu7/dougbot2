@@ -25,7 +25,6 @@ from discord import AllowedMentions
 from discord.ext.commands import BucketType, Context, errors
 from discord.ext.commands.view import StringView
 from discord.utils import escape_markdown
-from pendulum import duration
 
 from ...utils.duckcord.color import Color2
 from ...utils.duckcord.embeds import Embed2
@@ -141,7 +140,9 @@ def prepend_argument_hint(sep='\n\n'):
             man = get_manual(ctx)
             doc = man.lookup(ctx.command.qualified_name)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
-            arg_info = f'> {full_invoked_with(ctx)} {arg_info}'
+            arg_info = f'> {ctx.prefix}{full_invoked_with(ctx)} {arg_info}'
+            if arg.help:
+                arg_info = f'{arg_info}\n{strong(arg.key)}: {arg.help}'
             msg = f'{arg_info}{sep}{msg}'
             return msg, autodelete
         return handler
@@ -196,9 +197,17 @@ def describe_concurrency(number: int, bucket: BucketType):
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
 async def on_cooldown(ctx, exc: errors.CommandOnCooldown):
     cooldown = exc.cooldown.per
+    try:
+        from pendulum import duration
+    except ModuleNotFoundError:
+        cooldown_words = f'{cooldown:.0f}s'
+        retry_words = f'{exc.retry_after:.0f}s'
+    else:
+        cooldown_words = duration(seconds=cooldown).in_words()
+        retry_words = duration(seconds=exc.retry_after).in_words()
     return (
-        f'This command has a cooldown of {duration(seconds=cooldown).in_words()}\n'
-        f'Try again in {duration(seconds=exc.retry_after).in_words()}'
+        f'This command has a cooldown of {cooldown_words}\n'
+        f'Try again in {retry_words}'
     ), 10
 
 

@@ -18,13 +18,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable
+from itertools import chain
 from typing import Optional
 
 import attr
 from discord import Forbidden
 from discord.ext.commands import Bot, Command, Context
-from fuzzywuzzy import process as fuzzy
-from more_itertools import flatten
 
 from ...utils.common import is_direct_message
 from ...utils.duckcord.color import Color2
@@ -97,7 +96,7 @@ class Manual:
                 continue
             seen.add(call_sign)
             restrictions = [f'(Parent) {r}' for r in doc.restrictions]
-            doc.restrictions.extend(flatten(stack))
+            doc.restrictions.extend(chain.from_iterable(stack))
             stack.append(restrictions)
             self.propagate_restrictions(doc.subcommands, stack, seen)
             stack.pop()
@@ -151,12 +150,25 @@ class Manual:
             aliased = self.aliases.get(query)
             doc = self.commands.get(aliased)
         if (not doc or not hidden and doc.invisible):
-            matched = fuzzy.extractOne(query, self.commands.keys(),
-                                       score_cutoff=65)
-            if matched:
-                matched = matched[0]
-            if matched == query:
+            try:
+                from fuzzywuzzy import process as fuzzy
+                from fuzzywuzzy.fuzz import UQRatio
+                matched = fuzzy.extractBests(query, self.commands.keys(),
+                                             scorer=UQRatio,
+                                             score_cutoff=65)
+            except ModuleNotFoundError:
                 matched = None
+            else:
+                if matched:
+                    for cmd, weight in matched:
+                        if cmd == query:
+                            continue
+                        if not hidden and self.commands[cmd].invisible:
+                            continue
+                        matched = cmd
+                        break
+                    else:
+                        matched = None
             raise NoSuchCommand(query, matched)
         return doc
 

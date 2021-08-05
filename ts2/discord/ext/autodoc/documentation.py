@@ -33,7 +33,7 @@ from more_itertools import partition, split_at
 
 from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.functional import get_memo
-from ...utils.markdown import a, blockquote, mta_arrow_bracket, pre, strong
+from ...utils.markdown import a, blockquote, pre, strong, u
 from ...utils.pagination import EmbedPagination, chapterize_items
 from .exceptions import BadDocumentation, MissingDescription
 from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
@@ -491,7 +491,7 @@ class Documentation:
             stack.append(str(arg))
         if arguments:
             key, arg = arguments.popleft()
-            stack.append(mta_arrow_bracket(strong(arg), color))
+            stack.append(u(strong(arg)))
         if arguments:
             stack.append('...')
         return ' '.join(stack), arg
