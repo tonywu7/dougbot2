@@ -22,10 +22,11 @@ from inspect import Parameter, signature
 from typing import Any, Generic, Optional, Protocol, TypeVar, Union, get_args
 
 from discord.ext.commands import Context, Converter
-from discord.ext.commands.errors import CommandError, MissingRequiredArgument
+from discord.ext.commands.errors import MissingRequiredArgument
 
 from ..autodoc.decorators import convert_with
 from . import unpack_varargs
+from ...utils.parsers.structural import get_live_converter
 
 T = TypeVar('T')
 U = TypeVar('U')
@@ -46,12 +47,12 @@ class Maybe(Converter, Generic[T, U]):
                  result: T = Parameter.empty,
                  default: U = Parameter.empty,
                  argument: Optional[str] = None,
-                 error: Optional[Exception] = None):
+                 errors: list[Exception] = None):
         self.position = position
         self.result = result
         self.default = default
         self.argument = argument
-        self.error = error
+        self.errors = errors or []
 
     def __bool__(self):
         return bool(self.value)
@@ -106,19 +107,19 @@ class Maybe(Converter, Generic[T, U]):
         return wrapped
 
     def __class_getitem__(cls, item: tuple[DoesConversion[T], Any]):
-        converter, default = unpack_varargs(item, ('converter', 'default'), default=None)
+        annotation, default = unpack_varargs(item, ('annotation', 'default'), default=None)
+        convertf = get_live_converter(annotation, default)
 
         @classmethod
         async def convert(_, ctx: Context, arg: str):
             pos = ctx.view.previous
-            try:
-                result = await ctx.command._actual_conversion(ctx, converter, arg, cls)
-                return cls(pos, result, argument=arg)
-            except CommandError as e:
+            errors = []
+            result = await convertf(ctx, arg, errors)
+            if errors:
                 ctx.view.undo()
-                return cls(pos, default=default, argument=arg, error=e)
+            return cls(pos, result, argument=arg, errors=errors)
 
-        __dict__ = {'convert': convert, 'default': default, '_converter': converter}
+        __dict__ = {'convert': convert, 'default': default, '_converter': annotation}
         return Union[type(cls.__name__, (Maybe,), __dict__), None]
 
     @classmethod
@@ -133,15 +134,15 @@ class Maybe(Converter, Generic[T, U]):
         return tuple(v.value if isinstance(v, cls) else v for v in items)
 
     @classmethod
-    def errordict(cls, **items: Maybe) -> dict[str, Exception]:
+    def errordict(cls, **items: Maybe) -> dict[str, list[Exception]]:
         errors = {}
         for k, v in items.items():
-            if isinstance(v, cls) and v.error is not None:
-                errors[k] = v.error
+            if isinstance(v, cls) and v.errors:
+                errors[k] = [*v.errors]
         return errors
 
     @classmethod
-    def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, Exception]]:
+    def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, list[Exception]]]:
         return cls.asdict(**items), cls.errordict(**items)
 
     @classmethod
@@ -163,3 +164,10 @@ class Maybe(Converter, Generic[T, U]):
                     args.pop()
                 args.append(arg)
         return ' '.join(args)
+
+    def __repr__(self):
+        return (f'<Maybe: arg={repr(self.argument)}'
+                f' result={self.result}'
+                f' error={bool(self.errors)}>')
+
+    __str__ = __repr__

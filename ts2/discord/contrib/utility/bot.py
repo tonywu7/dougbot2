@@ -433,6 +433,12 @@ class Utilities(
     @doc.use_syntax_whitelist
     @doc.invocation(('message', 'emotes'), None)
     @doc.invocation(('reply', 'emotes'), None)
+    @doc.restriction(
+        has_guild_permissions,
+        manage_messages=True,
+        read_messages=True,
+        send_messages=True,
+    )
     async def react(
         self, ctx: Circumstances,
         message: Optional[Message],

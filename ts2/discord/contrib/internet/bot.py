@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import aiohttp
 import pytz
@@ -54,7 +54,7 @@ class Internet(
     @doc.cooldown(1, 10, BucketType.guild)
     @doc.concurrent(1, BucketType.guild)
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
-                   a_number: Optional[RegExp[Literal[r'A\d+'], Literal['A-number'], Literal['such as A0000045']]] = None):
+                   a_number: Optional[RegExp[Literal[r'[Aa]\d+'], Literal['A-number'], Literal['such as A0000045']]] = None):
         if integers:
             query = ' '.join([str(n) for n in integers])
         elif a_number:
@@ -84,26 +84,18 @@ class Internet(
 
     @command('time')
     @doc.description('Get local time of a server member or a timezone.')
-    @doc.argument('tz', 'Name of a timezone.')
-    @doc.argument('user', 'The user whose local time to check.')
-    @doc.argument('role', 'The server role whose associated time to check.')
+    @doc.argument('subject', 'The user/role/timezone whose local time to check')
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Show your local time.')
-    @doc.invocation(('tz',), 'Show the local time of a supported IANA timezone.')
-    @doc.invocation(('user',), (
-        'Show the local time of another user,'
-        ' if they have their timezone preference set.'
-    ))
-    @doc.invocation(('role',), (
-        'Show the local time of a server role,'
-        ' if it is associated with a timezone.'
+    @doc.invocation(('subject',), (
+        'Show the local time of a supported IANA timezone, or a user'
+        ' if they have their timezone preference set,'
+        ' or a server role, if it is associated with a timezone.'
     ))
     @Maybe.ensure
     async def time(
-        self, ctx: Circumstances,
-        tz: Maybe[Timezone, None],
-        user: Maybe[Member, None],
-        role: Maybe[Role, None],
+        self, ctx: Circumstances, *,
+        subject: Maybe[Union[Timezone, Member, Role], None],
     ):
         timezone: Optional[pytz.BaseTzInfo] = None
         footer_fmt: str = 'Timezone: %(tz)s'
@@ -111,24 +103,26 @@ class Internet(
             '%(has_vp)s not set %(PRP_REFL)s a timezone preference'
             '\nnor assigned %(PRP_REFL)s a role timezone in the server.'
         )
+        errors = subject.errors
+        target = subject.value
 
-        target: Optional[Member] = None
+        person: Optional[Member] = None
         role_ids: list[int] = []
         role_tz: Optional[RoleTimezone] = None
-        if tz:
-            timezone = tz.value
-        elif role:
-            role_ids = [role.value.id]
-        elif user:
-            target = user.value
-            role_ids = [r.id for r in user.value.roles]
+        if isinstance(target, pytz.BaseTzInfo):
+            timezone = target
+        elif isinstance(target, Role):
+            role_ids = [target.id]
+        elif isinstance(target, Member):
+            person = target
+            role_ids = [r.id for r in person.roles]
         else:
-            target = ctx.author
+            person = ctx.author
             role_ids = [r.id for r in ctx.author.roles]
 
         if not timezone:
-            if target:
-                profile: User = await User.async_get(target)
+            if person:
+                profile: User = await User.async_get(person)
                 timezone = profile and profile.timezone
 
         if not timezone and role_ids:
@@ -139,8 +133,7 @@ class Internet(
             footer_fmt = 'Timezone: %(tz)s (from server role)'
 
         if not timezone:
-            values = Maybe.asdict(tz=tz, user=user, role=role)
-            if not values:
+            if not target:
                 hint = (
                     'Set timezone preference with '
                     + ctx.format_command('my timezone')
@@ -154,8 +147,8 @@ class Internet(
                 )
                 return await ctx.reply(embed=embed, delete_after=20)
 
-            if 'user' in values:
-                msg = lang.address(TIMEZONE_NOT_SET, user.value, ctx, has='has')
+            if isinstance(target, Member):
+                msg = lang.address(TIMEZONE_NOT_SET, target, ctx, has='has')
                 embed = (
                     Embed2(description=msg.capitalize())
                     .set_color(Color2.red())
@@ -163,8 +156,8 @@ class Internet(
                 )
                 return await ctx.reply(embed=embed, delete_after=20)
 
-            elif 'role' in values:
-                msg = f'{tag(role.value)} has no associated timezone.'
+            elif isinstance(target, Role):
+                msg = f'{tag(target)} has no associated timezone.'
                 embed = (
                     Embed2(description=msg)
                     .set_color(Color2.red())
@@ -186,11 +179,15 @@ class Internet(
             .set_footer(text=footer_fmt % {'tz': timezone})
             .set_timestamp(None)
         )
-        if target:
-            result = result.personalized(target)
+        if person:
+            result = result.personalized(person)
         elif role_tz:
             result = result.set_color(role_tz.role.color)
-        return await ctx.reply(embed=result)
+        await ctx.reply(embed=result)
+        if len(errors) == 3:
+            error = (Embed2(description='\n'.join([str(e) for e in errors]))
+                     .set_color(Color2.red()))
+            await ctx.response(ctx, embed=error, delete_after=30).run()
 
     @command('lipsum', aliases=('lorem',))
     @doc.description(

@@ -40,6 +40,59 @@ def _is_greedy(annotation) -> bool:
     return isinstance(annotation, _Greedy)
 
 
+def get_live_converter(annotation, default):
+
+    if annotation is Parameter.empty:
+        raise StructuralParsingError()
+
+    _placeholder = Parameter('_', Parameter.POSITIONAL_OR_KEYWORD)
+
+    if _is_greedy(annotation):
+
+        elem_conv = get_live_converter(annotation.converter, default)
+
+        async def convert(ctx: Context, args: list,
+                          errorlist: Optional[list] = None):
+            results = []
+            for item in args:
+                try:
+                    converted = await elem_conv(ctx, item)
+                    if converted is not Parameter.empty:
+                        results.append(converted)
+                except CommandError as exc:
+                    if errorlist is not None:
+                        errorlist.append(exc)
+            return results
+
+    elif _is_type_union(annotation):
+
+        async def convert(ctx: Context, arg, errorlist: Optional[list] = None):
+            cmd: Command = ctx.command
+            _convertf = cmd._actual_conversion
+            for conv in annotation.__args__:
+                if conv is type(None):  # noqa: E721
+                    return default
+                try:
+                    return await _convertf(ctx, conv, arg, _placeholder)
+                except CommandError as exc:
+                    if errorlist is not None:
+                        errorlist.append(exc)
+            return default
+
+    else:
+
+        async def convert(ctx: Context, arg, errorlist: Optional[list] = None):
+            cmd: Command = ctx.command
+            _convertf = cmd._actual_conversion
+            try:
+                return await _convertf(ctx, annotation, arg, _placeholder)
+            except CommandError as exc:
+                errorlist.append(exc)
+                return default
+
+    return convert
+
+
 class StructuredView(StringView):
     def __init__(self, items: list):
         self.items = [str(i) for i in items]
@@ -132,54 +185,6 @@ class StructuralArgumentParser:
                 continue
         return data
 
-    def get_converter(self, param: Parameter):
-        ctx = self.ctx
-        cmd: Command = ctx.command
-
-        annotation = param.annotation
-        if annotation is Parameter.empty:
-            raise StructuralParsingError()
-
-        if _is_greedy(annotation):
-
-            elem_param = Parameter(param.name, param.kind,
-                                   annotation=annotation.converter)
-            elem_conv = self.get_converter(elem_param)
-
-            async def convert(args: list):
-                results = []
-                for item in args:
-                    try:
-                        converted = await elem_conv(item)
-                        if converted is not Parameter.empty:
-                            results.append(converted)
-                    except CommandError as exc:
-                        self.errors[param.name].append(exc)
-                return results
-
-        elif _is_type_union(annotation):
-
-            async def convert(arg):
-                for conv in annotation.__args__:
-                    if conv is type(None):  # noqa: E721
-                        return param.default
-                    try:
-                        return await cmd._actual_conversion(ctx, conv, arg, param)
-                    except CommandError as exc:
-                        self.errors[param.name].append(exc)
-                return param.default
-
-        else:
-
-            async def convert(arg):
-                try:
-                    return await cmd._actual_conversion(ctx, param.annotation, arg, param)
-                except CommandError as exc:
-                    self.errors[param.name].append(exc)
-                    return param.default
-
-        return convert
-
     def default_args(self):
         cmd = self.ctx.command
         if cmd.cog is None:
@@ -220,8 +225,11 @@ class StructuralArgumentParser:
                 except KeyError:
                     self.args[k] = v.default
                     continue
-                converter = self.get_converter(v)
-                result = await converter(value)
+                errorlist = self.errors[k]
+                annotation = v.annotation
+                default = v.default
+                converter = get_live_converter(annotation, default)
+                result = await converter(self.ctx, value, errorlist)
                 self.args[k] = result
                 tempview.forward()
         finally:
