@@ -334,6 +334,10 @@ class Documentation:
     def invisible(self):
         return self.hidden or not self.standalone
 
+    @property
+    def full_aliases(self) -> list[str]:
+        return [f'{self.parent} {alias}' for alias in self.aliases]
+
     def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
         if options is None:
             options = deque(self.arguments.values())
@@ -432,7 +436,7 @@ class Documentation:
         sections['Synopsis'] = pre('\n'.join(self.synopsis))
 
         if self.aliases:
-            sections['Other names'] = ', '.join(self.aliases)
+            sections['Shorthands'] = ', '.join(self.full_aliases)
 
         invocations = {sig.as_node().strip(): sig.description
                        for keys, sig in self.invocations.items()
