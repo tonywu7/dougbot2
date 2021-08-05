@@ -52,13 +52,11 @@ class Circumstances(Context):
 
     def __init__(self, **attrs):
         from .bot import Robot
-        from .ext.logging import ContextualLogger
 
         self.command_searched = {}
         self.command_materialized = {}
 
         super().__init__(**attrs)
-        self.log = ContextualLogger('discord.logging', self)
         self._server: Server
 
         self.me: Union[Member, User]
@@ -160,9 +158,13 @@ class Circumstances(Context):
         return self._server
 
     @property
-    @requires_server
-    def log_config(self) -> dict:
-        return self._logging_conf
+    def logconfig(self) -> dict:
+        return self.server.logging
+
+    @property
+    def log(self):
+        from .ext.logging import ContextualLogger
+        return ContextualLogger('discord.logging', self, self.logconfig)
 
     async def init(self):
         await self._get_server()
@@ -176,7 +178,6 @@ class Circumstances(Context):
                 .prefetch_related('channels', 'roles')
                 .get(pk=self.message.guild.id)
             )
-            self._logging_conf = self._server.logging
         except AttributeError:
             return
         except Server.DoesNotExist:
@@ -197,7 +198,7 @@ class Circumstances(Context):
         for r in results:
             if isinstance(r, Exception):
                 from .ext.logging import log_command_errors
-                log_command_errors(self, r)
+                log_command_errors(self, self.logconfig, r)
 
     def format_command(self, cmd: str):
         assert cmd in self.bot.manual.commands

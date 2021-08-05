@@ -173,7 +173,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     perms: Permissions2 = PermissionField(verbose_name='default permissions', default=0)
 
     prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
-    logging = models.JSONField(verbose_name='logging config', default=dict)
+    logging: dict = models.JSONField(verbose_name='logging config', default=dict)
 
     readable: list[int] = models.JSONField(verbose_name='readable roles', default=list)
     writable: list[int] = models.JSONField(verbose_name='writable roles', default=list)

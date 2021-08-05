@@ -1,4 +1,4 @@
-# schema.py
+# logging.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,12 +14,62 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Iterator
+
+from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
+from django.http import HttpRequest
 from graphene import ID, Argument, InputObjectType, List, ObjectType, String
 
+from ...ext.logging.logging import (LoggingEntry, _ErrorConf, exceptions,
+                                    get_name, logging_classes, privileged)
 from ...middleware import get_ctx
 from ...models import Server
-from ...schema import ServerModelMutation
-from .logging import get_logging_conf, set_logging_conf
+from ..server import ServerModelMutation
+
+
+def has_logging_conf_permission(user: User, key: str) -> bool:
+    return (key not in privileged or user.is_superuser)  # Material conditional
+
+
+def iter_logging_conf(user) -> Iterator[tuple[str, _ErrorConf]]:
+    for k in logging_classes.keys() - exceptions.keys():
+        yield k, {'name': logging_classes[k]}
+    for k, v in exceptions.items():
+        if has_logging_conf_permission(user, k):
+            yield k, v
+
+
+def get_logging_conf(req: HttpRequest, server: Server) -> list[LoggingEntry]:
+    user = req.user
+    return [{'key': k, **{u: w for u, w in v.items() if w}}
+            for k, v in server.logging.items()
+            if has_logging_conf_permission(user, k)]
+
+
+def set_logging_conf(req: HttpRequest, server: Server, changes: list):
+    user = req.user
+
+    for change in changes:
+        if not has_logging_conf_permission(user, change.key):
+            raise PermissionDenied('Insufficient permissions.')
+
+    logging = server.logging.copy()
+
+    for change in changes:
+        key = change.key
+        if not change.channel:
+            logging.pop(key, None)
+            continue
+        name = get_name(key)
+        logging[change.key] = {
+            'name': name,
+            'channel': int(change.channel),
+            'role': int(change.role or 0),
+        }
+
+    server.logging = logging
+    server.save()
 
 
 class LoggingEntryType(ObjectType):

@@ -54,11 +54,10 @@ class AsyncEnvironment(Environment):
         return self.get_template(name, parent, globals)
 
 
-env = AsyncEnvironment(
-    loader=ModelLoader(),
-    bytecode_cache=MemcachedBytecodeCache(caches['jinja2']),
-    autoescape=select_autoescape(),
-    enable_async=True,
-)
-
-__all__ = ['env']
+def get_environment():
+    return AsyncEnvironment(
+        loader=ModelLoader(),
+        bytecode_cache=MemcachedBytecodeCache(caches['jinja2']),
+        autoescape=select_autoescape(),
+        enable_async=True,
+    )

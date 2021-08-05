@@ -75,7 +75,7 @@ export enum ChannelEnum {
 
 export type ChannelType = {
   __typename?: 'ChannelType';
-  snowflake: Scalars['String'];
+  snowflake: Scalars['ID'];
   name: Scalars['String'];
   guild: ServerType;
   order: Scalars['Int'];
@@ -172,7 +172,6 @@ export type MutationupdatePermsArgs = {
 export type Query = {
   __typename?: 'Query';
   timezones?: Maybe<Array<Maybe<RoleTimezoneType>>>;
-  templates?: Maybe<Array<Maybe<StringTemplateType>>>;
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
   logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
   bot?: Maybe<BotType>;
@@ -181,11 +180,6 @@ export type Query = {
 
 
 export type QuerytimezonesArgs = {
-  serverId: Scalars['ID'];
-};
-
-
-export type QuerytemplatesArgs = {
   serverId: Scalars['ID'];
 };
 
@@ -227,7 +221,7 @@ export type RoleTimezoneUpdateMutation = {
 
 export type RoleType = {
   __typename?: 'RoleType';
-  snowflake: Scalars['String'];
+  snowflake: Scalars['ID'];
   name: Scalars['String'];
   color: Scalars['Int'];
   guild: ServerType;
@@ -257,24 +251,16 @@ export type ServerPrefixMutation = {
 
 export type ServerType = {
   __typename?: 'ServerType';
-  snowflake: Scalars['String'];
   disabled: Scalars['Boolean'];
   name: Scalars['String'];
   perms: Array<Scalars['String']>;
   prefix: Scalars['String'];
   channels: Array<ChannelType>;
   roles: Array<RoleType>;
+  snowflake: Scalars['ID'];
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
   readable?: Maybe<Array<Scalars['ID']>>;
   writable?: Maybe<Array<Scalars['ID']>>;
-};
-
-export type StringTemplateType = {
-  __typename?: 'StringTemplateType';
-  id: Scalars['ID'];
-  source: Scalars['String'];
-  server: ServerType;
-  name: Scalars['String'];
 };
 
 export type UpdateACLMutationVariables = Exact<{

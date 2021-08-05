@@ -1,4 +1,4 @@
-# models.py
+# lib.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,18 +13,3 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-from __future__ import annotations
-
-from django.db import models
-
-
-class BaseTemplate(models.Model):
-    class Meta:
-        abstract = True
-
-    source: str = models.TextField(blank=True)
-
-    def __str__(self) -> str:
-        meta = self._meta
-        return f'{meta.app_label}/{meta.model_name}/{self.id}.html'

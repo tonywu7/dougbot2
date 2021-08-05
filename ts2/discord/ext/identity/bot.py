@@ -153,14 +153,14 @@ class Personalize(
 
     @conf.command('timezone', aliases=('tz',))
     @doc.description('Configure your timezone.')
-    @doc.argument('delete', signature='-delete', node='-delete')
+    @doc.argument('reset', signature='-reset', node='-reset')
     @doc.argument('tz', 'Timezone to set.')
     @doc.argument('latitude', 'Latitude of the location whose timezone to use.')
     @doc.argument('longitude', 'Longitude of the location whose timezone to use.')
     @doc.argument('location', 'Name of a location to search for.')
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Print your current timezone preference.')
-    @doc.invocation(('delete',), 'Remove your timezone preference.')
+    @doc.invocation(('reset',), 'Remove your timezone preference.')
     @doc.invocation(('tz',), 'Set your timezone using an IANA timezone code.')
     @doc.invocation(('latitude', 'longitude'), 'Set your timezone using coordinates (latitude first).')
     @doc.invocation(('location',), 'Set your timezone by searching for a location.')
@@ -175,7 +175,7 @@ class Personalize(
     @Maybe.ensure
     async def timezone(
         self, ctx: Circumstances,
-        delete: Maybe[Constant[Literal['-delete']], None],
+        reset: Maybe[Constant[Literal['-reset']], None],
         tz: Maybe[Timezone, None],
         latitude: Maybe[Latitude, None],
         longitude: Maybe[Longitude, None],
@@ -198,7 +198,7 @@ class Personalize(
             if delete:
                 await ctx.message.delete(delay=0.1)
 
-        if delete.value:
+        if reset.value:
             await set_tz(author, '')
             return await ctx.reply('Your timezone preference has been reset.')
 

@@ -70,6 +70,7 @@
         "schema:watch:create": "npm run schema:create -- --watch",
         "schema:watch:parse": "npm run schema:parse -- --watch",
         "schema:watch": "concurrently \"npm:schema:watch:*\"",
-        "build": "npx webpack --config webpack.config.js"
+        "watch": "npx webpack --config webpack.config.js",
+        "build": "NODE_ENV=production npx webpack --config webpack.config.js"
     }
 }

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Protocol
 
 from django.db.models import Model, QuerySet
 from django.forms import Form, ModelForm
@@ -97,3 +97,7 @@ class FormMutationMixin(Generic[U]):
         if not form.is_valid() and raise_invalid:
             raise ValueError(form.errors.as_ul())
         return form
+
+
+class HasContext(Protocol):
+    context: HttpRequest

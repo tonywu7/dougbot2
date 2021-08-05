@@ -1,4 +1,4 @@
-# schema.py
+# acl.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,9 @@ from more_itertools import bucket, first
 
 from ts2.discord.middleware import get_ctx
 
+from ...ext.acl.models import AccessControl, ACLAction, ACLRoleModifier
 from ...models import Server
-from ...schema import ServerModelMutation
-from .models import AccessControl, ACLAction, ACLRoleModifier
+from ..server import ServerModelMutation
 
 
 class AccessControlType(ObjectType):

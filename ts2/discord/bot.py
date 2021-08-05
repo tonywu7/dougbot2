@@ -227,8 +227,8 @@ class Robot(Bot):
             await explain_exception(ctx, exc)
         except Exception as exc:
             exc = CommandInvokeError(exc)
-            return await log_command_errors(ctx, exc)
-        await log_command_errors(ctx, exc)
+            return await log_command_errors(ctx, ctx.logconfig, exc)
+        await log_command_errors(ctx, ctx.logconfig, exc)
 
     @staticmethod
     @dm.accepts_dms

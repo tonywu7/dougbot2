@@ -20,19 +20,15 @@ import io
 import logging
 import sys
 import traceback
-from collections.abc import Iterator
 from functools import partialmethod
 from typing import Optional, TypedDict
 
 from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
-from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest
 
 from ts2.utils.datetime import localnow, utcnow
 
-from ...models import Server
 from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
 
@@ -118,18 +114,6 @@ LoggingConfig = dict[str, LoggingEntry]
 _log = logging.getLogger('discord.logging.exceptions')
 
 
-def has_logging_conf_permission(user, key: str) -> bool:
-    return (key not in privileged or user.is_superuser)  # Material conditional
-
-
-def iter_logging_conf(user) -> Iterator[tuple[str, _ErrorConf]]:
-    for k in logging_classes.keys() - exceptions.keys():
-        yield k, {'name': logging_classes[k]}
-    for k, v in exceptions.items():
-        if has_logging_conf_permission(user, k):
-            yield k, v
-
-
 def get_name(key: str) -> str:
     return logging_classes[key]
 
@@ -144,9 +128,10 @@ def register_logger(key: str, name: str):
 
 
 class ContextualLogger:
-    def __init__(self, prefix: str, ctx: Context):
+    def __init__(self, prefix: str, ctx: Context, config: LoggingConfig):
         self.prefix = prefix
         self.ctx = ctx
+        self.config = config
         self._log = logging.getLogger('discord.logger')
 
     async def log(self, msg_class: str, level: int, msg: str, *args,
@@ -160,7 +145,7 @@ class ContextualLogger:
 
     def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
         try:
-            config: LoggingConfig = self.ctx.log_config[msg_class]
+            config = self.config[msg_class]
         except AttributeError:
             raise LookupError
         channel = config['channel']
@@ -200,7 +185,7 @@ class ContextualLogger:
     critical = partialmethod(log, level=logging.CRITICAL)
 
 
-async def log_command_errors(ctx: Context, exc: errors.CommandError):
+async def log_command_errors(ctx: Context, config: LoggingConfig, exc: errors.CommandError):
     if isinstance(exc, tuple(bypassed)):
         return
     for key, conf in exceptions.items():
@@ -229,7 +214,7 @@ async def log_command_errors(ctx: Context, exc: errors.CommandError):
     embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
-    logger = ContextualLogger('discord.exception', ctx)
+    logger = ContextualLogger('discord.exception', ctx, config)
     return await logger.log(key, level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 
@@ -247,35 +232,3 @@ async def report_exception(channel: TextChannel, exc_info: BaseException):
     tb_file = io.BytesIO(tb_body.encode())
     filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
     await channel.send(file=File(tb_file, filename=filename))
-
-
-def get_logging_conf(req: HttpRequest, server: Server) -> list[LoggingEntry]:
-    user = req.user
-    return [{'key': k, **{u: w for u, w in v.items() if w}}
-            for k, v in server.logging.items()
-            if has_logging_conf_permission(user, k)]
-
-
-def set_logging_conf(req: HttpRequest, server: Server, changes: list):
-    user = req.user
-
-    for change in changes:
-        if not has_logging_conf_permission(user, change.key):
-            raise PermissionDenied('Insufficient permissions.')
-
-    logging = server.logging.copy()
-
-    for change in changes:
-        key = change.key
-        if not change.channel:
-            logging.pop(key, None)
-            continue
-        name = get_name(key)
-        logging[change.key] = {
-            'name': name,
-            'channel': int(change.channel),
-            'role': int(change.role or 0),
-        }
-
-    server.logging = logging
-    server.save()

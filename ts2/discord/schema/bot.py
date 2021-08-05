@@ -1,4 +1,4 @@
-# schema.py
+# bot.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,23 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import ID, List, ObjectType
-from graphene_django import DjangoObjectType
+from graphene import Field, List, ObjectType, String
 
-from ....middleware import get_ctx
-from .models import StringTemplate
-
-
-class StringTemplateType(DjangoObjectType):
-    class Meta:
-        model = StringTemplate
-        fields = ('id', 'source', 'server', 'name')
+from ..apps import get_commands
+from ..utils.graphql import HasContext
 
 
-class TemplateQuery(ObjectType):
-    templates = List(StringTemplateType, server_id=ID(required=True))
+class BotType(ObjectType):
+    commands = List(String)
+
+    @staticmethod
+    def resolve_commands(root, info: HasContext, **kwargs):
+        return get_commands(info.context)
+
+
+class BotQuery(ObjectType):
+    bot = Field(BotType)
 
     @classmethod
-    def resolve_acl(cls, root, info, server_id):
-        server = get_ctx(info.context).fetch_server(server_id, 'read')
-        return [StringTemplateType(m) for m in server.templates.all()]
+    def resolve_bot(cls, root, info):
+        return BotType()

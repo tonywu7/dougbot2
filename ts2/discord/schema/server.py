@@ -1,4 +1,4 @@
-# schema.py
+# server.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,23 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Protocol
-
-from django.db.models import BigIntegerField
 from django.http import HttpRequest
 from graphene import (ID, Argument, Enum, Field, List, NonNull, ObjectType,
                       String)
 from graphene_django import DjangoObjectType
-from graphene_django.converter import (convert_django_field,
-                                       convert_field_to_string)
+from graphene_django.converter import convert_django_field
 
-from . import forms, models
-from .apps import get_commands
-from .middleware import get_ctx
-from .models import PermissionField, Server
-from .utils.graphql import FormMutationMixin, ModelMutation
+from .. import forms
+from ..middleware import get_ctx
+from ..models import Channel, ChannelTypeEnum, PermissionField, Role, Server
+from ..utils.graphql import FormMutationMixin, HasContext, ModelMutation
 
-convert_django_field.register(BigIntegerField, convert_field_to_string)
+ChannelTypeEnum = Enum.from_enum(ChannelTypeEnum)
 
 
 @convert_django_field.register(PermissionField)
@@ -38,22 +33,11 @@ def convert_perm_field(field, *args, **kwargs):
     return List(NonNull(String), required=not field.null)
 
 
-ChannelTypeEnum = Enum.from_enum(models.ChannelTypeEnum)
+class DiscordObject:
+    snowflake = NonNull(ID)
 
 
-class HasContext(Protocol):
-    context: HttpRequest
-
-
-class BotType(ObjectType):
-    commands = List(String)
-
-    @staticmethod
-    def resolve_commands(root, info: HasContext, **kwargs):
-        return get_commands(info.context)
-
-
-class ServerType(DjangoObjectType):
+class ServerType(DiscordObject, DjangoObjectType):
     extensions = List(String)
     readable = List(NonNull(ID))
     writable = List(NonNull(ID))
@@ -61,8 +45,9 @@ class ServerType(DjangoObjectType):
     class Meta:
         model = Server
         fields = (
-            'snowflake', 'prefix', 'disabled',
-            'name', 'perms', 'channels', 'roles',
+            'prefix', 'disabled',
+            'name', 'perms',
+            'channels', 'roles',
         )
 
     @staticmethod
@@ -70,17 +55,17 @@ class ServerType(DjangoObjectType):
         return obj.extensions
 
 
-class ChannelType(DjangoObjectType):
+class ChannelType(DiscordObject, DjangoObjectType):
     type = ChannelTypeEnum(source='type')
 
     class Meta:
-        model = models.Channel
+        model = Channel
         fields = ('snowflake', 'name', 'guild', 'order', 'category')
 
 
-class RoleType(DjangoObjectType):
+class RoleType(DiscordObject, DjangoObjectType):
     class Meta:
-        model = models.Role
+        model = Role
         fields = ('snowflake', 'name', 'guild', 'color', 'perms', 'order')
 
 
@@ -155,14 +140,6 @@ class ServerQuery(ObjectType):
     @classmethod
     def resolve_server(cls, root, info, server_id) -> Server:
         return get_ctx(info.context).fetch_server(server_id, 'read')
-
-
-class BotQuery(ObjectType):
-    bot = Field(BotType)
-
-    @classmethod
-    def resolve_bot(cls, root, info):
-        return BotType()
 
 
 class ServerMutation(ObjectType):
