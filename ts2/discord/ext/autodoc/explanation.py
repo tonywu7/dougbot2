@@ -28,7 +28,7 @@ from discord.utils import escape_markdown
 
 from ...utils.duckcord.color import Color2
 from ...utils.duckcord.embeds import Embed2
-from ...utils.markdown import ARROWS_E, ARROWS_W, code, strong, tag_literal
+from ...utils.markdown import code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
 from .lang import pl_cat_predicative, pluralize
@@ -50,12 +50,12 @@ BUCKET_DESCRIPTIONS = {
 }
 
 
-def indicate_eol(s: StringView, color='white') -> str:
-    return f'{s.buffer[:s.index + 1]} {ARROWS_W[color]}'
+def indicate_eol(s: StringView) -> str:
+    return f'{s.buffer[:s.index + 1]} ←'
 
 
-def indicate_extra_text(s: StringView, color='white') -> str:
-    return f'{s.buffer[:s.index]} {ARROWS_E[color]} {s.buffer[s.index:]} {ARROWS_W[color]}'
+def indicate_extra_text(s: StringView) -> str:
+    return f'{s.buffer[:s.index]} → {s.buffer[s.index:]} ←'
 
 
 def full_invoked_with(self: Context):
@@ -250,13 +250,13 @@ async def on_unexpected_eof(ctx, exc: errors.ExpectedClosingQuoteError):
 @explains(errors.UnexpectedQuoteError, 'Unexpected quote')
 @append_matching_quotes_hint()
 async def on_unexpected_quote(ctx, exc: errors.UnexpectedQuoteError):
-    return f'\n> {indicate_eol(ctx.view, "red")} ⚠️ Did not expect a {code(exc.quote)} here', 60
+    return f'\n> {indicate_eol(ctx.view)} ⚠️ Did not expect a {code(exc.quote)} here', 60
 
 
 @explains(errors.InvalidEndOfQuotedStringError, 'Missing spaces after quotes')
 @append_matching_quotes_hint()
 async def on_unexpected_char_after_quote(ctx, exc: errors.InvalidEndOfQuotedStringError):
-    return (f'\n> {indicate_eol(ctx.view, "red")} ⚠️ There should be a space before this '
+    return (f'\n> {indicate_eol(ctx.view)} ⚠️ There should be a space before this '
             f'character {code(exc.char)} after the quote.'), 60
 
 
@@ -269,7 +269,7 @@ async def on_missing_args(ctx, exc):
 @explains(errors.TooManyArguments, 'Too many arguments')
 @append_quotation_hint()
 async def on_too_many_args(ctx, exc: errors.TooManyArguments):
-    return f'\n> {indicate_extra_text(ctx.view, "red")} ⚠️ {strong("Unrecognized argument found.")}', 60
+    return f'\n> {indicate_extra_text(ctx.view)} ⚠️ {strong("Unrecognized argument found.")}', 60
 
 
 @explains((

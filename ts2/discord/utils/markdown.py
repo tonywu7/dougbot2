@@ -31,19 +31,21 @@ RE_USER_MENTION = re.compile(r'<@(\d+)>')
 RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
 RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
 
-ARROWS_E = {
-    'white': '<:mta_arrowE:856190628857249792>',
-    'red': '<:mta_arrowE_red:856460793330794536>',
-}
-ARROWS_W = {
-    'white': '<:mta_arrowW:856190628399153164>',
-    'red': '<:mta_arrowW_red:856460793323323392>',
-}
-ARROWS_N = {
-    'white': '<:mta_arrowN:856190628831952906>',
-}
-ARROWS_S = {
-    'white': '<:mta_arrowS:856190628823826432>',
+RE_CODE_START = re.compile(r'```(\w+)$')
+RE_CODE_END = re.compile(r'^(.*?)```')
+
+_TIMESTAMP_FORMATS = Literal[
+    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
+    'full', 'long', 'date', 'relative',
+]
+TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
+    'yy/mm/dd': 'd',
+    'hh:mm:ss': 'T',
+    'hh:mm': 't',
+    'full': 'F',
+    'long': 'f',
+    'date': 'D',
+    'relative': 'R',
 }
 
 
@@ -123,15 +125,11 @@ def traffic_light(val: bool | None, strict=False):
 
 def arrow(d: Literal['N', 'E', 'S', 'W']) -> str:
     return {
-        'N': ARROWS_N['white'],
-        'E': ARROWS_E['white'],
-        'S': ARROWS_S['white'],
-        'W': ARROWS_W['white'],
+        'N': '↑',
+        'E': '→',
+        'S': '↓',
+        'W': '←',
     }[d]
-
-
-def mta_arrow_bracket(s: str, color='white') -> str:
-    return f'{ARROWS_E[color]} {s} {ARROWS_W[color]}'
 
 
 def unmark_element(element, stream=None):
@@ -145,21 +143,6 @@ def unmark_element(element, stream=None):
     if element.tail:
         stream.write(element.tail)
     return stream.getvalue()
-
-
-_TIMESTAMP_FORMATS = Literal[
-    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
-    'full', 'long', 'date', 'relative',
-]
-TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
-    'yy/mm/dd': 'd',
-    'hh:mm:ss': 'T',
-    'hh:mm': 't',
-    'full': 'F',
-    'long': 'f',
-    'date': 'D',
-    'relative': 'R',
-}
 
 
 def timestamp(t: datetime | float | int, f: _TIMESTAMP_FORMATS) -> str:
@@ -192,3 +175,32 @@ def unwrap_codeblock(text: str, lang: str) -> str:
     if not text.endswith('\n```'):
         raise ValueError('Code block does not end with ```')
     return text.removeprefix(f'{sig}\n').removesuffix('```')
+
+
+def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
+    lines = iter(text.splitlines())
+    passed = []
+    block = []
+    end = ''
+    for line in lines:
+        if not block:
+            passed.append(line)
+            matched = RE_CODE_START.search(line)
+            if not matched:
+                continue
+            if matched.group(1) in langs:
+                passed.append('')
+                block.append(line)
+            else:
+                return '', 0
+        else:
+            matched = RE_CODE_END.search(line)
+            if matched:
+                block.append(matched.group(1))
+                end = '```'
+                break
+            else:
+                block.append(line)
+    code = '\n'.join(block[1:])
+    length = len('\n'.join(passed)) + len(code) + len(end)
+    return code, length
