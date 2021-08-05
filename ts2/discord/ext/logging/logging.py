@@ -23,12 +23,13 @@ import traceback
 from functools import partialmethod
 from typing import Optional, TypedDict
 
-from discord import AllowedMentions, Color, Embed, File, Role, TextChannel
+from discord import AllowedMentions, Color, File, Role, TextChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
 from ts2.utils.datetime import localnow, utcnow
 
+from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
 
@@ -136,7 +137,7 @@ class ContextualLogger:
 
     async def log(self, msg_class: str, level: int, msg: str, *args,
                   exc_info: Optional[BaseException] = None,
-                  embed: Optional[Embed] = None, embed_only=False, **kwargs):
+                  embed: Optional[Embed2] = None, embed_only=False, **kwargs):
         logger = logging.getLogger(f'{self.prefix}.{msg_class}')
         logger.log(level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs)
         if embed_only:
@@ -159,7 +160,7 @@ class ContextualLogger:
         return channel, name, role
 
     async def deliver(self, msg_class: str, msg: str,
-                      embed: Optional[Embed] = None,
+                      embed: Optional[Embed2] = None,
                       exc_info: Optional[BaseException] = None):
         try:
             channel, name, role = self.get_dest_info(msg_class)
@@ -185,6 +186,23 @@ class ContextualLogger:
     critical = partialmethod(log, level=logging.CRITICAL)
 
 
+def format_exception(exc: BaseException, title: Optional[str] = None,
+                     color: Optional[Color] = Color.red()) -> Embed2:
+    return Embed2(title=title or type(exc).__name__,
+                  description=str(exc), color=color,
+                  timestamp=utcnow())
+
+
+def get_traceback(exc: BaseException) -> File:
+    if not isinstance(exc, BaseException):
+        return
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    tb_body = censor_paths(''.join(tb))
+    tb_file = io.BytesIO(tb_body.encode())
+    filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
+    return File(tb_file, filename=filename)
+
+
 async def log_command_errors(ctx: Context, config: LoggingConfig, exc: errors.CommandError):
     if isinstance(exc, tuple(bypassed)):
         return
@@ -202,16 +220,11 @@ async def log_command_errors(ctx: Context, config: LoggingConfig, exc: errors.Co
         exc_info = None
     title = conf['name']
     level = conf['level']
-    embed = Embed(
-        title=title,
-        description=str(exc),
-        timestamp=utcnow(),
-        url=ctx.message.jump_url,
-        color=COLORS[level],
-    )
-    embed.add_field(name='Author', value=tag(ctx.author), inline=True)
-    embed.add_field(name='Channel', value=tag(ctx.channel), inline=True)
-    embed.add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
+    embed = (format_exception(exc, title, COLORS[level])
+             .add_field(name='Author', value=tag(ctx.author))
+             .add_field(name='Channel', value=tag(ctx.channel))
+             .add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
+             .set_url(ctx.message.jump_url))
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
     logger = ContextualLogger('discord.exception', ctx, config)
@@ -225,10 +238,4 @@ def censor_paths(tb: str):
 
 
 async def report_exception(channel: TextChannel, exc_info: BaseException):
-    if not isinstance(exc_info, BaseException):
-        return
-    tb = traceback.format_exception(type(exc_info), exc_info, exc_info.__traceback__)
-    tb_body = censor_paths(''.join(tb))
-    tb_file = io.BytesIO(tb_body.encode())
-    filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
-    await channel.send(file=File(tb_file, filename=filename))
+    await channel.send(file=get_traceback(exc_info))
