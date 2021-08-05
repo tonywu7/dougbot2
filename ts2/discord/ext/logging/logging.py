@@ -189,8 +189,8 @@ class ContextualLogger:
 def format_exception(exc: BaseException, title: Optional[str] = None,
                      color: Optional[Color] = Color.red()) -> Embed2:
     return Embed2(title=title or type(exc).__name__,
-                  description=str(exc), color=color,
-                  timestamp=utcnow())
+                  description=escape_markdown(str(exc), as_needed=True),
+                  color=color, timestamp=utcnow())
 
 
 def get_traceback(exc: BaseException) -> File:
