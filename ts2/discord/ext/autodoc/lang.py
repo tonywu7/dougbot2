@@ -22,22 +22,11 @@ from typing import Optional, TypedDict
 import unidecode
 from discord import User
 from discord.ext.commands import Context
-from django.db.models import Model
 
 from ...utils.markdown import tag
 from ._compat import engine_
 
 inflection = engine_()
-
-
-def autoverbose(name: str) -> dict[str, str]:
-    singular = inflection.singular_noun(name)
-    if singular:
-        name = singular
-    return {
-        'verbose_name': name,
-        'verbose_name_plural': inflection.plural_noun(name),
-    }
 
 
 def pluralize(count: int, term: str) -> str:
@@ -74,13 +63,6 @@ def either_or(*terms: str, sep=', ') -> str:
         return f'either {terms[0]} or {terms[1]}'
     sep = f'{sep}or '
     return f'either {sep.join(terms)}'
-
-
-def pluralize_model(count: int, model: type[Model]) -> str:
-    if count == 1:
-        return f'{count} {model._meta.verbose_name}'
-    else:
-        return f'{count} {model._meta.verbose_name_plural}'
 
 
 def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> str:

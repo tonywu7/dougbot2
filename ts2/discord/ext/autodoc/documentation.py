@@ -29,7 +29,6 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Context, Converter, Greedy
 from discord.utils import escape_markdown
-from django.utils.text import camel_case_to_spaces
 from more_itertools import partition, split_at
 
 from ...utils.duckcord.embeds import Embed2, EmbedField
@@ -191,7 +190,7 @@ class Argument:
         if self.description:
             return self.description
         if self.is_unused:
-            accepts = 'Extra texts, not used'
+            accepts = 'extra texts, not used'
         elif self.final:
             accepts = self.accepts.bare_pl()
         elif self.greedy:
@@ -264,7 +263,7 @@ class Argument:
             return defined
         if not isinstance(annotation, type):
             annotation = type(annotation)
-        return QuantifiedNP(camel_case_to_spaces(annotation.__name__))
+        return QuantifiedNP(annotation.__name__)
 
     @classmethod
     def infer_union_type(cls, annotation) -> QuantifiedNP:
