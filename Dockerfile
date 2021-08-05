@@ -49,7 +49,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONHASHSEED=random
 
 # Setup project
-ENV DJANGO_SETTINGS_MODULE=ts2.settings.production
+ENV DJANGO_SETTINGS_MODULE=ts2.conf.production
 RUN ./bin/setup
 
 RUN adduser -u 5555 --disabled-password --gecos "" ts2 && \

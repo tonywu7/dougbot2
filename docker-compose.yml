@@ -10,7 +10,7 @@ services:
         image: telescope2
         build: .
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.settings.server
+            - DJANGO_SETTINGS_MODULE=ts2.conf.server
         command: "./bin/manage web"
         volumes:
             - instance:/application/instance
@@ -36,7 +36,7 @@ services:
     bot:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.settings.deployment
+            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
         command: "./bin/manage bot"
         volumes:
             - instance:/application/instance
@@ -48,7 +48,7 @@ services:
     backup:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.settings.deployment
+            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
         command: "./bin/manage startbackup -o backups"
         volumes:
             - instance:/application/instance

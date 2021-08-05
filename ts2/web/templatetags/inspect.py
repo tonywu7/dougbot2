@@ -24,8 +24,7 @@ register = template.Library()
 @register.simple_tag(takes_context=False)
 def pkg_version():
     """Return package version string."""
-    from ...settings import __version__
-    return __version__
+    return settings.VERSION
 
 
 @register.simple_tag(takes_context=False)
@@ -35,8 +34,7 @@ def pkg_version_string():
     from discord import __version__ as discord_version
     from django import __version__ as django_version
 
-    from ...settings import __version__
-    return mark_safe(f'<code>{settings.APP_NAME}/{__version__}</code> '
+    return mark_safe(f'<code>{settings.APP_NAME}/{settings.VERSION}</code> '
                      f'<code>aiohttp/{aiohttp_version}</code> '
                      f'<code>discord.py/{discord_version}</code> '
                      f'<code>django/{django_version}</code>')

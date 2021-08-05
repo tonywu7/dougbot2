@@ -13,7 +13,7 @@ import django
 
 import ts2.web.routing
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ts2.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ts2.conf.production')
 
 django.setup()
 
