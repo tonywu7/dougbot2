@@ -20,15 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from django.db import models
+from datetime import datetime
+
+import pytz
+from jinja2 import Environment
 
 
-class BaseTemplate(models.Model):
-    class Meta:
-        abstract = True
+def filter_time__astimezone(value: datetime, timezone: str) -> datetime:
+    tz = pytz.timezone(timezone)
+    if value.tzinfo:
+        return value.astimezone(tz)
+    else:
+        return tz.localize(value)
 
-    source: str = models.TextField(blank=True)
 
-    def __str__(self) -> str:
-        meta = self._meta
-        return f'{meta.app_label}/{meta.model_name}/{self.id}.html'
+def register_filters(env: Environment):
+    for name, func in globals().items():
+        filter_name = name.removeprefix('filter_')
+        if filter_name == name:
+            continue
+        filter_name = filter_name.replace('__', '.')
+        env.filters[filter_name] = func

@@ -1,35 +1,65 @@
-# env.py
-# Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
+# MIT License
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Copyright (c) 2021 @tonyzbf +https://github.com/tonyzbf/
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
-from contextvars import ContextVar
+import asyncio
+from typing import Type, TypeVar
 
-from discord.ext.commands import Context as CommandContext
-from jinja2 import Environment, Template, select_autoescape
+from discord.ext.commands import Context
+from jinja2 import Environment, select_autoescape
 
-cctx: ContextVar[CommandContext] = ContextVar('cctx')
+from .context import CommandContext
+from .filters import register_filters
 
-
-def get_environment():
-    return Environment(
-        loader=None, bytecode_cache=None,
-        autoescape=select_autoescape(),
-        enable_async=True,
-    )
+default_env = None
 
 
-async def render(ctx: CommandContext, template: Template, variables: dict):
-    cctx.set(ctx)
-    return await template.render_async(**variables)
+class CommandEnvironment(Environment):
+    async def render(self, ctx: Context, source: str, variables: dict):
+        cctx = CommandContext(ctx, variables)
+        tmpl = self.from_string(source)
+        return await tmpl.render_async(**cctx)
+
+    async def render_timed(self, ctx: Context, source: str,
+                           variables: dict, timeout: float = 10):
+        renderer = self.render(ctx, source, variables)
+        result = await asyncio.wait_for(renderer, timeout=timeout)
+        return result
+
+
+T_E = TypeVar('T_E', bound=CommandEnvironment)
+
+
+def make_environment(class_: Type[T_E] = CommandEnvironment, **options) -> T_E:
+    options.setdefault('loader', None)
+    options.setdefault('bytecode_cache', None)
+    options.setdefault('autoescape', select_autoescape())
+    options['enable_async'] = True
+    env = class_(**options)
+    register_filters(env)
+    return env
+
+
+def get_environment() -> CommandEnvironment:
+    global default_env
+    if not default_env:
+        default_env = make_environment()
+    return default_env

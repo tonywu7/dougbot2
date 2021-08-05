@@ -30,7 +30,10 @@ from discord.ext.commands import (BucketType, Converter, command, has_role,
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
-from ts2.discord.ext.common import Constant, doc
+from ts2.discord.ext import autodoc as doc
+from ts2.discord.ext.common import (Constant, Dictionary, JinjaTemplate,
+                                    format_exception, get_traceback)
+from ts2.discord.ext.template import get_environment
 from ts2.discord.utils.markdown import E, a, code, strong
 from ts2.utils.datetime import localnow
 
@@ -165,3 +168,28 @@ class Debugging(
             fname = f'message.{localnow().isoformat().replace(":", ".")}.txt'
             file = File(stream, filename=fname)
             await ctx.send(file=file)
+
+    @command('render')
+    @doc.description('Render a Jinja template.')
+    @doc.argument('template', 'Jinja template string.')
+    @doc.argument('variables', 'Context variables.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('template', 'variables'), None)
+    async def render(
+        self, ctx: Circumstances,
+        template: JinjaTemplate,
+        variables: Optional[Dictionary],
+    ):
+        env = get_environment()
+        if variables:
+            variables = variables.result
+        else:
+            variables = {}
+        with ctx.typing():
+            try:
+                txt = await env.render_timed(ctx, template.result, variables)
+                return await ctx.send(txt)
+            except Exception as e:
+                embed = format_exception(e)
+                tb = get_traceback(e)
+                return await ctx.send(embed=embed, file=tb)
