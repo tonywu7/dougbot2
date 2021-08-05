@@ -242,7 +242,7 @@ class Embed2:
         """
         return attr.evolve(self)
 
-    def add_field(self, *, name: str, value: str, inline: bool = False) -> Embed2:
+    def add_field(self, *, name: str, value: str, inline: bool = True) -> Embed2:
         """Return a new embed with a field appended.
 
         :return: The resulting embed.
@@ -251,7 +251,7 @@ class Embed2:
         fields = [*self.fields, EmbedField(name=name, value=value, inline=inline)]
         return attr.evolve(self, fields=fields)
 
-    def insert_field_at(self, index: int, *, name: str, value: str, inline: bool = False) -> Embed2:
+    def insert_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> Embed2:
         """Return a new embed with a field inserted at ``index``.
 
         Field ``n`` becomes field ``n + 1`` after insert. If the index is
@@ -267,7 +267,7 @@ class Embed2:
         fields = [*self.fields[:index], EmbedField(name=name, value=value, inline=inline), *self.fields[index:]]
         return attr.evolve(self, fields=fields)
 
-    def set_field_at(self, index: int, *, name: str, value: str, inline: bool = False) -> Embed2:
+    def set_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> Embed2:
         """Return a new embed with the field at ``index`` replaced.
 
         If the index is out of range, a new field will be inserted at the end
