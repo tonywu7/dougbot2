@@ -175,6 +175,7 @@ class Debugging(
     @doc.argument('variables', 'Context variables.')
     @doc.use_syntax_whitelist
     @doc.invocation(('template', 'variables'), None)
+    @doc.hidden
     async def render(
         self, ctx: Circumstances,
         template: JinjaTemplate,
@@ -185,11 +186,12 @@ class Debugging(
             variables = variables.result
         else:
             variables = {}
-        async with ctx.typing():
-            try:
-                txt = await env.render_timed(ctx, template.result, variables)
+        try:
+            async with ctx.typing():
+                tmpl = env.from_string(template.result)
+                txt = await tmpl.render_timed(ctx, **variables)
                 return await ctx.send(txt)
-            except Exception as e:
-                embed = format_exception(e)
-                tb = get_traceback(e)
-                return await ctx.send(embed=embed, file=tb)
+        except Exception as e:
+            embed = format_exception(e)
+            tb = get_traceback(e)
+            return await ctx.send(embed=embed, file=tb)
