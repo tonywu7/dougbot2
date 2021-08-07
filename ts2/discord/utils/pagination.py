@@ -171,11 +171,11 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
 def chapterize_fields(
     fields: Iterable[EmbedField],
     pagesize: int = 720,
-    linebreak: set[Literal[
+    linebreak: Literal[
         'exact',
         'whitespace',
         'newline',
-    ]] = frozenset({'whitespace'}),
+    ] = 'newline',
 ) -> Iterator[list[EmbedField]]:
     if sum(len(f) for f in fields) < pagesize:
         yield [*fields]
@@ -188,8 +188,8 @@ def chapterize_fields(
         next_len = len(next_field)
         if size and size + next_len > pagesize:
             yield page
-            page = [next(fields)]
-        elif next_len > pagesize:
+            page = []
+        if next_len > pagesize:
             head, *tails = [*chapterize(
                 next_field.value, pagesize,
                 linebreak=linebreak, leeway=pagesize,

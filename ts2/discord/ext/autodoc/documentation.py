@@ -21,6 +21,7 @@ from collections import OrderedDict, deque
 from collections.abc import Callable
 from functools import cache, cached_property, partial, reduce
 from inspect import Parameter
+from itertools import dropwhile
 from operator import or_
 from typing import Any, Literal, Optional, Union, get_args, get_origin
 
@@ -34,7 +35,7 @@ from more_itertools import partition, split_at
 from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, pre, strong, u
-from ...utils.pagination import EmbedPagination, chapterize_items
+from ...utils.pagination import EmbedPagination, chapterize_fields
 from .exceptions import BadDocumentation, MissingDescription
 from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
 
@@ -169,10 +170,11 @@ class Argument:
     node: str = attr.ib(default='', order=False)
     signature: str = attr.ib(default='', order=False)
     order: int = attr.ib(default=0)
+    hidden: bool = attr.ib(default=False)
 
     @property
     def is_hidden(self) -> str:
-        return self.key[0] == '_'
+        return self.hidden or self.key[0] == '_'
 
     @property
     def is_unused(self) -> bool:
@@ -481,7 +483,7 @@ class Documentation:
     def generate_help(self) -> EmbedPagination:
         sections = [EmbedField(k, v, False) for k, v
                     in self.sections.items() if v]
-        chapters = chapterize_items(sections, MANPAGE_MAX_LEN)
+        chapters = chapterize_fields(sections, MANPAGE_MAX_LEN)
         embeds = [Embed2(fields=chapter) for chapter in chapters]
         title = f'Help: {self.call_sign}'
         embeds = [e.set_description(self.description) for e in embeds]
@@ -491,7 +493,11 @@ class Documentation:
     def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Argument]:
         args: deque = deque(args)
         kwargs: deque = deque(kwargs.items())
-        arguments: deque = deque([*split_at(sorted(self.arguments.items(), key=lambda t: t[1]), lambda t: t[1].is_hidden)][-1])
+        arguments: deque = deque([*dropwhile(
+            lambda t: t[1].is_hidden,
+            sorted(self.arguments.items(),
+                   key=lambda t: t[1]),
+        )])
         stack: list[str] = []
         while args:
             if isinstance(args.popleft(), (Context, Cog)):
