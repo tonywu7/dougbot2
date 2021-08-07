@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Union
+from collections.abc import Mapping
+from typing import TypeVar, Union
 
 import simplejson as json
 import toml
@@ -23,6 +24,8 @@ from discord.ext.commands.view import StringView
 
 from ...utils.markdown import find_codeblock
 from ..autodoc.decorators import accepts
+
+T = TypeVar('T')
 
 
 class CodeBlock(Converter):
@@ -74,9 +77,6 @@ class _Dictionary(Converter):
         raise ValueError('Not a dictionary.')
 
 
-Dictionary = Union[_Dictionary, TOML, JSON]
-
-
 @accepts('Jinja code block')
 class JinjaTemplate(CodeBlock):
     langs = ('jinja',)
@@ -85,3 +85,14 @@ class JinjaTemplate(CodeBlock):
 
     def parse(self, code: str):
         return code
+
+
+Dictionary = Union[_Dictionary, TOML, JSON]
+
+
+def unpack_dict(d: Dictionary, default: T = None) -> Union[Mapping, T]:
+    if isinstance(d, Mapping):
+        return d
+    if isinstance(d, (TOML, JSON)):
+        return d.result
+    return default
