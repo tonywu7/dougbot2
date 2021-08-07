@@ -206,7 +206,7 @@ def chapterize_fields(
 
 def chapterize(
     text: str, length: int = 1920, leeway=32,
-    closing=' ... ', opening='(continued) ',
+    closing='', opening='',
     linebreak: Literal[
         'exact',
         'whitespace',
@@ -306,7 +306,7 @@ class Pagination:
     def get_text(self, k: int) -> str:
         return self.text_transform(k, self.content[k][0])
 
-    def get_embed(self, k: int) -> str:
+    def get_embed(self, k: int) -> Embed2:
         return self.embed_transform(k, self.content[k][1])
 
     def index_setter(self) -> PageProvider:
@@ -364,3 +364,11 @@ class EmbedPagination(Pagination):
         if self.timestamp:
             embed = embed.set_timestamp()
         return embed
+
+    def to_dict(self):
+        return self.get_embed(0).to_dict()
+
+    def with_context(self, ctx: Context, ttl=600):
+        def from_message(m: Message):
+            return self(ctx.bot, m, ttl, ctx.author)
+        return from_message

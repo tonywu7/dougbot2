@@ -139,7 +139,7 @@ class Manual:
         chapters = chapterize_items(fields, self.MANPAGE_MAX_LEN)
         embeds = [Embed2(fields=chapter, color=self.color)
                   for chapter in chapters]
-        embeds = [e.set_footer(text=('Use "help [command]" to see'
+        embeds = [e.set_footer(text=('Use "help [command]" here to see'
                                      ' how to use a command'))
                   for e in embeds]
         self.toc_rich = EmbedPagination(embeds, self.title, True)
@@ -197,9 +197,9 @@ class Manual:
             doc = self.lookup(query, show_hidden)
         except NoSuchCommand as exc:
             return await ctx.send(str(exc), delete_after=60)
-        first = doc.rich_help.get_embed(0)
-        (await ResponseInit(ctx, embed=first).reply()
-         .responder(lambda m: doc.rich_help(ctx.bot, m, 600, ctx.author))
+        rich_help = doc.rich_help
+        (await ResponseInit(ctx, embed=rich_help).reply()
+         .responder(rich_help.with_context(ctx))
          .deleter().run())
 
 
