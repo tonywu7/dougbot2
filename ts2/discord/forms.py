@@ -71,8 +71,8 @@ class ServerModelSyncForm(forms.ModelForm):
         fields = ()
 
     def save(self, commit=True):
-        from .bot import sync_server
-        from .threads import get_thread
+        from .server import sync_server_unsafe
+        from .thread import get_thread
         thread = get_thread()
 
         async def sync_models(bot: Bot):
@@ -86,7 +86,7 @@ class ServerModelSyncForm(forms.ModelForm):
                     return
                 else:
                     guild._channels = {c.id: c for c in await guild.fetch_channels()}
-            await sync_server(guild)
+            await sync_server_unsafe(guild)
 
         thread.run_coroutine(sync_models(thread.client))
         return self.instance

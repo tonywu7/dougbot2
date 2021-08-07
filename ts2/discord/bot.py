@@ -16,7 +16,6 @@
 
 import asyncio
 import logging
-from collections.abc import Generator
 from contextlib import suppress
 from typing import TypeVar
 
@@ -24,35 +23,44 @@ import aiohttp
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Guild, Intents, Message, Object,
                      Permissions, RawReactionActionEvent)
-from discord.abc import ChannelType, GuildChannel
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
                                   has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.db import IntegrityError
-from django.db.models.query import QuerySet
-from more_itertools import always_reversible
 
-from ts2.utils.datetime import utcnow, utctimestamp
-
-from . import cog, models
+from ..conf.versions import list_versions
+from . import cog
 from .apps import get_app, get_constant, server_allowed
 from .context import Circumstances
 from .ext import autodoc as doc
 from .ext import dm
 from .ext.acl import acl
 from .ext.autodoc import Manual, explain_exception, explains
-from .ext.logging import log_command_errors, log_exception
+from .ext.logging import log_command_error, log_exception
 from .models import Blacklisted, Server
-from .utils.common import is_direct_message
-from .utils.db import async_atomic
+from .server import sync_server
+from .utils.async_ import async_atomic
+from .utils.common import Embed2, is_direct_message
+from .utils.datetime import utcnow, utctimestamp
 from .utils.markdown import code, em, strong
 
 T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
 
-AdaptableModel = TypeVar('AdaptableModel', models.Entity, models.ModelTranslator)
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
+
+
+@explains(CommandNotFound, 'Command not found', 100)
+async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
+    if is_direct_message(ctx):
+        return False
+    cmd = ctx.searched_path or ctx.full_invoked_with
+    try:
+        ctx.bot.manual.lookup(cmd)
+        return False
+    except Exception as e:
+        return str(e), 20
 
 
 @explains(cog.ModuleDisabled, 'Command disabled')
@@ -60,69 +68,13 @@ async def on_disabled(ctx, exc: cog.ModuleDisabled):
     return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
-def channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
-    for cat, channels in guild.by_category():
-        if cat:
-            yield cat
-        for c in channels:
-            yield c
-
-
-def text_channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
-    for c in channels_ordered_1d(guild):
-        if c.type in (ChannelType.text, ChannelType.news, ChannelType.category):
-            yield c
-
-
-def _sync_models(model: AdaptableModel, designated: list[Object],
-                 registered: QuerySet):
-    designated = {r.id: r for r in designated}
-    registered_ids: set[int] = {d['snowflake'] for d in registered.values('snowflake')}
-    to_delete = registered.exclude(snowflake__in=designated.keys())
-    to_insert = (model.from_discord(r) for k, r in designated.items()
-                 if k not in registered_ids)
-    to_update = (model.from_discord(r) for k, r in designated.items()
-                 if k in registered_ids)
-    to_delete.delete()
-    model.objects.bulk_create(to_insert)
-    model.objects.bulk_update(to_update, model.updatable_fields())
-
-
-def _sync_layouts(server: Server, guild: Guild):
-    role_order = {r.id: idx for idx, r in enumerate(always_reversible(guild.roles))}
-    channel_order = {c.id: idx for idx, c in enumerate(text_channels_ordered_1d(guild))}
-    server.roles.bulk_update([
-        models.Role(snowflake=k, order=v) for k, v in role_order.items()
-    ], ['order'])
-    server.channels.bulk_update([
-        models.Channel(snowflake=k, order=v) for k, v in channel_order.items()
-    ], ['order'])
-
-
-@sync_to_async(thread_sensitive=False)
-def sync_server(guild: Guild, *, roles=True, channels=True, layout=True):
-    try:
-        server: Server = (
-            Server.objects
-            .prefetch_related('channels', 'roles')
-            .get(pk=guild.id)
-        )
-    except Server.DoesNotExist:
-        return
-    server.name = guild.name
-    server.perms = guild.default_role.permissions.value
-    server.save()
-    if roles:
-        _sync_models(models.Role, guild.roles, server.roles)
-    if channels:
-        _sync_models(models.Channel, [*text_channels_ordered_1d(guild)], server.channels)
-    if layout:
-        _sync_layouts(server, guild)
+class RollbackCommand(Exception):
+    pass
 
 
 class Robot(Bot):
     DEFAULT_PREFIX = 't;'
-    DEFAULT_PERMS = Permissions(805825782)
+    DEFAULT_PERMS = Permissions(261959446262)
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
@@ -226,8 +178,8 @@ class Robot(Bot):
             await explain_exception(ctx, exc)
         except Exception as exc:
             exc = CommandInvokeError(exc)
-            return await log_command_errors(ctx, ctx.logconfig, exc)
-        await log_command_errors(ctx, ctx.logconfig, exc)
+            return await log_command_error(ctx, ctx.logconfig, exc)
+        await log_command_error(ctx, ctx.logconfig, exc)
 
     @staticmethod
     @dm.accepts_dms
@@ -334,20 +286,20 @@ def add_event_listeners(self: Robot):
     @self.listen('on_guild_channel_delete')
     async def update_channels(channel, updated=None):
         updated = updated or channel
-        self.log.info(f'Updating channels for {updated.guild}')
-        await sync_server(updated.guild, roles=False)
+        self.log.debug(f'Updating channels for {updated.guild}; reason: {repr(updated)}')
+        await sync_server(updated.guild, info=False, roles=False)
 
     @self.listen('on_guild_role_create')
     @self.listen('on_guild_role_update')
     @self.listen('on_guild_role_delete')
     async def update_roles(role, updated=None):
         updated = updated or role
-        self.log.info(f'Updating roles for {updated.guild}')
-        await sync_server(role.guild, channels=False)
+        self.log.debug(f'Updating roles for {updated.guild}; reason: {repr(updated)}')
+        await sync_server(role.guild, info=False, channels=False)
 
     @self.listen('on_guild_update')
     async def update_server(before: Guild, after: Guild):
-        self.log.info(f'Updating server info for {after}')
+        self.log.debug(f'Updating server info for {after}; reason: {repr(after)}')
         await sync_server(after, roles=False, channels=False, layout=False)
 
     @self.listen('on_guild_available')
@@ -361,10 +313,19 @@ def add_event_listeners(self: Robot):
 def register_base_commands(self: Robot):
     self.command('help')(self.send_help)
 
-    @self.command('version')
-    @doc.description("Print the bot's current version.")
-    async def version(ctx: Circumstances, *, rest: str = None):
-        return await ctx.send(settings.VERSION)
+    @self.command('about')
+    @doc.description('Print info about the bot.')
+    async def about(ctx: Circumstances, *, rest: str = None):
+        versions = ' '.join([code(f'{pkg}/{v}') for pkg, v
+                             in list_versions().items()])
+        info = await ctx.bot.application_info()
+        embed = (
+            Embed2(title=info.name, description=info.description)
+            .add_field(name='Owner', value=info.owner.mention)
+            .add_field(name='Versions', value=versions, inline=False)
+            .personalized(ctx.me)
+        )
+        return await ctx.send(embed=embed)
 
     @self.command('echo')
     @dm.accepts_dms
@@ -440,19 +401,3 @@ def create_manual(self: Robot):
     if color:
         color = int(color, 16)
     doc.init_bot(self, title, color)
-
-
-@explains(CommandNotFound, 'Command not found', 100)
-async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
-    if is_direct_message(ctx):
-        return False
-    cmd = ctx.searched_path or ctx.full_invoked_with
-    try:
-        ctx.bot.manual.lookup(cmd)
-        return False
-    except Exception as e:
-        return str(e), 20
-
-
-class RollbackCommand(Exception):
-    pass

@@ -14,16 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, Union
 
 from asgiref.sync import sync_to_async
+from django.db import transaction
 from django.db.models import Model, QuerySet
 
 M = TypeVar('M', bound=Model)
 
 
 @sync_to_async
-def async_get(q: QuerySet[M], **kwargs) -> M:
+def async_get(q: Union[type[M], QuerySet[M]], **kwargs) -> M:
+    if isinstance(q, type) and issubclass(q, Model):
+        q = q.objects
     return q.get(**kwargs)
 
 
@@ -38,11 +41,40 @@ def async_first(q: QuerySet[M]) -> Optional[M]:
 
 
 @sync_to_async
+def async_exists(q: QuerySet[M]) -> bool:
+    return q.exists()
+
+
+@sync_to_async
 def async_save(item: M, *args, **kwargs) -> M:
     item.save(*args, **kwargs)
     return item
 
 
-async_get.__annotations__ = {'q': QuerySet[M], 'return': M}
-async_list.__annotations__ = {'q': QuerySet[M], 'return': list[M]}
-async_first.__annotations__ = {'q': QuerySet[M], 'return': Optional[M]}
+@sync_to_async
+def async_delete(item: M):
+    return item.delete()
+
+
+@sync_to_async
+def async_get_or_create(m: type[M], defaults=None, **kwargs) -> tuple[M, bool]:
+    return m.objects.get_or_create(defaults, **kwargs)
+
+
+class async_atomic:
+    """An async version of the `django.db.transaction.atomic` context manager.
+
+    Usage: `async with async_atomic(): ...`
+    """
+
+    def __init__(self, savepoint=True, durable=False):
+        self.kwargs = {'savepoint': savepoint,
+                       'durable': durable}
+
+    @sync_to_async
+    def __aenter__(self):
+        transaction.atomic(**self.kwargs).__enter__()
+
+    @sync_to_async
+    def __aexit__(self, exc_type, exc, tb):
+        transaction.atomic().__exit__(exc_type, exc, tb)

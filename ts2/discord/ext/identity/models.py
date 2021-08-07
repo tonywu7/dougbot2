@@ -75,7 +75,7 @@ class User(Entity, ModelTranslator[discord.User, 'User']):
     @classmethod
     async def async_get(cls, user: discord.User) -> User:
         try:
-            return await async_get(cls.objects, snowflake=user.id)
+            return await async_get(cls, snowflake=user.id)
         except cls.DoesNotExist:
             return cls(snowflake=user.id, name=user.name,
                        discriminator=user.discriminator)
