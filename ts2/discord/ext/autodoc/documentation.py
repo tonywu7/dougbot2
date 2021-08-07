@@ -494,7 +494,7 @@ class Documentation:
         args: deque = deque(args)
         kwargs: deque = deque(kwargs.items())
         arguments: deque = deque([*dropwhile(
-            lambda t: t[1].is_hidden,
+            lambda t: t[1].is_hidden or t[1].order < 0,
             sorted(self.arguments.items(),
                    key=lambda t: t[1]),
         )])
