@@ -23,7 +23,7 @@ from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
                      TextChannel, VoiceChannel, VoiceState)
 from discord.ext import tasks
 from discord.ext.commands import group, has_guild_permissions
-from jinja2 import TemplateSyntaxError
+from jinja2 import TemplateError, TemplateSyntaxError
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
@@ -115,7 +115,11 @@ class Ticker(
             if ticker.expired:
                 await self.delete_ticker(guild, ticker, 'expired')
             else:
-                await self.restart_ticker(guild, ticker)
+                vc = guild.get_channel(ticker.pk)
+                if vc:
+                    await self.start_ticker(vc, ticker)
+                else:
+                    await self.restart_ticker(guild, ticker)
 
     @Gear.listener('on_guild_channel_delete')
     async def on_delete_remove_ticker(self, channel: VoiceChannel):
@@ -158,7 +162,10 @@ class Ticker(
         category: CategoryChannel, placement: ChannelPlacement,
         content: CommandTemplate, variables: dict,
     ) -> VoiceChannel:
-        name = await content.render_timed(None, timeout=10, **variables)
+        try:
+            name = await content.render_timed(None, timeout=10, **variables)
+        except TemplateError as e:
+            raise doc.NotAcceptable(f'Error rendering template: {e}')
         everyone_perms = PermissionOverride(
             view_channel=True, manage_channels=False,
             connect=False, speak=False, stream=False, move_members=False,
