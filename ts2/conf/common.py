@@ -2,10 +2,11 @@ from pathlib import Path
 
 from decouple import Config, RepositoryEmpty, RepositoryIni
 
+from ts2 import VERSION, __version__
+
 APP_NAME = 'telescope2'
 
-__version__ = '0.10.0rc3'
-VERSION = __version__
+VERSION = VERSION
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 INSTANCE_DIR = PROJECT_DIR.with_name('instance')
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.museum',
     'ts2.discord.contrib.integration',
     'ts2.discord.contrib.debugging',
+    'ts2.discord.contrib.ticker',
     'ts2.web.contrib.trac',
     'graphene_django',
     'channels',
