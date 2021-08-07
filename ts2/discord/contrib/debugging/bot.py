@@ -34,8 +34,8 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Constant, Dictionary, JinjaTemplate,
                                     format_exception, get_traceback)
 from ts2.discord.ext.template import get_environment
+from ts2.discord.utils.datetime import localnow
 from ts2.discord.utils.markdown import E, a, code, strong
-from ts2.utils.datetime import localnow
 
 
 class LoggingLevel(Converter):

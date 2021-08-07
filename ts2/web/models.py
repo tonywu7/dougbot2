@@ -27,7 +27,11 @@ from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
 from ts2.discord.fetch import DiscordFetch, create_session
-from ts2.utils.datetime import utcnow
+
+
+def utcnow() -> datetime:
+    """Return an aware `datetime` set to current UTC time."""
+    return datetime.now(tz=timezone.utc)
 
 
 @deconstructible

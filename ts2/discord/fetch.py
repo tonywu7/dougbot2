@@ -33,9 +33,9 @@ from django.core.cache import cache
 from django.http import HttpRequest
 from django.urls import reverse
 
-from ts2.utils.datetime import utcnow, utctimestamp
 from ts2.utils.jwt import gen_token
 
+from .utils.datetime import utcnow, utctimestamp
 from .utils.duckcord.permissions import Permissions2
 
 OAUTH2_PROTOCOL = 'https'

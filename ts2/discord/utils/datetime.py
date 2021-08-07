@@ -14,9 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timezone, timedelta
 
 from django.utils.timezone import get_current_timezone
+
+RE_DURATION = re.compile(r'(?P<num>[0-9]+)\s*?(?P<unit>(y|mo|w|d|h|m|s?))')
 
 
 def localnow() -> datetime:
@@ -32,3 +35,20 @@ def utcnow() -> datetime:
 def utctimestamp() -> float:
     """Return the current POSIX UTC timestamp."""
     return datetime.now(tz=timezone.utc).timestamp()
+
+
+def strpduration(s: str) -> timedelta:
+    seconds = 0
+    unit = {
+        'y': 31536000,
+        'mo': 2592000,
+        'w': 604800,
+        'd': 86400,
+        'h': 3600,
+        'm': 60,
+        's': 1,
+        '': 1,
+    }
+    for seg in RE_DURATION.finditer(s):
+        seconds += int(seg['num']) * unit[seg['unit']]
+    return timedelta(seconds=seconds)

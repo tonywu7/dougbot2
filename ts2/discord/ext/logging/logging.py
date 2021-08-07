@@ -27,8 +27,7 @@ from discord import AllowedMentions, Color, File, Role, TextChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
-from ts2.utils.datetime import localnow, utcnow
-
+from ...utils.datetime import localnow, utcnow
 from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
@@ -238,4 +237,7 @@ def censor_paths(tb: str):
 
 
 async def report_exception(channel: TextChannel, exc_info: BaseException):
-    await channel.send(file=get_traceback(exc_info))
+    tb = get_traceback(exc_info)
+    if not tb:
+        return
+    await channel.send(file=tb)
