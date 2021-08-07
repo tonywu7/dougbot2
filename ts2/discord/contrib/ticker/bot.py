@@ -22,7 +22,7 @@ import pendulum
 from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
                      TextChannel, VoiceChannel, VoiceState)
 from discord.ext import tasks
-from discord.ext.commands import group
+from discord.ext.commands import group, has_guild_permissions
 from jinja2 import TemplateSyntaxError
 
 from ts2.discord.cog import Gear
@@ -464,6 +464,11 @@ class Ticker(
         'Create a VC with the name "96 Street" and place it at'
         ' the very top of the channel list.',
     )
+    @doc.restriction(
+        has_guild_permissions,
+        manage_channels=True,
+        manage_roles=True,
+    )
     async def ticker_create(
         self, ctx: Circumstances,
         category: Union[AnyChannel, Constant[Literal['top']]],
@@ -511,6 +516,11 @@ class Ticker(
             f' consult help for {code("ticker create")}.'
         ),
     )
+    @doc.restriction(
+        has_guild_permissions,
+        manage_channels=True,
+        manage_roles=True,
+    )
     async def ticker_update(
         self, ctx: Circumstances,
         channel: VoiceChannel,
@@ -538,6 +548,11 @@ class Ticker(
     @ticker.command('delete', aliases=('rm', 'del', 'remove'))
     @doc.description('Remove a hoisted message.')
     @doc.argument('channel', 'The channel to remove.')
+    @doc.restriction(
+        has_guild_permissions,
+        manage_channels=True,
+        manage_roles=True,
+    )
     async def ticker_remove(self, ctx: Circumstances, channel: VoiceChannel):
         ticker = await self.get_ticker_or_404(ctx, channel)
         channel_id = ticker.channel_id
