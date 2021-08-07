@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { defineComponent } from 'vue'
+import { ChannelEnum } from '../../@types/graphql/schema'
 import { setupDiscordModel } from '../../components/discord'
 import ItemSelect from '../../components/input/ItemSelect.vue'
 import { ACLTestOptions } from './ACLRule.vue'
@@ -29,7 +30,13 @@ export default defineComponent({
     },
     emits: ['run-test', 'clear'],
     setup() {
-        return { ...setupDiscordModel() }
+        return {
+            ...setupDiscordModel(
+                undefined,
+                (c) =>
+                    c.type == ChannelEnum.text || c.type == ChannelEnum.category
+            ),
+        }
     },
     data() {
         let errors = { commands: '', channels: '' }

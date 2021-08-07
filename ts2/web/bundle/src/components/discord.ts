@@ -18,7 +18,8 @@ import { Ref, ref, onMounted } from 'vue'
 import { Role, Channel, Command, server } from '../server'
 
 export function setupDiscordModel(
-    onModelLoaded: () => Promise<void> = () => Promise.resolve()
+    onModelLoaded: () => Promise<void> = () => Promise.resolve(),
+    channelFilter: (c: Channel) => boolean = (c) => true
 ) {
     let roles: Ref<Record<string, Role>> = ref({})
     let channels: Ref<Record<string, Channel>> = ref({})
@@ -30,7 +31,9 @@ export function setupDiscordModel(
         )
         Object.assign(
             channels.value,
-            ...(await server.getChannels()).map((d) => ({ [d.id]: d }))
+            ...(await server.getChannels())
+                .filter(channelFilter)
+                .map((d) => ({ [d.id]: d }))
         )
         Object.assign(
             commands.value,

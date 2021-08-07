@@ -22,7 +22,11 @@ import InputField from '../../components/input/InputField.vue'
 
 import { InputSelectOption } from '../../components/input/InputSelect.vue'
 import { setupDiscordModel } from '../../components/discord'
-import { ACLAction, ACLRoleModifier } from '../../@types/graphql/schema'
+import {
+    ACLAction,
+    ACLRoleModifier,
+    ChannelEnum,
+} from '../../@types/graphql/schema'
 import { ACL } from '../../server'
 import { slugify } from '../../utils/data'
 
@@ -156,7 +160,11 @@ export default defineComponent({
         return {
             modifiers: aclModifiers,
             actions: aclActions,
-            ...setupDiscordModel(),
+            ...setupDiscordModel(
+                undefined,
+                (c) =>
+                    c.type == ChannelEnum.text || c.type == ChannelEnum.category
+            ),
         }
     },
     data() {
