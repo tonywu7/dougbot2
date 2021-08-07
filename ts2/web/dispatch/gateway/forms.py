@@ -20,7 +20,7 @@ from discord.ext.commands import Bot
 from django import forms
 
 from ts2.discord.models import Server
-from ts2.discord.threads import get_thread
+from ts2.discord.thread import get_thread
 
 
 class UserCreationForm(forms.Form):
@@ -47,7 +47,7 @@ class ServerCreationForm(forms.ModelForm):
         fields = ['snowflake', 'invited_by', 'disabled']
 
     def save(self, *args, **kwargs):
-        from ts2.discord.bot import sync_server
+        from ts2.discord.server import sync_server_unsafe
 
         server: Server = super().save(*args, **kwargs)
         thread = get_thread()
@@ -63,7 +63,7 @@ class ServerCreationForm(forms.ModelForm):
                     return
                 else:
                     guild._channels = {c.id: c for c in await guild.fetch_channels()}
-            await sync_server(guild)
+            await sync_server_unsafe(guild)
 
         thread.run_coroutine(sync_models(thread.client))
         return server

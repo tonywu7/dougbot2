@@ -16,7 +16,7 @@
 
 from django.template import Library
 
-from ..threads import get_thread
+from ..thread import get_thread
 
 register = Library()
 

@@ -273,7 +273,7 @@ def make_logging_config(
                 'level': logging.INFO,
             },
             'django.db.backends': {
-                'level': logging.INFO,
+                'level': logging.DEBUG,
             },
             'django.channels.server': {
                 'level': logging.INFO,

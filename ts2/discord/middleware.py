@@ -155,7 +155,7 @@ class DiscordContext:
     @classmethod
     async def create(cls, guilds: Iterable[PartialGuild], guild_id: Optional[str | int],
                      token: str, user: User, profile: PartialUser) -> DiscordContext:
-        from .threads import get_thread
+        from .thread import get_thread
 
         if guild_id:
             guild_id = int(guild_id)

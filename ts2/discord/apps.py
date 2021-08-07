@@ -52,7 +52,7 @@ class DiscordBotConfig(AppConfig):
             return
 
         if getattr(settings, 'DISCORD_EAGER_CONNECT', False):
-            from .threads import get_thread
+            from .thread import get_thread
             get_thread()
 
     @property
@@ -89,7 +89,7 @@ def get_constant(k: str, default=None):
 
 
 def get_commands(req: HttpRequest) -> list[str]:
-    from .threads import get_thread
+    from .thread import get_thread
     superuser = req.user.is_superuser
     bot = get_thread().client
     return [*sorted(

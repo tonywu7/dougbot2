@@ -34,7 +34,7 @@ from django.views.generic import View
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
                                bot_invite_url, create_session)
 from ts2.discord.models import Server
-from ts2.discord.threads import get_thread
+from ts2.discord.thread import get_thread
 from ts2.utils.jwt import validate_token
 
 from ...models import User, manage_permissions_required
