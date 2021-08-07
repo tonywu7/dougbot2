@@ -25,5 +25,5 @@ def unpack_varargs(item: tuple, names: list[str], **defaults):
     for k in unpacked:
         v = unpacked[k]
         if get_origin(v) is Literal:
-            unpacked[k] = get_args(v)[0]
+            unpacked[k] = get_args(v)
     return itemgetter(*names)(unpacked)
