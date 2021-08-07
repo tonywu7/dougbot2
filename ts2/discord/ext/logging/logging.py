@@ -185,6 +185,10 @@ class ContextualLogger:
     critical = partialmethod(log, level=logging.CRITICAL)
 
 
+def unpack_exc(exc: BaseException) -> BaseException:
+    return getattr(exc, 'original', None) or exc.__cause__ or exc
+
+
 def format_exception(exc: BaseException, title: Optional[str] = None,
                      color: Optional[Color] = Color.red()) -> Embed2:
     return Embed2(title=title or type(exc).__name__,
@@ -202,7 +206,7 @@ def get_traceback(exc: BaseException) -> File:
     return File(tb_file, filename=filename)
 
 
-async def log_command_errors(ctx: Context, config: LoggingConfig, exc: errors.CommandError):
+async def log_command_error(ctx: Context, config: LoggingConfig, exc: errors.CommandError):
     if isinstance(exc, tuple(bypassed)):
         return
     for key, conf in exceptions.items():
@@ -214,7 +218,7 @@ async def log_command_errors(ctx: Context, config: LoggingConfig, exc: errors.Co
                      exc_info=exc)
         return
     if isinstance(exc, UNCAUGHT_EXCEPTIONS):
-        exc_info = exc.__cause__
+        exc_info = unpack_exc(exc)
     else:
         exc_info = None
     title = conf['name']

@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
+from datetime import timezone
 from functools import wraps
 from typing import Optional, Union
 
@@ -74,6 +75,8 @@ class Circumstances(Context):
 
         self.session = self.bot.request
         self.response = ResponseInit
+
+        self.timestamp = self.message.created_at.replace(tzinfo=timezone.utc)
 
     def path_append(self, cmd: Optional[Union[str, Command]]):
         if isinstance(cmd, Command):
@@ -159,7 +162,10 @@ class Circumstances(Context):
 
     @property
     def logconfig(self) -> dict:
-        return self.server.logging
+        try:
+            return self.server.logging
+        except NotInServer:
+            return {}
 
     @property
     def log(self):
@@ -197,8 +203,8 @@ class Circumstances(Context):
             return
         for r in results:
             if isinstance(r, Exception):
-                from .ext.logging import log_command_errors
-                log_command_errors(self, self.logconfig, r)
+                from .ext.logging import log_command_error
+                log_command_error(self, self.logconfig, r)
 
     def format_command(self, cmd: str):
         assert cmd in self.bot.manual.commands
