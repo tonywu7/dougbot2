@@ -136,9 +136,14 @@ class Robot(Bot):
 
         task.add_done_callback(callback)
 
-    async def get_context(self, message, *args, **kwargs) -> Circumstances:
+    async def get_context(self, message: Message, *args, **kwargs) -> Circumstances:
         ctx: Circumstances = await super().get_context(message, cls=Circumstances)
-        await ctx.init()
+        try:
+            await ctx.init()
+        except Server.DoesNotExist:
+            if ctx.command:
+                await message.send('The bot is misconfigured in this server.')
+            ctx.command = None
         if ctx.command and ctx.command.hidden:
             ctx.command = None
         return ctx
