@@ -53,7 +53,7 @@ log = logging.getLogger('discord.commands')
 MANPAGE_MAX_LEN = 500
 
 _type_descriptions: dict[_Annotation, QuantifiedNP] = {
-    int: QuantifiedNP('whole number'),
+    int: QuantifiedNP('number'),
     float: QuantifiedNP('number', attributive='whole or decimal'),
 
     str: QuantifiedNP('text', uncountable=True),
@@ -65,9 +65,11 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
     discord.Role: QuantifiedNP('id', 'name', 'mention', concise='role', attributive="role's"),
     discord.TextChannel: QuantifiedNP('id', 'name', concise='text channel', attributive="text channel's"),
     discord.VoiceChannel: QuantifiedNP('id', 'name', concise='voice channel', attributive="voice channel's"),
+    discord.StageChannel: QuantifiedNP('id', 'name', concise='stage channel', attributive="stage channel's"),
+    discord.CategoryChannel: QuantifiedNP('id', 'name', concise='channel category', attributive="channel category's"),
     discord.Colour: QuantifiedNP('color', predicative='in hexadecimal or RGB format'),
     discord.Emoji: QuantifiedNP('emote', predicative='must be in servers the bot is in'),
-    discord.PartialEmoji: QuantifiedNP('emote'),
+    discord.PartialEmoji: QuantifiedNP('emote id'),
 
     _AllChannelTypes: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     Optional[_AllChannelTypes]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
@@ -361,14 +363,17 @@ class Documentation:
             yield from self.iter_call_styles(options, stack)
             options.appendleft(stack.pop())
 
-    def format_examples(self, examples: list[tuple[str, Optional[str]]], transform=strong) -> str:
+    def format_examples(
+        self, examples: list[tuple[str, Optional[str]]],
+        transform=lambda s: strong(escape_markdown(s)),
+    ) -> str:
         if not examples:
             return '(none)'
         lines = []
         for invocation, explanation in examples:
             if isinstance(invocation, tuple):
                 invocation = '\n'.join(invocation)
-            lines.append(transform(escape_markdown(invocation)))
+            lines.append(transform(invocation))
             if explanation:
                 lines.append(blockquote(explanation))
         return '\n'.join(lines)
@@ -452,7 +457,11 @@ class Documentation:
         if self.restrictions:
             sections['Restrictions'] = '\n'.join(self.restrictions)
         if self.examples:
-            sections['Examples'] = self.format_examples(self.examples.items())
+            examples = self.format_examples(
+                self.examples.items(),
+                lambda s: '\n' + strong(s),
+            )
+            sections['Examples'] = examples
 
         arguments = [f'{strong(arg.key)}: {arg.describe()}'
                      for arg in self.arguments.values()
