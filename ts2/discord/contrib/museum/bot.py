@@ -40,8 +40,6 @@ from ts2.discord.utils.pagination import ParagraphStream, chapterize
 
 from .models import StoryTask
 
-BEGIN_OR_END = ('begin', 'end', 'start', 'stop')
-
 RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)')
 
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
@@ -69,7 +67,7 @@ class Museum(
     @doc.concurrent(1, BucketType.channel)
     async def story(
         self, ctx: Circumstances,
-        begin_or_end: Choice[BEGIN_OR_END, Literal['option']],
+        begin_or_end: Choice[Literal['begin', 'end', 'start', 'stop'], Literal['option']],
         message: Optional[Message],
         *, reply: Optional[MessageReference],
     ):
@@ -206,7 +204,7 @@ class StoryCollector:
         if not story or story.isspace():
             return await self._warn('Gathered no text from all messages!')
 
-        for chapter in chapterize(self.gen_story()):
+        for chapter in chapterize(self.gen_story(), closing='...', opening='(continued) '):
             await (self.ctx.response(self.ctx, content=chapter)
                    .mentions(None).reply(True).suppress().run())
         await self.ctx.response(self.ctx, embed=self.gen_stats()).reply(notify=True).run()

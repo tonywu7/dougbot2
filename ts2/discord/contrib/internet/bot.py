@@ -54,7 +54,7 @@ class Internet(
     @doc.cooldown(1, 10, BucketType.guild)
     @doc.concurrent(1, BucketType.guild)
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
-                   a_number: Optional[RegExp[Literal[r'[Aa]\d+'], Literal['A-number'], Literal['such as A0000045']]] = None):
+                   a_number: Optional[RegExp[Literal[r'[Aa]\d+', 'A-number', 'such as A0000045']]] = None):
         if integers:
             query = ' '.join([str(n) for n in integers])
         elif a_number:

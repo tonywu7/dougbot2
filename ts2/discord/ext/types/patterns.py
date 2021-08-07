@@ -32,10 +32,10 @@ from . import unpack_varargs
 
 class Constant(Converter):
     def __class_getitem__(cls, const: str):
-        const = unpack_varargs(const, ['const'])
+        const = unpack_varargs(const, ['const'])[0]
         desc = QuantifiedNP(
             f'exact text "{const}"',
-            concise=f'{const}',
+            concise=f'"{const}"',
             predicative='without the quotes',
             definite=True,
         )
@@ -58,8 +58,12 @@ class Choice(Converter):
     def __class_getitem__(cls, item: tuple[Iterable[str], str, bool]):
         choices, concise_name, case_sensitive = unpack_varargs(
             item, ('choices', 'concise_name', 'case_sensitive'),
-            case_sensitive=False,
+            case_sensitive=False, concise_name=None,
         )
+        if concise_name is None:
+            concise_name = f'"{"/".join(choices)}"'
+        if isinstance(concise_name, tuple):
+            concise_name = concise_name[0]
 
         predicative = coord_conj(*[f'"{w}"' for w in choices], conj='or')
         if case_sensitive:
@@ -98,7 +102,7 @@ class CaseInsensitive(Converter):
 
 class Range(Converter):
     def __class_getitem__(cls, item: tuple[int, int]):
-        lower, upper = unpack_varargs(item, ('lower', 'upper'))
+        lower, upper = unpack_varargs(item, ('bounds',))
 
         desc = QuantifiedNP(
             f'number between {lower} and {upper}, inclusive',
@@ -123,10 +127,7 @@ class Range(Converter):
 
 class RegExp(Converter):
     def __class_getitem__(cls, item: tuple[str, str, str]) -> None:
-        pattern, name, predicative = unpack_varargs(
-            item, ('pattern', 'name', 'predicative'),
-            name=None, predicative=None,
-        )
+        pattern, name, predicative = unpack_varargs(item, ('args',))
         pattern: re.Pattern = re.compile(pattern)
         name = name or 'pattern'
         predicative = predicative or ('matching the regular expression '
