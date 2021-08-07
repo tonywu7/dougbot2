@@ -70,7 +70,7 @@ def discussion(title: str, body: str):
     return deco
 
 
-def argument(arg: str, help: str = '', *, node: str = '',
+def argument(arg: str, help: Union[str, Literal[False]] = '', *, node: str = '',
              signature: str = '', term: Optional[Union[str, QuantifiedNP]] = None):
     """Describe an argument of this command.
 
@@ -90,7 +90,10 @@ def argument(arg: str, help: str = '', *, node: str = '',
     """
     def wrapper(doc: Documentation, f: Command):
         argument = doc.arguments[arg]
-        argument.help = help
+        if help is False:
+            argument.hidden = True
+        else:
+            argument.help = help
         argument.node = node
         argument.signature = signature
         if isinstance(term, QuantifiedNP):
