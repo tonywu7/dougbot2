@@ -1,3 +1,4 @@
+from csp.decorators import csp_exempt
 from django.conf import settings
 from django.urls import include, re_path
 
@@ -13,5 +14,5 @@ urlpatterns = [
     re_path(r'^guild/(?P<guild_id>[0-9]+)/', include('ts2.web.dispatch.manage.urls')),
     re_path(r'^guild/(?P<guild_id>[0-9]+)/server/', include('ts2.discord.urls')),
     re_path(r'^graphql$', name='api',
-            view=GraphQLView_.as_view(graphiql=settings.DEBUG, schema=schema.schema)),
+            view=csp_exempt(GraphQLView_.as_view(graphiql=settings.DEBUG, schema=schema.schema))),
 ]
