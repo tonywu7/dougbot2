@@ -94,7 +94,7 @@ class Robot(Bot):
         @sync_to_async
         def get():
             return Server.objects.get(pk=guild_id).prefix
-        return [await get(), f'<@!{bot_id}> ']
+        return [await get()]
 
     @classmethod
     async def which_prefix(cls, bot: Bot, msg: Message):
@@ -262,7 +262,9 @@ def add_event_listeners(self: Robot):
             return
         if msg.content == f'<@!{self.user.id}>':
             prefixes = await self.which_prefix(self, msg)
-            return await msg.reply(f'Prefix is {strong(prefixes[0])}')
+            prefix = prefixes[0]
+            example = f'{prefix}echo'
+            return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')
 
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
