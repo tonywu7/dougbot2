@@ -291,21 +291,21 @@ def add_event_listeners(self: Robot):
     @self.listen('on_guild_channel_delete')
     async def update_channels(channel, updated=None):
         updated = updated or channel
-        self.log.debug(f'Updating channels for {updated.guild}; reason: {repr(updated)}')
         await sync_server(updated.guild, info=False, roles=False)
+        self.log.debug(f'Updated channels for {updated.guild}; reason: {repr(updated)}')
 
     @self.listen('on_guild_role_create')
     @self.listen('on_guild_role_update')
     @self.listen('on_guild_role_delete')
     async def update_roles(role, updated=None):
         updated = updated or role
-        self.log.debug(f'Updating roles for {updated.guild}; reason: {repr(updated)}')
         await sync_server(role.guild, info=False, channels=False)
+        self.log.debug(f'Updated roles for {updated.guild}; reason: {repr(updated)}')
 
     @self.listen('on_guild_update')
     async def update_server(before: Guild, after: Guild):
-        self.log.debug(f'Updating server info for {after}; reason: {repr(after)}')
         await sync_server(after, roles=False, channels=False, layout=False)
+        self.log.debug(f'Updated server info for {after}; reason: {repr(after)}')
 
     @self.listen('on_guild_available')
     async def update_server_initial(guild: Guild):

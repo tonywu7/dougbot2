@@ -15,9 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from collections import defaultdict
 from collections.abc import Generator
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import TypeVar
 
 from asgiref.sync import sync_to_async
@@ -32,7 +31,7 @@ from .models import Server
 
 DiscordModel = TypeVar('DiscordModel', models.Entity, models.ModelTranslator)
 
-_server_is_fresh: defaultdict[int, asyncio.Event] = defaultdict(asyncio.Event)
+_unordered_write = None
 
 
 def channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
@@ -102,20 +101,25 @@ def _sync_server(guild: Guild, *, info=True, roles=True, channels=True, layout=T
                 _sync_channel_layout(server, guild)
 
 
-def mark_stale(guild: Guild):
-    _server_is_fresh[guild.id].clear()
+def _get_event() -> asyncio.Event:
+    global _unordered_write
+    if _unordered_write is None:
+        _unordered_write = asyncio.Event()
+        _unordered_write.set()
+    return _unordered_write
 
 
-def mark_fresh(guild: Guild):
-    _server_is_fresh[guild.id].set()
+@asynccontextmanager
+async def exclusive_sync():
+    _get_event().clear()
+    try:
+        yield
+    finally:
+        _get_event().set()
 
 
-def is_up_to_date(guild: Guild):
-    return _server_is_fresh[guild.id].is_set()
-
-
-async def wait_until_synced(guild: Guild):
-    return await _server_is_fresh[guild.id].wait()
+async def wait_until_free():
+    return await _get_event().wait()
 
 
 @sync_to_async(thread_sensitive=False)
@@ -125,12 +129,9 @@ def sync_server_unsafe(*args, **kwargs):
 
 @sync_to_async
 def sync_server_threadsafe(guild: Guild, **kwargs):
-    if is_up_to_date(guild):
-        return
     return _sync_server(guild, **kwargs)
 
 
 async def sync_server(guild: Guild, **kwargs):
-    mark_stale(guild)
+    await wait_until_free()
     await sync_server_threadsafe(guild, **kwargs)
-    mark_fresh(guild)

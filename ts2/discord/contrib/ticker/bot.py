@@ -22,9 +22,10 @@ import pendulum
 from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
                      TextChannel, VoiceChannel, VoiceState)
 from discord.ext import tasks
-from discord.ext.commands import group, has_guild_permissions
+from discord.ext.commands import Greedy, group, has_guild_permissions
 from jinja2 import TemplateError, TemplateSyntaxError
 
+from ts2.discord import server
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
@@ -32,7 +33,6 @@ from ts2.discord.ext.common import (Choice, Constant, Datetime, Dictionary,
                                     JinjaTemplate, Timedelta, unpack_dict)
 from ts2.discord.ext.template import CommandTemplate, get_environment
 from ts2.discord.models import Channel
-from ts2.discord.server import mark_stale, wait_until_synced
 from ts2.discord.utils.async_ import (async_delete, async_get, async_list,
                                       async_save)
 from ts2.discord.utils.common import (Embed2, EmbedPagination,
@@ -49,10 +49,14 @@ def _reason(s: str):
     return f'Channel hoisting: {s}'
 
 
-async def _ensure_vc_model(vc: VoiceChannel) -> Channel:
-    mark_stale(vc.guild)
-    await wait_until_synced(vc.guild)
-    return await async_get(Channel, snowflake=vc.id)
+async def _sync_channel(vc: VoiceChannel) -> Channel:
+    c = Channel(
+        snowflake=vc.id, name=vc.name, type=vc.type.value,
+        guild_id=vc.guild.id, order=vc.position,
+        category_id=vc.category_id,
+    )
+    await async_save(c)
+    return c
 
 
 class TickerState:
@@ -178,8 +182,9 @@ class Ticker(
                     guild.self_role: self_perms}
         kwargs = {'name': name, 'overwrites': override, 'category': category,
                   'reason': _reason('initial creation')}
-        vc = await guild.create_voice_channel(**kwargs)
-        await _ensure_vc_model(vc)
+        async with server.exclusive_sync():
+            vc = await guild.create_voice_channel(**kwargs)
+            await _sync_channel(vc)
         if placement:
             await vc.move(category=category, **placement)
         self.log.debug(f'Ticker channel created: {vc}')
@@ -271,9 +276,9 @@ class Ticker(
             'content': get_environment().from_string(ticker.content),
             'variables': ticker.variables,
         }
+
         vc = await self.create_ticker_channel(**options)
 
-        await _ensure_vc_model(vc)
         ticker.channel_id = vc.id
         ticker.parent_id = vc.category_id
         await async_save(ticker)
@@ -493,13 +498,14 @@ class Ticker(
         placement = self.get_placement(position)
         template = self.get_template(content)
 
-        vc = await self.create_ticker_channel(ctx.guild, category,
-                                              placement, template, variables)
-        ticker = await self.create_ticker(vc, placement, template, variables,
-                                          refresh, expire)
-        await self.start_ticker(vc, ticker)
-        result = self.get_result(vc, ticker)
-        return await ctx.response(ctx, embed=result).reply().deleter().run()
+        async with ctx.typing():
+            vc = await self.create_ticker_channel(ctx.guild, category,
+                                                  placement, template, variables)
+            ticker = await self.create_ticker(vc, placement, template, variables,
+                                              refresh, expire)
+            await self.start_ticker(vc, ticker)
+            result = self.get_result(vc, ticker)
+            return await ctx.response(ctx, embed=result).reply().deleter().run()
 
     @ticker.command('update', aliases=('set', 'edit'))
     @doc.description('Update settings for a currently running ticker.')
@@ -548,21 +554,29 @@ class Ticker(
         ticker.refresh = self.get_refresh(refresh, ticker.refresh)
         ticker.placement = self.get_placement(position, ticker.placement)
         ticker.content = self.get_template(content, ticker.content).source
-        vc = await self.restart_ticker(ctx.guild, ticker)
-        result = self.get_result(vc, ticker)
-        return await ctx.response(ctx, embed=result).reply().deleter().run()
+        async with ctx.typing():
+            vc = await self.restart_ticker(ctx.guild, ticker)
+            result = self.get_result(vc, ticker)
+            return await ctx.response(ctx, embed=result).reply().deleter().run()
 
     @ticker.command('delete', aliases=('rm', 'del', 'remove'))
     @doc.description('Remove a hoisted message.')
-    @doc.argument('channel', 'The channel to remove.')
+    @doc.argument('channels', 'The channel to remove.')
     @doc.restriction(
         has_guild_permissions,
         manage_channels=True,
         manage_roles=True,
     )
-    async def ticker_remove(self, ctx: Circumstances, channel: VoiceChannel):
-        ticker = await self.get_ticker_or_404(ctx, channel)
-        channel_id = ticker.channel_id
-        await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
-        result = Embed2(description=f'Ticker deleted: {channel_id}')
-        return await ctx.response(ctx, embed=result).reply().deleter().run()
+    async def ticker_remove(self, ctx: Circumstances, channels: Greedy[VoiceChannel]):
+        deleted: list[str] = []
+        async with ctx.typing():
+            for channel in channels:
+                try:
+                    ticker = await self.get_ticker_or_404(ctx, channel)
+                except doc.NotAcceptable:
+                    continue
+                channel_id = ticker.channel_id
+                await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
+                deleted.append(str(channel_id))
+            result = Embed2(description=f'Ticker deleted: {", ".join(deleted)}')
+            return await ctx.response(ctx, embed=result).reply().deleter().run()
