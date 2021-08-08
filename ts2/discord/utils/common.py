@@ -1,3 +1,4 @@
+from datetime import timezone
 from typing import Union
 
 from discord import DMChannel, Message, TextChannel
@@ -26,3 +27,20 @@ from .response import ResponseInit  # noqa: F401
 
 def is_direct_message(ctx: Union[Message, Context, TextChannel]):
     return isinstance(ctx, DMChannel) or isinstance(ctx.channel, DMChannel)
+
+
+def serialize_message(message: Message):
+    author = message.author
+    return {
+        'id': message.id,
+        'created_at': message.created_at.replace(tzinfo=timezone.utc).isoformat(),
+        'author': {
+            'id': author.id,
+            'name': str(author),
+            'display_name': author.display_name,
+            'avatar_url': str(author.avatar_url),
+        },
+        'content': message.content,
+        'embeds': [e.to_dict() for e in message.embeds],
+        'files': [f.url for f in message.attachments],
+    }

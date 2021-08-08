@@ -34,6 +34,7 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Constant, Dictionary, JinjaTemplate,
                                     format_exception, get_traceback)
 from ts2.discord.ext.template import get_environment
+from ts2.discord.utils.common import serialize_message
 from ts2.discord.utils.datetime import localnow
 from ts2.discord.utils.markdown import E, a, code, strong
 
@@ -154,18 +155,14 @@ class Debugging(
             message = reply.resolved
         if not text and not message:
             return
+        info = []
+        info.append(serialize_message(ctx.message))
+        if message:
+            info.append(serialize_message(message))
         with io.StringIO() as stream:
-            if text:
-                stream.write(f'{text}\n\n')
-            if message:
-                stream.write(f'BEGIN MESSAGE {message.id}\n')
-                if message.content:
-                    stream.write(f'{message.content}\n')
-                for embed in message.embeds:
-                    stream.write(json.dumps(embed.to_dict()))
-                    stream.write('\n')
+            json.dump(info, stream)
             stream.seek(0)
-            fname = f'message.{localnow().isoformat().replace(":", ".")}.txt'
+            fname = f'message.{localnow().isoformat().replace(":", ".")}.json'
             file = File(stream, filename=fname)
             await ctx.send(file=file)
 
