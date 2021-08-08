@@ -48,7 +48,7 @@ class OEISEntry:
 
     @property
     def title(self) -> str:
-        return f'A{self.number:06} {escape_markdown(self.name)}'
+        return f'A{self.number:06} {trunc_for_field(escape_markdown(self.name), 248)}'
 
     @property
     def description(self) -> str:
