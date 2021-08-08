@@ -56,7 +56,10 @@ class Internet(
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
                    a_number: Optional[RegExp[Literal[r'[Aa]\d+', 'A-number', 'such as A0000045']]] = None):
         if integers:
-            query = ' '.join([str(n) for n in integers])
+            if len(integers) == 1:
+                query = f'A{integers[0]}'
+            else:
+                query = ' '.join([str(n) for n in integers])
         elif a_number:
             query = a_number[0]
         else:
