@@ -163,9 +163,13 @@ class Ticker(
 
     async def create_ticker_channel(
         self, guild: Guild,
-        category: CategoryChannel, placement: ChannelPlacement,
+        category: Optional[CategoryChannel], placement: ChannelPlacement,
         content: CommandTemplate, variables: dict,
     ) -> VoiceChannel:
+        if category:
+            if not category.permissions_for(guild.me).view_channel:
+                raise doc.NotAcceptable(('The bot cannot see channels'
+                                         f' under category {category}'))
         try:
             name = await content.render_timed(None, timeout=10, **variables)
         except TemplateError as e:
