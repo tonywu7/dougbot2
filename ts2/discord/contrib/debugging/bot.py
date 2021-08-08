@@ -24,15 +24,16 @@ from typing import Literal, Optional, Union
 
 import psutil
 import simplejson as json
-from discord import File, Member, Message, MessageReference, Role, TextChannel
+from discord import (File, Game, Member, Message, MessageReference, Role, TextChannel, Activity, ActivityType)
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
-from ts2.discord.ext.common import (Constant, Dictionary, JinjaTemplate,
-                                    format_exception, get_traceback)
+from ts2.discord.ext.common import (Choice, Constant, Dictionary,
+                                    JinjaTemplate, format_exception,
+                                    get_traceback)
 from ts2.discord.ext.template import get_environment
 from ts2.discord.utils.common import serialize_message
 from ts2.discord.utils.datetime import localnow
@@ -192,3 +193,22 @@ class Debugging(
             embed = format_exception(e)
             tb = get_traceback(e)
             return await ctx.send(embed=embed, file=tb)
+
+    @command('status')
+    @doc.description("Change the bot's status")
+    @doc.argument('activity', 'The type of activity.')
+    @doc.argument('name', 'The text of the status')
+    @doc.restriction(is_owner)
+    @doc.hidden
+    async def status(
+        self, ctx: Circumstances,
+        activity: Choice[Literal['playing', 'watching']],
+        *, name: str,
+    ):
+        if activity == 'playing':
+            activity = Game(name)
+        elif activity == 'watching':
+            activity = Activity(type=ActivityType.watching, name=name)
+        else:
+            return
+        await ctx.bot.change_presence(activity=activity)
