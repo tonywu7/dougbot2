@@ -123,7 +123,7 @@ def prepend_argument_hint(sep='\n\n'):
                 return
             msg, autodelete = should_log
             man = get_manual(ctx)
-            doc = man.lookup(ctx.command.qualified_name)
+            doc = man.lookup(ctx.command.qualified_name, hidden=True)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
             arg_info = f'> {ctx.prefix}{full_invoked_with(ctx)} {arg_info}'
             if arg.help:
