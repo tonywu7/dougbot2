@@ -168,8 +168,10 @@ class Ticker(
     ) -> VoiceChannel:
         if category:
             if not category.permissions_for(guild.me).view_channel:
-                raise doc.NotAcceptable(('The bot cannot see channels'
-                                         f' under category {category}'))
+                raise doc.NotAcceptable(
+                    'The bot does not have the "View Channel" permission'
+                    f' under category {category}.',
+                )
         try:
             name = await content.render_timed(None, timeout=10, **variables)
         except TemplateError as e:

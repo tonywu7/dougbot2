@@ -26,9 +26,10 @@ from more_itertools import always_iterable
 from ...utils.functional import memoize
 from .documentation import (CheckDecorator, CheckWrapper, Documentation,
                             add_type_converter, add_type_description)
+from .errorhandling import explains
 from .exceptions import ReplyRequired
-from .explanation import BUCKET_DESCRIPTIONS, describe_concurrency, explains
-from .lang import QuantifiedNP, pluralize
+from .lang import (BUCKET_DESCRIPTIONS, QuantifiedNP, describe_concurrency,
+                   pluralize)
 
 explains = explains
 

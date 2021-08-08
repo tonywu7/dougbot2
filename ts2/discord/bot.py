@@ -21,10 +21,11 @@ from typing import TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Client, Guild, Intents, Message, Object,
-                     Permissions, RawReactionActionEvent)
+from discord import (AllowedMentions, Client, Forbidden, Guild, Intents,
+                     Message, NotFound, Object, Permissions,
+                     RawReactionActionEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
-                                  has_guild_permissions)
+                                  errors, has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.db import IntegrityError
@@ -36,7 +37,7 @@ from .context import Circumstances
 from .ext import autodoc as doc
 from .ext import dm
 from .ext.acl import acl
-from .ext.autodoc import Manual, explain_exception, explains
+from .ext.autodoc import Manual, add_error_names, explain_exception, explains
 from .ext.logging import log_command_error, log_exception
 from .models import Blacklisted, Server
 from .server import sync_server
@@ -49,23 +50,6 @@ T = TypeVar('T', bound=Client)
 U = TypeVar('U', bound=Bot)
 
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
-
-
-@explains(CommandNotFound, 'Command not found', 100)
-async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
-    if is_direct_message(ctx):
-        return False
-    cmd = ctx.searched_path or ctx.full_invoked_with
-    try:
-        ctx.bot.manual.lookup(cmd)
-        return False
-    except Exception as e:
-        return str(e), 20
-
-
-@explains(cog.ModuleDisabled, 'Command disabled')
-async def on_disabled(ctx, exc: cog.ModuleDisabled):
-    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
 class RollbackCommand(Exception):
@@ -93,6 +77,7 @@ class Robot(Bot):
         register_base_commands(self)
         load_extensions(self)
         create_manual(self)
+        define_errors()
         self.gatekeeper = Gatekeeper()
 
     async def _init_client_session(self):
@@ -407,3 +392,132 @@ def create_manual(self: Robot):
     if color:
         color = int(color, 16)
     doc.init_bot(self, title, color)
+
+
+@explains(CommandNotFound, 'Command not found', 100)
+async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
+    if is_direct_message(ctx):
+        return False
+    cmd = ctx.searched_path or ctx.full_invoked_with
+    try:
+        ctx.bot.manual.lookup(cmd)
+        return False
+    except Exception as e:
+        return str(e), 20
+
+
+@explains(cog.ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: cog.ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+
+
+def define_errors():
+    from .ext.autodoc import exceptions
+    from .ext.types.patterns import (InvalidChoices, InvalidRange,
+                                     RegExpMismatch)
+
+    add_error_names(
+        exceptions.NotAcceptable,
+        'HTTP 400 Bad Request',
+        "That ain't it chief.",
+        'Nope.',
+        "Can't do that.",
+    )
+    add_error_names(
+        exceptions.ReplyRequired,
+        'Do the reply thing.',
+    )
+    add_error_names(
+        errors.CommandOnCooldown,
+        'HTTP 503 Service Unavailable',
+        'Slow down please.',
+        'Calm down satan.',
+        'Not so fast.',
+    )
+    add_error_names(
+        errors.MaxConcurrencyReached,
+        'HTTP 503 Service Unavailable',
+        'Too much work to do!',
+        'The line is busy.',
+    )
+    add_error_names(
+        (errors.CheckFailure,
+         errors.CheckAnyFailure,
+         errors.MissingAnyRole,
+         errors.MissingRole,
+         errors.MissingPermissions,
+         acl.ACLFailure,
+         cog.ModuleDisabled),
+        'HTTP 403 Forbidden',
+        'You Shall Not Pass.',
+        "Sorry, you can't do that in here.",
+        'Nope.',
+        'Nah.',
+        'Not a chance.',
+        "Don't even think about it.",
+    )
+    add_error_names(
+        (errors.BotMissingAnyRole,
+         errors.MissingRole),
+        'Where my roles at??',
+    )
+    add_error_names(
+        (errors.BotMissingPermissions,
+         Forbidden),
+        'Where my perms at??',
+    )
+    add_error_names(
+        errors.MissingRequiredArgument,
+        'Not quite there.',
+        'Not quite yet.',
+        'Almost there...',
+    )
+    add_error_names(
+        errors.TooManyArguments,
+        "That's too much stuff.",
+    )
+    add_error_names(
+        (errors.BadArgument,
+         errors.BadInviteArgument,
+         errors.BadBoolArgument,
+         errors.BadColourArgument,
+         errors.BadUnionArgument,
+         RegExpMismatch,
+         InvalidRange,
+         InvalidChoices,
+         NotFound),
+        'HTTP 400 Bad Request',
+        "That ain't it chief.",
+        'What?',
+    )
+    add_error_names(
+        (errors.MessageNotFound,
+         errors.MemberNotFound,
+         errors.UserNotFound,
+         errors.ChannelNotFound,
+         errors.RoleNotFound,
+         errors.EmojiNotFound,
+         errors.PartialEmojiConversionFailure,
+         errors.CommandNotFound),
+        'HTTP 404 Not Found',
+        'Must be my imagination ...',
+        "Must've been the wind ...",
+        'What is that?',
+        "I don't know what you are talking about.",
+        "I don't know what I am looking at.",
+    )
+    add_error_names(
+        errors.ChannelNotReadable,
+        'Let me in!',
+    )
+    add_error_names(
+        errors.NSFWChannelRequired,
+        'Yikes.',
+    )
+    add_error_names(
+        Exception,
+        'Oh no!',
+        'Oopsie!',
+        'Aw, snap!',
+        "That's not supposed to happen...",
+    )

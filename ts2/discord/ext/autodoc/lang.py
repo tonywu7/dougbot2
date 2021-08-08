@@ -17,15 +17,27 @@
 from __future__ import annotations
 
 import re
+from functools import cache
 from typing import Optional, TypedDict
 
 from discord import User
-from discord.ext.commands import Context
+from discord.ext.commands import BucketType, Context
+from discord.ext.commands.view import StringView
 
 from ...utils.markdown import tag
 from ._compat import engine_
 
 inflection = engine_()
+
+BUCKET_DESCRIPTIONS = {
+    BucketType.default: 'globally',
+    BucketType.user: 'per user',
+    BucketType.member: 'per user',
+    BucketType.guild: 'per server',
+    BucketType.channel: 'per channel',
+    BucketType.category: 'per channel category',
+    BucketType.role: 'per role',
+}
 
 
 def pluralize(count: int, term: str) -> str:
@@ -287,3 +299,30 @@ def address(msg: str, person: User, ctx: Optional[Context] = None,
     if sentence:
         msg = msg[0].upper() + msg[1:]
     return msg
+
+
+def indicate_eol(s: StringView) -> str:
+    return f'{s.buffer[:s.index + 1]} ←'
+
+
+def indicate_extra_text(s: StringView) -> str:
+    return f'{s.buffer[:s.index]} → {s.buffer[s.index:]} ←'
+
+
+def describe_concurrency(number: int, bucket: BucketType):
+    bucket_type = BUCKET_DESCRIPTIONS[bucket]
+    info = (f'concurrency: maximum {number} {pluralize(number, "call")} '
+            f'running at the same time {bucket_type}')
+    return info
+
+
+@cache
+def readable_perm_name(p: str) -> str:
+    return (
+        p.replace('_', ' ')
+        .replace('guild', 'server')
+        .replace('create instant invite', 'create invite')
+        .replace('emoji', 'emote')
+        .title()
+        .replace('Tts', 'TTS')
+    )

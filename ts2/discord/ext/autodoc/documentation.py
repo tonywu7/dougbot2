@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from collections import OrderedDict, deque
 from collections.abc import Callable
-from functools import cache, cached_property, partial, reduce
+from functools import cached_property, partial, reduce
 from inspect import Parameter
 from itertools import dropwhile
 from operator import or_
@@ -37,7 +37,8 @@ from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, pre, strong, u
 from ...utils.pagination import EmbedPagination, chapterize_fields
 from .exceptions import BadDocumentation, MissingDescription
-from .lang import QuantifiedNP, pl_cat_predicative, singularize, slugify
+from .lang import (QuantifiedNP, pl_cat_predicative, readable_perm_name,
+                   singularize, slugify)
 
 _Converter = Union[Converter, type[Converter]]
 _Annotation = Union[type, _Converter]
@@ -79,18 +80,6 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
 }
 
 _type_converters: list[tuple[_Annotation, Callable[[_Annotation], _Annotation]]] = []
-
-
-@cache
-def readable_perm_name(p: str) -> str:
-    return (
-        p.replace('_', ' ')
-        .replace('guild', 'server')
-        .replace('create instant invite', 'create invite')
-        .replace('emoji', 'emote')
-        .title()
-        .replace('Tts', 'TTS')
-    )
 
 
 def _record_perm_check(place: str, **perms: bool) -> list[str]:

@@ -25,7 +25,7 @@ from discord.utils import escape_markdown
 
 from ...utils.markdown import code, strong
 from ..autodoc.documentation import add_type_description
-from ..autodoc.explanation import explains, prepend_argument_hint
+from ..autodoc.errorhandling import explains, prepend_argument_hint
 from ..autodoc.lang import QuantifiedNP, coord_conj
 from . import unpack_varargs
 
