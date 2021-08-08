@@ -211,7 +211,7 @@ class StoryCollector:
 
         if self.overflow:
             warn = (f'Length limit ({maxlen} characters) reached.\n'
-                    f'Stopped at [this message]({msg.jump_url})')
+                    f'Stopped at {a("this message", msg.jump_url)}')
             return await self._warn(warn)
 
     def fix_punctuations(self, text: str) -> str:
