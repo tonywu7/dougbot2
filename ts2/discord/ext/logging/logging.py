@@ -23,7 +23,8 @@ import traceback
 from functools import partialmethod
 from typing import Optional, TypedDict
 
-from discord import AllowedMentions, Color, File, Role, TextChannel
+from discord import (AllowedMentions, Color, File, Forbidden, NotFound, Role,
+                     TextChannel)
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
@@ -42,6 +43,7 @@ class _ErrorConf(TypedDict):
 
 UNCAUGHT_EXCEPTIONS = (
     errors.CommandInvokeError,
+    errors.ArgumentParsingError,
     errors.ConversionError,
     errors.ExtensionError,
     errors.ClientException,
@@ -95,11 +97,12 @@ privileged = {k for k, v in exceptions.items() if v.get('superuser')}
 logging_classes: dict[str, str] = {k: v['name'] for k, v in exceptions.items()}
 bypassed = {
     errors.CommandNotFound,
-    errors.ArgumentParsingError,
     errors.UserInputError,
     errors.CheckFailure,
     errors.NoPrivateMessage,
     errors.PrivateMessageOnly,
+    Forbidden,
+    NotFound,
 }
 
 
@@ -221,6 +224,8 @@ async def log_command_error(ctx: Context, config: LoggingConfig, exc: errors.Com
         exc_info = unpack_exc(exc)
     else:
         exc_info = None
+    if isinstance(exc_info, tuple(bypassed)):
+        return
     title = conf['name']
     level = conf['level']
     embed = (format_exception(exc, title, COLORS[level])

@@ -22,7 +22,6 @@ from itertools import chain
 from typing import Optional
 
 import attr
-from discord import Forbidden
 from discord.ext.commands import Bot, Command, Context
 
 from ...utils.common import is_direct_message
@@ -177,10 +176,7 @@ class Manual:
 
     async def send_toc(self, ctx: Context):
         front_embed = self.toc_rich[0][1]
-        try:
-            msg = await ctx.author.send(embed=front_embed)
-        except Forbidden:
-            return
+        msg = await ctx.author.send(embed=front_embed)
         if not is_direct_message(ctx):
             await ctx.send('Mail has been delivered!', delete_after=20)
         pagination = self.toc_rich

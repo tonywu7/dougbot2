@@ -1173,14 +1173,6 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [[package]]
-name = "youtube-dl"
-version = "2021.6.6"
-description = "YouTube video downloader"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "zope.interface"
 version = "5.4.0"
 description = "Interfaces for Python"
@@ -1196,7 +1188,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9.6"
-content-hash = "34a46e02cebd63ac7394df4d4d6a279962aba78fad6a53187e4243669eece511"
+content-hash = "211984970a4529d27f4d76ffd35d13268779cb4fd8ff0ef2ae1492a5688f3efb"
 
 [metadata.files]
 aiodns = [
@@ -2151,10 +2143,6 @@ yarl = [
     {file = "yarl-1.6.3-cp39-cp39-win32.whl", hash = "sha256:5b883e458058f8d6099e4420f0cc2567989032b5f34b271c0827de9f1079a424"},
     {file = "yarl-1.6.3-cp39-cp39-win_amd64.whl", hash = "sha256:4953fb0b4fdb7e08b2f3b3be80a00d28c5c8a2056bb066169de00e6501b986b6"},
     {file = "yarl-1.6.3.tar.gz", hash = "sha256:8a9066529240171b68893d60dca86a763eae2139dd42f42106b03cf4b426bf10"},
-]
-youtube-dl = [
-    {file = "youtube_dl-2021.6.6-py2.py3-none-any.whl", hash = "sha256:263e04d53fb8ba3dfbd246ad09b7d388e896c132a20cc770c26ee7684de050ac"},
-    {file = "youtube_dl-2021.6.6.tar.gz", hash = "sha256:cb2d3ee002158ede783e97a82c95f3817594df54367ea6a77ce5ceea4772f0ab"},
 ]
 "zope.interface" = [
     {file = "zope.interface-5.4.0-cp27-cp27m-macosx_10_14_x86_64.whl", hash = "sha256:7df1e1c05304f26faa49fa752a8c690126cf98b40b91d54e6e9cc3b7d6ffe8b7"},

@@ -92,6 +92,8 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
 
 
 async def explain_exception(ctx: Context, exc: Exception):
+    if isinstance(exc, errors.CommandInvokeError):
+        exc = exc.original or exc.__cause__
     for _, _, exc_t, handler in reversed(exception_handlers):
         if not isinstance(exc, exc_t):
             continue
