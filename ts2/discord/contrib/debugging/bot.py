@@ -24,7 +24,8 @@ from typing import Literal, Optional, Union
 
 import psutil
 import simplejson as json
-from discord import (File, Game, Member, Message, MessageReference, Role, TextChannel, Activity, ActivityType)
+from discord import (Activity, ActivityType, File, Game, Member, Message,
+                     MessageReference, Role, TextChannel)
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
@@ -137,6 +138,8 @@ class Debugging(
             await ctx.bot.gatekeeper.discard(entity)
         else:
             await ctx.bot.gatekeeper.add(entity)
+            msg = f'All events from entity {code(entity)} will be dropped.'
+            return await ctx.send(msg)
 
     @command('ofstream')
     @doc.description('Send the message content back as a text file.')

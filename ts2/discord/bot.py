@@ -22,16 +22,14 @@ from typing import TypeVar
 import aiohttp
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Forbidden, Guild, Intents,
-                     Message, NotFound, Object, Permissions,
-                     RawReactionActionEvent)
+                     Message, NotFound, Permissions)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
                                   errors, has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
-from django.db import IntegrityError
 
 from ..conf.versions import list_versions
-from . import cog
+from . import cog, gatekeeper
 from .apps import get_app, get_constant, server_allowed
 from .context import Circumstances
 from .ext import autodoc as doc
@@ -39,7 +37,7 @@ from .ext import dm
 from .ext.acl import acl
 from .ext.autodoc import Manual, add_error_names, explain_exception, explains
 from .ext.logging import log_command_error, log_exception
-from .models import Blacklisted, Server
+from .models import Server
 from .server import sync_server
 from .utils.async_ import async_atomic
 from .utils.common import Embed2, is_direct_message
@@ -78,7 +76,7 @@ class Robot(Bot):
         load_extensions(self)
         create_manual(self)
         define_errors()
-        self.gatekeeper = Gatekeeper()
+        self.gatekeeper = gatekeeper.Gatekeeper()
 
     async def _init_client_session(self):
         if hasattr(self, 'request'):
@@ -182,58 +180,6 @@ class Robot(Bot):
 
     def command_is_hidden(self, cmd):
         return self.manual.commands[cmd.qualified_name].invisible
-
-
-class Gatekeeper:
-    def __init__(self):
-        self.log = logging.getLogger('discord.gatekeeper')
-        self._query = Blacklisted.objects.values_list('snowflake', flat=True)
-
-    @sync_to_async
-    def add(self, obj: Object):
-        try:
-            blacklisted = Blacklisted(snowflake=obj.id)
-            blacklisted.save()
-        except IntegrityError:
-            return
-
-    @sync_to_async
-    def discard(self, obj: Object):
-        try:
-            blacklisted = Blacklisted.objects.get(snowflake=obj.id)
-            blacklisted.delete()
-        except Blacklisted.DoesNotExist:
-            return
-
-    async def match(self, *entities: Object) -> bool:
-        blacklisted = await self.blacklisted()
-        return any(o.id in blacklisted for o in entities if o)
-
-    @sync_to_async
-    def blacklisted(self) -> set[int]:
-        return set(self._query.all())
-
-    async def on_message(self, message: Message):
-        return not await self.match(message, message.guild, message.channel, message.author)
-
-    async def on_reaction_add(self, reaction, member):
-        return not await self.match(member)
-
-    async def on_raw_reaction_add(self, evt: RawReactionActionEvent):
-        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
-                                            evt.message_id, evt.user_id)]
-        return not await self.match(*entities)
-
-    async def handle(self, event_name: str, *args, **kwargs) -> bool:
-        handler = getattr(self, f'on_{event_name}', None)
-        if not handler:
-            return True
-        try:
-            return await handler(*args, **kwargs)
-        except Exception as e:
-            self.log.error('Error while evaluating gatekeeper '
-                           f'criteria for {event_name}', exc_info=e)
-            return True
 
 
 def add_event_listeners(self: Robot):
