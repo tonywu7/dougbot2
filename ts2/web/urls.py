@@ -2,7 +2,7 @@ from csp.decorators import csp_exempt
 from django.conf import settings
 from django.urls import include, re_path
 
-from .._compat.graphql_django import GraphQLView_
+from ._compat.graphql_django import GraphQLView_
 from . import schema, views
 
 app_name = 'web'
