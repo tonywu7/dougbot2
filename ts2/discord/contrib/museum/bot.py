@@ -36,7 +36,8 @@ from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Choice, doc
 from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
-from ts2.discord.utils.pagination import ParagraphStream, chapterize
+from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
+                                          chapterize, trunc_for_field)
 
 from .models import StoryTask
 
@@ -51,6 +52,35 @@ class Museum(
 ):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    @command('quote')
+    @doc.description('Quote another message')
+    @doc.argument('message', 'The message to quote.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message',), None)
+    async def quote(self, ctx: Circumstances, message: Message):
+        header = f'{a(strong("Message"), message.jump_url)} in {tag(message.channel)}\n'
+        content = message.content or '(no text content)'
+        body = trunc_for_field(f'{header}{content}', 1960)
+        res = Embed2(description=body)
+        image = False
+        attachments = []
+        for att in message.attachments:
+            if not image and att.content_type.startswith('image/'):
+                res = res.set_image(url=att.url)
+                image = True
+            attachments.append(a(att.filename, att.url))
+        if attachments:
+            res = res.add_field(name='Attachments', value=' / '.join(attachments))
+        res = (res.personalized(message.author)
+               .set_footer(text='Original message sent')
+               .set_timestamp(message.created_at))
+        embeds = [res, *[(Embed2.from_dict(e.to_dict())
+                          .set_footer(text=f'From message {message.id}'))
+                         for e in message.embeds]]
+        pages = EmbedPagination(embeds, None, False)
+        return (await ctx.response(ctx, embed=pages).reply()
+                .responder(pages.with_context(ctx)).deleter().run())
 
     @command('story')
     @doc.description('Join multiple messages into a story.')

@@ -17,7 +17,7 @@
 import enum
 import re
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
-from typing import Generic, Literal, TypeVar, Union
+from typing import Generic, Literal, Optional, TypeVar, Union
 
 import attr
 from discord import (Client, Embed, Member, Message, PartialEmoji,
@@ -352,7 +352,7 @@ class TextPagination(Pagination):
 
 
 class EmbedPagination(Pagination):
-    def __init__(self, embeds: Sequence[Embed2], title: str, set_timestamp: bool = True) -> None:
+    def __init__(self, embeds: Sequence[Embed2], title: Optional[str], set_timestamp: bool = True) -> None:
         super().__init__([(None, e) for e in embeds])
         self.title = title
         self.timestamp = set_timestamp
@@ -360,7 +360,8 @@ class EmbedPagination(Pagination):
     def embed_transform(self, idx: int, embed: Embed2) -> Embed2:
         if not embed:
             return
-        embed = embed.set_title(f'{self.title} ({format_page_number(idx, len(self.content))})')
+        if self.title:
+            embed = embed.set_title(f'{self.title} ({format_page_number(idx, len(self.content))})')
         if self.timestamp:
             embed = embed.set_timestamp()
         return embed
