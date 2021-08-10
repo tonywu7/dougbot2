@@ -110,7 +110,8 @@ class Ticker(
 
     @Gear.listener('on_guild_available')
     async def resume_tasks(self, guild: Guild):
-        q = TickerChannel.objects.filter(server_id__exact=guild.id)
+        channels = [c.id for c in guild.channels]
+        q = TickerChannel.objects.filter(channel_id__in=channels)
         tickers: list[TickerChannel] = await async_list(q)
 
         for ticker in tickers:
@@ -202,10 +203,9 @@ class Ticker(
         refresh: float, expire: datetime,
     ) -> TickerChannel:
         tmpl = content.source
-        guild_id = vc.guild.id
         category_id = vc.category_id
         ticker = TickerChannel(
-            channel_id=vc.id, parent_id=category_id, server_id=guild_id,
+            channel_id=vc.id, parent_id=category_id,
             placement=placement, content=tmpl, variables=variables,
             refresh=refresh, expire=expire,
         )
@@ -295,7 +295,7 @@ class Ticker(
             await existing.delete(reason=_reason('restart'))
         return vc
 
-    async def delete_ticker(self, guild: Guild, ticker: TickerChannel, reason: str):
+    async def delete_ticker(self, guild: Guild, ticker: TickerChannel, reason: str) -> Optional[str]:
         self.log.debug(f'Deleting ticker {ticker.pk}')
         channel = guild.get_channel(ticker.pk)
         await async_delete(ticker)
@@ -306,9 +306,11 @@ class Ticker(
         except Exception as e:
             self.log.warning(f'Error deleting ticker {channel.id}: {e}')
         await self.stop_ticker(ticker.pk)
+        return channel.name
 
     async def get_ticker_or_404(self, ctx: Circumstances, channel: VoiceChannel):
-        tickers = TickerChannel.objects.filter(server_id__exact=ctx.guild.id)
+        channels = [c.id for c in ctx.guild.channels]
+        tickers = TickerChannel.objects.filter(channel_id__in=channels)
         try:
             ticker: TickerChannel = await async_get(tickers, channel_id=channel.id)
         except TickerChannel.DoesNotExist:
@@ -320,7 +322,8 @@ class Ticker(
     @group('ticker', invoke_without_command=True)
     @doc.description('List all VCs currently used for message hoisting.')
     async def ticker(self, ctx: Circumstances):
-        q = TickerChannel.objects.filter(server_id__exact=ctx.guild.id)
+        channels = [c.id for c in ctx.guild.channels]
+        q = TickerChannel.objects.filter(channel_id__in=channels)
         tickers = await async_list(q)
         ticker_list: list[str] = []
         for c in tickers:
@@ -582,7 +585,7 @@ class Ticker(
                 except doc.NotAcceptable:
                     continue
                 channel_id = ticker.channel_id
-                await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
-                deleted.append(str(channel_id))
-            result = Embed2(description=f'Ticker deleted: {", ".join(deleted)}')
+                name = await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
+                deleted.append(f'{code(channel_id)} {name}')
+            result = Embed2(title='Ticker deleted', description="\n".join(deleted))
             return await ctx.response(ctx, embed=result).reply().deleter().run()

@@ -19,7 +19,7 @@ from typing import Optional
 
 from django.db import models
 
-from ts2.discord.models import Channel, Server
+from ts2.discord.models import Channel
 
 
 class TickerChannel(models.Model):
@@ -30,7 +30,6 @@ class TickerChannel(models.Model):
 
     channel: Channel = models.OneToOneField(Channel, models.CASCADE, primary_key=True, related_name='+')
     parent: Optional[Channel] = models.ForeignKey(Channel, models.CASCADE, related_name='+', null=True)
-    server: Server = models.ForeignKey(Server, models.CASCADE, related_name='+')
     placement: dict = models.JSONField(blank=False, default=dict)
 
     @property
