@@ -10,22 +10,21 @@ RUN apt-get update && \
 ENV POETRY_VERSION=1.1.7
 RUN python3 -m pip install poetry==$POETRY_VERSION
 
-WORKDIR /application
-COPY ./pyproject.toml ./poetry.lock /application/
+WORKDIR /application/
+COPY pyproject.toml poetry.lock /application/
 RUN poetry config virtualenvs.in-project true && \
     poetry install --no-dev --no-interaction --no-ansi
 
 # Compile assets
 FROM node:14-alpine AS assets
 
-WORKDIR /application/ts2/web/bundle
-COPY ./ts2/web/bundle/package.json \
-    ./ts2/web/bundle/package-lock.json \
-    ./ts2/web/bundle/webpack.config.js \
-    /application/ts2/web/bundle/
+WORKDIR /application/
+COPY package.json package-lock.json webpack.config.js tsconfig.json \
+    /application/
 RUN npm install -g npm@latest && npm i
 
-COPY ./ts2/web/bundle/ /application/ts2/web/bundle/
+COPY ./scripts /application/scripts
+COPY ./ts2 /application/ts2
 RUN NODE_ENV=production npm run build && \
     npm prune --production
 
@@ -41,7 +40,7 @@ COPY --from=assets /application/build /application/build
 RUN python3 -m venv /application/.venv
 COPY ./ /application/
 
-WORKDIR /application
+WORKDIR /application/
 SHELL ["/bin/bash", "-c"]
 
 ENV PYTHONFAULTHANDLER=1

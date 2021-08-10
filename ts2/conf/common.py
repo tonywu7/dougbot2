@@ -32,7 +32,7 @@ INSTALLED_APPS = [
     'cacheops',
     'polymorphic',
     'timezone_field',
-    'ts2admin',
+    'ts2.admin',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',

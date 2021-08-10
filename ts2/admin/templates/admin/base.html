@@ -1,0 +1,22 @@
+{% extends 'admin/base.html' %}
+{% load manifest %}
+
+{% block responsive %}
+{{ block.super }}
+{% if not DEBUG %}
+<link rel="stylesheet" href="{% manifest 'admin.css' %}">
+{% endif %}
+{% if not DEBUG %}
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://code.jquery.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Zilla+Slab:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Fira+Code:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+{% endif %}
+<script src="{% manifest 'runtime.js' %}"></script>
+<script src="{% manifest 'vendor.js' %}"></script>
+<script src="{% manifest 'admin.js' %}"></script>
+{% endblock %}

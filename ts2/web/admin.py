@@ -2,7 +2,7 @@ from django.contrib.admin import AdminSite
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from ts2admin.models import AdminController
+from ts2.admin.models import AdminController
 
 from .models import BugReport, Feature, User
 

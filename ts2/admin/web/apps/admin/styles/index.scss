@@ -1,0 +1,393 @@
+@use './typefaces';
+
+@import "colors";
+
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/utilities";
+@import "~bootstrap/scss/buttons";
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --accent: #{$blue-400};
+        --primary: #{adjust-color($blue-800, $saturation: -50%)};
+        --secondary: #{$gray-850};
+
+        --primary-fg: #{$body-color};
+
+        --header-color: #{$gray-300};
+        --header-branding-color: var(--accent);
+        --header-bg: var(--secondary);
+        --header-link-color: var(--primary-fg);
+        --breadcrumbs-fg: var(--header-color);
+
+        --button-fg: var(--primary-fg);
+        --button-bg: #{$gray-700};
+        --button-hover-bg: #{$gray-500};
+        --default-button-bg: #{$blue-700};
+        --default-button-hover-bg: #{$blue-700};
+
+        --body-fg: var(--primary-fg);
+        --body-bg: #{$body-bg};
+        --body-quiet-color: #{$gray-500};
+        --body-loud-color: #{$white};
+
+        --breadcrumbs-link-fg: var(--body-quiet-color);
+        --breadcrumbs-bg: var(--primary);
+
+        --link-fg: #{$link-color};
+        --link-hover-color: #{$link-hover-color};
+        --link-selected-fg: #{$blue-400};
+
+        --hairline-color: #d3d3d316;
+        --border-color: #353535;
+
+        --error-fg: #{$red};
+        --message-success-bg: #{$green-500};
+        --message-warning-bg: #{$yellow-500};
+        --message-error-bg: #{$red-500};
+
+        --darkened-bg: #{$gray-950};
+        --selected-bg: #{$gray-800};
+        --selected-row: #{$gray-850};
+
+        --close-button-bg: #333333;
+        --close-button-hover-bg: #666666;
+        --delete-button-bg: #{$red-700};
+        --delete-button-hover-bg: #{$red-500};
+        --object-tools-fg: var(--button-fg);
+        --object-tools-bg: var(--close-button-bg);
+        --object-tools-hover-bg: var(--close-button-hover-bg);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+#branding h1 {
+    position: relative;
+    left: -1.06rem;
+
+    margin: 0.4rem 0;
+    padding: 0 0 0 0.6rem;
+
+    font-family: typefaces.$ui-fonts;
+
+    font-weight: 700;
+    border-left: 0.45rem solid;
+    letter-spacing: -1px;
+    line-height: 1;
+
+    font-size: 1.6rem;
+
+    a,
+    a:link,
+    a:visited {
+        color: $body-color;
+    }
+}
+
+.login #header {
+    justify-content: unset;
+
+    h1 {
+        font-size: 20px;
+        padding: 0 0 0 0.8rem;
+    }
+}
+
+body,
+input,
+textarea,
+select,
+option,
+.form-row p,
+form .button {
+    font-family: typefaces.$ui-fonts;
+}
+
+.form-row label,
+#nav-sidebar tr a,
+#content-main .module tr a {
+    text-transform: lowercase;
+}
+
+textarea {
+    height: 4rem;
+}
+
+td,
+th {
+    vertical-align: middle;
+}
+
+select {
+    appearance: none;
+}
+
+.errornote,
+.errorlist,
+tr:nth-child(2n) .errorlist,
+tr:nth-child(2n + 1) + .row-form-errors .errorlist {
+    background-color: var(--message-error-bg);
+}
+
+.errornote {
+    color: white;
+}
+
+.form-row {
+    & > div {
+        display: flex;
+        flex-flow: row nowrap;
+
+        label {
+            flex-shrink: 0;
+        }
+
+        input {
+            flex: 1 0 auto;
+        }
+
+        textarea,
+        div.readonly {
+            width: 100% !important;
+        }
+    }
+
+    & > .checkbox-row {
+        display: block;
+    }
+}
+
+.related-widget-wrapper {
+    width: 100%;
+    flex-grow: 1;
+
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+
+    & > a {
+        margin-left: 6px;
+    }
+
+    & > .select2-container {
+        width: 100% !important;
+    }
+}
+
+.admin-file-preview {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
+
+    width: 100%;
+    height: auto;
+    max-height: 480px;
+
+    img,
+    audio,
+    object,
+    video {
+        flex: 1 0 80%;
+        width: 80%;
+    }
+    img {
+        object-fit: contain;
+    }
+}
+
+.aligned label {
+    & + p,
+    & + div.help,
+    & + div.readonly {
+        margin-left: unset;
+    }
+}
+
+ul.messagelist {
+    li.warning {
+        color: var(--body-bg);
+    }
+}
+
+option,
+optgroup {
+    font-weight: 500;
+    font-style: normal;
+}
+
+.results textarea {
+    &.vLargeTextField,
+    &.vXMLLargeTextField {
+        width: 100%;
+    }
+
+    height: 3rem;
+}
+
+#toolbar {
+    margin-bottom: 0;
+
+    #searchbar {
+        height: 100%;
+        padding: 4px 8px;
+        vertical-align: middle;
+    }
+}
+
+#changelist {
+    flex-flow: column-reverse nowrap;
+
+    .changelist-form-container {
+        width: 100%;
+    }
+
+    #changelist-filter {
+        width: 100%;
+        flex: 1 0 auto;
+        margin: 0 0 10px 0;
+    }
+}
+
+.inline-group .tabular {
+    tr.has_original td {
+        padding-top: 8px;
+    }
+
+    td.original p {
+        display: none;
+    }
+}
+
+.submit-row a.submit-row-link {
+    display: inline-block;
+    height: 100%;
+
+    background: var(--button-bg);
+    color: var(--button-fg);
+    border-radius: 4px;
+
+    margin: 0 0 0 5px;
+    padding: 10px 15px;
+    line-height: 15px;
+}
+
+#changelist-filter {
+    position: relative;
+
+    #changelist-filter-clear {
+        position: absolute;
+        right: 0;
+        display: block;
+        top: 0.35rem;
+        text-align: right;
+        padding-inline-end: 0.7rem;
+
+        a {
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+    }
+
+    .changelist-filter-container {
+        display: flex;
+        flex-flow: row nowrap;
+
+        max-height: 10rem;
+        overflow-x: scroll;
+        overflow-y: hidden;
+
+        margin-bottom: 10px;
+    }
+
+    .changelist-filter {
+        position: relative;
+        overflow-y: scroll;
+
+        flex: 1 0 12rem;
+
+        width: 12rem;
+        border-left: 1px solid var(--hairline-color);
+
+        h3 {
+            position: sticky;
+            top: 0;
+
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-bottom: 10px;
+
+            background-color: var(--darkened-bg);
+        }
+
+        ul {
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+}
+
+.section {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--hairline-color);
+
+    &:last-of-type {
+        border-bottom: none;
+    }
+}
+
+.submit-row {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-between;
+
+    > div {
+        display: flex;
+        flex-flow: row nowrap;
+    }
+}
+
+.submit-row-nav-button {
+    font-size: 1.5rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.delete-confirmation form .button {
+    height: 100%;
+}
+
+textarea.verbatim {
+    font-family: typefaces.$monospace-fonts;
+}
+
+.paginator {
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    align-items: center;
+
+    .btn {
+        @include button-variant($gray-700, transparent);
+        @include button-size(10px, 15px, 14px, 4px);
+        line-height: normal;
+        border: none;
+        margin: 2px 0;
+    }
+
+    input[type="submit"].default {
+        float: unset;
+    }
+}
+
+.empty-form {
+    display: none;
+}
+
+a.text-danger {
+    color: $red;
+}

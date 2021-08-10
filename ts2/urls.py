@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-from ts2admin.site import create_admin_site
+from ts2.admin.site import create_admin_site
 
 admin_site = create_admin_site('telescope2 console', [
     'ts2.discord.admin',

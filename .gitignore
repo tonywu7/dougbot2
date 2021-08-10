@@ -139,3 +139,4 @@ vetur.config.js
 
 # JavaScript
 node_modules
+schema.json
