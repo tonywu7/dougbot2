@@ -1,0 +1,1 @@
+Django-admin overrides for telescope2.

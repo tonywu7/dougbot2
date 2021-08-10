@@ -1,0 +1,14 @@
+@import "../../vendor/bootstrap/5.0.2/scss/functions";
+@import "../../vendor/bootstrap/5.0.2/scss/variables";
+
+$gray-950: #111114 !default;
+$gray-850: #26262c !default;
+
+$body-bg: $gray-950;
+$body-color: $gray-200;
+
+$link-color: $cyan-500;
+$link-shade-percentage: -20%;
+
+$link-hover-color: shift-color($link-color, $link-shade-percentage);
+$link-hover-decoration: underline;
