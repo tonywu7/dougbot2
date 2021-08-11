@@ -64,6 +64,10 @@ export default defineComponent({
             type: String,
             default: '',
         },
+        ifEmpty: {
+            type: String,
+            default: undefined,
+        },
         options: {
             type: Object as PropType<ItemSelectOptions>,
             default: (): ItemSelectOptions => ({

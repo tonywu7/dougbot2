@@ -4,11 +4,12 @@
             <transition-group name="fade">
                 <form-container v-for="(tz, index) in data" :key="tz">
                     <template v-slot:form-fields>
-                        <item-select label="Role" :items="roles" v-model:choices="tz.roles"
+                        <item-select label="Role" if-empty="No matching role." :items="roles" v-model:choices="tz.roles"
                             @update:choices="() => updateClockAt(index)">
                         </item-select>
-                        <item-select label="Timezone" :items="zones" v-model:choices="tz.zones"
-                            :options="{multiple: false}" @update:choices="() => updateClockAt(index)">
+                        <item-select label="Timezone" if-empty="No matching timezone." :items="zones"
+                            v-model:choices="tz.zones" :options="{multiple: false}"
+                            @update:choices="() => updateClockAt(index)">
                         </item-select>
                         <div class="clock">
                             <span class="local-time" v-html="clocks[index].time"></span>

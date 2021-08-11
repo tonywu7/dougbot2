@@ -23,6 +23,7 @@
                     @touchmove.passive="() => dragging = true" @touchend="(e) => handleTouch(item, e)"
                     @mouseenter="currentFocus = index">
                 </li>
+                <span class="empty-message" v-if="ifEmpty" v-html="ifEmpty"></span>
             </ul>
         </div>
         <div v-if="$slots.hint" class="field-after field-hint">
@@ -200,5 +201,17 @@
 
     .dropdown-toggle::after {
         display: none;
+    }
+
+    .empty-message {
+        display: none;
+
+        color: $bw-grey-9;
+        font-size: .8rem;
+        text-align: center;
+
+        &:first-child {
+            display: block;
+        }
     }
 </style>
