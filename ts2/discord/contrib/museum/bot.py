@@ -54,7 +54,7 @@ class Museum(
         super().__init__(*args, **kwargs)
 
     @command('quote')
-    @doc.description('Quote another message')
+    @doc.description('Quote another message.')
     @doc.argument('message', 'The message to quote.')
     @doc.use_syntax_whitelist
     @doc.invocation(('message',), None)
