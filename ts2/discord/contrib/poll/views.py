@@ -1,4 +1,4 @@
-# schema.py
+# views.py
 # Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,31 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import ObjectType, Schema
-
-from ts2.discord.contrib.schema import (InternetMutation, InternetQuery,
-                                        PollMutation, PollQuery)
-from ts2.discord.schema import (ACLMutation, ACLQuery, BotQuery,
-                                LoggingMutation, LoggingQuery, ServerMutation,
-                                ServerQuery)
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
 
 
-class Query(
-    ServerQuery, BotQuery,
-    LoggingQuery, ACLQuery,
-    InternetQuery, PollQuery,
-    ObjectType,
-):
-    pass
+async def suggestions_view(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'ts2/web/generic/coming-soon.html', {'headline': 'Suggestions'})
 
 
-class Mutation(
-    ServerMutation,
-    LoggingMutation, ACLMutation,
-    InternetMutation, PollMutation,
-    ObjectType,
-):
-    pass
-
-
-schema = Schema(query=Query, mutation=Mutation)
+async def polling_view(req: HttpRequest, **kwargs) -> HttpResponse:
+    return render(req, 'ts2/web/generic/coming-soon.html', {'headline': 'Polling'})

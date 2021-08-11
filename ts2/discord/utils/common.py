@@ -1,5 +1,6 @@
+from collections.abc import MutableMapping
 from datetime import timezone
-from typing import Union
+from typing import Optional, TypeVar, Union
 
 from discord import DMChannel, Message, TextChannel
 from discord.ext.commands import Context
@@ -24,6 +25,10 @@ from .pagination import (EmbedPagination, ParagraphStream,  # noqa: F401
                          page_plaintext, trunc_for_field)
 from .response import ResponseInit  # noqa: F401
 
+JS_BIGINT = 2 ** 53
+_KT = TypeVar('_KT')
+_VT = TypeVar('_VT')
+
 
 def is_direct_message(ctx: Union[Message, Context, TextChannel]):
     return isinstance(ctx, DMChannel) or isinstance(ctx.channel, DMChannel)
@@ -44,3 +49,37 @@ def serialize_message(message: Message):
         'embeds': [e.to_dict() for e in message.embeds],
         'files': [f.url for f in message.attachments],
     }
+
+
+class BigIntDict(MutableMapping[_KT, _VT]):
+    def __init__(self, mapping: Optional[MutableMapping[_KT, _VT]]) -> None:
+        if mapping:
+            self._map = {self._convert(k): v for k, v in mapping.items()}
+        else:
+            self._map = {}
+
+    def _convert(self, k: Union[str, int]):
+        if isinstance(k, int):
+            return k
+        try:
+            num_k = int(k)
+        except ValueError:
+            return k
+        if num_k < JS_BIGINT:
+            return k
+        return num_k
+
+    def __getitem__(self, k):
+        return self._map[self._convert(k)]
+
+    def __setitem__(self, k, v):
+        self._map[self._convert(k)] = v
+
+    def __delitem__(self, k):
+        del self._map[self._convert(k)]
+
+    def __iter__(self):
+        return iter(self._map)
+
+    def __len__(self) -> int:
+        return len(self._map)

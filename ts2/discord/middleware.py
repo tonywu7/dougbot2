@@ -17,10 +17,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import wraps
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, TypeVar, Union
 from urllib.parse import urlencode
 
 from asgiref.sync import sync_to_async
@@ -30,6 +30,9 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db.models import Model, QuerySet
+from django.db.models.fields.related_descriptors import \
+    ForwardManyToOneDescriptor
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
@@ -39,6 +42,9 @@ from .config import CommandAppConfig
 from .fetch import (DiscordCache, DiscordFetch, DiscordUnauthorized,
                     PartialGuild, PartialUser)
 from .models import Server
+
+T = TypeVar('T')
+M = TypeVar('M', bound=Model)
 
 GUILD_ID = 'guild_id'
 
@@ -389,3 +395,27 @@ def optional_server_access(permission: AccessLevel):
             return redirect(maybe_public_url(request))
         return check_perms
     return wrapper
+
+
+def intersect_server_model(
+    collection: Mapping[Union[str, int], T],
+    server_id: str, q: Union[type[M], QuerySet[M]],
+) -> dict[int, T]:
+    if issubclass(q, Model):
+        q = q.objects
+    collection = {int(k): t for k, t in collection.items()}
+    filtered = q.filter(**{f'{GUILD_ID}__exact': server_id})
+    return {k: t for k, t in collection.items()
+            if k in set(filtered.values_list('snowflake', flat=True))}
+
+
+def get_server_scoped_model(
+    req: HttpRequest, descriptor: ForwardManyToOneDescriptor,
+    server_id: str, access: str, *, target_field=GUILD_ID, **filters,
+) -> QuerySet[M]:
+    get_ctx(req, logout=False).assert_access(access, server_id)
+    model = descriptor.field.model
+    q = model.objects
+    related = descriptor.field.name
+    return (q.filter(**{f'{related}__{target_field}__exact': server_id})
+            .filter(**filters).all())

@@ -14,31 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graphene import ObjectType, Schema
+from typing import TypeVar, Union
 
-from ts2.discord.contrib.schema import (InternetMutation, InternetQuery,
-                                        PollMutation, PollQuery)
-from ts2.discord.schema import (ACLMutation, ACLQuery, BotQuery,
-                                LoggingMutation, LoggingQuery, ServerMutation,
-                                ServerQuery)
+from django.db.models import Model, QuerySet
+from django.http import HttpRequest
 
+from .middleware import get_ctx
 
-class Query(
-    ServerQuery, BotQuery,
-    LoggingQuery, ACLQuery,
-    InternetQuery, PollQuery,
-    ObjectType,
-):
-    pass
+M = TypeVar('M', bound=Model)
 
 
-class Mutation(
-    ServerMutation,
-    LoggingMutation, ACLMutation,
-    InternetMutation, PollMutation,
-    ObjectType,
-):
-    pass
-
-
-schema = Schema(query=Query, mutation=Mutation)
+def get_server_model(
+    q: Union[type[M], QuerySet[M]], req: HttpRequest,
+    server_id: str, access: str, target_field='server_id',
+) -> QuerySet[M]:
+    if issubclass(q, Model):
+        q = q.objects
+    get_ctx(req, logout=False).assert_access(access, server_id)
+    return q.filter(**{f'{target_field}__exact': server_id}).all()
