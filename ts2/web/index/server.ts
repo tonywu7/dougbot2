@@ -58,6 +58,7 @@ import {
     UpdateLoggingMutationVariables,
     UpdatePermsMutation,
     UpdatePermsMutationVariables,
+    EmoteType,
 } from './@types/graphql/schema'
 
 import SERVER_DETAILS from './graphql/query/server-details.graphql'
@@ -230,6 +231,47 @@ export class Role implements ItemCandidate {
     }
 }
 
+export class Emote implements ItemCandidate {
+    readonly id: string
+    readonly name: string
+    readonly animated: boolean
+    readonly url: string
+    readonly thumb: string
+    readonly foreground = '#d3d3d3'
+    readonly background = '#00000000'
+
+    constructor(data: Omit<EmoteType, 'guild'>) {
+        this.id = data.snowflake
+        this.name = data.name
+        this.animated = data.animated
+        this.url = data.url
+        this.thumb = data.thumbnail
+    }
+
+    public get content() {
+        let item = document.createElement('span')
+        let name = document.createElement('span')
+        let img = document.createElement('img')
+        item.classList.add('emote-container')
+        img.classList.add('emote')
+        name.classList.add('emote-name')
+        img.src = this.url
+        img.alt = `Emote <:${this.name}:${this.id}>`
+        name.innerText = this.name
+        item.appendChild(img)
+        item.appendChild(name)
+        return item.outerHTML
+    }
+
+    public getIndex() {
+        return {
+            id: this.id,
+            snowflake: this.id,
+            name: this.name,
+        }
+    }
+}
+
 export class ACL {
     public name: string
     public commands: string[]
@@ -299,6 +341,8 @@ class Server {
 
     private channels: Channel[] = []
     private roles: Role[] = []
+    private emotes: Emote[] = []
+
     private logging: LoggingConfig[] = []
     private acl: ACL[] = []
 
@@ -409,6 +453,9 @@ class Server {
             this.roles = info.roles
                 .map((d) => new Role(d))
                 .sort((a, b) => a.order - b.order)
+            this.emotes = info
+                .emotes!.map((d) => new Emote(d))
+                .sort((a, b) => a.id.localeCompare(b.id))
         }
     }
 
@@ -447,37 +494,42 @@ class Server {
 
     async getReadablePerms(): Promise<string[]> {
         await this.fetchServerDetails()
-        return this.readable
+        return [...this.readable]
     }
 
     async getWritablePerms(): Promise<string[]> {
         await this.fetchServerDetails()
-        return this.writable
+        return [...this.writable]
     }
 
     async getChannels(): Promise<Channel[]> {
         await this.fetchServerDetails()
-        return this.channels
+        return [...this.channels]
     }
 
     async getRoles(): Promise<Role[]> {
         await this.fetchServerDetails()
-        return this.roles
+        return [...this.roles]
+    }
+
+    async getEmotes(): Promise<Emote[]> {
+        await this.fetchServerDetails()
+        return [...this.emotes]
     }
 
     async getCommands(): Promise<Command[]> {
         await this.fetchBotDetails()
-        return this.commands
+        return [...this.commands]
     }
 
     async getACLs(): Promise<ACL[]> {
         await this.fetchACLRules()
-        return this.acl
+        return [...this.acl]
     }
 
     async getLogging(): Promise<LoggingConfig[]> {
         await this.fetchLoggingConfig()
-        return this.logging
+        return [...this.logging]
     }
 
     async setPrefix(prefix: string): Promise<void> {

@@ -24,5 +24,12 @@ query ServerDetails($serverId: ID!) {
             order
             perms
         }
+        emotes {
+            snowflake
+            name
+            animated
+            url
+            thumbnail
+        }
     }
 }

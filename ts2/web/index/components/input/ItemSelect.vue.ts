@@ -64,7 +64,8 @@ export default defineComponent({
             type: String,
             default: '',
         },
-        ifEmpty: {
+        ifEmpty: {},
+        ifNoResult: {
             type: String,
             default: undefined,
         },
@@ -73,6 +74,16 @@ export default defineComponent({
             default: (): ItemSelectOptions => ({
                 multiple: true,
                 unsafe: false,
+            }),
+        },
+        factory: {
+            type: Function as PropType<(s: string) => ItemCandidate>,
+            default: (): ((s: string) => ItemCandidate) => (s) => ({
+                id: s,
+                content: s,
+                foreground: 'white',
+                background: 'transparent',
+                getIndex: () => ({ id: s }),
             }),
         },
     },
@@ -114,6 +125,9 @@ export default defineComponent({
             let items: ItemCandidate[] = []
             for (let candidate of this.index.search(this.search)) {
                 items.push(candidate)
+            }
+            if (items.length == 0 && this.factory) {
+                items.push(this.factory(this.search))
             }
             return items
         },
@@ -227,7 +241,9 @@ export default defineComponent({
                     if (!item) return
                     this.deselect(item)
                     if (!ev.metaKey) {
-                        this.search = item.content
+                        let elem = document.createElement('span')
+                        elem.innerHTML = item.content
+                        this.search = elem.textContent!
                     }
                 }
             }
@@ -316,12 +332,7 @@ export default defineComponent({
                     if (item) {
                         selected[k] = item
                     } else {
-                        selected[k] = {
-                            id: k,
-                            content: k,
-                            foreground: 'white',
-                            getIndex: () => ({ id: k }),
-                        }
+                        selected[k] = this.factory(k)
                     }
                 }
                 this.selected = selected

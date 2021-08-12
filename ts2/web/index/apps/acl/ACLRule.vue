@@ -4,8 +4,8 @@
             <input-field :id="slug" type="text" name="name" :label="itemState.ruleLabel" :options="{showChanged: false}"
                 :validator="options.nameValidator" v-model:value="data.name">
             </input-field>
-            <button class="btn btn-collapse" :class="[_collapsed ? '' : 'show']" @click="_collapsed = !_collapsed"><i
-                    class="bi bi-chevron-down"></i></button>
+            <button class="btn btn-collapse" :class="[_collapsed ? '' : 'show']" @click="_collapsed = !_collapsed">
+                <i class="bi bi-chevron-down"></i></button>
         </header>
         <transition name="fade">
             <div class="acl-body" v-show="!_collapsed">

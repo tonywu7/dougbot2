@@ -83,6 +83,15 @@ export type ChannelType = {
   type?: Maybe<ChannelEnum>;
 };
 
+export type EmoteType = {
+  __typename?: 'EmoteType';
+  snowflake: Scalars['ID'];
+  name: Scalars['String'];
+  animated: Scalars['Boolean'];
+  url: Scalars['String'];
+  thumbnail: Scalars['String'];
+};
+
 export type LoggingEntryInput = {
   key: Scalars['String'];
   channel: Scalars['String'];
@@ -104,6 +113,8 @@ export type LoggingUpdateMutation = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  updateSuggestChannels?: Maybe<SuggestionChannelUpdateMutation>;
+  deleteSuggestChannels?: Maybe<SuggestionChannelDeleteMutation>;
   updateTimezones?: Maybe<RoleTimezoneUpdateMutation>;
   deleteTimezones?: Maybe<RoleTimezoneDeleteMutation>;
   deleteACL?: Maybe<ACLDeleteMutation>;
@@ -113,6 +124,18 @@ export type Mutation = {
   updateExtensions?: Maybe<ServerExtensionsMutation>;
   updateModels?: Maybe<ServerModelSyncMutation>;
   updatePerms?: Maybe<ServerPermMutation>;
+};
+
+
+export type MutationupdateSuggestChannelsArgs = {
+  channels?: Maybe<Array<Maybe<SuggestionChannelInput>>>;
+  serverId: Scalars['ID'];
+};
+
+
+export type MutationdeleteSuggestChannelsArgs = {
+  channelIds?: Maybe<Array<Maybe<Scalars['ID']>>>;
+  serverId: Scalars['ID'];
 };
 
 
@@ -171,11 +194,17 @@ export type MutationupdatePermsArgs = {
 
 export type Query = {
   __typename?: 'Query';
+  suggestChannels?: Maybe<Array<Maybe<SuggestionChannelType>>>;
   timezones?: Maybe<Array<Maybe<RoleTimezoneType>>>;
   acl?: Maybe<Array<Maybe<AccessControlType>>>;
   logging?: Maybe<Array<Maybe<LoggingEntryType>>>;
   bot?: Maybe<BotType>;
   server?: Maybe<ServerType>;
+};
+
+
+export type QuerysuggestChannelsArgs = {
+  serverId: Scalars['ID'];
 };
 
 
@@ -261,6 +290,42 @@ export type ServerType = {
   extensions?: Maybe<Array<Maybe<Scalars['String']>>>;
   readable?: Maybe<Array<Scalars['ID']>>;
   writable?: Maybe<Array<Scalars['ID']>>;
+  emotes?: Maybe<Array<EmoteType>>;
+};
+
+export type SuggestionChannelDeleteMutation = {
+  __typename?: 'SuggestionChannelDeleteMutation';
+  successful: Scalars['Boolean'];
+};
+
+export type SuggestionChannelInput = {
+  channelId: Scalars['ID'];
+  description?: Maybe<Scalars['String']>;
+  upvote?: Maybe<Scalars['String']>;
+  downvote?: Maybe<Scalars['String']>;
+  approve?: Maybe<Scalars['String']>;
+  reject?: Maybe<Scalars['String']>;
+  requiresText?: Maybe<Scalars['Boolean']>;
+  requiresUploads?: Maybe<Scalars['Int']>;
+  requiresLinks?: Maybe<Scalars['Int']>;
+};
+
+export type SuggestionChannelType = {
+  __typename?: 'SuggestionChannelType';
+  description: Scalars['String'];
+  upvote: Scalars['String'];
+  downvote: Scalars['String'];
+  approve: Scalars['String'];
+  reject: Scalars['String'];
+  requiresText: Scalars['Boolean'];
+  requiresUploads: Scalars['Int'];
+  requiresLinks: Scalars['Int'];
+  channelId: Scalars['ID'];
+};
+
+export type SuggestionChannelUpdateMutation = {
+  __typename?: 'SuggestionChannelUpdateMutation';
+  channels?: Maybe<Array<Maybe<SuggestionChannelType>>>;
 };
 
 export type UpdateACLMutationVariables = Exact<{
@@ -426,6 +491,9 @@ export type ServerDetailsQuery = (
     )>, roles: Array<(
       { __typename?: 'RoleType' }
       & Pick<RoleType, 'snowflake' | 'name' | 'color' | 'order' | 'perms'>
-    )> }
+    )>, emotes?: Maybe<Array<(
+      { __typename?: 'EmoteType' }
+      & Pick<EmoteType, 'snowflake' | 'name' | 'animated' | 'url' | 'thumbnail'>
+    )>> }
   )> }
 );

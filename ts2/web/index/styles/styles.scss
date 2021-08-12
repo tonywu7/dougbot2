@@ -252,3 +252,22 @@ picture {
         }
     }
 }
+
+.emote-container {
+    display: inline-flex;
+    align-items: center;
+
+    .emote {
+        margin-right: 3px;
+        height: 20px;
+        width: 20px;
+        object-fit: contain;
+    }
+}
+
+.btn-collapse {
+    &:focus,
+    &:active {
+        box-shadow: none;
+    }
+}
