@@ -9,10 +9,10 @@
             <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder"
                 :required="options.required" :autocomplete="options.autocomplete" v-model="value" />
         </template>
-        <div v-if="$slots.hint" class="field-after field-hint">
+        <div v-if="$slots.hint" class="field-after input-field-hint">
             <slot name="hint"></slot>
         </div>
-        <div v-else-if="hint" class="field-after field-hint">
+        <div v-else-if="hint" class="field-after input-field-hint">
             <p>{{ hint }}</p>
         </div>
         <div v-if="error" class="field-after field-error">

@@ -23,10 +23,10 @@
                     @touchmove.passive="() => dragging = true" @touchend="(e) => handleTouch(item, e)"
                     @mouseenter="currentFocus = index">
                 </li>
-                <span class="empty-message" v-if="ifEmpty" v-html="ifEmpty"></span>
+                <span class="empty-message" v-if="ifNoResult" v-html="ifNoResult"></span>
             </ul>
         </div>
-        <div v-if="$slots.hint" class="field-after field-hint">
+        <div v-if="$slots.hint" class="field-after input-field-hint">
             <slot name="hint"></slot>
         </div>
     </div>
@@ -47,8 +47,12 @@
     .item-select-field {
         position: relative;
 
-        display: inline;
+        display: inline-flex;
+        flex-flow: row wrap;
+        align-items: center;
+
         line-height: 1.8;
+        min-height: 2.5rem;
 
         font-size: 0.9rem;
         color: $color-text;
@@ -97,37 +101,10 @@
         }
     }
 
-    .field-hint {
-        margin: .25rem 0 0;
-    }
-
-    .selected-item {
-        display: inline-block;
-
-        margin: 0 1.8px;
-        padding: 0.25em .3rem;
-        border-radius: 0.25em;
-        border: none;
-
-        line-height: 1;
-        font-weight: 600;
-
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: calc(100% - 3.6px);
-
-        cursor: pointer;
-        user-select: none;
-
-        &:focus-visible {
-            outline: none;
-        }
-    }
-
     .item-select-search {
         display: inline-block;
 
-        line-height: 1;
+        line-height: 1.2;
         padding: 0;
         margin: 0 0 0 .5rem;
 
@@ -148,6 +125,31 @@
         &:focus {
             box-shadow: none;
         }
+
+        &:focus-visible {
+            outline: none;
+        }
+    }
+
+    .selected-item {
+        display: inline-flex;
+        align-items: center;
+
+        margin: 2.2px 1.8px;
+        padding: 0.25em .3rem;
+        border-radius: 0.25em;
+        border: none;
+
+        line-height: 1;
+        font-weight: 600;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 3.6px);
+        max-height: 1.5em;
+
+        cursor: pointer;
+        user-select: none;
 
         &:focus-visible {
             outline: none;
@@ -201,6 +203,10 @@
 
     .dropdown-toggle::after {
         display: none;
+    }
+
+    .input-field-hint {
+        margin: .25rem 0 0;
     }
 
     .empty-message {
