@@ -21,6 +21,7 @@ from datetime import datetime
 from io import StringIO
 from textwrap import indent
 from typing import Literal
+from urllib.parse import parse_qs, urlencode, urlunsplit, urlsplit
 
 from discord import Role
 from discord.abc import GuildChannel, User
@@ -204,3 +205,11 @@ def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
     code = '\n'.join(block[1:])
     length = len('\n'.join(passed)) + len(code) + len(end)
     return code, length
+
+
+def sized(u: str, s: int) -> str:
+    url = urlsplit(u)
+    par = parse_qs(url.query)
+    par['size'] = s
+    q = urlencode(par)
+    return urlunsplit((*url[:3], q, url[4]))

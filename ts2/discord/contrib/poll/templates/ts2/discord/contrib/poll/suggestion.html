@@ -1,0 +1,24 @@
+{% extends 'ts2/web/base.html' %}
+{% load static elements manifest %}
+
+{% block apps %}
+<script defer src="{% manifest 'suggestion.js' %}"></script>
+{% endblock %}
+
+{% block app_styles %}
+<link rel="stylesheet" href="{% manifest 'suggestion.css' %}">
+{% endblock %}
+
+{% block title %}Suggestion - {{ discord.info.name|default:'server' }}{% endblock %}
+
+{% block main_title %}Suggestion system{% endblock %}
+
+{% block sections %}
+
+{% csrf_token %}
+
+{% section id='suggest-channels' title='suggestion channels' classes='grid-span-all' %}
+<div id="suggest-channel-list"></div>
+{% endsection %}
+
+{% endblock %}

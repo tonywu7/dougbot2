@@ -15,15 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from django.http import HttpRequest
-from graphene import (ID, Argument, Enum, Field, List, NonNull, ObjectType,
-                      String)
+from graphene import (ID, Argument, Boolean, Enum, Field, List, NonNull,
+                      ObjectType, String)
 from graphene_django import DjangoObjectType
 from graphene_django.converter import convert_django_field
 
 from .. import forms
 from ..middleware import get_ctx
 from ..models import Channel, ChannelTypeEnum, PermissionField, Role, Server
+from ..thread import get_thread
 from ..utils.graphql import FormMutationMixin, HasContext, ModelMutation
+from ..utils.markdown import sized
 
 ChannelTypeEnum = Enum.from_enum(ChannelTypeEnum)
 
@@ -37,10 +39,19 @@ class DiscordObject:
     snowflake = NonNull(ID)
 
 
+class EmoteType(DiscordObject, ObjectType):
+    name = NonNull(String)
+    animated = NonNull(Boolean)
+    url = NonNull(String)
+    thumbnail = NonNull(String)
+
+
 class ServerType(DiscordObject, DjangoObjectType):
     extensions = List(String)
     readable = List(NonNull(ID))
     writable = List(NonNull(ID))
+
+    emotes = List(NonNull(EmoteType))
 
     class Meta:
         model = Server
@@ -53,6 +64,18 @@ class ServerType(DiscordObject, DjangoObjectType):
     @staticmethod
     def resolve_extensions(obj: Server, *args, **kwargs):
         return obj.extensions
+
+    @staticmethod
+    def resolve_emotes(obj: Server, *args, **kwargs):
+        bot = get_thread().client
+        guild = bot.get_guild(obj.snowflake)
+        if not guild:
+            return []
+        emotes = [EmoteType(snowflake=e.id, name=e.name,
+                            animated=e.animated, url=e.url,
+                            thumbnail=sized(str(e.url_as(format='png')), 64))
+                  for e in guild.emojis]
+        return emotes
 
 
 class ChannelType(DiscordObject, DjangoObjectType):

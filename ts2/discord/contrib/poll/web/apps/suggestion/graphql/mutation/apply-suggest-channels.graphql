@@ -1,0 +1,18 @@
+mutation ApplySuggestChannels ($serverId: ID!, $deleted: [ID], $updated: [SuggestionChannelInput!]) {
+    deleteSuggestChannels(serverId: $serverId, channelIds: $deleted) {
+        successful
+    }
+    updateSuggestChannels(serverId: $serverId, channels: $updated) {
+        channels {
+            channelId
+            description
+            upvote
+            downvote
+            approve
+            reject
+            requiresText
+            requiresUploads
+            requiresLinks
+        }
+    }
+}

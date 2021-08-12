@@ -451,8 +451,8 @@ def define_errors():
         'Must be my imagination ...',
         "Must've been the wind ...",
         'What is that?',
+        'You lost?',
         "I don't know what you are talking about.",
-        "I don't know what I am looking at.",
     )
     add_error_names(
         errors.ChannelNotReadable,

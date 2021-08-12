@@ -47,7 +47,7 @@ TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
 
 
 class Museum(
-    Gear, name='Museum', order=10,
+    Gear, name='Museum', order=11,
     description='Curation & archival',
 ):
     def __init__(self, *args, **kwargs):

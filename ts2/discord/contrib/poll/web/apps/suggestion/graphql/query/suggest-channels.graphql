@@ -1,0 +1,13 @@
+query SuggestChannels($serverId: ID!) {
+    suggestChannels(serverId: $serverId) {
+        channelId
+        description
+        upvote
+        downvote
+        approve
+        reject
+        requiresText
+        requiresUploads
+        requiresLinks
+    }
+}

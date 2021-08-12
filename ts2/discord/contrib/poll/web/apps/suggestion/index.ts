@@ -13,3 +13,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import { selectAndMount } from 'web/components/utils/app'
+import SuggestionChannelList from './SuggestionChannelList.vue'
+
+window.addEventListener('DOMContentLoaded', () => {
+    selectAndMount('#suggest-channel-list', SuggestionChannelList)
+})

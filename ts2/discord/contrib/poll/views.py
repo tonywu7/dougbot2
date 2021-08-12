@@ -19,7 +19,7 @@ from django.shortcuts import render
 
 
 async def suggestions_view(req: HttpRequest, **kwargs) -> HttpResponse:
-    return render(req, 'ts2/web/generic/coming-soon.html', {'headline': 'Suggestions'})
+    return render(req, 'ts2/discord/contrib/poll/suggestion.html')
 
 
 async def polling_view(req: HttpRequest, **kwargs) -> HttpResponse:

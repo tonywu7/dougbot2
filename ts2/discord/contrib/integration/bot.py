@@ -18,7 +18,7 @@ from ts2.discord.cog import Gear
 
 
 class Integration(
-    Gear, name='Integration', order=20,
+    Gear, name='Integration', order=21,
     description='',
 ):
     def __init__(self, *args, **kwargs):

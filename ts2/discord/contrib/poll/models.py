@@ -24,10 +24,10 @@ class SuggestionChannel(models.Model):
 
     description: str = models.TextField(blank=True)
 
-    upvote: str = models.CharField(max_length=512, default='🔼')
-    downvote: str = models.CharField(max_length=512, default='🔽')
-    approve: str = models.CharField(max_length=512, default='✅')
-    reject: str = models.CharField(max_length=512, default='🚫')
+    upvote: str = models.CharField(max_length=512, blank=True, default='🔼')
+    downvote: str = models.CharField(max_length=512, blank=True, default='🔽')
+    approve: str = models.CharField(max_length=512, blank=True, default='✅')
+    reject: str = models.CharField(max_length=512, blank=True, default='🚫')
 
     requires_text: bool = models.BooleanField(default=True)
     requires_uploads: int = models.IntegerField(default=0)

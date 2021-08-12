@@ -328,36 +328,36 @@ export type SuggestionChannelUpdateMutation = {
   channels?: Maybe<Array<Maybe<SuggestionChannelType>>>;
 };
 
-export type UpdateTimezonesMutationVariables = Exact<{
+export type ApplySuggestChannelsMutationVariables = Exact<{
   serverId: Scalars['ID'];
-  toUpdate?: Maybe<Array<Maybe<RoleTimezoneInput>> | Maybe<RoleTimezoneInput>>;
-  toDelete?: Maybe<Array<Maybe<Scalars['String']>> | Maybe<Scalars['String']>>;
+  deleted?: Maybe<Array<Maybe<Scalars['ID']>> | Maybe<Scalars['ID']>>;
+  updated?: Maybe<Array<SuggestionChannelInput> | SuggestionChannelInput>;
 }>;
 
 
-export type UpdateTimezonesMutation = (
+export type ApplySuggestChannelsMutation = (
   { __typename?: 'Mutation' }
-  & { deleteTimezones?: Maybe<(
-    { __typename?: 'RoleTimezoneDeleteMutation' }
-    & Pick<RoleTimezoneDeleteMutation, 'success'>
-  )>, updateTimezones?: Maybe<(
-    { __typename?: 'RoleTimezoneUpdateMutation' }
-    & { timezones?: Maybe<Array<Maybe<(
-      { __typename?: 'RoleTimezoneType' }
-      & Pick<RoleTimezoneType, 'roleId' | 'timezone'>
+  & { deleteSuggestChannels?: Maybe<(
+    { __typename?: 'SuggestionChannelDeleteMutation' }
+    & Pick<SuggestionChannelDeleteMutation, 'successful'>
+  )>, updateSuggestChannels?: Maybe<(
+    { __typename?: 'SuggestionChannelUpdateMutation' }
+    & { channels?: Maybe<Array<Maybe<(
+      { __typename?: 'SuggestionChannelType' }
+      & Pick<SuggestionChannelType, 'channelId' | 'description' | 'upvote' | 'downvote' | 'approve' | 'reject' | 'requiresText' | 'requiresUploads' | 'requiresLinks'>
     )>>> }
   )> }
 );
 
-export type ServerTimezonesQueryVariables = Exact<{
+export type SuggestChannelsQueryVariables = Exact<{
   serverId: Scalars['ID'];
 }>;
 
 
-export type ServerTimezonesQuery = (
+export type SuggestChannelsQuery = (
   { __typename?: 'Query' }
-  & { timezones?: Maybe<Array<Maybe<(
-    { __typename?: 'RoleTimezoneType' }
-    & Pick<RoleTimezoneType, 'roleId' | 'timezone'>
+  & { suggestChannels?: Maybe<Array<Maybe<(
+    { __typename?: 'SuggestionChannelType' }
+    & Pick<SuggestionChannelType, 'channelId' | 'description' | 'upvote' | 'downvote' | 'approve' | 'reject' | 'requiresText' | 'requiresUploads' | 'requiresLinks'>
   )>>> }
 );
