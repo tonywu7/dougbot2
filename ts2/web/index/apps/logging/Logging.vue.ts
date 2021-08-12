@@ -24,7 +24,7 @@ import {
 
 import FormContainer from '../../components/input/FormContainer.vue'
 import ItemSelect from '../../components/input/ItemSelect.vue'
-import { setupDiscordModel } from '../../components/discord'
+import { setupDiscordModel, textChannels } from '../../components/discord'
 import { pickBy } from 'lodash'
 import { ChannelEnum } from '../../@types/graphql/schema'
 import { displayNotification } from '../../components/utils/modal'
@@ -69,11 +69,7 @@ export default defineComponent({
     },
     computed: {
         textChannels(): Record<string, Channel> {
-            return pickBy(
-                this.channels,
-                (v) =>
-                    v.type === ChannelEnum.text || v.type === ChannelEnum.news
-            )
+            return textChannels(this.channels)
         },
     },
     methods: {

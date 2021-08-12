@@ -14,7 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { pickBy } from 'lodash'
 import { Ref, ref, onMounted } from 'vue'
+import { ChannelEnum } from 'web/@types/graphql/schema'
 import { Role, Channel, Command, server } from '../server'
 
 export function setupDiscordModel(
@@ -50,4 +52,13 @@ export function dataDiscordModel() {
         channels: Record<string, Channel>
         commands: Record<string, Command>
     }
+}
+
+export function textChannels(
+    channels: Record<string, Channel>
+): Record<string, Channel> {
+    return pickBy(
+        channels,
+        (v) => v.type === ChannelEnum.text || v.type === ChannelEnum.news
+    )
 }
