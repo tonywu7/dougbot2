@@ -71,7 +71,7 @@
         "schema:parse": "node scripts/graphql-gen.js instance/schema.json ./ts2",
         "schema:build": "npm run schema:create && npm run schema:parse",
         "schema:watch:create": "npm run schema:create -- --watch",
-        "schema:watch:parse": "nodemon --watch instance --exec 'npm run schema:parse'",
+        "schema:watch:parse": "nodemon --watch instance --watch ts2 -e json,graphql --exec 'npm run schema:parse'",
         "schema:watch": "concurrently \"npm:schema:watch:*\"",
         "watch": "npx webpack --config webpack.config.js",
         "build": "NODE_ENV=production npx webpack --config webpack.config.js"
