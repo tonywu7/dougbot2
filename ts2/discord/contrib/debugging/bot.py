@@ -147,7 +147,7 @@ class Debugging(
     @doc.argument('message', 'Another message whose content will be included.')
     @doc.accepts_reply('Include the replied-to message in the file.')
     @doc.use_syntax_whitelist
-    @doc.invocation(('message', 'text', 'reply'), None)
+    @doc.invocation(('message', 'text'), None)
     @doc.hidden
     async def ofstream(
         self, ctx: Circumstances,

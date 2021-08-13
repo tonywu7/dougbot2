@@ -163,12 +163,12 @@ class InvalidRange(BadArgument):
 
 
 class RegExpMismatch(BadArgument):
-    def __init__(self, expected: QuantifiedNP, arg: str, pattern: re.Pattern, *args):
+    def __init__(self, expected: QuantifiedNP, arg: str, pattern: re.Pattern):
         self.expected = expected
         self.received = arg
         self.pattern = pattern
         message = f'Argument should be {self.expected.a()}'
-        super().__init__(message=message, *args)
+        super().__init__(message=message)
 
 
 @explains(RegExpMismatch, 'Pattern mismatch', priority=5)

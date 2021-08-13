@@ -43,7 +43,7 @@ class DelegateMixin:
         return unbound.__get__(self)
 
     def unwrap(self):
-        this = self.this
+        this = object.__getattribute__(self, 'this')
         while True:
             if isinstance(this, DelegateMixin):
                 this = this.unwrap()
@@ -55,13 +55,13 @@ class DelegateMixin:
         try:
             return object.__getattribute__(self, name)
         except AttributeError:
-            return self._getattr(name)
+            return object.__getattribute__(self, '_getattr')(name)
 
     def __setattr__(self, name: str, value):
-        return setattr(self.this, name, value)
+        return setattr(object.__getattribute__(self, 'this'), name, value)
 
     def __delattr__(self, name: str):
-        return delattr(self.this, name)
+        return delattr(object.__getattribute__(self, 'this'), name)
 
 
 class CommonCommandDelegate(DelegateMixin):

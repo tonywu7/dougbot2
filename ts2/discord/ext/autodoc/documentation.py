@@ -158,6 +158,7 @@ class Argument:
     description: str = attr.ib(default='', order=False)
     node: str = attr.ib(default='', order=False)
     signature: str = attr.ib(default='', order=False)
+
     order: int = attr.ib(default=0)
     hidden: bool = attr.ib(default=False)
 
@@ -183,7 +184,7 @@ class Argument:
         if self.description:
             return self.description
         if self.is_unused:
-            accepts = 'extra texts, not used'
+            return '(Not used)'
         elif self.final:
             accepts = self.accepts.bare_pl()
         elif self.greedy:

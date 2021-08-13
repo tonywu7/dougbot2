@@ -19,7 +19,7 @@ from typing import Optional, Union
 from discord import (AllowedMentions, Emoji, HTTPException, Message,
                      MessageReference, Object, PartialEmoji, TextChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
-from more_itertools import always_iterable
+from more_itertools import always_iterable, first
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
@@ -53,7 +53,7 @@ def get_allowed_mentions(info: dict) -> AllowedMentions:
 
 class MessageCommands:
     @command('stdout')
-    @doc.description('Send a message to another channel.')
+    @doc.description('Send a message to a channel.')
     @doc.argument('content', 'The text message to send.',
                   node='content', signature='content')
     @doc.argument('embed', 'The embed to send.',
@@ -61,6 +61,8 @@ class MessageCommands:
                   term='TOML/JSON string')
     @doc.argument('channel', ('The channel to send the message to.'
                               ' If left blank, send to current channel.'))
+    @doc.argument('mentions', ('The members/roles this message'
+                               ' is allowed to notify.'))
     @doc.use_syntax_whitelist
     @doc.invocation(('content', 'channel'), None)
     @doc.invocation(('embed', 'channel'), None)
@@ -101,6 +103,48 @@ class MessageCommands:
                                      allowed_mentions=allowed_mentions)
         except HTTPException as e:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
+        url = a('Message created:', msg.jump_url)
+        reply = Embed2(description=f'{url} {code(msg.id)}')
+        await ctx.response(ctx, embed=reply).reply().run()
+
+    @command('redirect')
+    @doc.description('Copy the specified message to another channel.')
+    @doc.argument('channel', 'The channel to send the message to.')
+    @doc.argument('message', 'The message to copy.')
+    @doc.argument('mentions', ('The members/roles this message'
+                               ' is allowed to notify.'))
+    @doc.accepts_reply('Copy the replied-to message.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('channel', 'message'), None)
+    @doc.restriction(
+        has_guild_permissions,
+        manage_messages=True,
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+        mention_everyone=True,
+    )
+    async def redirect(
+        self, ctx: Circumstances, channel: TextChannel,
+        message: Optional[Message], *,
+        reply: Optional[MessageReference] = None,
+        mentions: Optional[dict] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not message:
+            raise doc.NotAcceptable('No message specified.')
+        content = message.content
+        embed = first(message.embeds, None)
+        files = [await att.to_file(spoiler=att.is_spoiler())
+                 for att in message.attachments]
+        if isinstance(mentions, dict):
+            allowed_mentions = get_allowed_mentions(mentions)
+        else:
+            allowed_mentions = None
+        msg = await channel.send(content=content, embed=embed, files=files,
+                                 allowed_mentions=allowed_mentions)
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
         await ctx.response(ctx, embed=reply).reply().run()
