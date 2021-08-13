@@ -1,6 +1,6 @@
 <template>
     <div :class="[containerType]">
-        <label v-if="label" :for="id" :class="labelState" v-html="label"></label>
+        <label v-if="label" :for="id" :class="[labelState, `label-type-${type}`]" v-html="label"></label>
         <template v-if="type === 'textarea'">
             <textarea :class="inputElem" :id="id" :name="name" :placeholder="placeholder" :required="options.required"
                 :autocomplete="options.autocomplete" v-model="value"></textarea>
@@ -9,10 +9,10 @@
             <input :class="inputElem" :id="id" :type="type" :name="name" :placeholder="placeholder"
                 :required="options.required" :autocomplete="options.autocomplete" v-model="value" />
         </template>
-        <div v-if="$slots.hint" class="field-after input-field-hint">
+        <div v-if="$slots.hint" class="field-after field-hint">
             <slot name="hint"></slot>
         </div>
-        <div v-else-if="hint" class="field-after input-field-hint">
+        <div v-else-if="hint" class="field-after field-hint">
             <p>{{ hint }}</p>
         </div>
         <div v-if="error" class="field-after field-error">
@@ -35,7 +35,7 @@
 
         border-radius: 0;
         border: none;
-        border-bottom: 2px solid $bw-grey-13;
+        border-bottom: 2px solid $bw-grey-8;
 
         &:focus,
         &:active {

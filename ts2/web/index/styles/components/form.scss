@@ -26,7 +26,7 @@
         font-size: 0.9rem;
     }
 
-    .btn {
+    > .btn {
         margin: 0.5rem 0;
 
         &:first-child {
@@ -56,7 +56,7 @@
 .field-label {
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 0.85rem;
     line-height: 1;
 
@@ -75,10 +75,23 @@
     }
 }
 
-.input-field-hint p {
+.field-hint p {
     color: $bw-grey-9;
 }
 
 .field-error p {
     color: $red-500;
+}
+
+.label-type-number,
+.label-type-checkbox,
+.label-type-radio {
+    text-transform: unset;
+    letter-spacing: -0.1px;
+    font-size: 0.95rem;
+}
+
+.label-type-checkbox,
+.label-type-radio {
+    font-weight: 400;
 }
