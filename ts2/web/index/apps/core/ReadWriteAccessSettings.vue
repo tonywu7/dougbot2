@@ -7,8 +7,7 @@
                         access to bot settings if they have <strong class="emphasis">any of</strong> the following
                         roles:
                     </p>
-                    <item-select :items="roles" v-model:choices="readable">
-                    </item-select>
+                    <item-select :items="roles" v-model:choices="readable"></item-select>
                 </div>
                 <div>
                     <p class="interactive-text">Grant a member <strong class="emphasis read-write">read

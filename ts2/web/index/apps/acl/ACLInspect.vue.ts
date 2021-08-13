@@ -39,49 +39,49 @@ export default defineComponent({
         }
     },
     data() {
-        let errors = { commands: '', channels: '' }
+        let errors = { command: '', channel: '' }
         let selected: {
             roles: string[]
-            commands: string[]
-            channels: string[]
-        } = { roles: [], commands: [], channels: [] }
+            command: string | undefined
+            channel: string | undefined
+        } = { roles: [], command: undefined, channel: undefined }
         return { errors, selected }
     },
     computed: {
         command(): string {
-            return this.commands[this.selected.commands[0]].content
+            return this.commands[this.selected.command!].content
         },
         channel(): string {
-            return this.channels[this.selected.channels[0]].content
+            return this.channels[this.selected.channel!].content
         },
         channelColor(): { color: string } {
             return {
-                color: this.channels[this.selected.channels[0]].foreground,
+                color: this.channels[this.selected.channel!].foreground,
             }
         },
     },
     methods: {
         runTest() {
-            this.errors = { commands: '', channels: '' }
+            this.errors = { command: '', channel: '' }
             setTimeout(() => {
-                let channels = this.selected.channels || []
-                let commands = this.selected.commands || []
-                if (!channels.length) {
-                    this.errors.channels = 'Please choose a channel.'
+                let channel = this.selected.channel
+                let command = this.selected.command
+                if (!this.selected.channel) {
+                    this.errors.channel = 'Please choose a channel.'
                     return
                 }
-                if (!commands.length) {
-                    this.errors.commands = 'Please choose a command.'
+                if (!this.selected.command) {
+                    this.errors.command = 'Please choose a command.'
                     return
                 }
-                let channel = channels[0]
-                let command = commands[0]
+                channel = channel!
+                command = command!
                 let category = this.channels[channel].categoryId
                 let payload: ACLTestOptions = {
                     roles: new Set(this.selected.roles),
+                    category,
                     channel,
                     command,
-                    category,
                 }
                 this.$emit('run-test', payload)
             })

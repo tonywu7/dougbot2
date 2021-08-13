@@ -25,12 +25,13 @@ import {
 import FormContainer from '../../components/input/FormContainer.vue'
 import ItemSelect from '../../components/input/ItemSelect.vue'
 import { setupDiscordModel, textChannels } from '../../components/discord'
-import { pickBy } from 'lodash'
-import { ChannelEnum } from '../../@types/graphql/schema'
 import { displayNotification } from '../../components/utils/modal'
 import { Color } from '../../components/modal/bootstrap'
 
-type LoggingSelection = { roles: string[]; channels: string[] }
+type LoggingSelection = {
+    role: string | undefined
+    channel: string | undefined
+}
 
 export default defineComponent({
     components: { FormContainer, ItemSelect },
@@ -46,21 +47,16 @@ export default defineComponent({
             Object.assign(
                 {},
                 ...props.conf.map((c) => ({
-                    [c.key]: { roles: [], channels: [] },
+                    [c.key]: { role: undefined, channel: undefined },
                 }))
             )
         )
         let { roles, channels } = setupDiscordModel(async () => {
             settings.value.push(...(await server.getLogging()))
             for (let c of settings.value) {
-                let reconstructed: LoggingSelection = {
-                    channels: [c.channel!],
-                    roles: [],
-                }
-                if (c.role) {
-                    reconstructed.roles!.push(c.role!)
-                }
-                logging.value[c.key] = reconstructed
+                let conf = logging.value[c.key]
+                conf.channel = c.channel
+                conf.role = c.role
             }
             loading.value = false
         })
@@ -77,8 +73,8 @@ export default defineComponent({
             let existing = new Set(this.settings.map((d) => d.key))
             let finalized: LoggingConfigSubmission[] = []
             for (let [k, v] of Object.entries(this.logging)) {
-                let channel = v.channels[0]
-                let role = v.roles[0]
+                let channel = v.channel
+                let role = v.role
                 if (!channel) {
                     if (existing.has(k)) {
                         finalized.push({ key: k, channel: '', role: '' })

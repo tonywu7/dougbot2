@@ -8,8 +8,7 @@
                             v-model:choices="tz.roles" @update:choices="() => updateClockAt(index)">
                         </item-select>
                         <item-select label="Timezone" if-no-result="No matching timezone." :items="zones"
-                            v-model:choices="tz.zones" :options="{multiple: false}"
-                            @update:choices="() => updateClockAt(index)">
+                            :multiple="false" v-model:choices="tz.zone" @update:choices="() => updateClockAt(index)">
                         </item-select>
                         <div class="clock">
                             <span class="local-time" v-html="clocks[index].time"></span>

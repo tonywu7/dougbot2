@@ -26,7 +26,7 @@
                 <span class="empty-message" v-if="ifNoResult" v-html="ifNoResult"></span>
             </ul>
         </div>
-        <div v-if="$slots.hint" class="field-after input-field-hint">
+        <div v-if="$slots.hint" class="field-after field-hint">
             <slot name="hint"></slot>
         </div>
     </div>
@@ -36,7 +36,6 @@
     @use "sass:color";
     @import '../../styles/colors';
 
-    $hairline-color: color.scale($color-text, $lightness: -75%);
     $field-padding: 6px;
 
     .item-select {
@@ -185,7 +184,7 @@
         }
 
         &.has-focus {
-            background-color: $bw-grey-4;
+            background-color: $bw-grey-5;
         }
 
         &:active {
@@ -205,7 +204,7 @@
         display: none;
     }
 
-    .input-field-hint {
+    .field-hint {
         margin: .25rem 0 0;
     }
 

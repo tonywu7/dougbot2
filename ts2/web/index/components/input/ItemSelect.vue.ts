@@ -16,7 +16,7 @@
 
 import { color } from 'd3'
 
-import { defineComponent, PropType, ref } from 'vue'
+import { defineComponent, PropType, Ref, ref, watch } from 'vue'
 import InputField from './InputField.vue'
 
 import {
@@ -25,11 +25,6 @@ import {
     configureAsPrefixSearch,
 } from '../../utils/search'
 import { safe } from '../../utils/data'
-
-export interface ItemSelectOptions {
-    multiple?: boolean
-    unsafe?: boolean
-}
 
 export interface ItemCandidate extends Indexable {
     id: string
@@ -69,12 +64,13 @@ export default defineComponent({
             type: String,
             default: undefined,
         },
-        options: {
-            type: Object as PropType<ItemSelectOptions>,
-            default: (): ItemSelectOptions => ({
-                multiple: true,
-                unsafe: false,
-            }),
+        multiple: {
+            type: Boolean,
+            default: true,
+        },
+        unsafe: {
+            type: Boolean,
+            default: false,
         },
         factory: {
             type: Function as PropType<(s: string) => ItemCandidate>,
@@ -87,21 +83,26 @@ export default defineComponent({
             }),
         },
     },
-    setup() {
+    setup(props) {
+        const selected: Ref<Record<string, ItemCandidate>> = ref({})
         const container = ref<HTMLElement>()
         const searchElem = ref<HTMLElement>()
         const searchInput = ref<HTMLTextAreaElement>()
         const candidateList = ref<HTMLUListElement>()
-        return { container, searchElem, searchInput, candidateList }
+        return {
+            container,
+            searchElem,
+            searchInput,
+            candidateList,
+            selected,
+        }
     },
     emits: ['update:choices', 'update:error'],
     data() {
-        let selected: Record<string, ItemCandidate> = {}
         let index = createIndex(Object.values(this.items))
         let search: string = ''
         let ctx = document.createElement('canvas').getContext('2d')!
         return {
-            selected,
             search,
             index,
             ctx,
@@ -150,7 +151,7 @@ export default defineComponent({
     },
     methods: {
         safe(s: string): string {
-            if (this.options.unsafe) {
+            if (this.unsafe) {
                 return s
             } else {
                 return safe(s)
@@ -283,7 +284,7 @@ export default defineComponent({
             return styles
         },
         select(item: ItemCandidate, ev?: Event) {
-            if (!this.options.multiple) {
+            if (!this.multiple) {
                 Object.keys(this.selected).forEach(
                     (k) => delete this.selected[k]
                 )
@@ -304,10 +305,32 @@ export default defineComponent({
             this.dragging = false
         },
         update() {
-            this.$emit('update:choices', Object.keys(this.selected))
+            let items = Object.keys(this.selected)
+            if (this.multiple) {
+                this.$emit('update:choices', items)
+            } else {
+                this.$emit('update:choices', items[0])
+            }
         },
         regenIndex() {
             this.index = createIndex(Object.values(this.items))
+        },
+        reverseUpdateChoices(keys: string[] | string | undefined) {
+            let selection: Record<string, ItemCandidate> = {}
+            if (keys === undefined) {
+                keys = []
+            } else if (typeof keys === 'string') {
+                keys = [keys]
+            }
+            for (let k of keys) {
+                let item = this.items[k]
+                if (item) {
+                    selection[k] = item
+                } else {
+                    selection[k] = this.factory(k)
+                }
+            }
+            this.selected = selection
         },
     },
     watch: {
@@ -325,17 +348,18 @@ export default defineComponent({
             deep: true,
         },
         '$attrs.choices': {
-            handler(keys: string[]) {
-                let selected: Record<string, ItemCandidate> = {}
-                for (let k of keys) {
-                    let item = this.items[k]
-                    if (item) {
-                        selected[k] = item
-                    } else {
-                        selected[k] = this.factory(k)
-                    }
-                }
-                this.selected = selected
+            handler(keys: string[] | string | undefined) {
+                // This is non-deterministic and ugly.
+                if (new Set(Object.keys(this.$props)).has('choices')) return
+                this.reverseUpdateChoices(keys)
+            },
+            deep: true,
+            immediate: true,
+        },
+        '$props.choices': {
+            handler(keys: string[] | string | undefined) {
+                if (new Set(Object.keys(this.$attrs)).has('choices')) return
+                this.reverseUpdateChoices(keys)
             },
             deep: true,
             immediate: true,

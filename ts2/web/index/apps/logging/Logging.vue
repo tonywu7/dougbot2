@@ -6,11 +6,11 @@
                     <h4 class="logging-name" v-html="cls.name"></h4>
                 </template>
                 <template v-slot:form-fields>
-                    <item-select label="Send logs to this channel" :items="textChannels"
-                        v-model:choices="logging[cls.key].channels" :options="{multiple: false}">
+                    <item-select label="Send logs to this channel" :items="textChannels" :multiple="false"
+                        v-model:choices="logging[cls.key].channel">
                     </item-select>
-                    <item-select label="Notify this role for every log message" :items="roles"
-                        v-model:choices="logging[cls.key].roles" :options="{multiple: false}">
+                    <item-select label="Notify this role for every log message" :items="roles" :multiple="false"
+                        v-model:choices="logging[cls.key].role">
                     </item-select>
                 </template>
             </form-container>

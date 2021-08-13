@@ -61,7 +61,7 @@ export default defineComponent({
     setup(props) {
         let roles: Ref<Record<string, Role>> = ref({})
         let orig: Ref<RoleTimezoneType[]> = ref([])
-        let data: Ref<{ roles: string[]; zones: string[] }[]> = ref([])
+        let data: Ref<{ roles: string[]; zone: string | undefined }[]> = ref([])
         let roleIds: Set<string>
 
         let clocks: Ref<{ time: string; zone: string }[]> = ref([])
@@ -74,16 +74,11 @@ export default defineComponent({
         }
         let updateClockAt = (index: number) => {
             let role = data.value[index]
-            if (
-                !role.zones ||
-                !role.zones.length ||
-                !role.roles ||
-                !role.roles.length
-            ) {
+            if (!role.zone || !role.roles || !role.roles.length) {
                 clocks.value[index] = { time: '---', zone: '---' }
                 return
             }
-            let [tz] = role.zones
+            let tz = role.zone
             let [time, zone] = printClock(tz)
             clocks.value[index] = { time, zone }
         }
@@ -102,7 +97,7 @@ export default defineComponent({
                             ? d.roleId
                             : `deleted role ${d.roleId}`,
                     ],
-                    zones: [d.timezone],
+                    zone: d.timezone,
                 }))
             )
             clocks.value = []
@@ -138,23 +133,16 @@ export default defineComponent({
     },
     methods: {
         createTimezone() {
-            this.data.push({ roles: [], zones: [] })
+            this.data.push({ roles: [], zone: undefined })
             this.clocks.push({ time: '---', zone: '---' })
         },
         async submit() {
             let toUpdate: Record<string, string> = {}
             let toDelete: Set<string> = new Set(this.orig.map((r) => r.roleId))
             for (let item of this.data) {
-                if (
-                    !item.roles ||
-                    !item.zones ||
-                    !item.roles.length ||
-                    !item.zones.length
-                )
-                    continue
-                let [zone] = item.zones
+                if (!item.zone || !item.roles || !item.roles.length) continue
                 for (let role of item.roles) {
-                    toUpdate[role] = zone
+                    toUpdate[role] = item.zone
                     toDelete.delete(role)
                 }
             }
