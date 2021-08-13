@@ -20,7 +20,7 @@ import logging
 import re
 from collections.abc import Iterable
 from operator import attrgetter, itemgetter
-from typing import Generic, Protocol, TypeVar, Union
+from typing import Generic, Optional, Protocol, TypeVar, Union
 
 import discord
 import inflect
@@ -135,6 +135,19 @@ class ColorField(models.IntegerField):
         return super().get_prep_value(int(value))
 
 
+class NumbersListField(models.JSONField):
+    def from_db_value(self, value, expression, connection):
+        struct = super().from_db_value(value, expression, connection)
+        if not isinstance(struct, list):
+            return None
+        return [int(s) for s in struct]
+
+    def get_prep_value(self, value: Optional[list[int]]):
+        if not isinstance(value, list):
+            return super().get_prep_value(None)
+        return super().get_prep_value([int(s) for s in value])
+
+
 class ModelTranslator(Generic[T, U]):
     @classmethod
     def from_discord(cls, discord_model: T) -> U:
@@ -175,8 +188,8 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
     prefix: str = models.CharField(max_length=16, default='t;', validators=[validate_prefix])
     logging: dict = models.JSONField(verbose_name='logging config', default=dict)
 
-    readable: list[int] = models.JSONField(verbose_name='readable roles', default=list)
-    writable: list[int] = models.JSONField(verbose_name='writable roles', default=list)
+    readable: list[int] = NumbersListField(verbose_name='readable roles', default=list)
+    writable: list[int] = NumbersListField(verbose_name='writable roles', default=list)
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
