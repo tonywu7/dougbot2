@@ -40,6 +40,7 @@ class DiscordObject:
 
 
 class EmoteType(DiscordObject, ObjectType):
+    identifier = NonNull(String)
     name = NonNull(String)
     animated = NonNull(Boolean)
     url = NonNull(String)
@@ -71,7 +72,7 @@ class ServerType(DiscordObject, DjangoObjectType):
         guild = bot.get_guild(obj.snowflake)
         if not guild:
             return []
-        emotes = [EmoteType(snowflake=e.id, name=e.name,
+        emotes = [EmoteType(identifier=str(e), snowflake=e.id, name=e.name,
                             animated=e.animated, url=e.url,
                             thumbnail=sized(str(e.url_as(format='png')), 64))
                   for e in guild.emojis]

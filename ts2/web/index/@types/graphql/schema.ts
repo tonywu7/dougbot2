@@ -86,6 +86,7 @@ export type ChannelType = {
 export type EmoteType = {
   __typename?: 'EmoteType';
   snowflake: Scalars['ID'];
+  identifier: Scalars['String'];
   name: Scalars['String'];
   animated: Scalars['Boolean'];
   url: Scalars['String'];
@@ -300,14 +301,15 @@ export type SuggestionChannelDeleteMutation = {
 
 export type SuggestionChannelInput = {
   channelId: Scalars['ID'];
-  description?: Maybe<Scalars['String']>;
-  upvote?: Maybe<Scalars['String']>;
-  downvote?: Maybe<Scalars['String']>;
-  approve?: Maybe<Scalars['String']>;
-  reject?: Maybe<Scalars['String']>;
-  requiresText?: Maybe<Scalars['Boolean']>;
-  requiresUploads?: Maybe<Scalars['Int']>;
-  requiresLinks?: Maybe<Scalars['Int']>;
+  description: Scalars['String'];
+  upvote: Scalars['String'];
+  downvote: Scalars['String'];
+  approve: Scalars['String'];
+  reject: Scalars['String'];
+  requiresText: Scalars['Boolean'];
+  requiresUploads: Scalars['Int'];
+  requiresLinks: Scalars['Int'];
+  arbiters: Array<Scalars['ID']>;
 };
 
 export type SuggestionChannelType = {
@@ -321,6 +323,7 @@ export type SuggestionChannelType = {
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
   channelId: Scalars['ID'];
+  arbiters: Array<Scalars['ID']>;
 };
 
 export type SuggestionChannelUpdateMutation = {
@@ -493,7 +496,7 @@ export type ServerDetailsQuery = (
       & Pick<RoleType, 'snowflake' | 'name' | 'color' | 'order' | 'perms'>
     )>, emotes?: Maybe<Array<(
       { __typename?: 'EmoteType' }
-      & Pick<EmoteType, 'snowflake' | 'name' | 'animated' | 'url' | 'thumbnail'>
+      & Pick<EmoteType, 'identifier' | 'snowflake' | 'name' | 'animated' | 'url' | 'thumbnail'>
     )>> }
   )> }
 );

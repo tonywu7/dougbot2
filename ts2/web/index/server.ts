@@ -233,6 +233,7 @@ export class Role implements ItemCandidate {
 
 export class Emote implements ItemCandidate {
     readonly id: string
+    readonly snowflake: string
     readonly name: string
     readonly animated: boolean
     readonly url: string
@@ -241,7 +242,8 @@ export class Emote implements ItemCandidate {
     readonly background = '#00000000'
 
     constructor(data: Omit<EmoteType, 'guild'>) {
-        this.id = data.snowflake
+        this.id = data.identifier
+        this.snowflake = data.snowflake
         this.name = data.name
         this.animated = data.animated
         this.url = data.url

@@ -25,6 +25,7 @@ query ServerDetails($serverId: ID!) {
             perms
         }
         emotes {
+            identifier
             snowflake
             name
             animated
