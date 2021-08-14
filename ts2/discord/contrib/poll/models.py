@@ -14,11 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import re
+
 from django.db import models
 from django.utils.functional import classproperty
 
 from ts2.discord.models import Channel
 from ts2.discord.utils.fields import NumbersListField, RecordField
+
+RE_UNICODE_VARIATIONS = re.compile('[\ufe00-\ufe0f]')
 
 
 class SuggestionChannel(models.Model):
@@ -40,3 +44,10 @@ class SuggestionChannel(models.Model):
     @classproperty
     def updatable_fields(cls) -> list[str]:
         return [f.name for f in cls._meta.fields if not f.is_relation]
+
+    @property
+    def reactions_cleaned(self) -> dict[str, str]:
+        return {
+            RE_UNICODE_VARIATIONS.sub('', k): v
+            for k, v in self.reactions.items() if k
+        }
