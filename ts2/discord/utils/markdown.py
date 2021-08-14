@@ -19,9 +19,10 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from io import StringIO
+from math import floor
 from textwrap import indent
 from typing import Literal
-from urllib.parse import parse_qs, urlencode, urlunsplit, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 from discord import Role
 from discord.abc import GuildChannel, User
@@ -149,7 +150,7 @@ def unmark_element(element, stream=None):
 def timestamp(t: datetime | float | int, f: _TIMESTAMP_FORMATS) -> str:
     if isinstance(t, datetime):
         t = t.timestamp()
-    return f'<t:{t:.0f}:{TIMESTAMP_PROCESSOR[f]}>'
+    return f'<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>'
 
 
 Markdown.output_formats['plain'] = unmark_element
