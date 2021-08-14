@@ -2,7 +2,7 @@
     <form-container>
         <template v-slot:form-fields>
             <input-field ref="input" :id="'id-prefix'" :type="'text'" :name="'prefix'" :validator="validate"
-                v-model:initial="original" v-model:value="value" v-model:error="error">
+                v-model:value="value" v-model:error="error">
                 <template v-slot:hint>
                     <p>Example command: <code><span>{{ value }}</span>echo</code></p>
                 </template>

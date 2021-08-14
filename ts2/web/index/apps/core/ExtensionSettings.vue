@@ -2,8 +2,7 @@
     <form-container>
         <template v-slot:form-fields>
             <input-field v-for="ext in extensions" :key="ext.id" :id="`extension-toggle-${ext.id}`" type="checkbox"
-                :name="ext.id" :label="ext.label" :options="{useSwitch: true}" v-model:initial="initial[ext.id]"
-                v-model:value="values[ext.id]">
+                :name="ext.id" :label="ext.label" :options="{useSwitch: true}" v-model:value="values[ext.id]">
             </input-field>
         </template>
         <template v-slot:form-after>

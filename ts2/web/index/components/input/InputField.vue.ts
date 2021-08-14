@@ -69,7 +69,7 @@ export default defineComponent({
             default: {},
         },
     },
-    emits: ['update:value', 'update:error'],
+    emits: ['update:value', 'update:error', 'changed'],
     setup(props) {
         return {
             inputElem: FORM_CONTROL_TYPES[props.type],
@@ -77,10 +77,7 @@ export default defineComponent({
     },
     data() {
         let value = this.$attrs.value as FormDataType | undefined
-        let initial = this.$attrs.initial as FormDataType | undefined
-        initial = initial || value
         return {
-            _initial: initial,
             _value: value,
         }
     },
@@ -103,9 +100,6 @@ export default defineComponent({
         },
     },
     computed: {
-        initial(): FormDataType {
-            return this.cast(this._initial)
-        },
         value: {
             get(): FormDataType {
                 return this.cast(this._value)
@@ -123,9 +117,6 @@ export default defineComponent({
         labelState(): Record<string, boolean> {
             return {
                 'field-label': true,
-                modified:
-                    this.options.showChanged !== false &&
-                    this.value !== this.initial,
             }
         },
         containerType(): string[] {
@@ -142,9 +133,6 @@ export default defineComponent({
     watch: {
         '$attrs.value'(v) {
             this._value = v
-        },
-        '$attrs.initial'(v) {
-            this._initial = v
         },
     },
 })
