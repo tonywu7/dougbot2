@@ -42,9 +42,9 @@ export default defineComponent({
         let errors = { command: '', channel: '' }
         let selected: {
             roles: string[]
-            command: string | undefined
-            channel: string | undefined
-        } = { roles: [], command: undefined, channel: undefined }
+            command: string | null
+            channel: string | null
+        } = { roles: [], command: null, channel: null }
         return { errors, selected }
     },
     computed: {

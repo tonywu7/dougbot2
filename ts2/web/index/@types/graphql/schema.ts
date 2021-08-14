@@ -93,6 +93,17 @@ export type EmoteType = {
   thumbnail: Scalars['String'];
 };
 
+export type KeyValuePairInput = {
+  key: Scalars['String'];
+  value: Scalars['String'];
+};
+
+export type KeyValuePairType = {
+  __typename?: 'KeyValuePairType';
+  key: Scalars['String'];
+  value: Scalars['String'];
+};
+
 export type LoggingEntryInput = {
   key: Scalars['String'];
   channel: Scalars['String'];
@@ -301,29 +312,29 @@ export type SuggestionChannelDeleteMutation = {
 
 export type SuggestionChannelInput = {
   channelId: Scalars['ID'];
+  title: Scalars['String'];
   description: Scalars['String'];
   upvote: Scalars['String'];
   downvote: Scalars['String'];
-  approve: Scalars['String'];
-  reject: Scalars['String'];
   requiresText: Scalars['Boolean'];
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
   arbiters: Array<Scalars['ID']>;
+  reactions: Array<KeyValuePairInput>;
 };
 
 export type SuggestionChannelType = {
   __typename?: 'SuggestionChannelType';
+  title: Scalars['String'];
   description: Scalars['String'];
   upvote: Scalars['String'];
   downvote: Scalars['String'];
-  approve: Scalars['String'];
-  reject: Scalars['String'];
   requiresText: Scalars['Boolean'];
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
   channelId: Scalars['ID'];
   arbiters: Array<Scalars['ID']>;
+  reactions: Array<KeyValuePairType>;
 };
 
 export type SuggestionChannelUpdateMutation = {

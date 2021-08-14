@@ -29,8 +29,8 @@ import { displayNotification } from '../../components/utils/modal'
 import { Color } from '../../components/modal/bootstrap'
 
 type LoggingSelection = {
-    role: string | undefined
-    channel: string | undefined
+    role: string | null
+    channel: string | null
 }
 
 export default defineComponent({
@@ -47,7 +47,7 @@ export default defineComponent({
             Object.assign(
                 {},
                 ...props.conf.map((c) => ({
-                    [c.key]: { role: undefined, channel: undefined },
+                    [c.key]: { role: null, channel: null },
                 }))
             )
         )

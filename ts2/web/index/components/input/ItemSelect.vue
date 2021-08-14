@@ -5,7 +5,7 @@
                 <slot name="label"></slot>
             </label>
         </template>
-        <label v-else-if="label" v-html="label" class="field-label"></label>
+        <label v-else-if="label" v-html="label" :class="['field-label']"></label>
         <div ref="searchElem" :class="['item-select-field', overflowDirection]" :aria-expanded="dropdownShow"
             @click="activate" @focus="activate" @blur="deactivate">
             <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
@@ -20,7 +20,7 @@
                 <li v-for="(item, index) in candidates" :key="item.id" role="button"
                     :class="['dropdown-item', {'has-focus': index == currentFocus}]" :style="getItemStyles(item, false)"
                     :aria-selected="index == currentFocus" v-html="safe(item.content)" @click="(e) => select(item)"
-                    @touchmove.passive="() => dragging = true" @touchend="(e) => handleTouch(item, e)"
+                    @touchmove.passive="() => _dragging = true" @touchend="(e) => handleTouch(item, e)"
                     @mouseenter="currentFocus = index">
                 </li>
                 <span class="empty-message" v-if="ifNoResult" v-html="ifNoResult"></span>
@@ -58,7 +58,6 @@
         border: 1px solid $hairline-color;
 
         border-radius: 4px;
-        margin: .5rem 0 0;
         padding: $field-padding;
 
         cursor: text;
@@ -167,6 +166,8 @@
     }
 
     .dropdown-item {
+        display: flex;
+
         padding: 4pt 8pt;
         margin: 0;
         border-radius: 0.25rem;
@@ -202,6 +203,10 @@
 
     .dropdown-toggle::after {
         display: none;
+    }
+
+    .field-label {
+        margin: 0 0 .5rem;
     }
 
     .field-hint {

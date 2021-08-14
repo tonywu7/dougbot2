@@ -61,7 +61,7 @@ export default defineComponent({
     setup(props) {
         let roles: Ref<Record<string, Role>> = ref({})
         let orig: Ref<RoleTimezoneType[]> = ref([])
-        let data: Ref<{ roles: string[]; zone: string | undefined }[]> = ref([])
+        let data: Ref<{ roles: string[]; zone: string | null }[]> = ref([])
         let roleIds: Set<string>
 
         let clocks: Ref<{ time: string; zone: string }[]> = ref([])
@@ -133,7 +133,7 @@ export default defineComponent({
     },
     methods: {
         createTimezone() {
-            this.data.push({ roles: [], zone: undefined })
+            this.data.push({ roles: [], zone: null })
             this.clocks.push({ time: '---', zone: '---' })
         },
         async submit() {

@@ -86,10 +86,22 @@ export type ChannelType = {
 export type EmoteType = {
   __typename?: 'EmoteType';
   snowflake: Scalars['ID'];
+  identifier: Scalars['String'];
   name: Scalars['String'];
   animated: Scalars['Boolean'];
   url: Scalars['String'];
   thumbnail: Scalars['String'];
+};
+
+export type KeyValuePairInput = {
+  key: Scalars['String'];
+  value: Scalars['String'];
+};
+
+export type KeyValuePairType = {
+  __typename?: 'KeyValuePairType';
+  key: Scalars['String'];
+  value: Scalars['String'];
 };
 
 export type LoggingEntryInput = {
@@ -300,27 +312,29 @@ export type SuggestionChannelDeleteMutation = {
 
 export type SuggestionChannelInput = {
   channelId: Scalars['ID'];
-  description?: Maybe<Scalars['String']>;
-  upvote?: Maybe<Scalars['String']>;
-  downvote?: Maybe<Scalars['String']>;
-  approve?: Maybe<Scalars['String']>;
-  reject?: Maybe<Scalars['String']>;
-  requiresText?: Maybe<Scalars['Boolean']>;
-  requiresUploads?: Maybe<Scalars['Int']>;
-  requiresLinks?: Maybe<Scalars['Int']>;
+  title: Scalars['String'];
+  description: Scalars['String'];
+  upvote: Scalars['String'];
+  downvote: Scalars['String'];
+  requiresText: Scalars['Boolean'];
+  requiresUploads: Scalars['Int'];
+  requiresLinks: Scalars['Int'];
+  arbiters: Array<Scalars['ID']>;
+  reactions: Array<KeyValuePairInput>;
 };
 
 export type SuggestionChannelType = {
   __typename?: 'SuggestionChannelType';
+  title: Scalars['String'];
   description: Scalars['String'];
   upvote: Scalars['String'];
   downvote: Scalars['String'];
-  approve: Scalars['String'];
-  reject: Scalars['String'];
   requiresText: Scalars['Boolean'];
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
   channelId: Scalars['ID'];
+  arbiters: Array<Scalars['ID']>;
+  reactions: Array<KeyValuePairType>;
 };
 
 export type SuggestionChannelUpdateMutation = {

@@ -59,11 +59,6 @@ export default defineComponent({
             type: String,
             default: '',
         },
-        ifEmpty: {},
-        ifNoResult: {
-            type: String,
-            default: undefined,
-        },
         multiple: {
             type: Boolean,
             default: true,
@@ -82,8 +77,12 @@ export default defineComponent({
                 getIndex: () => ({ id: s }),
             }),
         },
+        ifNoResult: {
+            type: String,
+            default: undefined,
+        },
     },
-    setup(props) {
+    setup() {
         const selected: Ref<Record<string, ItemCandidate>> = ref({})
         const container = ref<HTMLElement>()
         const searchElem = ref<HTMLElement>()
@@ -103,25 +102,17 @@ export default defineComponent({
         let search: string = ''
         let ctx = document.createElement('canvas').getContext('2d')!
         return {
+            _currentFocus: 0,
+            _show: false,
+            _debugShow: false,
+            _dragging: false,
             search,
             index,
             ctx,
-            _currentFocus: 0,
-            dropdownShow: false,
             overflowDirection: 'normal',
-            dragging: false,
         }
     },
     computed: {
-        currentFocus: {
-            get(): number {
-                return this._currentFocus
-            },
-            set(v: number) {
-                this._currentFocus = v
-                if (v == 0) this.scrollReset()
-            },
-        },
         candidates(): ItemCandidate[] {
             let items: ItemCandidate[] = []
             for (let candidate of this.index.search(this.search)) {
@@ -131,6 +122,23 @@ export default defineComponent({
                 items.push(this.factory(this.search))
             }
             return items
+        },
+        dropdownShow: {
+            get(): boolean {
+                return this._debugShow || this._show
+            },
+            set(v: boolean) {
+                this._show = v
+            },
+        },
+        currentFocus: {
+            get(): number {
+                return this._currentFocus
+            },
+            set(v: number) {
+                this._currentFocus = v
+                if (v == 0) this.scrollReset()
+            },
         },
         inputFont(): string {
             let elem = this.searchInput
@@ -299,38 +307,30 @@ export default defineComponent({
             this.update()
         },
         handleTouch(item: ItemCandidate, ev?: Event) {
-            if (!this.dragging) {
+            if (!this._dragging) {
                 this.select(item)
             }
-            this.dragging = false
+            this._dragging = false
         },
         update() {
+            this.$emit('update:error', '')
             let items = Object.keys(this.selected)
             if (this.multiple) {
                 this.$emit('update:choices', items)
             } else {
-                this.$emit('update:choices', items[0])
+                this.$emit('update:choices', items[0] || null)
             }
         },
         regenIndex() {
             this.index = createIndex(Object.values(this.items))
         },
-        reverseUpdateChoices(keys: string[] | string | undefined) {
-            let selection: Record<string, ItemCandidate> = {}
-            if (keys === undefined) {
+        ensureCollection(keys: string[] | string | null): string[] {
+            if (keys === null) {
                 keys = []
             } else if (typeof keys === 'string') {
                 keys = [keys]
             }
-            for (let k of keys) {
-                let item = this.items[k]
-                if (item) {
-                    selection[k] = item
-                } else {
-                    selection[k] = this.factory(k)
-                }
-            }
-            this.selected = selection
+            return keys
         },
     },
     watch: {
@@ -348,18 +348,18 @@ export default defineComponent({
             deep: true,
         },
         '$attrs.choices': {
-            handler(keys: string[] | string | undefined) {
-                // This is non-deterministic and ugly.
-                if (new Set(Object.keys(this.$props)).has('choices')) return
-                this.reverseUpdateChoices(keys)
-            },
-            deep: true,
-            immediate: true,
-        },
-        '$props.choices': {
-            handler(keys: string[] | string | undefined) {
-                if (new Set(Object.keys(this.$attrs)).has('choices')) return
-                this.reverseUpdateChoices(keys)
+            handler(keys: string[] | string | null) {
+                keys = this.ensureCollection(keys)
+                let selection: Record<string, ItemCandidate> = {}
+                for (let k of keys) {
+                    let item = this.items[k]
+                    if (item) {
+                        selection[k] = item
+                    } else {
+                        selection[k] = this.factory(k)
+                    }
+                }
+                this.selected = selection
             },
             deep: true,
             immediate: true,
