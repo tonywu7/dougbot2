@@ -2,12 +2,12 @@
     <div class="form">
         <h4 class="title">Test out access control settings:</h4>
         <div>
-            <item-select label="In channel" :items="channels" v-model:error="errors.channels" :multiple="false"
+            <item-select label="In channel" :items="channels" v-model:error="errors.channel" :multiple="false"
                 v-model:choices="selected.channel">
             </item-select>
             <item-select label="Member with roles" :items="roles" v-model:choices="selected.roles">
             </item-select>
-            <item-select label="Using command" :items="commands" v-model:error="errors.commands" :multiple="false"
+            <item-select label="Using command" :items="commands" v-model:error="errors.command" :multiple="false"
                 v-model:choices="selected.command">
             </item-select>
             <div class="test">
