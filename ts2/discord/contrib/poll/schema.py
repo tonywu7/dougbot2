@@ -15,14 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graphene import (ID, Argument, Boolean, InputObjectType, Int, List,
-                      Mutation, ObjectType, String)
+                      Mutation, NonNull, ObjectType, String)
 from graphene_django import DjangoObjectType
 
 from ts2.discord.middleware import (get_server_scoped_model,
                                     intersect_server_model)
 from ts2.discord.models import Channel
 from ts2.discord.utils.common import BigIntDict
-from ts2.discord.utils.graphql import HasContext
+from ts2.discord.utils.graphql import (HasContext, KeyValuePairInput,
+                                       KeyValuePairType)
 
 from .models import SuggestionChannel
 
@@ -30,32 +31,40 @@ from .models import SuggestionChannel
 class SuggestionChannelType(DjangoObjectType):
     channel_id = ID(required=True)
 
+    arbiters = List(NonNull(ID), required=True)
+    reactions = List(NonNull(KeyValuePairType), required=True)
+
     class Meta:
         model = SuggestionChannel
         fields = [
-            'description',
+            'title', 'description',
             'upvote', 'downvote',
-            'approve', 'reject',
             'requires_text',
             'requires_uploads',
             'requires_links',
         ]
 
+    @classmethod
+    def resolve_reactions(cls, root: SuggestionChannel, *args, **kwargs):
+        return KeyValuePairType.from_dict(root.reactions)
+
 
 class SuggestionChannelInput(InputObjectType):
     channel_id = Argument(ID, required=True)
-    description = Argument(String)
-    upvote = Argument(String)
-    downvote = Argument(String)
-    approve = Argument(String)
-    reject = Argument(String)
-    requires_text = Argument(Boolean)
-    requires_uploads = Argument(Int)
-    requires_links = Argument(Int)
+    title = Argument(String, required=True)
+    description = Argument(String, required=True)
+    upvote = Argument(String, required=True)
+    downvote = Argument(String, required=True)
+    requires_text = Argument(Boolean, required=True)
+    requires_uploads = Argument(Int, required=True)
+    requires_links = Argument(Int, required=True)
+    arbiters = List(NonNull(ID), required=True)
+    reactions = List(NonNull(KeyValuePairInput), required=True)
 
     def mutate(self, obj: SuggestionChannel):
         for key in obj.updatable_fields:
             setattr(obj, key, getattr(self, key))
+        obj.reactions = KeyValuePairInput.to_dict(self.reactions)
 
     def new(self, server_id: int) -> SuggestionChannel:
         channel = SuggestionChannel()

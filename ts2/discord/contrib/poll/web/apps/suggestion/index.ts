@@ -15,8 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { selectAndMount } from 'web/components/utils/app'
-import SuggestionChannelList from './SuggestionChannelList.vue'
+import SuggestionChannel from './SuggestionChannel.vue'
 
 window.addEventListener('DOMContentLoaded', () => {
-    selectAndMount('#suggest-channel-list', SuggestionChannelList)
+    selectAndMount('#suggest-channel-list', SuggestionChannel)
 })

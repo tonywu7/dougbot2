@@ -20,7 +20,7 @@ import logging
 import re
 from collections.abc import Iterable
 from operator import attrgetter, itemgetter
-from typing import Generic, Optional, Protocol, TypeVar, Union
+from typing import Generic, Protocol, TypeVar, Union
 
 import discord
 import inflect
@@ -35,6 +35,7 @@ from django.db.models.query import QuerySet
 from .config import CommandAppConfig
 from .utils.duckcord.color import Color2
 from .utils.duckcord.permissions import Permissions2
+from .utils.fields import ColorField, NumbersListField, PermissionField
 
 inflection = inflect.engine()
 
@@ -97,55 +98,6 @@ class NamingMixin:
 
     def __repr__(self) -> str:
         return f'<{self.discriminator()} at {hex(id(self))}>'
-
-
-class PermissionField(models.BigIntegerField):
-    def to_python(self, value) -> discord.Permissions | None:
-        number = super().to_python(value)
-        if number is None:
-            return None
-        return Permissions2(number)
-
-    def from_db_value(self, value, expression, connection):
-        return self.to_python(value)
-
-    def get_prep_value(self, value: discord.Permissions | Permissions2 | None):
-        if value is None:
-            return super().get_prep_value(None)
-        elif isinstance(value, discord.Permissions):
-            return super().get_prep_value(value.value)
-        return super().get_prep_value(int(value))
-
-
-class ColorField(models.IntegerField):
-    def to_python(self, value) -> Color2 | None:
-        number = super().to_python(value)
-        if number is None:
-            return None
-        return Color2(number)
-
-    def from_db_value(self, value, expression, connection):
-        return self.to_python(value)
-
-    def get_prep_value(self, value: discord.Color | Color2):
-        if value is None:
-            return super().get_prep_value(None)
-        elif isinstance(value, discord.Colour):
-            return super().get_prep_value(value.value)
-        return super().get_prep_value(int(value))
-
-
-class NumbersListField(models.JSONField):
-    def from_db_value(self, value, expression, connection):
-        struct = super().from_db_value(value, expression, connection)
-        if not isinstance(struct, list):
-            return None
-        return [int(s) for s in struct]
-
-    def get_prep_value(self, value: Optional[list[int]]):
-        if not isinstance(value, list):
-            return super().get_prep_value(None)
-        return super().get_prep_value([int(s) for s in value])
 
 
 class ModelTranslator(Generic[T, U]):

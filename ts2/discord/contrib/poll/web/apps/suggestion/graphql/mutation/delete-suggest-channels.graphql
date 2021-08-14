@@ -1,0 +1,5 @@
+mutation DeleteSuggestChannels ($serverId: ID!, $channelIds: [ID]) {
+    deleteSuggestChannels(serverId: $serverId, channelIds: $channelIds) {
+        successful
+    }
+}

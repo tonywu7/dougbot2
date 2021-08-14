@@ -16,22 +16,26 @@
 
 from django.db import models
 from django.utils.functional import classproperty
+
 from ts2.discord.models import Channel
+from ts2.discord.utils.fields import NumbersListField, RecordField
 
 
 class SuggestionChannel(models.Model):
     channel: Channel = models.OneToOneField(Channel, models.CASCADE, primary_key=True, related_name='+')
 
+    title: str = models.TextField()
     description: str = models.TextField(blank=True)
 
     upvote: str = models.CharField(max_length=512, blank=True, default='🔼')
     downvote: str = models.CharField(max_length=512, blank=True, default='🔽')
-    approve: str = models.CharField(max_length=512, blank=True, default='✅')
-    reject: str = models.CharField(max_length=512, blank=True, default='🚫')
 
     requires_text: bool = models.BooleanField(default=True)
     requires_uploads: int = models.IntegerField(default=0)
     requires_links: int = models.IntegerField(default=0)
+
+    reactions: dict[str, str] = RecordField(default=dict)
+    arbiters: list[int] = NumbersListField(default=list)
 
     @classproperty
     def updatable_fields(cls) -> list[str]:

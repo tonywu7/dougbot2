@@ -14,13 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 import re
-from typing import Generic, TypeVar, Protocol
+from typing import Generic, Protocol, TypeVar
 
 from django.db.models import Model, QuerySet
 from django.forms import Form, ModelForm
 from django.http import HttpRequest
-from graphene import ID, Argument, InputObjectType, List, Mutation, ObjectType
+from graphene import (ID, Argument, InputObjectType, List, Mutation, NonNull,
+                      ObjectType, String)
 
 T = TypeVar('T', bound=Model)
 U = TypeVar('U', bound=Form)
@@ -101,3 +104,21 @@ class FormMutationMixin(Generic[U]):
 
 class HasContext(Protocol):
     context: HttpRequest
+
+
+class KeyValuePairType(ObjectType):
+    key: str = NonNull(String)
+    value: str = NonNull(String)
+
+    @classmethod
+    def from_dict(cls, record: dict[str, str]) -> list[KeyValuePairType]:
+        return [KeyValuePairType(str(k), str(v)) for k, v in record.items()]
+
+
+class KeyValuePairInput(InputObjectType):
+    key: str = Argument(String, required=True)
+    value: str = Argument(String, required=True)
+
+    @classmethod
+    def to_dict(cls, kvp: list[KeyValuePairInput]) -> dict[str, str]:
+        return {item.key: item.value for item in kvp}

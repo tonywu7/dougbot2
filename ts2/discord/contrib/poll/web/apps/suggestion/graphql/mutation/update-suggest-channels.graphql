@@ -1,0 +1,22 @@
+mutation UpdateSuggestChannels(
+    $serverId: ID!
+    $channels: [SuggestionChannelInput!]
+) {
+    updateSuggestChannels(serverId: $serverId, channels: $channels) {
+        channels {
+            channelId
+            title
+            description
+            upvote
+            downvote
+            requiresText
+            requiresUploads
+            requiresLinks
+            arbiters
+            reactions {
+                key
+                value
+            }
+        }
+    }
+}
