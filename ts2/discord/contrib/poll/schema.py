@@ -84,12 +84,14 @@ class SuggestionChannelUpdateMutation(Mutation):
     @classmethod
     def mutate(cls, root, info: HasContext, *, server_id: str, channels: list[SuggestionChannelInput]):
         channel_map = BigIntDict({c.channel_id: c for c in channels})
-        to_update = get_server_scoped_model(info.context, SuggestionChannel.channel, server_id, 'write')
-        for channel in list(to_update):
+        existing = get_server_scoped_model(info.context, SuggestionChannel.channel, server_id, 'write')
+        to_update: list[SuggestionChannel] = []
+        for channel in list(existing):
             change = channel_map.pop(channel.channel_id, None)
             if not change:
                 continue
             change.mutate(channel)
+            to_update.append(channel)
         to_create = [c.new(server_id) for c in channel_map.values()]
         to_create = {c.channel_id: c for c in to_create}
         to_create = intersect_server_model(to_create, server_id, Channel).values()
