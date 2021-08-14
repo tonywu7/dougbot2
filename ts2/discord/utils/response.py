@@ -76,6 +76,9 @@ class ResponseInit:
     def deleter(self):
         return self.responder(lambda msg: DeleteResponder(self.context, msg))
 
+    def autodelete(self, seconds: float):
+        return attr.evolve(self, delete_after=seconds)
+
     def suppress(self):
         async def callback(msg: Message):
             return await msg.edit(suppress=True)
