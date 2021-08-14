@@ -383,7 +383,7 @@ class Embed2:
         """
         return self.set_color(member.color)
 
-    def personalized(self, person: User | Member):
+    def personalized(self, person: User | Member, *, url: str = _EMPTY):
         """Return a new embed personalized using the user's name, avatar, and\
             color.
 
@@ -392,12 +392,11 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        return attr.evolve(
-            self, author=EmbedAuthor(name=str(person), icon_url=person.avatar_url),
-            color=person.color,
-        )
+        author = EmbedAuthor(name=str(person), url=url,
+                             icon_url=person.avatar_url)
+        return attr.evolve(self, author=author, color=person.color)
 
-    def decorated(self, guild: Guild):
+    def decorated(self, guild: Guild, *, url: str = _EMPTY):
         """Return a new embed stylized using the guild's name and icon.
 
         :param guild: The guild to use.
@@ -405,9 +404,9 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        return attr.evolve(
-            self, author=EmbedAuthor(name=str(guild), icon_url=guild.icon_url),
-        )
+        author = EmbedAuthor(name=str(guild), url=url,
+                             icon_url=guild.icon_url)
+        return attr.evolve(self, author=author)
 
     def __len__(self) -> int:
         return sum([
