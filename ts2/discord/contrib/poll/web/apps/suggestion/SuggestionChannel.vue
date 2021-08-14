@@ -20,12 +20,13 @@
 
                     <div class="suggestion-channel">
                         <item-select class="suggestion-channel-select" label="Channel" :items="channels"
-                            :multiple="false" v-model:choices="current.channel" v-model:error="error">
+                            :multiple="false" :filter="channelFilter" v-model:choices="current.channel"
+                            v-model:error="error">
                         </item-select>
                     </div>
 
                     <transition name="fade">
-                        <div class="suggestion-channel-options">
+                        <div :class="['suggestion-channel-options', {disabled: disabled}]">
 
                             <div class="form-fields miscellaneous-options">
                                 <input-field type="text" name="title" :id="`suggest-channel-title`"
@@ -94,12 +95,13 @@
 
                 <template v-slot:form-after>
                     <div class="suggestion-channel-actions">
-                        <button v-if="!willDelete" type="button" class="btn btn-success" :disabled="hasError"
-                            @click="submit">Save</button>
-                        <button v-else type="button" class="btn btn-danger" @click="remove">Confirm deletion</button>
-                        <button v-if="!willDelete" type="button" class="btn btn-outline-danger"
+                        <button v-if="!willDelete" type="button" class="btn btn-success"
+                            :disabled="hasError || disabled" @click="submit">Save</button>
+                        <button v-else type="button" class="btn btn-danger" :disabled="disabled" @click="remove">Confirm
+                            deletion</button>
+                        <button v-if="!willDelete" type="button" class="btn btn-outline-danger" :disabled="disabled"
                             @click="willDelete = !willDelete">Delete</button>
-                        <button v-else type="button" class="btn btn-outline-secondary"
+                        <button v-else type="button" class="btn btn-outline-secondary" :disabled="disabled"
                             @click="willDelete = !willDelete">Cancel</button>
                     </div>
                 </template>
@@ -155,6 +157,11 @@
             &>:not(:first-child) {
                 margin-top: 2rem;
             }
+        }
+
+        &.disabled {
+            pointer-events: none;
+            filter: opacity(.5);
         }
     }
 

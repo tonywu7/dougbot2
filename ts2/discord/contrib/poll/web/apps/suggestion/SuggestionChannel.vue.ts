@@ -125,12 +125,15 @@ async function loadChannels(): Promise<SuggestChannel[]> {
 }
 
 async function updateChannels(
-    channels: SuggestChannel[]
+    channels: SuggestChannel[],
+    replaced: string[] | undefined = undefined
 ): Promise<SuggestChannel[]> {
+    if (!replaced) replaced = []
     let res = await server.mutate<
         UpdateSuggestChannelsMutation,
         Omit<UpdateSuggestChannelsMutationVariables, 'serverId'>
     >(UPDATE_SUGGEST_CHANNELS, {
+        replaced: replaced,
         channels: channels.map((d) => d.toJSON()),
     })
     return res.data!.updateSuggestChannels!.channels!.map(
@@ -158,6 +161,7 @@ export default defineComponent({
         let emotes: Ref<Record<string, Emote>> = ref({})
 
         let data: Ref<SuggestChannel[]> = ref([])
+        let initial: Ref<(string | null)[]> = ref([])
 
         let index: Ref<number> = ref(0)
         let errors: Ref<string[]> = ref([])
@@ -174,6 +178,7 @@ export default defineComponent({
             Object.assign(emotes.value, ...em.map((e) => ({ [e.id]: e })))
             channels.value = textChannels(channels.value)
             data.value.push(...dt)
+            initial.value.push(...data.value.map((d) => d.channelId))
             loading.value = false
         })
 
@@ -183,6 +188,7 @@ export default defineComponent({
             roles,
             emotes,
             data,
+            initial,
             index,
             errors,
         }
@@ -201,14 +207,33 @@ export default defineComponent({
                 this.errors[this.index] = e
             },
         },
-        hasError(): boolean {
-            return !!this.error && this.error.length > 0
+        disabled(): boolean {
+            return !Boolean(this.current?.channel)
         },
-        current(): SuggestChannel | undefined {
-            return this.data[this.index]
+        hasError(): boolean {
+            return Boolean(this.error) && this.error.length > 0
+        },
+        current: {
+            get(): SuggestChannel | undefined {
+                return this.data[this.index]
+            },
+            set(c: SuggestChannel) {
+                this.data[this.index] = c
+            },
+        },
+        currentIds(): Set<string> {
+            return new Set(
+                this.data
+                    .map((c) => c.channel)
+                    .filter((c) => c)
+                    .map((c) => c!)
+            )
         },
     },
     methods: {
+        channelFilter(channel: Channel): boolean {
+            return !this.currentIds.has(channel.id)
+        },
         activate(idx: number) {
             this.index = idx
             this.willDelete = false
@@ -234,6 +259,7 @@ export default defineComponent({
                 ],
             })
             this.data.push(ch)
+            this.initial.push(null)
             this.activate(this.data.length - 1)
         },
         removeReaction(idx: number) {
@@ -247,12 +273,19 @@ export default defineComponent({
                 this.error = 'You must specify a channel.'
                 return
             }
-            let result
+            let replaced: string[] = []
+            let initialId = this.initial[this.index]
+            if (initialId && this.current.channelId != initialId) {
+                replaced = [initialId]
+            }
+            let result: SuggestChannel[]
             try {
-                result = await updateChannels([this.current])
+                result = await updateChannels([this.current], replaced)
             } catch (e) {
                 return
             }
+            this.current = result[0]
+            this.initial[this.index] = this.current.channelId
             displayNotification(Color.SUCCESS, 'Settings saved')
         },
         async remove() {

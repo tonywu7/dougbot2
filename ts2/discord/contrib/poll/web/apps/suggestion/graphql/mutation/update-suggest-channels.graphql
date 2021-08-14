@@ -1,7 +1,11 @@
 mutation UpdateSuggestChannels(
     $serverId: ID!
     $channels: [SuggestionChannelInput!]
+    $replaced: [ID!]
 ) {
+    deleteSuggestChannels(serverId: $serverId, channelIds: $replaced) {
+        successful
+    }
     updateSuggestChannels(serverId: $serverId, channels: $channels) {
         channels {
             channelId

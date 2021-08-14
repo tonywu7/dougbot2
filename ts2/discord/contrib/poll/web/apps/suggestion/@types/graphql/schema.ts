@@ -359,12 +359,16 @@ export type DeleteSuggestChannelsMutation = (
 export type UpdateSuggestChannelsMutationVariables = Exact<{
   serverId: Scalars['ID'];
   channels?: Maybe<Array<SuggestionChannelInput> | SuggestionChannelInput>;
+  replaced?: Maybe<Array<Scalars['ID']> | Scalars['ID']>;
 }>;
 
 
 export type UpdateSuggestChannelsMutation = (
   { __typename?: 'Mutation' }
-  & { updateSuggestChannels?: Maybe<(
+  & { deleteSuggestChannels?: Maybe<(
+    { __typename?: 'SuggestionChannelDeleteMutation' }
+    & Pick<SuggestionChannelDeleteMutation, 'successful'>
+  )>, updateSuggestChannels?: Maybe<(
     { __typename?: 'SuggestionChannelUpdateMutation' }
     & { channels?: Maybe<Array<Maybe<(
       { __typename?: 'SuggestionChannelType' }
