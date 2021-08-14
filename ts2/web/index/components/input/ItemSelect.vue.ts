@@ -67,6 +67,10 @@ export default defineComponent({
             type: Boolean,
             default: false,
         },
+        filter: {
+            type: Function as PropType<(item: ItemCandidate) => boolean>,
+            default: () => (item: ItemCandidate) => true,
+        },
         factory: {
             type: Function as PropType<(s: string) => ItemCandidate>,
             default: (): ((s: string) => ItemCandidate) => (s) => ({
@@ -121,7 +125,7 @@ export default defineComponent({
             if (items.length == 0 && this.factory) {
                 items.push(this.factory(this.search))
             }
-            return items
+            return items.filter(this.filter)
         },
         dropdownShow: {
             get(): boolean {
