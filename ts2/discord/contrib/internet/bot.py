@@ -19,7 +19,7 @@ from typing import Literal, Optional, Union
 
 import aiohttp
 import pytz
-from discord import Member, Role
+from discord import Member, Message, MessageReference, Role
 from discord.ext.commands import BucketType, Greedy, command
 
 from ts2.discord.cog import Gear
@@ -29,6 +29,7 @@ from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
 from ts2.discord.ext.services.rand import FakerLocales, get_faker
 from ts2.discord.utils.common import Color2, Embed2, a, async_first, code, tag
+from ts2.discord.utils.markdown import spongebob
 
 from .models import RoleTimezone
 
@@ -208,3 +209,44 @@ class Internet(
         if language == 'la':
             sentences = ['Lorem ipsum dolor sit amet, consectetur adipiscing elit.', *sentences]
         return await ctx.response(ctx, content=' '.join(sentences)).deleter().run()
+
+    @command('spongebob', aliases=('mock',))
+    @doc.description('uSELesS FeATure.')
+    @doc.argument('content', 'The text to transform.')
+    @doc.argument('message', 'The message whose text content to transform.')
+    @doc.accepts_reply('Use the text content of the replied-to message.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('content',), None)
+    @doc.invocation(('message',), None)
+    @doc.invocation(('reply',), None)
+    async def mock(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        *, content: Optional[str] = '',
+        reply: Optional[MessageReference] = None,
+        threshold: Optional[float] = .5,
+    ):
+        if not content:
+            if message:
+                content = message
+            elif reply:
+                ref = reply.resolved
+                if ref:
+                    content = ref.content
+        if not content:
+            as_error = True
+            if not message and not reply:
+                content = "There's nothing to convert"
+            else:
+                content = 'That message has no text in it'
+        else:
+            as_error = False
+        await ctx.trigger_typing()
+        res, has_alpha = spongebob(content, threshold)
+        if as_error:
+            raise doc.NotAcceptable(res)
+        await ctx.response(ctx, content=res).reply().deleter().run()
+        if not has_alpha:
+            err = "There wasn't any letter to change"
+            res, *args = spongebob(err, threshold)
+            raise doc.NotAcceptable(res)
