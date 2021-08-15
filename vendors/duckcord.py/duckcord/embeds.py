@@ -32,6 +32,11 @@ from discord import Colour, Embed, Guild, Member, User
 T = TypeVar('T')
 
 _EMPTY = Embed.Empty
+_EmptyType = type(_EMPTY)
+
+
+def _is_empty(v: _EmptyType | None) -> bool:
+    return v is None or type(v) is _EmptyType
 
 
 def utcnow() -> datetime:
@@ -42,7 +47,7 @@ def utcnow() -> datetime:
 class _Serializable:
     @classmethod
     def instantiate(cls, info: dict):
-        if info is _EMPTY or info is None:
+        if _is_empty(info):
             return _EMPTY
         if isinstance(info, cls):
             return info
@@ -60,7 +65,7 @@ class _Serializable:
 
 def _optional_convert(converter: Callable[[], T]) -> Callable[[Any], T]:
     def convert(v) -> T:
-        if v is None or v is _EMPTY:
+        if _is_empty(v):
             return _EMPTY
         return converter(v)
     return convert
