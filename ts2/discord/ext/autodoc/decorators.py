@@ -189,7 +189,7 @@ def cooldown(maxcalls: int, duration: float, bucket: Union[commands.BucketType, 
 
     def wrapper(doc: Documentation, f: Command):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
-        cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "call")} '
+        cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "command call")} '
                     f'every {duration} {pluralize(duration, "second")}')
         if bucket_type is None:
             info = f'{cooldown}; dynamic.'

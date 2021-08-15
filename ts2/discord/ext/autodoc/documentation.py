@@ -414,13 +414,13 @@ class Documentation:
 
     def add_restriction(self, wrapper: CheckWrapper, desc: str, /, **kwargs):
         if desc:
-            self.restrictions.extend(desc)
+            self.restrictions.append(desc)
         else:
             processor = CHECK_TRANSLATOR.get(wrapper)
             if processor:
                 self.restrictions.extend(processor(**kwargs))
             elif wrapper.__doc__:
-                self.restrictions.extend(wrapper.__doc__)
+                self.restrictions.append(wrapper.__doc__)
 
     def finalize(self):
         if self.frozen:
