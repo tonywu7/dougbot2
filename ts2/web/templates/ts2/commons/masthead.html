@@ -1,13 +1,13 @@
 {% load bot %}
 <nav id="masthead">
     <h1 id="site-name" class="branding">
-        <a href="{% url 'web:index' %}" tabindex="0">
+        <a href="{% url 'web:index' %}" class="branding-homepate" tabindex="0">
             {{ BRANDING_SHORT }}
+            <picture class="avatar">
+                <source srcset="{% avatar 'webp' 1024 %}" type="image/webp">
+                <img src="{% avatar 'png' 256 %}" alt="Bot avatar">
+            </picture>
         </a>
-        <picture class="avatar">
-            <source srcset="{% avatar 'webp' 1024 %}" type="image/webp">
-            <img src="{% avatar 'png' 256 %}" alt="Bot avatar">
-        </picture>
     </h1>
     <section id="auth-control" class="auth-control masthead-opt-group">
         {% include 'ts2/web/identities.html' %}
