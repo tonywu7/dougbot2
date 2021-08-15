@@ -22,11 +22,13 @@ from typing import TypeVar
 import aiohttp
 from asgiref.sync import sync_to_async
 from discord import (AllowedMentions, Client, Forbidden, Guild, Intents,
-                     Message, NotFound, Permissions)
+                     Message, MessageReference, NotFound, Permissions,
+                     RawMessageDeleteEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
                                   errors, has_guild_permissions)
 from discord.utils import escape_markdown
 from django.conf import settings
+from django.core.cache import caches
 
 from ..conf.versions import list_versions
 from . import cog, gatekeeper
@@ -55,8 +57,11 @@ class RollbackCommand(Exception):
 
 
 class Robot(Bot):
+
     DEFAULT_PREFIX = 't;'
     DEFAULT_PERMS = Permissions(261959446262)
+
+    _CACHE_VERSION = 1
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
         options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
@@ -77,6 +82,7 @@ class Robot(Bot):
         create_manual(self)
         define_errors()
         self.gatekeeper = gatekeeper.Gatekeeper()
+        self._cache = caches['discord']
 
     async def _init_client_session(self):
         if hasattr(self, 'request'):
@@ -181,6 +187,21 @@ class Robot(Bot):
     def command_is_hidden(self, cmd):
         return self.manual.commands[cmd.qualified_name].invisible
 
+    def get_cache_key(self, **keys):
+        args = [f'{k}={v}' for k, v in keys.items()]
+        return ':'.join([__name__, 'cache', *args])
+
+    def get_cache(self, default=None, /, **keys):
+        return self._cache.get(self.get_cache_key(**keys), default, self._CACHE_VERSION)
+
+    def set_cache(self, value, ttl: float, /, **keys):
+        key = self.get_cache_key(**keys)
+        self._cache.set(key, value, timeout=ttl, version=self._CACHE_VERSION)
+
+    def del_cache(self, **keys):
+        key = self.get_cache_key(**keys)
+        self._cache.delete(key, version=self._CACHE_VERSION)
+
 
 def add_event_listeners(self: Robot):
     @self.check_once
@@ -211,6 +232,28 @@ def add_event_listeners(self: Robot):
             prefix = prefixes[0]
             example = f'{prefix}echo'
             return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')
+
+    @self.listen('on_message')
+    async def on_bot_reply(msg: Message):
+        if msg.author != self.user:
+            return
+        ref: MessageReference = msg.reference
+        if not ref or not ref.cached_message:
+            return
+        referrer: Message = ref.cached_message
+        self.set_cache(msg.id, 31536000, referrer=referrer.id)
+
+    @self.listen('on_raw_message_delete')
+    async def on_command_call_delete(ev: RawMessageDeleteEvent):
+        channel = self.get_channel(ev.channel_id)
+        if not channel:
+            return
+        referred = self.get_cache(None, referrer=ev.message_id)
+        if referred is None:
+            return
+        self.del_cache(referrer=ev.message_id)
+        msg = channel.get_partial_message(referred)
+        await msg.delete(delay=0)
 
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
@@ -272,9 +315,9 @@ def register_base_commands(self: Robot):
     @doc.example('The quick brown fox', em('sends back "The quick brown fox"'))
     async def echo(ctx: Circumstances, *, text: str = None):
         if not text:
-            await ctx.send(ctx.message.content)
+            await ctx.reply(ctx.message.content)
         else:
-            await ctx.send(text)
+            await ctx.reply(text)
 
     @self.command('ping')
     @doc.description('Test the network latency between the bot and Discord.')
