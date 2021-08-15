@@ -28,7 +28,7 @@ from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
 from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
 from ts2.discord.ext.services.rand import FakerLocales, get_faker
-from ts2.discord.utils.common import Color2, Embed2, a, async_first, code, tag
+from ts2.discord.utils.common import Color2, Embed2, a, async_first, code, tag, trunc_for_field
 from ts2.discord.utils.markdown import spongebob
 
 from .models import RoleTimezone
@@ -243,6 +243,7 @@ class Internet(
             as_error = False
         await ctx.trigger_typing()
         res, has_alpha = spongebob(content, threshold)
+        res = trunc_for_field(res, 1920)
         if as_error:
             raise doc.NotAcceptable(res)
         await ctx.response(ctx, content=res).reply().deleter().run()
