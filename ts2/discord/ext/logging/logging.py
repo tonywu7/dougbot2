@@ -176,8 +176,8 @@ class ContextualLogger:
                 mentions = AllowedMentions(roles=[role])
 
         try:
-            await channel.send(content=msg, allowed_mentions=mentions, embed=embed)
-            await report_exception(channel, exc_info)
+            await channel.send(content=msg, allowed_mentions=mentions,
+                               embed=embed, file=get_traceback(exc_info))
         except Exception as e:
             self._log.error(f'Error while delivering logs: {e}', exc_info=e)
 
@@ -243,10 +243,3 @@ def censor_paths(tb: str):
     for path in sys.path:
         tb = tb.replace(path, '')
     return tb
-
-
-async def report_exception(channel: TextChannel, exc_info: BaseException):
-    tb = get_traceback(exc_info)
-    if not tb:
-        return
-    await channel.send(file=tb)
