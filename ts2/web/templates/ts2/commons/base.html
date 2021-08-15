@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% endblock %}
 
+    {% if pageinfo or opengraph %}
     {% block graph_common %}
     <meta name="theme-color" content="#{{ pageinfo.color|default:opengraph.color }}">
     <meta property="og:type" content="website" />
@@ -26,6 +27,7 @@
     <meta property="og:image" content="{{ pageinfo.image|default:opengraph.image }}">
     <meta name="twitter:image" content="{{ pageinfo.image|default:opengraph.image }}">
     {% endblock %}
+    {% endif %}
 
     <title>{% block title %}{{ pageinfo.title|default:opengraph.title }}{% endblock %} | {{ BRANDING_FULL }}</title>
 

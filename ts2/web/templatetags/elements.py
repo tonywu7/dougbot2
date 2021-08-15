@@ -151,12 +151,6 @@ class SidebarSectionNode(Node):
         return tmpl.render(ctx)
 
 
-@register.simple_tag(name='bs5switch')
-def bootstrap5switch(field):
-    template = loader.get_template('telescope2/elements/switch.html')
-    return template.render({'field': field})
-
-
 @register.simple_tag(name='featurelink', takes_context=True)
 def featurenode(context: Context, slug: str):
     try:

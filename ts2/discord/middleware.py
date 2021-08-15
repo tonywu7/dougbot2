@@ -100,13 +100,13 @@ def invalidate_cache(req: HttpRequest):
 
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
     await sync_to_async(logout)(req)
-    message = 'Your Discord login credentials have expired. Please log in again.'
+    message = 'Your Discord login credentials have expired. Please log in through Discord again.'
     accept = req.headers.get('Accept', '').lower()
     content_type = req.headers.get('Content-Type', '').lower()
     if 'application/json' in accept or 'application/json' in content_type:
         return JsonResponse({'errors': [{'message': message}]})
     messages.warning(req, message)
-    return render(req, 'telescope2/web/index.html')
+    return redirect(reverse('web:index'))
 
 
 @sync_to_async
