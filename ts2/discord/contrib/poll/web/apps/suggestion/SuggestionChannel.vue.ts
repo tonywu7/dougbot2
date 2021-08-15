@@ -254,8 +254,8 @@ export default defineComponent({
                 upvote: '🔼',
                 downvote: '🔽',
                 reactions: [
-                    { key: '✅', value: 'approved' },
-                    { key: '🚫', value: 'rejected' },
+                    { key: '✅', value: 'Approved' },
+                    { key: '🚫', value: 'Rejected' },
                 ],
             })
             this.data.push(ch)

@@ -428,6 +428,8 @@ class Poll(
         if ctx.author.id != info['author_id']:
             raise NotAcceptable('You can only change the attribution of a suggestion you submitted.')
         embed = embed.personalized(member, url=urlqueryset(embed.author.url, attrib_id=member.id))
+        record = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}'
+        embed = self.field_setdefault(embed, 'Edited', record)
         await suggestion.edit(embed=embed)
         return (await ctx.response(ctx, content=f'Updated suggestion {code(suggestion.id)}.')
                 .reply().autodelete(20).run())
@@ -470,7 +472,7 @@ class Poll(
             status = f'{emote} {strong(status)}'
         else:
             status = emote
-        entry = (f'{status} - {tag(ev.member)},'
+        entry = (f'{status} - {tag(ev.member)}'
                  f' {timestamp(utcnow(), "relative")}')
 
         try:

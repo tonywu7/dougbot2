@@ -115,13 +115,6 @@ module.exports = {
           reuseExistingChunk: true,
           name: 'vendor',
         },
-        gql: {
-          test: /\/graphql/,
-          priority: -20,
-          chunks: 'all',
-          reuseExistingChunk: true,
-          name: 'gql',
-        },
       },
     },
     runtimeChunk: 'single',

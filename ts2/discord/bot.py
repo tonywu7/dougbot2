@@ -259,7 +259,6 @@ def register_base_commands(self: Robot):
         info = await ctx.bot.application_info()
         embed = (
             Embed2(title=info.name, description=info.description)
-            .add_field(name='Owner', value=info.owner.mention)
             .add_field(name='Versions', value=versions, inline=False)
             .set_thumbnail(url=info.icon_url)
             .personalized(ctx.me)
