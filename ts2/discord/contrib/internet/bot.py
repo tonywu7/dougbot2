@@ -28,7 +28,8 @@ from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
 from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
 from ts2.discord.ext.services.rand import FakerLocales, get_faker
-from ts2.discord.utils.common import Color2, Embed2, a, async_first, code, tag, trunc_for_field
+from ts2.discord.utils.common import (Color2, Embed2, a, async_first, code,
+                                      tag, trunc_for_field)
 from ts2.discord.utils.markdown import spongebob
 
 from .models import RoleTimezone
@@ -228,7 +229,7 @@ class Internet(
     ):
         if not content:
             if message:
-                content = message
+                content = message.content
             elif reply:
                 ref = reply.resolved
                 if ref:
@@ -246,7 +247,13 @@ class Internet(
         res = trunc_for_field(res, 1920)
         if as_error:
             raise doc.NotAcceptable(res)
-        await ctx.response(ctx, content=res).reply().deleter().run()
+        if reply:
+            reference = reply
+        elif message:
+            reference = message.to_reference()
+        else:
+            reference = ctx.message.to_reference()
+        await ctx.response(ctx, content=res, reference=reference).deleter().run()
         if not has_alpha:
             err = "There wasn't any letter to change"
             res, *args = spongebob(err, threshold)
