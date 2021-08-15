@@ -1,59 +1,83 @@
 services:
-
     redis:
-        image: "redis:alpine"
+        image: 'redis:alpine'
         expose:
             - 6379
-        restart: on-failure
-
-    web:
-        image: telescope2
-        build: .
-        environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.server
-        command: "./bin/manage web"
-        volumes:
-            - instance:/application/instance
-            - static:/application/dist
-        ports:
-            - "8086:8086"
-        expose:
-            - 8086
-        depends_on:
-            - redis
         restart: on-failure
 
     server:
         build: ./nginx
         ports:
-            - "8088:80"
+            - '8088:80'
         volumes:
             - static:/www
-        depends_on:
-            - web
-        restart: on-failure
-
-    bot:
-        image: telescope2
-        environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: "./bin/manage bot"
-        volumes:
-            - instance:/application/instance
-            - static:/application/dist
-        depends_on:
-            - web
         restart: on-failure
 
     backup:
         image: telescope2
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: "./bin/manage startbackup -o backups"
+        command: './bin/manage startbackup -o backups'
         volumes:
             - instance:/application/instance
             - backups:/application/backups
         restart: always
+
+    web:
+        image: telescope2
+        build: .
+        environment:
+            - DJANGO_SETTINGS_MODULE=ts2.conf.server
+        command: './bin/manage web'
+        volumes:
+            - instance:/application/instance
+            - static:/application/dist
+        ports:
+            - '8086:8086'
+        expose:
+            - 8086
+        depends_on:
+            - server
+            - redis
+            - backup
+        restart: on-failure
+
+    bot:
+        image: telescope2
+        environment:
+            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+        command: './bin/manage bot'
+        volumes:
+            - instance:/application/instance
+            - static:/application/dist
+        depends_on:
+            - web
+            - backup
+        restart: on-failure
+
+    init:
+        image: telescope2
+        environment:
+            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+        command: './bin/init'
+        volumes:
+            - instance:/application/instance
+            - static:/application/dist
+        depends_on:
+            - web
+        restart: 'no'
+
+    migrate:
+        image: telescope2
+        environment:
+            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+        command: './bin/migrate'
+        volumes:
+            - instance:/application/instance
+            - static:/application/dist
+        depends_on:
+            - web
+        restart: 'no'
 
 volumes:
     instance:

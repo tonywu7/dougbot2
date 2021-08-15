@@ -17,7 +17,7 @@ docker compose build
 ### Setup
 
 ```sh
-docker compose run bot ./bin/init
+docker compose run --rm init
 ```
 
 You will be prompted for you Discord app ID, secret, and bot token.
@@ -38,7 +38,7 @@ For creating the superuser:
 ### Run
 
 ```sh
-docker compose up
+docker compose up bot
 ```
 
 The bot will be online and the web interface will be at `localhost:8088`.
@@ -49,5 +49,5 @@ Pull updates, then
 
 ```sh
 docker compose build
-docker compose run bot ./bin/migrate
+docker compose run --rm migrate
 ```
