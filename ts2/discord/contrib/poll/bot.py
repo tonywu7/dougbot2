@@ -16,7 +16,7 @@
 
 import asyncio
 import re
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Optional, TypedDict, Union
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
@@ -26,16 +26,19 @@ import inflect
 from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
                      Member, Message, PartialEmoji, RawReactionActionEvent,
                      Role, TextChannel)
-from discord.ext.commands import BucketType, group
+from discord.ext.commands import BucketType, MissingAnyRole, group
 from django.utils.datastructures import MultiValueDict
 from more_itertools import first
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
+from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
-from ts2.discord.utils.common import (Embed2, blockquote, strong, tag,
-                                      tag_literal, timestamp, utcnow)
+from ts2.discord.utils.common import (Embed2, EmbedPagination, a, blockquote,
+                                      chapterize, code, pre, strong, tag,
+                                      tag_literal, timestamp, urlqueryset,
+                                      utcnow)
 
 from .models import SuggestionChannel
 
@@ -47,15 +50,9 @@ RE_URL = re.compile(r'https?://\S*(\.\S+)+\S*')
 
 class SubmissionInfo(TypedDict):
     message_id: int
+    linked_id: int
     author_id: int
     attrib_id: Optional[int]
-    links: Optional[int]
-    files: Optional[int]
-
-
-class SubmissionAttachments(TypedDict):
-    links: Optional[Message]
-    files: Optional[Message]
 
 
 class Poll(
@@ -82,9 +79,25 @@ class Poll(
         channel_list = await self.list_suggest_channels(ctx.guild)
         if not channel_list:
             channel_list = '(no suggest channels)'
-        res = (Embed2(title='Suggestion channels', description=channel_list)
-               .decorated(ctx.guild))
-        return await ctx.response(ctx, embed=res).reply().deleter().run()
+        help_text = (
+            f'To make a suggestion, call {code("suggest")},'
+            ' followed by the suggestion channel,'
+            ' followed by the content of your submission, e.g.: '
+            f'{pre("suggest #discord-suggestions Enable threads")}'
+            ' To upload images/files, upload it together with the command call.'
+            '\nThe submission will include a permalink, which you can use to '
+            'edit or delete your suggestion, e.g.:'
+            f'{pre("suggest edit [link] Updated suggestion")}'
+        )
+        channel_lists = chapterize(channel_list, 1280, linebreak='newline')
+        channel_lists = [f'{strong("Channels")}\n{channels}'
+                         for channels in channel_lists]
+        base = Embed2().decorated(ctx.guild)
+        pages = [base.set_description(description=description)
+                 for description in [help_text, *channel_lists]]
+        pagination = EmbedPagination(pages, 'Suggestion channels')
+        return await (ctx.response(ctx, embed=pagination).deleter()
+                      .responder(pagination.with_context(ctx)).run())
 
     async def get_channel_or_404(self, ctx: Circumstances, channel: TextChannel):
         channels = [c.id for c in ctx.guild.channels]
@@ -92,9 +105,19 @@ class Poll(
         try:
             suggest: SuggestionChannel = await async_get(suggests, channel_id=channel.id)
         except SuggestionChannel.DoesNotExist:
-            raise doc.NotAcceptable((f'{tag(channel)} is not a suggestion channel.'))
+            raise NotAcceptable(f'{tag(channel)} is not a suggestion channel.')
         else:
             return suggest
+
+    def is_arbiter_in(self, target: SuggestionChannel, member: Member) -> bool:
+        roles: list[Role] = member.roles
+        return {r.id for r in roles} & set(target.arbiters)
+
+    def get_text(self, target: SuggestionChannel, content: str) -> str:
+        if target.requires_text and not content:
+            raise NotAcceptable((f'Submissions to {tag_literal("channel", target.channel_id)}'
+                                 ' must contain text description.'))
+        return content
 
     async def get_files(self, target: SuggestionChannel, msg: Message) -> list[File]:
         min_uploads = target.requires_uploads
@@ -102,28 +125,34 @@ class Poll(
             err = (f'Submissions to {tag(msg.channel)} require'
                    f' uploading at least {min_uploads}'
                    f' {inflection.plural_noun("file", min_uploads)}.')
-            raise doc.NotAcceptable(err)
+            raise NotAcceptable(err)
         return await asyncio.gather(*[att.to_file() for att in msg.attachments])
 
-    def get_links(self, target: SuggestionChannel, msg: Message) -> list[str]:
+    def get_links(self, target: SuggestionChannel, content: str) -> list[str]:
         min_links = target.requires_links
         if min_links:
-            links = [m.group(0) for m in RE_URL.finditer(msg.content)]
+            links = [m.group(0) for m in RE_URL.finditer(content)]
             if len(links) < min_links:
-                err = (f'Submissions to {tag(msg.channel)} must include'
-                       f' at least {min_links}'
+                err = (f'Submissions to {tag_literal("channel", target.channel_id)}'
+                       f' must include at least {min_links}'
                        f' {inflection.plural_noun("link", min_links)}.')
-                raise doc.NotAcceptable(err)
+                raise NotAcceptable(err)
             return links
         else:
             return []
 
-    def build_return_url(self, ctx: Circumstances, linked: dict[str, Message]) -> str:
+    def get_preamble(
+        self, target: SuggestionChannel,
+        author: Member, links: list[str],
+    ) -> str:
+        prefix = f'{target.title} submitted by {tag(author)}:'
+        return '\n'.join([prefix, *links])
+
+    def build_return_url(self, ctx: Circumstances, linked: Message) -> str:
         split = urlsplit(ctx.message.jump_url)
-        params = {'author': ctx.author.id,
-                  'type': f'{self.app_label}.suggestion'}
-        for k, v in linked.items():
-            params[k] = v.id
+        params = {'type': f'{self.app_label}.suggestion',
+                  'author_id': ctx.author.id,
+                  'linked_id': linked.id}
         query = urlencode(params)
         return urlunsplit((*split[:3], query, *split[4:]))
 
@@ -138,10 +167,11 @@ class Poll(
         info: SubmissionInfo = {}
         try:
             info['message_id'] = int(Path(split.path).parts[-1])
-            info['author_id'] = int(params['author'])
+            info['author_id'] = int(params['author_id'])
+            info['linked_id'] = int(params['linked_id'])
         except (TypeError, ValueError, KeyError):
             return
-        for key in ('links', 'files', 'attrib_id'):
+        for key in ('attrib_id',):
             try:
                 info[key] = int(params[key])
             except (TypeError, ValueError, KeyError):
@@ -170,7 +200,7 @@ class Poll(
                     value = f'{field.value}\n{line}'
                 break
         else:
-            idx = 0
+            idx = len(embed.fields)
             value = line
         return embed.set_field_at(idx, name=key, value=value, inline=inline)
 
@@ -184,41 +214,11 @@ class Poll(
         embed = Embed2.upgrade(embed)
         return embed, info
 
-    async def fetch_associated(self, info: SubmissionInfo) -> SubmissionAttachments:
-        att: SubmissionAttachments = {}
-        for k in ('links', 'files'):
-            msg_id = info[k]
-            if msg_id:
-                try:
-                    att[k] = self.fetch_message(msg_id)
-                except HTTPException:
-                    pass
-        return att
-
-    async def update_submission(
-        self, original: Message,
-        *, status: Optional[str] = None,
-        comment: Optional[str] = None,
-        author: Optional[Member] = None,
-    ):
-        embed, info = self.parse_submission(original)
-        embed = Embed2.upgrade(embed)
-        updated = embed
-        if status:
-            updated = self.field_setdefault(updated, 'Responses', status)
-        if comment:
-            updated = self.field_setdefault(updated, 'Comment', comment)
-        if author:
-            updated = (
-                self.field_setdefault(
-                    updated, 'Posted by',
-                    tag_literal('member', info['author_id']),
-                    inline=True,
-                ).personalized(author, url=updated.author.url)
-            )
-        if updated is embed:
-            return
-        await original.edit(embed=updated)
+    def ensure_submission(self, suggestion: Message):
+        try:
+            return self.parse_submission(suggestion)
+        except NotSuggestion:
+            raise NotAcceptable(f'That {a("message", suggestion.jump_url)} is not a submission.')
 
     @contextmanager
     def _cache_message(self, msg: Message):
@@ -235,11 +235,37 @@ class Poll(
             return passed
         return await channel.fetch_message(msg_id)
 
+    async def fetch_associated(
+        self, channel: TextChannel,
+        info: SubmissionInfo,
+    ) -> Optional[Message]:
+        with suppress(HTTPException):
+            return await self.fetch_message(info['linked_id'], channel)
+
+    async def update_submission(
+        self, original: Message,
+        *, status: Optional[str] = None,
+        comment: Optional[str] = None,
+    ):
+        embed, info = self.parse_submission(original)
+        updated = embed
+        if status:
+            updated = self.field_setdefault(updated, 'Responses', status)
+        if comment:
+            updated = self.field_setdefault(updated, 'Comment', comment)
+        if updated is embed:
+            return
+        await original.edit(embed=updated)
+
     @group('suggest', invoke_without_command=True)
     @doc.description('Make a suggestion.')
-    @doc.argument('category', 'The suggestion channel to use.')
+    @doc.argument('category', 'The suggestion channel to use.',
+                  node='[suggest channel]', signature='[channel]')
     @doc.argument('suggestion', 'Your suggestion here.')
     @doc.cooldown(1, 5, BucketType.member)
+    @doc.use_syntax_whitelist
+    @doc.invocation((), 'Show a list of all suggestion channels.')
+    @doc.invocation(('category', 'suggestion'), 'Submit a new suggestion.')
     async def suggest(
         self, ctx: Circumstances,
         category: Optional[Union[TextChannel, str]],
@@ -249,78 +275,162 @@ class Poll(
             return await self.send_channel_list(ctx)
 
         if not isinstance(category, TextChannel):
-            raise doc.NotAcceptable(f'No such channel {category}.')
+            raise NotAcceptable(f'No such channel {category}.')
 
         target = await self.get_channel_or_404(ctx, category)
 
         if target.requires_text and not suggestion:
-            raise doc.NotAcceptable((f'Submissions to {tag(category)} must'
-                                     ' contain text description.'))
+            raise NotAcceptable(f'Submissions to {tag(category)} must contain text description.')
 
         msg = ctx.message
+        suggestion = self.get_text(target, suggestion)
         files = await self.get_files(target, msg)
-        links = self.get_links(target, msg)
-
-        associated: dict[str, Message] = {}
+        links = self.get_links(target, suggestion)
 
         async with self._sequential, ctx.typing():
 
-            prefix = f'{target.title} by {tag(ctx.author)}'
-            mention_none = AllowedMentions.none()
-
-            if links:
-                resources = await category.send(
-                    content='\n'.join([prefix, *links]),
-                    allowed_mentions=mention_none,
-                )
-                associated['links'] = resources
-
-            if files:
-                upload = await category.send(
-                    content=prefix, files=files,
-                    allowed_mentions=mention_none,
-                )
-                associated['files'] = upload
+            kwargs = {'allowed_mentions': AllowedMentions.none()}
+            content = self.get_preamble(target, ctx.author, links)
+            kwargs['content'] = content
+            kwargs['files'] = files or None
+            associated: Message = await category.send(**kwargs)
 
             return_url = self.build_return_url(ctx, associated)
-            if associated:
-                ref = first(associated.values()).to_reference()
-            else:
-                ref = None
-
             submission = (
                 Embed2(title=target.title or 'Suggestion',
                        description=suggestion or None)
                 .set_timestamp(ctx.timestamp)
                 .personalized(ctx.author, url=return_url)
             )
-            res = await category.send(embed=submission, reference=ref)
+            res: Message = await category.send(embed=submission)
 
+        referrer = a(strong('Permalink'), res.jump_url)
+        postsubmit = submission.add_field(name='Reference', value=referrer, inline=False)
+        await res.edit(embed=postsubmit)
         await self.add_reactions(target, res)
         (await ctx.response(ctx, content='Thank you for the suggestion!')
-         .reply(True).autodelete(20).run())
+         .reply().autodelete(20).run())
 
-    @suggest.command('delete')
+    @suggest.command('delete', aliases=('remove', 'del', 'rm'))
     @doc.description('Delete a suggestion.')
     @doc.argument('suggestion', (
-        'The message containing your submission;'
-        ' must be the one with your username on it.'
+        'The message containing your submission'
+        ' (copy the permalink included in the message).'
     ))
     async def suggest_delete(self, ctx: Circumstances, suggestion: Message):
-        try:
-            embed, info = self.parse_submission(suggestion)
-        except NotSuggestion:
-            raise doc.NotAcceptable(f'Message {suggestion.id} is not a submission.')
+        embed, info = self.ensure_submission(suggestion)
         author = ctx.author
         if author.id != info['author_id'] and author.id != info['attrib_id']:
-            raise doc.NotAcceptable("You cannot delete someone else's suggestion.")
-        associated = await self.fetch_associated(info)
-        for msg in associated.values():
-            msg: Message
-            await msg.delete(delay=0)
+            raise NotAcceptable("You cannot delete someone else's suggestion.")
+        associated = await self.fetch_associated(suggestion.channel, info)
+        if associated:
+            await associated.delete(delay=0)
         await suggestion.delete(delay=0)
-        return (await ctx.response(ctx, content=f'Submission {suggestion.id} deleted.')
-                .reply(True).autodelete(20).run())
+        return (await ctx.response(ctx, content=f'Deleted suggestion {code(suggestion.id)}.')
+                .reply().autodelete(20).run())
+
+    @suggest.command('edit', aliased=('update', 'change', 'set'))
+    @doc.description('Edit a suggestion.')
+    @doc.argument('suggestion', (
+        'The message containing your submission'
+        ' (copy the permalink included in the message).'
+    ))
+    @doc.argument('content', (
+        'The updated submission; replaces the original'
+        ' text content of your suggestion.'
+    ))
+    @doc.use_syntax_whitelist
+    @doc.invocation(('suggestion', 'content'), (
+        'Replace the suggestion content;'
+        ' note that it is not possible'
+        ' to change the uploaded files'
+        ' if there are any.'
+    ))
+    async def suggest_edit(
+        self, ctx: Circumstances,
+        suggestion: Message,
+        *, content: str = '',
+    ):
+        embed, info = self.ensure_submission(suggestion)
+        author = ctx.author
+        if author.id != info['author_id'] and author.id != info['attrib_id']:
+            raise NotAcceptable("You cannot edit someone else's suggestion.")
+
+        category = suggestion.channel
+        target = await self.get_channel_or_404(ctx, category)
+
+        content = self.get_text(target, content)
+        links = self.get_links(target, content)
+
+        with self._cache_message(suggestion):
+            await self.fetch_message(suggestion.id, category)
+
+        associated = await self.fetch_associated(category, info)
+        if associated:
+            preamble = self.get_preamble(target, ctx.author, links)
+            await associated.edit(content=preamble)
+
+        submission = embed.set_description(content)
+        record = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}'
+        submission = self.field_setdefault(submission, 'Edited', record)
+        await suggestion.edit(embed=submission)
+        return (await ctx.response(ctx, content=f'Edited suggestion {code(suggestion.id)}.')
+                .reply().autodelete(20).run())
+
+    @suggest.command('comment', aliases=('review',))
+    @doc.description('Add a comment to a suggestion.')
+    @doc.argument('suggestion', (
+        'The message containing the submission'
+        ' (copy the permalink included in the message).'
+    ))
+    @doc.argument('comment', 'The comment to add.')
+    @doc.restriction(None, (
+        'Only members designated as "arbiters"'
+        ' (who can add responses via reactions)'
+        ' can post comments.'
+    ))
+    @doc.use_syntax_whitelist
+    @doc.invocation(('suggestion', 'comment'), None)
+    async def comment(
+        self, ctx: Circumstances,
+        suggestion: Message, *, comment: str,
+    ):
+        if not comment:
+            raise NotAcceptable('Comment must not be empty.')
+
+        category = suggestion.channel
+        target = await self.get_channel_or_404(ctx, category)
+        if not self.is_arbiter_in(target, ctx.author):
+            raise MissingAnyRole(target.arbiters)
+
+        comment = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}: {comment}'
+        try:
+            await self.update_submission(suggestion, comment=comment)
+        except NotSuggestion:
+            raise NotAcceptable(f'That {a("message", suggestion.jump_url)} is not a submission.')
+        return (await ctx.response(ctx, content=f'Comment added to suggestion {code(suggestion.id)}.')
+                .reply().autodelete(20).run())
+
+    @suggest.command('credit', aliases=('attrib',))
+    @doc.description('Attribute a submission to someone else.')
+    @doc.argument('suggestion', (
+        'The message containing the submission'
+        ' (copy the permalink included in the message).'
+    ))
+    @doc.argument('member', 'The member you would like to credit the suggestion to.')
+    @doc.restriction(None, 'You can only change the attribution of a suggestion you submitted.')
+    async def suggest_credit(
+        self, ctx: Circumstances,
+        suggestion: Message,
+        member: Member,
+    ):
+        embed, info = self.ensure_submission(suggestion)
+        if ctx.author.id != info['author_id']:
+            raise NotAcceptable('You can only change the attribution of a suggestion you submitted.')
+        embed = embed.personalized(member, url=urlqueryset(embed.author.url, attrib_id=member.id))
+        await suggestion.edit(embed=embed)
+        return (await ctx.response(ctx, content=f'Updated suggestion {code(suggestion.id)}.')
+                .reply().autodelete(20).run())
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
@@ -345,8 +455,7 @@ class Poll(
         if status is None:
             return
 
-        roles: list[Role] = ev.member.roles
-        if not {r.id for r in roles} & set(target.arbiters):
+        if not self.is_arbiter_in(target, ev.member):
             return
 
         msg_id = ev.message_id

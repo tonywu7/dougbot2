@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 from discord import Role
 from discord.abc import GuildChannel, User
 from discord.utils import escape_markdown
+from django.utils.datastructures import MultiValueDict
 from markdown import Markdown
 
 RE_USER_MENTION = re.compile(r'<@(\d+)>')
@@ -208,9 +209,13 @@ def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
     return code, length
 
 
-def sized(u: str, s: int) -> str:
+def urlqueryset(u: str, **query) -> str:
     url = urlsplit(u)
-    par = parse_qs(url.query)
-    par['size'] = s
+    par = MultiValueDict(parse_qs(url.query))
+    par.update(query)
     q = urlencode(par)
     return urlunsplit((*url[:3], q, url[4]))
+
+
+def sized(u: str, s: int) -> str:
+    return urlqueryset(u, size=s)
