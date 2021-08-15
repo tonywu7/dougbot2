@@ -5,4 +5,5 @@ git pull
 sudo docker-compose build
 sudo docker-compose stop web bot
 sudo docker-compose run --rm migrate
+sudo docker-compose stop web
 sudo docker-compose up -d bot

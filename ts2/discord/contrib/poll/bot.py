@@ -272,7 +272,7 @@ class Poll(
         channel: TextChannel = original.channel
         updated = embed
         if status:
-            updated = self.field_setdefault(updated, 'Responses', status)
+            updated = self.field_setdefault(updated, 'Response', status)
         if comment:
             updated = self.field_setdefault(updated, 'Comment', comment)
         if edited:

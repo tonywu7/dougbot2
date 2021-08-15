@@ -84,7 +84,7 @@ def category_name(c: Optional[CategoryChannel]) -> str:
 
 
 class ChannelFilter:
-    def __init__(self, perm: Optional[Permissions2]):
+    def __init__(self, perm: Optional[Permissions2], member: Optional[Member] = None):
         if perm is None:
             self.target = ()
         elif perm < Permissions2.text():
@@ -93,9 +93,12 @@ class ChannelFilter:
             self.target = (VoiceChannel, StageChannel)
         else:
             self.target = ()
+        self.member = member
 
     def __contains__(self, channel: GuildChannel):
-        return not self.target or isinstance(channel, self.target)
+        p = channel.permissions_for
+        return ((not self.target or isinstance(channel, self.target))
+                and (not self.member or p(self.member).view_channel))
 
 
 class PermFilter:
@@ -117,14 +120,20 @@ class PermFilter:
 
 class ServerQueryCommands:
     @command('channels')
-    @doc.description('List all channels in the server.')
-    @doc.restriction(has_guild_permissions, manage_channels=True)
+    @doc.description('List channels in the server.')
+    @doc.restriction(None, 'Will only list channels visible to you.')
     async def channels(self, ctx: Circumstances):
+        await ctx.trigger_typing()
         channel_map = get_channel_map(ctx.guild)
+        channels_filtered = ChannelFilter(None, ctx.author)
         fields: list[EmbedField] = []
         for category, channels in channel_map.items():
+            if category not in channels_filtered:
+                continue
             name = category_name(category)
-            lines = [f'{code(ch.position)} {tag(ch)}' for ch in channels]
+            lines = [f'{code(ch.position)} {tag(ch)}'
+                     for ch in channels
+                     if ch in channels_filtered]
             fields.append(EmbedField(name=name, value='\n'.join(lines), inline=True))
         pages: list[Embed2] = []
         base_embed = Embed2(title='Channels').decorated(ctx.guild)
@@ -204,6 +213,7 @@ class ServerQueryCommands:
             VoiceChannel, StageChannel,
         ]] = None,
     ):
+        await ctx.trigger_typing()
         roles: list[Role] = [*collapse([
             r.roles if isinstance(r, Member) else r
             for r in roles
@@ -227,7 +237,7 @@ class ServerQueryCommands:
                 channels = [c for c in channels if isinstance(c, CHANNEL_TYPES)]
             title = doc.readable_perm_name(permission.perm_name)
             title = f'Permission: {title}'
-            pages = self.get_mode_at(roles, permission.get(), channels)
+            pages = self.get_mode_at(roles, permission.get(), channels, ctx.author)
         elif roles:
             title = 'Permissions:'
             pages = self.list_mode_at(roles, channels)
@@ -245,8 +255,9 @@ class ServerQueryCommands:
         self, roles: list[Role],
         perm: Permissions2,
         channels: list[GuildChannel],
+        member: Optional[Member] = None,
     ) -> list[Embed2]:
-        channel_filter = ChannelFilter(perm)
+        channel_filter = ChannelFilter(perm, member)
         channel_perms = {ch: get_total_perms(*roles, channel=ch)
                          for ch in channels if ch in channel_filter}
         result = {ch: combined.administrator or perm < combined
