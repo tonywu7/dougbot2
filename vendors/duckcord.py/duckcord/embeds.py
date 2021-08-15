@@ -184,7 +184,7 @@ class Embed2:
         return self.color
 
     @classmethod
-    def convert_embed(cls, embed: Embed) -> Embed2:
+    def upgrade(cls, embed: Embed) -> Embed2:
         """Convert a native :class:`discord.Embed` to an :class:`Embed2` object.
 
         All data are deep-copied (nested structures are auto-converted to other

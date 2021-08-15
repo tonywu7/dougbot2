@@ -160,7 +160,7 @@ Embed
    Requires `attrs <https://www.attrs.org/en/stable/>`_.
 
 .. autoclass:: duckcord.embeds.Embed2
-.. automethod:: duckcord.embeds.Embed2.convert_embed
+.. automethod:: duckcord.embeds.Embed2.upgrade
 .. automethod:: duckcord.embeds.Embed2.from_dict
 .. automethod:: duckcord.embeds.Embed2.to_dict
 .. automethod:: duckcord.embeds.Embed2.copy
