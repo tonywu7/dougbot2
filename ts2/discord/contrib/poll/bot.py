@@ -91,9 +91,10 @@ class Poll(
             ' followed by the content of your submission, e.g.: '
             f'{pre("suggest #discord-suggestions Enable threads")}'
             ' To upload images/files, upload it together with the command call.'
-            '\nThe submission will include a permalink, which you can use to '
-            'edit or delete your suggestion, e.g.:'
-            f'{pre("suggest edit [link] Updated suggestion")}'
+            '\nThe submission will include a "permalink," which you can use to'
+            ' edit or delete your suggestion. For example, to edit your suggestion,'
+            ' copy the link, then:'
+            f'{pre("suggest edit (paste link here) (updated suggestion)")}'
         )
         channel_lists = chapterize(channel_list, 1280, linebreak='newline')
         channel_lists = [f'{strong("Channels")}\n{channels}'

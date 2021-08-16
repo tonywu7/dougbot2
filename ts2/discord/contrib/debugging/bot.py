@@ -136,6 +136,7 @@ class Debugging(
                          free: Optional[Constant[Literal['free']]]):
         if free:
             await ctx.bot.gatekeeper.discard(entity)
+            return await ctx.message.add_reaction('✅')
         else:
             await ctx.bot.gatekeeper.add(entity)
             msg = f'All events from entity {code(entity)} will be dropped.'
