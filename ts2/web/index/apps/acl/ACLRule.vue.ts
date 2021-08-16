@@ -221,11 +221,9 @@ export default defineComponent({
         },
         commandSelectors: {
             get(): string[] {
-                return this.data.commands
-                    .map((k) =>
-                        k in this.commands ? k : `deleted command ${k}`
-                    )
-                    .sort((s1, s2) => s1.localeCompare(s2))
+                return this.data.commands.map((k) =>
+                    k in this.commands ? k : `deleted command ${k}`
+                )
             },
             set(v: string[]) {
                 this.data.commands = v

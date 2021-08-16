@@ -26,7 +26,11 @@ import {
 } from '../../utils/search'
 import { safe } from '../../utils/data'
 
-export interface ItemCandidate extends Indexable {
+export interface Comparable<T> {
+    compare: (other: T) => number
+}
+
+export interface ItemCandidate<T = any> extends Indexable, Comparable<T> {
     id: string
     content: string
     foreground: string
@@ -69,16 +73,17 @@ export default defineComponent({
         },
         filter: {
             type: Function as PropType<(item: ItemCandidate) => boolean>,
-            default: () => (item: ItemCandidate) => true,
+            default: (item: ItemCandidate) => true,
         },
         factory: {
             type: Function as PropType<(s: string) => ItemCandidate>,
-            default: (): ((s: string) => ItemCandidate) => (s) => ({
+            default: (s: string): ItemCandidate => ({
                 id: s,
                 content: s,
                 foreground: 'white',
                 background: 'transparent',
                 getIndex: () => ({ id: s }),
+                compare: () => 0,
             }),
         },
         ifNoResult: {
@@ -93,11 +98,11 @@ export default defineComponent({
         const searchInput = ref<HTMLTextAreaElement>()
         const candidateList = ref<HTMLUListElement>()
         return {
+            selected,
             container,
             searchElem,
             searchInput,
             candidateList,
-            selected,
         }
     },
     emits: ['update:choices', 'update:error'],
@@ -125,7 +130,10 @@ export default defineComponent({
             if (items.length == 0 && this.factory) {
                 items.push(this.factory(this.search))
             }
-            return items.filter(this.filter)
+            return items.filter(this.filter).sort((x, y) => x.compare(y))
+        },
+        selection(): ItemCandidate[] {
+            return Object.values(this.selected).sort((x, y) => x.compare(y))
         },
         dropdownShow: {
             get(): boolean {

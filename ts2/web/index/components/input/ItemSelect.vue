@@ -8,7 +8,7 @@
         <label v-else-if="label" v-html="label" :class="['field-label']"></label>
         <div ref="searchElem" :class="['item-select-field', overflowDirection]" :aria-expanded="dropdownShow"
             @click="activate" @focus="activate" @blur="deactivate">
-            <button v-for="item in selected" :key="item.id" type="button" tabindex="-1" class="selected-item"
+            <button v-for="item in selection" :key="item.id" type="button" tabindex="-1" class="selected-item"
                 :style="getItemStyles(item, true)" v-html="safe(item.content)" @click="(e) => deselect(item, e)"
                 @focusin="(e) => e.stopPropagation()"></button>
             <textarea ref="searchInput" type="search" class="item-select-search" wrap="off" autocomplete="off"

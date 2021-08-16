@@ -153,6 +153,10 @@ export class Command implements ItemCandidate {
     public getIndex() {
         return { id: this.id }
     }
+
+    public compare(other: Command): number {
+        return this.id.localeCompare(other.id)
+    }
 }
 
 export class Channel implements ItemCandidate {
@@ -198,6 +202,10 @@ export class Channel implements ItemCandidate {
             type: this.type,
         }
     }
+
+    public compare(other: Channel): number {
+        return this.order - other.order
+    }
 }
 
 export class Role implements ItemCandidate {
@@ -228,6 +236,10 @@ export class Role implements ItemCandidate {
             id: this.id,
             name: this.name,
         }
+    }
+
+    public compare(other: Role): number {
+        return this.order - other.order
     }
 }
 
@@ -271,6 +283,10 @@ export class Emote implements ItemCandidate {
             snowflake: this.id,
             name: this.name,
         }
+    }
+
+    public compare(other: Emote): number {
+        return this.id.localeCompare(other.id)
     }
 }
 

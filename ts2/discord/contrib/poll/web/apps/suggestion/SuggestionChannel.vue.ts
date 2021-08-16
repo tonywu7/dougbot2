@@ -313,6 +313,7 @@ export default defineComponent({
                 getIndex: () => ({
                     id: search,
                 }),
+                compare: () => 0,
             }
         },
     },

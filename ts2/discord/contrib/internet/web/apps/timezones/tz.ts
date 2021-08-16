@@ -4838,7 +4838,7 @@ export class Zone implements ItemCandidate {
     readonly summer: number
     readonly tzname: string
 
-    readonly mean_offset: number
+    readonly meanOffset: number
     readonly offset: string
     readonly content: string
     readonly foreground: string
@@ -4848,7 +4848,7 @@ export class Zone implements ItemCandidate {
         this.canonical = data.canonical
         this.summer = data.summer
         this.tzname = data.tzname
-        this.mean_offset = data.mean_offset
+        this.meanOffset = data.mean_offset
         this.offset = data.offset
         this.content = data.content
         this.foreground = data.foreground
@@ -4861,6 +4861,10 @@ export class Zone implements ItemCandidate {
             name: this.tzname,
             place: this.content,
         }
+    }
+
+    compare(other: Zone): number {
+        return this.meanOffset - other.meanOffset
     }
 }
 
