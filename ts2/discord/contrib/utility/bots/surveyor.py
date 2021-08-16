@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from collections import defaultdict
+from datetime import datetime, timezone
 from itertools import chain
 from typing import Optional, Union
 
@@ -31,7 +32,7 @@ from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
                                       Permissions2, chapterize,
                                       chapterize_fields, code, get_total_perms,
-                                      strong, tag, traffic_light)
+                                      strong, tag, timestamp, traffic_light)
 
 PERMISSIONS = {
     'General server permissions': [
@@ -315,3 +316,29 @@ class ServerQueryCommands:
         for fieldset in chapterize_fields(fields, linebreak='newline'):
             pages.append(attr.evolve(base_embed, fields=fieldset))
         return pages
+
+    @command('snowflake', aliases=('mtime',))
+    @doc.description('Get the timestamp of a Discord snowflake (ID).')
+    @doc.argument('snowflake', 'The snowflake to convert.')
+    async def snowflake(
+        self, ctx: Circumstances, snowflake: Union[
+            int, Member, Role, TextChannel,
+            VoiceChannel, StageChannel, Guild,
+        ],
+    ):
+        if not isinstance(snowflake, int):
+            try:
+                snowflake = snowflake.id
+            except AttributeError:
+                raise doc.NotAcceptable('Invalid argument.')
+        epoch = 1420070400000 + (snowflake >> 22)
+        dt = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc)
+        reps = [
+            code(epoch),
+            code(dt.isoformat()),
+            timestamp(dt, 'full'),
+            timestamp(dt, 'relative'),
+        ]
+        res = '\n'.join(reps)
+        return (await ctx.response(ctx, content=f'Timestamp:\n{res}')
+                .reply().run())

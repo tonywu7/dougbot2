@@ -151,7 +151,10 @@ def unmark_element(element, stream=None):
     return stream.getvalue()
 
 
-def timestamp(t: datetime | float | int, f: _TIMESTAMP_FORMATS) -> str:
+def timestamp(t: datetime | float | int, f: Literal[
+    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
+    'full', 'long', 'date', 'relative',
+]) -> str:
     if isinstance(t, datetime):
         t = t.timestamp()
     return f'<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>'
