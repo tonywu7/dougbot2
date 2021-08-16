@@ -323,7 +323,7 @@ class ServerQueryCommands:
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
             int, Member, Role, Message, TextChannel,
-            VoiceChannel, StageChannel, Guild,
+            VoiceChannel, StageChannel,
         ],
     ):
         if not isinstance(snowflake, int):
@@ -332,7 +332,14 @@ class ServerQueryCommands:
             except AttributeError:
                 raise doc.NotAcceptable('Invalid argument.')
         epoch = 1420070400000 + (snowflake >> 22)
-        dt = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc)
+        try:
+            dt = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc)
+        except ValueError:
+            raise doc.NotAcceptable((
+                'Timestamp out of range.'
+                ' Make sure the argument provided is'
+                ' indeed a Discord snowflake.'
+            ))
         reps = [
             code(epoch),
             code(dt.isoformat()),
