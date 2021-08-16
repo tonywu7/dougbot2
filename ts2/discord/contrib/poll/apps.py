@@ -10,7 +10,7 @@ class PollConfig(CommandAppConfig):
     name = 'ts2.discord.contrib.poll'
     default = True
 
-    title = 'Polling'
+    title = 'Poll'
     icon = mark_safe('<i class="bi bi-bar-chart-line-fill"></i>')
 
     @classproperty

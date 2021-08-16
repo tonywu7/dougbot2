@@ -51,8 +51,8 @@ class LoggingLevel(Converter):
         return arg
 
 
-class Debugging(
-    Gear, name='Debugging', order=95,
+class Debug(
+    Gear, name='Debug', order=95,
     description='',
 ):
     """Cog for internal debugging commands."""
