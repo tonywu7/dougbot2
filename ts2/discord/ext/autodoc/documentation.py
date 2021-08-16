@@ -480,7 +480,7 @@ class Documentation:
         rich_help = EmbedPagination(embeds, title, False)
         return rich_help
 
-    def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Argument]:
+    def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Optional[Argument]]:
         args: deque = deque(args)
         kwargs: deque = deque(kwargs.items())
         arguments: deque = deque([*dropwhile(
@@ -489,6 +489,7 @@ class Documentation:
                    key=lambda t: t[1]),
         )])
         stack: list[str] = []
+        arg = None
         while args:
             if isinstance(args.popleft(), (Context, Cog)):
                 continue

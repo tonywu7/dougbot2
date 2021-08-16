@@ -113,7 +113,7 @@ async def explain_exception(ctx: Context, exc: Exception):
         return await reply_command_failure(ctx, title, msg, autodelete)
 
 
-def prepend_argument_hint(sep='\n\n'):
+def prepend_argument_hint(sep='\n\n', include_types=False):
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
         async def handler(ctx: Context, exc: errors.UserInputError):
@@ -128,7 +128,9 @@ def prepend_argument_hint(sep='\n\n'):
             doc = man.lookup(ctx.command.qualified_name, hidden=True)
             arg_info, arg = doc.format_argument_highlight(ctx.args, ctx.kwargs, 'red')
             arg_info = f'> {ctx.prefix}{full_invoked_with(ctx)} {arg_info}'
-            if arg.help:
+            if include_types:
+                arg_info = f'{arg_info}\n{strong(arg.key)}: {arg.describe()}'
+            elif arg.help:
                 arg_info = f'{arg_info}\n{strong(arg.key)}: {arg.help}'
             msg = f'{arg_info}{sep}{msg}'
             return msg, autodelete

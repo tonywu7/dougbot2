@@ -240,7 +240,7 @@ async def explains_bad_color(ctx: Context, exc: errors.BadColourArgument) -> tup
 
 
 @explains(errors.BadUnionArgument, 'Did not understand argument', 0)
-@prepend_argument_hint(sep='\n⚠️ ')
+@prepend_argument_hint(sep='\n⚠️ ', include_types=True)
 async def on_bad_union(ctx, exc: errors.BadUnionArgument):
     return 'Could not recognize this argument as any of the above.', 45
 
