@@ -60,7 +60,7 @@ class Museum(
     @doc.invocation(('message',), None)
     async def quote(self, ctx: Circumstances, message: Message):
         header = f'{a(strong("Message"), message.jump_url)} in {tag(message.channel)}\n'
-        content = message.content or '(no text content)'
+        content = message.content or message.system_content or '(no text content)'
         body = trunc_for_field(f'{header}{content}', 1960)
         res = Embed2(description=body)
         image = False

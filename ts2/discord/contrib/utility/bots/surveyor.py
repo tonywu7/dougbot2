@@ -20,8 +20,8 @@ from itertools import chain
 from typing import Optional, Union
 
 import attr
-from discord import (CategoryChannel, Guild, Member, Role, StageChannel,
-                     TextChannel, VoiceChannel)
+from discord import (CategoryChannel, Guild, Member, Message, Role,
+                     StageChannel, TextChannel, VoiceChannel)
 from discord.abc import GuildChannel
 from discord.ext.commands import Greedy, command, has_guild_permissions
 from more_itertools import collapse, first, map_reduce
@@ -322,7 +322,7 @@ class ServerQueryCommands:
     @doc.argument('snowflake', 'The snowflake to convert.')
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
-            int, Member, Role, TextChannel,
+            int, Member, Role, Message, TextChannel,
             VoiceChannel, StageChannel, Guild,
         ],
     ):
