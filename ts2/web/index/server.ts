@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { omit, partition, pick } from 'lodash'
 import {
     ApolloClient,
     InMemoryCache,
@@ -37,6 +38,7 @@ import { Color } from './components/modal/bootstrap'
 
 import { ItemCandidate } from './components/input/ItemSelect.vue'
 import { SearchIndex } from './utils/search'
+import { randomIdentifier } from './utils/data'
 
 import {
     ServerDetailsQuery,
@@ -73,8 +75,6 @@ import UPDATE_LOGGING from './graphql/mutation/update-logging.graphql'
 
 import SERVER_ACL from './graphql/query/acl.graphql'
 import UPDATE_ACL from './graphql/mutation/update-acl.graphql'
-
-import { omit, partition, pick } from 'lodash'
 
 export let server: Server
 
@@ -275,6 +275,7 @@ export class Emote implements ItemCandidate {
 }
 
 export class ACL {
+    public _id?: string
     public name: string
     public commands: string[]
     public channels: string[]
@@ -285,6 +286,7 @@ export class ACL {
     public deleted?: boolean = false
 
     constructor(data: AccessControlType) {
+        this._id = randomIdentifier(8)
         this.name = data.name!
         this.commands = data.commands || []
         this.channels = data.channels || []
@@ -564,7 +566,7 @@ class Server {
 
     async updateACLs(acls: ACL[]): Promise<ACL[]> {
         let [remove, update] = partition(acls, (d) => d.deleted)
-        update = update.map((d) => omit(d, 'deleted'))
+        update = update.map((d) => omit(d, 'deleted', '_id'))
         let removeKeys = remove.map((d) => d.name)
         let res = await this.mutate<UpdateACLMutation>(UPDATE_ACL, {
             names: removeKeys,

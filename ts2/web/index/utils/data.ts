@@ -4,7 +4,7 @@ export function randomIdentifier(
     length: number,
     from: string = '0123456789abcdefghijklmnopqrstuvwxyz-_'
 ): string {
-    return 'r' + _.sampleSize(from, length - 1).join('')
+    return _.sampleSize(from, length).join('')
 }
 
 export function slugify(text: string, toStrip: RegExp = /[\p{P}_]+/gu) {

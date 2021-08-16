@@ -6,7 +6,7 @@
         </div>
         <div class="acl-list">
             <transition-group name="list-move">
-                <acl-rule v-for="(rule, index) in merged" :key="index" :rule="rule" :data="merged[index]"
+                <acl-rule v-for="(rule, index) in merged" :key="rule._id" :rule="rule" :data="rule"
                     @update:data="(item) => updateRule(item, index)">
                 </acl-rule>
             </transition-group>

@@ -168,6 +168,7 @@ export default defineComponent({
         }
     },
     data() {
+        let _id = this.rule._id
         let name = this.rule.name
         let error = this.rule.error
         let modifier = this.rule.modifier
@@ -177,6 +178,7 @@ export default defineComponent({
         let commands = [...this.rule.commands]
         return {
             data: {
+                _id,
                 name,
                 error,
                 modifier,
