@@ -87,9 +87,9 @@ class ChannelFilter:
     def __init__(self, perm: Optional[Permissions2], member: Optional[Member] = None):
         if perm is None:
             self.target = ()
-        elif perm < Permissions2.text():
+        elif perm <= Permissions2.text():
             self.target = TextChannel
-        elif perm < Permissions2.voice():
+        elif perm <= Permissions2.voice():
             self.target = (VoiceChannel, StageChannel)
         else:
             self.target = ()
@@ -115,7 +115,7 @@ class PermFilter:
     def __contains__(self, perm: Union[str, Permissions2]):
         if isinstance(perm, str):
             perm = Permissions2(**{perm: True})
-        return perm < self.target
+        return perm <= self.target
 
 
 class ServerQueryCommands:
@@ -260,7 +260,7 @@ class ServerQueryCommands:
         channel_filter = ChannelFilter(perm, member)
         channel_perms = {ch: get_total_perms(*roles, channel=ch)
                          for ch in channels if ch in channel_filter}
-        result = {ch: combined.administrator or perm < combined
+        result = {ch: combined.administrator or perm <= combined
                   for ch, combined in channel_perms.items()}
         categorized = map_reduce(result.items(), lambda t: t[0].category)
         content = {category_name(k): v for k, v in categorized.items()}
@@ -292,7 +292,7 @@ class ServerQueryCommands:
     ) -> list[Embed2]:
         channel = first(channels, None)
         role_perms = [(r, get_total_perms(r, channel=channel)) for r in roles]
-        role_allowed = reversed([(tag(r), p.administrator or perm < p)
+        role_allowed = reversed([(tag(r), p.administrator or perm <= p)
                                  for r, p in role_perms])
         content = {'Roles': role_allowed}
         if channel:
