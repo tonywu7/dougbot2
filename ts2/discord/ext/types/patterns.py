@@ -61,16 +61,19 @@ class Choice(Converter):
             case_sensitive=False, concise_name=None,
         )
         if concise_name is None:
-            concise_name = f'"{"/".join(choices)}"'
+            concise_name = '/'.join(choices)
         if isinstance(concise_name, tuple):
             concise_name = concise_name[0]
+        full_name = 'one of the following'
 
         predicative = coord_conj(*[f'"{w}"' for w in choices], conj='or')
         if case_sensitive:
             predicative = f'{predicative}, case sensitive'
         desc = QuantifiedNP(
-            concise_name, concise=concise_name,
+            full_name, concise=concise_name,
             predicative=predicative,
+            definite=True,
+            uncountable=True,
         )
 
         if case_sensitive:

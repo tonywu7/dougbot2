@@ -17,7 +17,7 @@
 import asyncio
 import logging
 from contextlib import suppress
-from typing import TypeVar
+from typing import Optional, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
@@ -194,7 +194,7 @@ class Robot(Bot):
     def get_cache(self, default=None, /, **keys):
         return self._cache.get(self.get_cache_key(**keys), default, self._CACHE_VERSION)
 
-    def set_cache(self, value, ttl: float, /, **keys):
+    def set_cache(self, value, ttl: Optional[float], /, **keys):
         key = self.get_cache_key(**keys)
         self._cache.set(key, value, timeout=ttl, version=self._CACHE_VERSION)
 

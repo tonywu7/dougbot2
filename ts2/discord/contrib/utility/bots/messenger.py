@@ -14,16 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import io
 from typing import Optional, Union
 
-from discord import (AllowedMentions, Emoji, HTTPException, Message,
+import simplejson as json
+from discord import (AllowedMentions, Emoji, File, HTTPException, Message,
                      MessageReference, Object, PartialEmoji, TextChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
 from more_itertools import always_iterable, first
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
-from ts2.discord.utils.common import Embed2, a, code, strong, trunc_for_field
+from ts2.discord.ext.common import (Dictionary, JinjaTemplate,
+                                    format_exception, get_traceback)
+from ts2.discord.ext.template import get_environment
+from ts2.discord.utils.common import (Embed2, a, code, serialize_message,
+                                      strong, trunc_for_field)
+from ts2.discord.utils.datetime import localnow
 
 
 def get_allowed_mentions(info: dict) -> AllowedMentions:
@@ -182,3 +189,59 @@ class MessageCommands:
             res = Embed2(description=(f'{strong("Failed to add the following emotes")}'
                                       f'\n{failed_list}'))
             return await ctx.response(ctx, embed=res).reply(True).run()
+
+    @command('ofstream')
+    @doc.description('Send the message content back as a text file.')
+    @doc.argument('text', 'Text message to send back.')
+    @doc.argument('message', 'Another message whose content will be included.')
+    @doc.accepts_reply('Include the replied-to message in the file.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message', 'text'), None)
+    @doc.hidden
+    async def ofstream(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        *, text: str = None,
+        reply: Optional[MessageReference] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not text and not message:
+            return
+        info = []
+        info.append(serialize_message(ctx.message))
+        if message:
+            info.append(serialize_message(message))
+        with io.StringIO() as stream:
+            json.dump(info, stream)
+            stream.seek(0)
+            fname = f'message.{localnow().isoformat().replace(":", ".")}.json'
+            file = File(stream, filename=fname)
+            await ctx.send(file=file)
+
+    @command('render')
+    @doc.description('Render a Jinja template.')
+    @doc.argument('template', 'Jinja template string.')
+    @doc.argument('variables', 'Context variables.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('template', 'variables'), None)
+    @doc.hidden
+    async def render(
+        self, ctx: Circumstances,
+        template: JinjaTemplate,
+        variables: Optional[Dictionary],
+    ):
+        env = get_environment()
+        if variables:
+            variables = variables.result
+        else:
+            variables = {}
+        try:
+            async with ctx.typing():
+                tmpl = env.from_string(template.result)
+                txt = await tmpl.render_timed(ctx, **variables)
+                return await ctx.send(txt)
+        except Exception as e:
+            embed = format_exception(e)
+            tb = get_traceback(e)
+            return await ctx.send(embed=embed, file=tb)

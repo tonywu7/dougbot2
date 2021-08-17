@@ -17,32 +17,23 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
 import os
 from typing import Literal, Optional, Union
 
 import psutil
-import simplejson as json
-from discord import (Activity, ActivityType, File, Game, Member, Message,
-                     MessageReference, Role, TextChannel)
+from discord import Member, Role, TextChannel
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
-from ts2.discord.ext.common import (Choice, Constant, Dictionary,
-                                    JinjaTemplate, format_exception,
-                                    get_traceback)
-from ts2.discord.ext.template import get_environment
-from ts2.discord.utils.common import serialize_message
-from ts2.discord.utils.datetime import localnow
+from ts2.discord.ext.common import Constant
 from ts2.discord.utils.markdown import E, a, code, strong
 
 
 class LoggingLevel(Converter):
-
     async def convert(self, ctx: Circumstances, arg: str) -> int | str:
         """Convert a logging level name (e.g. DEBUG) to its int value."""
         level = logging.getLevelName(arg)
@@ -141,78 +132,3 @@ class Debug(
             await ctx.bot.gatekeeper.add(entity)
             msg = f'All events from entity {code(entity)} will be dropped.'
             return await ctx.send(msg)
-
-    @command('ofstream')
-    @doc.description('Send the message content back as a text file.')
-    @doc.argument('text', 'Text message to send back.')
-    @doc.argument('message', 'Another message whose content will be included.')
-    @doc.accepts_reply('Include the replied-to message in the file.')
-    @doc.use_syntax_whitelist
-    @doc.invocation(('message', 'text'), None)
-    @doc.hidden
-    async def ofstream(
-        self, ctx: Circumstances,
-        message: Optional[Message],
-        *, text: str = None,
-        reply: Optional[MessageReference] = None,
-    ):
-        if not message and reply:
-            message = reply.resolved
-        if not text and not message:
-            return
-        info = []
-        info.append(serialize_message(ctx.message))
-        if message:
-            info.append(serialize_message(message))
-        with io.StringIO() as stream:
-            json.dump(info, stream)
-            stream.seek(0)
-            fname = f'message.{localnow().isoformat().replace(":", ".")}.json'
-            file = File(stream, filename=fname)
-            await ctx.send(file=file)
-
-    @command('render')
-    @doc.description('Render a Jinja template.')
-    @doc.argument('template', 'Jinja template string.')
-    @doc.argument('variables', 'Context variables.')
-    @doc.use_syntax_whitelist
-    @doc.invocation(('template', 'variables'), None)
-    @doc.hidden
-    async def render(
-        self, ctx: Circumstances,
-        template: JinjaTemplate,
-        variables: Optional[Dictionary],
-    ):
-        env = get_environment()
-        if variables:
-            variables = variables.result
-        else:
-            variables = {}
-        try:
-            async with ctx.typing():
-                tmpl = env.from_string(template.result)
-                txt = await tmpl.render_timed(ctx, **variables)
-                return await ctx.send(txt)
-        except Exception as e:
-            embed = format_exception(e)
-            tb = get_traceback(e)
-            return await ctx.send(embed=embed, file=tb)
-
-    @command('status')
-    @doc.description("Change the bot's status")
-    @doc.argument('activity', 'The type of activity.')
-    @doc.argument('name', 'The text of the status')
-    @doc.restriction(is_owner)
-    @doc.hidden
-    async def status(
-        self, ctx: Circumstances,
-        activity: Choice[Literal['playing', 'watching']],
-        *, name: str,
-    ):
-        if activity == 'playing':
-            activity = Game(name)
-        elif activity == 'watching':
-            activity = Activity(type=ActivityType.watching, name=name)
-        else:
-            return
-        await ctx.bot.change_presence(activity=activity)

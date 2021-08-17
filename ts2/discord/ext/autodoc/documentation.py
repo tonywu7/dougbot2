@@ -380,6 +380,8 @@ class Documentation:
             if (isinstance(v.annotation, type)
                     and issubclass(v.annotation, Context)):
                 continue
+            if v.kind is Parameter.VAR_KEYWORD:
+                continue
             arguments[k] = Argument.from_parameter(v)
         arguments['__command__'] = Argument(
             key='__command__', annotation=None,

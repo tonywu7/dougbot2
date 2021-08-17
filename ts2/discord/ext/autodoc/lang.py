@@ -131,12 +131,14 @@ class QuantifiedNP:
 
     def a(self):
         term = f'{self.attr_singular}{self.nouns_singular}'
-        if self.definite:
-            art = 'the'
+        if self.definite and self.uncountable:
+            art = ''
+        elif self.definite:
+            art = 'the '
         elif self.uncountable:
             return self.some()
         else:
-            art = inflection.a(self.attr_singular or self.nouns_singular).split(' ')[0]
+            art = inflection.a(self.attr_singular or self.nouns_singular).split(' ')[0] + ' '
         return f'{art} {term}{self.predicative}'
 
     def one_of(self):

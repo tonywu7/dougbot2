@@ -32,8 +32,9 @@ class GearMeta(CogMeta):
 
 class Gear(Cog, metaclass=GearMeta):
     def __init__(self, label: str, bot: Bot, *args, **kwargs):
+        from .bot import Robot
         super().__init__()
-        self.bot = bot
+        self.bot: Robot = bot
         self.app_label = label
         self.log = logging.getLogger(f'discord.logging.ext.{label}')
 
