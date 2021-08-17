@@ -41,7 +41,7 @@ RUN python3 -m venv /application/.venv
 COPY ./ /application/
 
 WORKDIR /application/
-SHELL ["/bin/bash", "-c"]
+SHELL [ "/bin/bash", "-c" ]
 
 ENV PYTHONFAULTHANDLER=1
 ENV PYTHONUNBUFFERED=1

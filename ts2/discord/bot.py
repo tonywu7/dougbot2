@@ -21,7 +21,7 @@ from typing import Optional, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Client, Forbidden, Guild, Intents,
+from discord import (AllowedMentions, Client, Forbidden, Game, Guild, Intents,
                      Message, MessageReference, NotFound, Permissions,
                      RawMessageDeleteEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
@@ -202,6 +202,10 @@ class Robot(Bot):
         key = self.get_cache_key(**keys)
         self._cache.delete(key, version=self._CACHE_VERSION)
 
+    async def set_exit_status(self):
+        await self.change_presence(activity=Game('system restart'))
+        self.log.info('Exit indicator is set!')
+
 
 def add_event_listeners(self: Robot):
     @self.check_once
@@ -329,7 +333,7 @@ def register_base_commands(self: Robot):
     @doc.invocation((), 'Print the prefix.')
     async def get_prefix(ctx: Circumstances):
         prefix = escape_markdown(ctx.server.prefix)
-        example = f'Example: {strong(f"{prefix}echo")}'
+        example = f'Example: {strong(f"{prefix}help")}'
         await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
 
     @self.listen('on_message')

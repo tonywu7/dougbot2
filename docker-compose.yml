@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
     redis:
         image: 'redis:alpine'
@@ -12,12 +14,18 @@ services:
         volumes:
             - static:/www
         restart: always
+        stop_signal: SIGQUIT
 
     backup:
         image: telescope2
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: './bin/manage startbackup -o backups'
+        init: true
+        command:
+            - ./bin/manage
+            - startbackup
+            - -o
+            - backups
         volumes:
             - instance:/application/instance
             - backups:/application/backups
@@ -28,7 +36,10 @@ services:
         build: .
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.server
-        command: './bin/manage web'
+        init: true
+        command:
+            - ./bin/manage
+            - web
         volumes:
             - instance:/application/instance
             - static:/application/dist
@@ -46,7 +57,10 @@ services:
         image: telescope2
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: './bin/manage bot'
+        init: true
+        command:
+            - ./bin/manage
+            - bot
         volumes:
             - instance:/application/instance
             - static:/application/dist
@@ -59,7 +73,9 @@ services:
         image: telescope2
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: './bin/init'
+        init: true
+        command:
+            - ./bin/init
         volumes:
             - instance:/application/instance
             - static:/application/dist
@@ -71,7 +87,9 @@ services:
         image: telescope2
         environment:
             - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
-        command: './bin/migrate'
+        init: true
+        command:
+            - ./bin/migrate
         volumes:
             - instance:/application/instance
             - static:/application/dist

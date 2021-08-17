@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
+import signal
 import sys
 import time
+from contextlib import suppress
 from datetime import datetime
 
 from django.conf import settings
@@ -71,10 +74,28 @@ class Command(BaseCommand):
             'quit_command': quit_command,
         })
 
+        should_exit = False
+
+        def set_signal_handler(client: Robot):
+            loop = client.loop
+
+            def on_exit_set_presence():
+                asyncio.run_coroutine_threadsafe(client.set_exit_status(), loop)
+                nonlocal should_exit
+                should_exit = True
+
+            with suppress(RuntimeError):
+                client.loop.add_signal_handler(signal.SIGINT, on_exit_set_presence)
+                client.loop.add_signal_handler(signal.SIGTERM, on_exit_set_presence)
+                client.log.info('Installed handler for SIGTERM and SIGINT')
+
         try:
             runner = BotRunner(Robot, {}, daemon=True)
             runner.start()
-            while True:
-                time.sleep(10)
+            with runner.init:
+                runner.init.wait_for(runner.initialized)
+            set_signal_handler(runner.client)
+            while not should_exit:
+                time.sleep(1)
         except KeyboardInterrupt:
             return
