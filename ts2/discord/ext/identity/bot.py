@@ -209,7 +209,10 @@ class Personalize(
                 embed = (embed.set_description(code(profile.timezone))
                          .add_field(name='Local time', value=profile.format_datetime()))
             else:
-                embed = embed.set_description('No timezone preference set.')
+                embed = (
+                    embed.set_description('No timezone preference set.')
+                    .set_footer(text='Set timezone with "my timezone [location]"')
+                )
             return await ctx.reply(embed=embed)
 
         tz = values['tz']
