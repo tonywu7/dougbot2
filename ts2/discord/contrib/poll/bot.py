@@ -35,10 +35,9 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
-from ts2.discord.utils.common import (Embed2, EmbedPagination, a, blockquote,
-                                      chapterize, code, pre, strong, tag,
-                                      tag_literal, timestamp, urlqueryset,
-                                      utcnow)
+from ts2.discord.utils.common import (Embed2, EmbedPagination, a, chapterize,
+                                      code, pre, strong, tag, tag_literal,
+                                      timestamp, urlqueryset, utcnow)
 
 from .models import SuggestionChannel
 
@@ -74,11 +73,13 @@ class Poll(
         channels = {c.id: c for c in guild.channels}
         q = SuggestionChannel.objects.filter(channel_id__in=channels)
         lines = []
-        for c in await async_list(q):
+        targets = sorted((
+            (guild.get_channel(c.channel_id), c)
+            for c in await async_list(q)
+        ), key=lambda t: t[0].position)
+        for ch, c in targets:
             c: SuggestionChannel
-            lines.append(tag(channels[c.channel_id]))
-            if c.description:
-                lines.append(blockquote(c.description))
+            lines.append(f'\n{tag(channels[c.channel_id])} {c.description}')
         return '\n'.join(lines).strip()
 
     async def send_channel_list(self, ctx: Circumstances):
