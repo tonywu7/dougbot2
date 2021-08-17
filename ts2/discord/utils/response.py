@@ -106,6 +106,7 @@ class ResponseInit:
             del args['direct_message']
             if len(args['files']) == 1:
                 args['file'] = args['files'].pop()
+                args['files'] = None
             message = await self.send(**args)
         if not message:
             return

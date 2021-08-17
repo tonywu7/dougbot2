@@ -255,3 +255,10 @@ def spongebob(
             history.append(True)
     res = ''.join(buffer)
     return res, has_alpha
+
+
+def rgba2int(r: int, g: int, b: int, a: int | None = None) -> int:
+    if a is None:
+        return (r << 16) + (g << 8) + b
+    else:
+        return (r << 24) + (g << 16) + (b << 8) + a

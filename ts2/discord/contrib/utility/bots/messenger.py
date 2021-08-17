@@ -237,10 +237,10 @@ class MessageCommands:
         else:
             variables = {}
         try:
-            async with ctx.typing():
-                tmpl = env.from_string(template.result)
-                txt = await tmpl.render_timed(ctx, **variables)
-                return await ctx.send(txt)
+            await ctx.trigger_typing()
+            tmpl = env.from_string(template.result)
+            txt = await tmpl.render_timed(ctx, **variables)
+            return await ctx.send(txt)
         except Exception as e:
             embed = format_exception(e)
             tb = get_traceback(e)
