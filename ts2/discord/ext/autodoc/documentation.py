@@ -459,7 +459,7 @@ class Documentation:
 
         arguments = [f'{strong(arg.key)}: {arg.describe()}'
                      for arg in self.arguments.values()
-                     if not arg.is_hidden]
+                     if not arg.is_hidden and not arg.is_unused]
         sections['Arguments'] = '\n'.join(arguments)
 
         for k, v in self.discussions.items():

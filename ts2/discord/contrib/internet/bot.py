@@ -91,7 +91,7 @@ class Internet(
 
     @command('time')
     @doc.description('Get local time of a server member or a timezone.')
-    @doc.argument('subject', 'The user/role/timezone whose local time to check')
+    @doc.argument('subject', 'The user/role/timezone whose local time to check.')
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Show your local time.')
     @doc.invocation(('subject',), (

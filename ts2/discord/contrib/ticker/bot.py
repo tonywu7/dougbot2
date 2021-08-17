@@ -571,6 +571,8 @@ class Ticker(
     @ticker.command('delete', aliases=('rm', 'del', 'remove'))
     @doc.description('Remove a hoisted message.')
     @doc.argument('channels', 'The channel to remove.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('channels',), None)
     @doc.restriction(
         has_guild_permissions,
         manage_channels=True,
@@ -587,5 +589,5 @@ class Ticker(
                 channel_id = ticker.channel_id
                 name = await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
                 deleted.append(f'{code(channel_id)} {name}')
-            result = Embed2(title='Ticker deleted', description="\n".join(deleted))
+            result = Embed2(title='Ticker deleted', description='\n'.join(deleted))
             return await ctx.response(ctx, embed=result).reply().deleter().run()
