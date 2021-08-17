@@ -24,10 +24,8 @@ fake: Faker = None
 
 LOCALES = OrderedDict([
     ('en-US', 1.0),
-    ('de-DE', 1.0),
     ('zh-CN', 1.0),
     ('fr-FR', 0.8),
-    ('es-ES', 0.8),
     ('ja-JP', 0.7),
     ('pl-PL', 0.7),
     ('la', 0.3),
