@@ -150,7 +150,11 @@ class ServerQueryCommands:
     @doc.argument('role', 'The role to check.')
     @doc.invocation((), 'List all roles.')
     @doc.invocation(('role',), 'Show info about the specified role.')
-    @doc.restriction(has_guild_permissions, manage_roles=True)
+    @doc.restriction(None, (
+        f"If you don't have the {strong('Manage Roles')} permission"
+        ' in the server, this will only show you the roles you have'
+        ' plus roles that are displayed in the sidebar separately.'
+    ))
     async def roles(self, ctx: Circumstances, *, role: Optional[Role] = None):
         def getline(r):
             if r.color.value:
@@ -159,9 +163,18 @@ class ServerQueryCommands:
                 return tag(r)
 
         if role:
-            lines = [getline(role)]
+            roles = [role]
         else:
-            lines = [getline(r) for r in reversed(ctx.guild.roles)]
+            roles = reversed(ctx.guild.roles)
+
+        if not ctx.author.guild_permissions.manage_roles:
+            author_roles: set[int] = {r.id for r in ctx.author.roles}
+            roles = [r for r in roles if r.id in author_roles or r.hoist]
+
+        if not roles:
+            raise doc.NotAcceptable('You have no access to any of the roles you specified.')
+
+        lines = [getline(r) for r in roles]
         body = '\n'.join(lines)
         sections = chapterize(body, 720, 720, closing='', opening='',
                               linebreak='newline')
