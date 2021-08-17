@@ -25,7 +25,7 @@
                         </input-select>
                         <item-select :items="roles" v-model:choices="roleSelectors">
                             <template v-slot:hint>
-                                <p>Leave blank to apply to all everyone</p>
+                                <p>Leave blank to apply to everyone</p>
                             </template>
                         </item-select>
                     </div>
