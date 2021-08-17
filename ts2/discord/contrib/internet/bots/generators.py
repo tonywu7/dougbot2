@@ -14,19 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import colorsys
-import io
 from typing import Optional
 
-from discord import File, Message, MessageReference
+from discord import Message, MessageReference
 from discord.ext.commands import command
-from PIL import Image, ImageColor
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.common import doc
 from ts2.discord.ext.services.rand import FakerLocales, get_faker
-from ts2.discord.utils.common import Embed2, a, code, strong, trunc_for_field
-from ts2.discord.utils.markdown import rgba2int, spongebob
+from ts2.discord.utils.common import a, trunc_for_field
+from ts2.discord.utils.markdown import spongebob
 
 
 class ContentGenerationCommands:
@@ -92,33 +89,3 @@ class ContentGenerationCommands:
             err = "There wasn't any letter to change"
             res, *args = spongebob(err, threshold)
             raise doc.NotAcceptable(res)
-
-    @command('color')
-    @doc.description('Preview a color.')
-    @doc.argument('color', (
-        a('CSS color accepted by PIL,',
-          'https://pillow.readthedocs.io/en/stable/reference/ImageColor.html#color-names')
-        + ' such as a hex code.'
-    ))
-    async def color(self, ctx: Circumstances, *, color: str):
-        try:
-            r, g, b, *a = ImageColor.getrgb(color)
-        except ValueError as e:
-            raise doc.NotAcceptable(str(e))
-        img = Image.new('RGBA', (32, 32), (r, g, b, *a))
-        data = io.BytesIO()
-        img.save(data, 'png')
-        data.seek(0)
-        f = File(data, 'color.png')
-        a = a[0] if a else 255
-        h, ll, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-        hexcode = f'#{rgba2int(r, g, b, a):08x}'
-        h = 360 * h
-        a = a / 255
-        fmts = [
-            strong(code(hexcode)),
-            f'rgba({r}, {g}, {b}, {a:.2f})',
-            f'hsla({h:.1f}deg, {s:.1%}, {ll:.1%}, {a:.1f})',
-        ]
-        res = Embed2(description='\n'.join(fmts), color=rgba2int(r, g, b))
-        return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()

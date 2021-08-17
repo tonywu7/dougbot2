@@ -39,7 +39,7 @@ get_manual: Callable[[Context], Manual] = None
 
 @attr.s
 class Manual:
-    MANPAGE_MAX_LEN = 500
+    MANPAGE_MAX_LEN = 1280
 
     commands: dict[str, Documentation] = attr.ib(factory=dict)
     sections: dict[str, list[str]] = attr.ib(factory=lambda: defaultdict(list))
