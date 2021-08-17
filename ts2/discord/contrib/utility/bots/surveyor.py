@@ -19,6 +19,7 @@ import io
 from collections import defaultdict
 from datetime import datetime, timezone
 from itertools import chain
+from string import hexdigits
 from typing import Optional, Union
 
 import attr
@@ -76,6 +77,12 @@ PERM_HELP = [Embed2(description=f'{strong(k)}\n{v}')
 PERM_HELP = EmbedPagination(PERM_HELP, 'Permissions', False)
 
 CHANNEL_TYPES = (TextChannel, VoiceChannel, StageChannel)
+
+HEX_DIGITS = set(hexdigits)
+
+
+def ishexdigit(s: str):
+    return all(c in HEX_DIGITS for c in s)
 
 
 def get_channel_map(guild: Guild) -> dict[Optional[CategoryChannel], list[GuildChannel]]:
@@ -375,6 +382,8 @@ class ServerQueryCommands:
         + ' such as a hex code.'
     ))
     async def color(self, ctx: Circumstances, *, color: str):
+        if color[0] != '#' and ishexdigit(color):
+            color = f'#{color}'
         try:
             r, g, b, *a = ImageColor.getrgb(color)
         except ValueError as e:
