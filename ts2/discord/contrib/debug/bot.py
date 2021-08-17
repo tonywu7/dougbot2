@@ -30,7 +30,7 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import Constant
-from ts2.discord.utils.markdown import E, a, code, strong
+from ts2.discord.utils.markdown import a, code, strong
 
 
 class LoggingLevel(Converter):
@@ -86,13 +86,15 @@ class Debug(
 
     @command('kill')
     @doc.description('Try to kill the bot by attempting an irrecoverable stack overflow.')
-    @doc.argument('sig', f'If equals {code(-9)}, {strong("send SIGKILL instead")} {E("gun")}.')
+    @doc.argument('sig', f'Either {strong("SIGTERM")} or {strong("SIGKILL")}.')
     @doc.restriction(is_owner)
     @doc.hidden
     async def _kill(self, ctx: Circumstances, *, sig: str = None):
         async with ctx.typing():
-            if sig == '-9':
-                psutil.Process(os.getpid()).kill()
+            if sig == 'SIGKILL':
+                return psutil.Process(os.getpid()).kill()
+            elif sig == 'SIGTERM':
+                return psutil.Process(os.getpid()).terminate()
             return await self._do_kill(ctx, sig)
 
     async def _do_kill(self, ctx, *args, **kwargs):
