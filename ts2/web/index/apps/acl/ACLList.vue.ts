@@ -28,7 +28,12 @@ export default defineComponent({
         let rules: Ref<ACL[]> = ref([])
         let loading = ref(true)
         onMounted(async () => {
-            rules.value.push(...(await server.getACLs()))
+            let [r, c, acls] = await Promise.all([
+                server.getRoles(),
+                server.getCommands(),
+                server.getACLs(),
+            ])
+            rules.value.push(...acls)
             loading.value = false
         })
         return { rules, loading }
