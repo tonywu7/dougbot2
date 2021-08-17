@@ -3,7 +3,7 @@ services:
         image: 'redis:alpine'
         expose:
             - 6379
-        restart: on-failure
+        restart: always
 
     server:
         build: ./nginx
@@ -11,7 +11,7 @@ services:
             - '8088:80'
         volumes:
             - static:/www
-        restart: on-failure
+        restart: always
 
     backup:
         image: telescope2

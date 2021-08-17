@@ -354,11 +354,11 @@ class ServerQueryCommands:
                 ' indeed a Discord snowflake.'
             ))
         reps = [
+            code(snowflake),
             code(epoch),
             code(dt.isoformat()),
-            timestamp(dt, 'full'),
+            strong(timestamp(dt, 'full')),
             timestamp(dt, 'relative'),
         ]
-        res = '\n'.join(reps)
-        return (await ctx.response(ctx, content=f'Timestamp:\n{res}')
-                .reply().run())
+        res = Embed2(title='Snowflake', description='\n'.join(reps))
+        return await ctx.response(ctx, embed=res).reply().run()
