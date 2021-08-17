@@ -51,7 +51,7 @@ services:
             - server
             - redis
             - backup
-        restart: on-failure
+        restart: unless-stopped
 
     bot:
         image: telescope2
@@ -67,7 +67,7 @@ services:
         depends_on:
             - web
             - backup
-        restart: on-failure
+        restart: unless-stopped
 
     init:
         image: telescope2

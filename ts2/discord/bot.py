@@ -203,7 +203,7 @@ class Robot(Bot):
         self._cache.delete(key, version=self._CACHE_VERSION)
 
     async def set_exit_status(self):
-        await self.change_presence(activity=Game('system restart'))
+        await self.change_presence(activity=Game('System Restart. Please hold.'))
         self.log.info('Exit indicator is set!')
 
 
