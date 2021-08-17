@@ -70,7 +70,6 @@ class MessageCommands:
     @doc.restriction(
         has_guild_permissions,
         manage_messages=True,
-        read_messages=True,
         send_messages=True,
         attach_files=True,
         embed_links=True,
@@ -119,7 +118,6 @@ class MessageCommands:
     @doc.restriction(
         has_guild_permissions,
         manage_messages=True,
-        read_messages=True,
         send_messages=True,
         attach_files=True,
         embed_links=True,
@@ -160,7 +158,6 @@ class MessageCommands:
     @doc.restriction(
         has_guild_permissions,
         manage_messages=True,
-        read_messages=True,
         send_messages=True,
     )
     async def react(

@@ -315,6 +315,10 @@ class Poll(
         if not isinstance(category, TextChannel):
             raise NotAcceptable(f'No such channel {category}.')
 
+        if not category.permissions_for(ctx.author).read_messages:
+            raise NotAcceptable((f'You cannot submit to {tag(category)} because'
+                                 ' the channel is not visible to you.'))
+
         target = await self.get_channel_or_404(ctx, category)
 
         if target.requires_text and not suggestion:
