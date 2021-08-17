@@ -367,7 +367,7 @@ class Poll(
         category: TextChannel = suggestion.channel
         embed, info = await self.fetch_submission(suggestion)
         author = ctx.author
-        if author.id != info['author_id'] and author.id != info['attrib_id']:
+        if author.id != info['author_id'] and author.id != info.get('attrib_id'):
             raise NotAcceptable("You cannot delete someone else's suggestion.")
         associated = category.get_partial_message(info['linked_id'])
         await associated.delete(delay=0)
@@ -398,7 +398,7 @@ class Poll(
     ):
         embed, info = await self.fetch_submission(suggestion)
         author = ctx.author
-        if author.id != info['author_id'] and author.id != info['attrib_id']:
+        if author.id != info['author_id'] and author.id != info.get('attrib_id'):
             raise NotAcceptable("You cannot edit someone else's suggestion.")
 
         category = suggestion.channel
