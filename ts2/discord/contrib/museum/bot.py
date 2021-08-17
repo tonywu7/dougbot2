@@ -78,6 +78,8 @@ class Museum(
         embeds = [res, *[(Embed2.from_dict(e.to_dict())
                           .set_footer(text=f'From message {message.id}'))
                          for e in message.embeds]]
+        if message.embeds and not message.content and not message.attachments:
+            embeds = embeds[1:]
         pages = EmbedPagination(embeds, None, False)
         return (await ctx.response(ctx, embed=pages).reply()
                 .responder(pages.with_context(ctx)).deleter().run())
