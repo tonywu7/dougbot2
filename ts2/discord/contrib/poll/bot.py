@@ -188,7 +188,7 @@ class Poll(
         emotes = [target.upvote, target.downvote]
         for e in target.reactions_cleaned:
             emotes.append(e)
-        for e in emotes:
+        for e in filter(None, emotes):
             try:
                 await msg.add_reaction(e)
             except Exception:

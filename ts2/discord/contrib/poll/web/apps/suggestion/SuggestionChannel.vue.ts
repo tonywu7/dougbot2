@@ -106,8 +106,8 @@ class SuggestChannel {
     public toJSON(): SuggestionChannelInput {
         return {
             channelId: this.channelId,
-            upvote: this.upvote!,
-            downvote: this.downvote!,
+            upvote: this.upvote || '',
+            downvote: this.downvote || '',
             title: this.title,
             description: this.description,
             requiresText: this.requiresText,
