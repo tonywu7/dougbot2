@@ -88,6 +88,7 @@ class MessageCommands:
         embed: Optional[dict] = None,
         channel: Optional[TextChannel] = None,
         *, mentions: Optional[dict] = None,
+        reply: Optional[Message] = None,
     ):
         if not content and not embed:
             return
@@ -104,8 +105,12 @@ class MessageCommands:
             allowed_mentions = get_allowed_mentions(mentions)
         else:
             allowed_mentions = None
+        if reply:
+            ref = reply.to_reference(fail_if_not_exists=False)
+        else:
+            ref = None
         try:
-            msg = await channel.send(content, embed=embed_obj,
+            msg = await channel.send(content, embed=embed_obj, reference=ref,
                                      allowed_mentions=allowed_mentions)
         except HTTPException as e:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
