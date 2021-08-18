@@ -96,6 +96,6 @@ class Command(BaseCommand):
                 runner.init.wait_for(runner.initialized)
             set_signal_handler(runner.client)
             while not should_exit:
-                time.sleep(1)
+                time.sleep(5)
         except KeyboardInterrupt:
             return

@@ -319,7 +319,7 @@ class Ticker(
         else:
             return ticker
 
-    @group('ticker', invoke_without_command=True)
+    @group('ticker', case_insensitive=True, invoke_without_command=True)
     @doc.description('List all VCs currently used for message hoisting.')
     async def ticker(self, ctx: Circumstances):
         channels = [c.id for c in ctx.guild.channels]

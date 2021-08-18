@@ -145,7 +145,7 @@ class Personalize(
             res = res.add_field(name=k, value=code(v or '(none)'), inline=True)
         return await ctx.reply(embed=res)
 
-    @group('my', aliases=('conf',))
+    @group('my', case_insensitive=True, aliases=('conf',))
     @accepts_dms
     @doc.description('Configure various preferences.')
     async def conf(self, ctx: Circumstances):

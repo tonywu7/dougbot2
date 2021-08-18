@@ -296,7 +296,7 @@ class Poll(
         return (await ctx.response(ctx, content=content)
                 .reply().autodelete(20).run())
 
-    @group('suggest', invoke_without_command=True)
+    @group('suggest', case_insensitive=True, invoke_without_command=True)
     @doc.description('Make a suggestion.')
     @doc.argument('category', 'The suggestion channel to use.',
                   node='[suggest channel]', signature='[channel]')

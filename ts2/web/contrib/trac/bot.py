@@ -52,7 +52,7 @@ class Trac(
             embed = embed.set_author(name=str(report.user))
         return embed
 
-    @group('bug')
+    @group('bug', case_insensitive=True)
     @doc.description('Bug report.')
     @doc.restriction(is_owner)
     @doc.hidden
