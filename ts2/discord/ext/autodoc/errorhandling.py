@@ -88,7 +88,7 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
     else:
         allowed_mentions = AllowedMentions.none()
     embed = Embed2(color=Color2.red(), title=title, description=msg).set_timestamp(None)
-    await ctx.reply(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
+    await ctx.send(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
 
 
 async def explain_exception(ctx: Context, exc: Exception):
