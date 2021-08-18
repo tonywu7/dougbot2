@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from contextlib import suppress
 from textwrap import dedent
 from typing import Literal, Optional
 
@@ -32,10 +33,10 @@ from ...ext.dm import accepts_dms
 from ...ext.types.functional import Maybe
 from ...ext.types.patterns import Constant
 from ...utils.duckcord.embeds import Embed2
-from ...utils.markdown import a, arrow, code, verbatim
+from ...utils.markdown import a, arrow, blockquote, code, verbatim
 from ...utils.pagination import EmbedPagination
 from ..services import ServiceUnavailable
-from ..services.datetime import Timezone, get_tzfinder
+from ..services.datetime import Timezone, get_tzfinder, similar_tz_names
 from ..services.osm import (Latitude, Longitude, format_coarse_location,
                             get_location, parse_point_strict_exc)
 from .models import User
@@ -188,11 +189,11 @@ class Personalize(
         )
 
         async def commit_tz(tz: pytz.BaseTzInfo, location: Optional[Location] = None,
-                            notify: bool = True, delete: bool = False):
+                            *, notify: bool = True, msg: str = '', delete: bool = False):
             profile = await set_tz(author, tz)
             res = format_tz_set(profile, location).personalized(author)
             if notify:
-                await ctx.response(ctx, embed=res).pingback().run()
+                await ctx.response(ctx, content=msg, embed=res).pingback().run()
             else:
                 await ctx.reply(embed=res)
             if delete:
@@ -260,20 +261,34 @@ class Personalize(
                     addressdetails=True,
                 )
             except GeocoderTimedOut:
-                await ctx.message.delete(delay=0.1)
-                raise ServiceUnavailable('Searching on OpenStreetMap took too long.')
+                exc = ServiceUnavailable('Searching on OpenStreetMap took too long.')
+            else:
+                exc = ''
+
+        potential_tzs = similar_tz_names(raw_input)
+        if potential_tzs:
+            names = ', '.join(potential_tzs)
+            msg = (f'\nAssuming {verbatim(query)} is a place, but there are'
+                   f' timezones with similar names:\n{blockquote(names)}\n'
+                   ' If you intended to look up a timezone, retry with'
+                   ' one of the above (or use a location directly).')
+        else:
+            msg = ''
 
         if not place:
-            await ctx.message.delete(delay=0.1)
-            msg = f'Failed to find a location on OpenStreetMap using {verbatim(query)}'
+            with suppress(Exception):
+                await ctx.message.delete()
+            msg = f'{msg}\nFailed to find a location on OpenStreetMap using {verbatim(query)}'
+            if exc:
+                msg = f'{msg}\n{exc}'
             if bad_coord:
                 msg = f'{msg}\nAdditionally, {bad_coord}'
-            raise NotAcceptable(msg)
+            raise NotAcceptable(msg.strip())
 
         point = place.point
         tzname = tzfinder.timezone_at(lng=point.longitude, lat=point.latitude)
         tz = pytz.timezone(tzname)
-        return await commit_tz(tz, location=place, delete=True)
+        return await commit_tz(tz, location=place, msg=msg, delete=True)
 
     @conf.command('dateformat', aliases=('datefmt',))
     @doc.description('Configure how dates are formatted for date/time related commands.')

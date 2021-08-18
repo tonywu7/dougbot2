@@ -52,7 +52,23 @@ def make_tz_names():
 def get_tz_by_name(s: str) -> pytz.BaseTzInfo:
     if not tznames:
         make_tz_names()
-    return tznames[s]
+    try:
+        return tznames[s]
+    except KeyError:
+        return tznames[s.upper()]
+
+
+def similar_tz_names(query: str) -> list[str]:
+    if not tznames:
+        make_tz_names()
+    try:
+        from fuzzywuzzy import process as fuzzy
+        from fuzzywuzzy.fuzz import UQRatio
+    except ModuleNotFoundError:
+        return []
+    else:
+        matched = fuzzy.extractBests(query, tznames.keys(), scorer=UQRatio, score_cutoff=50)
+    return [match_ for match_, score in matched]
 
 
 def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:

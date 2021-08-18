@@ -98,4 +98,5 @@ class Command(BaseCommand):
             while not should_exit:
                 time.sleep(5)
         except KeyboardInterrupt:
+            print('Exiting ...')
             return
