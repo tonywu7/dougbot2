@@ -43,6 +43,11 @@
 
 {% section id='server-access' title='manage bot' %}
 <div class="form">
+    <form id="rejoin-server-form" action="{% url 'web:join' %}" method="POST" class="btn">
+        <input type="hidden" name="guild_id" id="guild-id" value="{{ discord.server_id }}">
+        {% csrf_token %}
+        <button class="btn btn-info" type="submit">Rejoin server</button>
+    </form>
     <a href="#" id="sync-models" class="btn btn-outline-warning btn-submit">Synchronize models</a>
     <a href="{% url 'web:leave' guild_id=discord.server_id %}" class="btn btn-outline-danger">
         Remove bot from server</a>
