@@ -75,7 +75,7 @@
 
     .field-checkbox,
     .field-radio {
-        flex-flow: row-reverse nowrap;
+        flex-flow: row-reverse wrap;
         align-items: center;
         justify-content: flex-end;
 

@@ -76,7 +76,7 @@ export default defineComponent({
         }
     },
     data() {
-        let value = this.$attrs.value as FormDataType | undefined
+        let value = this.$attrs.value
         return {
             _value: value,
         }
