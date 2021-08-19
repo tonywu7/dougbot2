@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Any, Literal
+from typing import Literal, Optional
 
 from discord import Activity, ActivityType
 from discord.ext.commands import command, is_owner
@@ -58,8 +58,8 @@ class BotConfigCommands:
     async def status(
         self, ctx: Circumstances,
         activity: Choice[Literal['playing', 'watching', 'listening', 'streaming', 'reset']],
-        *, name: str = '', **kwargs: Any,
+        *, name: str = '', url: Optional[str] = None,
     ):
         if activity != 'reset' and not name:
             raise doc.NotAcceptable('Activity name cannot be empty.')
-        await self.set_presence(activity, name=name, **kwargs)
+        await self.set_presence(activity, name=name, url=url)
