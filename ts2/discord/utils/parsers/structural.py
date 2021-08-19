@@ -202,6 +202,8 @@ class StructuralArgumentParser:
                     parsed = []
                 elif _is_optional_type(v.annotation):
                     parsed = None
+                elif v.kind is Parameter.VAR_KEYWORD:
+                    continue
                 else:
                     errors = self.errors.get(k)
                     if errors:
