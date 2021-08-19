@@ -41,6 +41,8 @@ class SuggestionChannel(models.Model):
     reactions: dict[str, str] = RecordField(default=dict)
     arbiters: list[int] = NumbersListField(default=list)
 
+    voting_history: bool = models.BooleanField(null=False, default=True)
+
     @classproperty
     def updatable_fields(cls) -> list[str]:
         return [f.name for f in cls._meta.fields if not f.is_relation]

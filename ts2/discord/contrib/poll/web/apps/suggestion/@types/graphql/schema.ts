@@ -321,6 +321,7 @@ export type SuggestionChannelInput = {
   requiresLinks: Scalars['Int'];
   arbiters: Array<Scalars['ID']>;
   reactions: Array<KeyValuePairInput>;
+  votingHistory: Scalars['Boolean'];
 };
 
 export type SuggestionChannelType = {
@@ -332,6 +333,7 @@ export type SuggestionChannelType = {
   requiresText: Scalars['Boolean'];
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
+  votingHistory: Scalars['Boolean'];
   channelId: Scalars['ID'];
   arbiters: Array<Scalars['ID']>;
   reactions: Array<KeyValuePairType>;
@@ -372,7 +374,7 @@ export type UpdateSuggestChannelsMutation = (
     { __typename?: 'SuggestionChannelUpdateMutation' }
     & { channels?: Maybe<Array<Maybe<(
       { __typename?: 'SuggestionChannelType' }
-      & Pick<SuggestionChannelType, 'channelId' | 'title' | 'description' | 'upvote' | 'downvote' | 'requiresText' | 'requiresUploads' | 'requiresLinks' | 'arbiters'>
+      & Pick<SuggestionChannelType, 'channelId' | 'title' | 'description' | 'upvote' | 'downvote' | 'requiresText' | 'requiresUploads' | 'requiresLinks' | 'arbiters' | 'votingHistory'>
       & { reactions: Array<(
         { __typename?: 'KeyValuePairType' }
         & Pick<KeyValuePairType, 'key' | 'value'>
@@ -390,7 +392,7 @@ export type SuggestChannelsQuery = (
   { __typename?: 'Query' }
   & { suggestChannels?: Maybe<Array<Maybe<(
     { __typename?: 'SuggestionChannelType' }
-    & Pick<SuggestionChannelType, 'channelId' | 'title' | 'description' | 'upvote' | 'downvote' | 'requiresText' | 'requiresUploads' | 'requiresLinks' | 'arbiters'>
+    & Pick<SuggestionChannelType, 'channelId' | 'title' | 'description' | 'upvote' | 'downvote' | 'requiresText' | 'requiresUploads' | 'requiresLinks' | 'arbiters' | 'votingHistory'>
     & { reactions: Array<(
       { __typename?: 'KeyValuePairType' }
       & Pick<KeyValuePairType, 'key' | 'value'>

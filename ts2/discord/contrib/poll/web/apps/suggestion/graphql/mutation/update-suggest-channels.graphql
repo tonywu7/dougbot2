@@ -21,6 +21,7 @@ mutation UpdateSuggestChannels(
                 key
                 value
             }
+            votingHistory
         }
     }
 }

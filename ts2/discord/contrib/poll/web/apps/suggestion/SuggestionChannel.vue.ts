@@ -72,6 +72,7 @@ class SuggestChannel {
     public requiresUploads: number
     public requiresLinks: number
     public arbiters: string[]
+    public keepVotingHistory: boolean
 
     constructor(data: Partial<SuggestionChannelType>) {
         this._reactions.push(
@@ -88,6 +89,8 @@ class SuggestChannel {
         this.requiresUploads = data.requiresUploads || 0
         this.requiresLinks = data.requiresLinks || 0
         this.arbiters = data.arbiters || []
+        this.keepVotingHistory =
+            data.votingHistory === undefined ? true : data.votingHistory
     }
 
     public get channelId(): string {
@@ -115,6 +118,7 @@ class SuggestChannel {
             requiresUploads: this.requiresUploads,
             arbiters: this.arbiters,
             reactions: this.reactions,
+            votingHistory: this.keepVotingHistory,
         }
     }
 }

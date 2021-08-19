@@ -15,8 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import logging
 import re
 from contextlib import suppress
+from datetime import datetime
 from typing import Optional, TypedDict, Union
 from urllib.parse import parse_qs, urlsplit
 
@@ -53,6 +55,13 @@ class SubmissionInfo(TypedDict):
     attrib_id: Optional[int]
 
 
+class Ballot(TypedDict):
+    emote: str
+    response: str
+    user_id: str
+    timestamp: Union[str, datetime]
+
+
 _Submission = tuple[Embed2, SubmissionInfo]
 
 
@@ -62,12 +71,17 @@ class Poll(
 ):
     _CACHE_VERSION = 2
     _CACHE_TTL = 604800
+    BALLOT_FORMAT = re.compile((
+        r'^(?P<emote>\S+) \*\*(?P<response>.*)\*\* - '
+        r'<@(?P<user_id>\d+)> <t:(?P<timestamp>\d+).*>$'
+    ), re.M)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._sequential = asyncio.Lock()
         self._cache = caches['discord']
         self._invalid: set[int] = set()
+        self.log = logging.getLogger('discord.poll')
 
     async def list_suggest_channels(self, guild: Guild) -> str:
         channels = {c.id: c for c in guild.channels}
@@ -227,6 +241,22 @@ class Poll(
         embed = Embed2.upgrade(embed)
         return embed, info
 
+    def parse_responses(self, body: str) -> list[Ballot]:
+        ballots: list[Ballot] = []
+        for matched in self.BALLOT_FORMAT.finditer(body):
+            ballots.append(matched.groupdict())
+        return ballots
+
+    def build_responses(self, ballots: list[Ballot]) -> str:
+        lines = []
+        for b in ballots:
+            lines.append(
+                f'{b["emote"]} {strong(b["response"])}'
+                f' - {tag_literal("member", b["user_id"])}'
+                f' {timestamp(b["timestamp"], "relative")}',
+            )
+        return '\n'.join(lines)
+
     def get_cache_key(self, msg_id: int):
         return f'{__name__}:{self.app_label}:suggestion:{msg_id}'
 
@@ -266,15 +296,15 @@ class Poll(
         embed: Embed2, info: SubmissionInfo,
         *, body: Optional[str] = None,
         linked: Optional[str] = None,
-        status: Optional[str] = None,
         comment: Optional[str] = None,
         edited: Optional[str] = None,
         author: Optional[Member] = None,
+        status: Optional[str] = None,
     ):
         channel: TextChannel = original.channel
         updated = embed
         if status:
-            updated = self.field_setdefault(updated, 'Response', status)
+            updated = self.field_setdefault(updated, 'Response', status, replace=True)
         if comment:
             updated = self.field_setdefault(updated, 'Comment', comment)
         if edited:
@@ -284,8 +314,11 @@ class Poll(
         if author:
             updated = updated.personalized(author, url=embed.author.url)
         if updated is not embed:
-            with suppress(HTTPException):
+            try:
                 await original.edit(embed=updated)
+            except HTTPException as e:
+                self.log.warning(f'Error while setting embed: {e}', exc_info=e)
+            else:
                 self.cache_submission(original.id, updated, info)
         if linked:
             linked_msg = channel.get_partial_message(info['linked_id'])
@@ -501,12 +534,20 @@ class Poll(
             self._invalid.add(msg_id)
             return
 
-        if text:
-            text = f'{emote} {strong(text)}'
+        res = embed.get_field_value('Response')
+        ballots = self.parse_responses(res)
+        vote = {
+            'emote': emote, 'response': text,
+            'user_id': ev.member.id,
+            'timestamp': utcnow(),
+        }
+        if target.voting_history:
+            ballots.append(vote)
         else:
-            text = emote
-        status = (f'{text} - {tag(ev.member)}'
-                  f' {timestamp(utcnow(), "relative")}')
+            ballots_dict = {b['user_id']: b for b in ballots}
+            ballots_dict[str(ev.member.id)] = vote
+            ballots = [*ballots_dict.values()]
+        status = self.build_responses(ballots)
 
         await self.update_submission(msg, embed, info, status=status)
 

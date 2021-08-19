@@ -69,10 +69,10 @@ def tag(obj) -> str:
 
 def tag_literal(kind: str, val: int):
     return {
-        'user': '<@%(val)d>',
-        'member': '<@%(val)d>',
-        'channel': '<#%(val)d>',
-        'role': '<@&%(val)d>',
+        'user': '<@%(val)s>',
+        'member': '<@%(val)s>',
+        'channel': '<#%(val)s>',
+        'role': '<@&%(val)s>',
     }[kind] % {'val': val}
 
 
@@ -151,12 +151,14 @@ def unmark_element(element, stream=None):
     return stream.getvalue()
 
 
-def timestamp(t: datetime | float | int, f: Literal[
+def timestamp(t: datetime | float | int | str, f: Literal[
     'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
     'full', 'long', 'date', 'relative',
 ]) -> str:
     if isinstance(t, datetime):
         t = t.timestamp()
+    if isinstance(t, str):
+        t = float(t)
     return f'<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>'
 
 

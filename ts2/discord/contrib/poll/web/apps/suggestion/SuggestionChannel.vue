@@ -87,6 +87,14 @@
                                             <i class="bi bi-plus-circle"></i></a>
                                     </li>
                                 </ul>
+                                <input-field type="checkbox" name="votingHistory" label="Keep reaction history"
+                                    :id="`suggest-channel-keep-voting-history`"
+                                    v-model:value="current.keepVotingHistory">
+                                    <template v-slot:hint>
+                                        <p>If this is off, when someone reacts with a different emote, their previous
+                                            reaction will be replaced instead of kept.</p>
+                                    </template>
+                                </input-field>
                             </div>
 
                         </div>

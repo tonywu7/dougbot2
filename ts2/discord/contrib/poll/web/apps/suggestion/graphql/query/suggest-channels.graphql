@@ -13,5 +13,6 @@ query SuggestChannels($serverId: ID!) {
             key
             value
         }
+        votingHistory
     }
 }

@@ -321,6 +321,7 @@ export type SuggestionChannelInput = {
   requiresLinks: Scalars['Int'];
   arbiters: Array<Scalars['ID']>;
   reactions: Array<KeyValuePairInput>;
+  votingHistory: Scalars['Boolean'];
 };
 
 export type SuggestionChannelType = {
@@ -332,6 +333,7 @@ export type SuggestionChannelType = {
   requiresText: Scalars['Boolean'];
   requiresUploads: Scalars['Int'];
   requiresLinks: Scalars['Int'];
+  votingHistory: Scalars['Boolean'];
   channelId: Scalars['ID'];
   arbiters: Array<Scalars['ID']>;
   reactions: Array<KeyValuePairType>;

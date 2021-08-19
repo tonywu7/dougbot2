@@ -42,6 +42,7 @@ class SuggestionChannelType(DjangoObjectType):
             'requires_text',
             'requires_uploads',
             'requires_links',
+            'voting_history',
         ]
 
     @classmethod
@@ -60,6 +61,7 @@ class SuggestionChannelInput(InputObjectType):
     requires_links = Argument(Int, required=True)
     arbiters = List(NonNull(ID), required=True)
     reactions = List(NonNull(KeyValuePairInput), required=True)
+    voting_history = Argument(Boolean, required=True)
 
     def mutate(self, obj: SuggestionChannel):
         for key in obj.updatable_fields:
