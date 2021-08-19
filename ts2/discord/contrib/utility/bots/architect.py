@@ -33,10 +33,14 @@ class BotConfigCommands:
     async def resume_presence(self):
         kind, kwargs = self.bot.get_cache((None, None), type=f'{__name__}.activity')
         if kind is None:
-            return
+            return await self.set_presence('reset')
         await self.set_presence(kind, **kwargs)
 
     async def set_presence(self, kind: str, **kwargs):
+        if kind == 'reset':
+            await self.bot.change_presence(activity=None)
+            self.bot.del_cache(type=f'{__name__}.activity')
+            return
         try:
             presence_t = getattr(ActivityType, kind)
         except AttributeError:
@@ -53,7 +57,9 @@ class BotConfigCommands:
     @doc.hidden
     async def status(
         self, ctx: Circumstances,
-        activity: Choice[Literal['playing', 'watching', 'listening', 'streaming']],
-        *, name: str, **kwargs: Any,
+        activity: Choice[Literal['playing', 'watching', 'listening', 'streaming', 'reset']],
+        *, name: str = '', **kwargs: Any,
     ):
+        if activity != 'reset' and not name:
+            raise doc.NotAcceptable('Activity name cannot be empty.')
         await self.set_presence(activity, name=name, **kwargs)
