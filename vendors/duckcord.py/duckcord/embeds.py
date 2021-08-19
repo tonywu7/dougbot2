@@ -287,6 +287,15 @@ class Embed2:
         fields = [*self.fields[:index], EmbedField(name=name, value=value, inline=inline), *self.fields[index + 1:]]
         return attr.evolve(self, fields=fields)
 
+    def get_field_value(self, key: str, default: T = '') -> str | T:
+        """Return the value of the embed field with name ``key`` if it is found,\
+            otherwise return ``default``.
+        """
+        for f in self.fields:
+            if f.name == key:
+                return f.value
+        return default
+
     def clear_fields(self) -> Embed2:
         """Return a new embed with no field.
 
