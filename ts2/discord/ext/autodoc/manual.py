@@ -93,6 +93,8 @@ class Manual:
         for call_sign, doc in tree.items():
             if call_sign in seen:
                 continue
+            if doc.standalone:
+                continue
             seen.add(call_sign)
             restrictions = [f'(Parent) {r}' for r in doc.restrictions]
             doc.restrictions.extend(chain.from_iterable(stack))
