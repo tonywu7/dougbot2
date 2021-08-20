@@ -30,7 +30,7 @@ from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
 from discord.ext.commands import BucketType, MissingAnyRole, group
 from django.core.cache import caches
 from django.utils.datastructures import MultiValueDict
-from more_itertools import first
+from more_itertools import first, map_reduce
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
@@ -38,9 +38,9 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (E, Embed2, EmbedPagination, a,
-                                      chapterize, code, pre, strong, tag,
-                                      tag_literal, timestamp, urlqueryset,
-                                      utcnow)
+                                      blockquote, chapterize, code, pre,
+                                      strong, tag, tag_literal, timestamp,
+                                      urlqueryset, utcnow)
 
 from .models import SuggestionChannel
 
@@ -506,7 +506,7 @@ class Poll(
         if not is_arbiter and not is_public:
             if is_public is not None:
                 link = a(f'suggestion {code(suggestion.id)}', suggestion.jump_url)
-                raise NotAcceptable(f'Comment section for {link} is closed.')
+                raise NotAcceptable(f'Comments section for {link} is closed.')
             else:
                 raise MissingAnyRole(target.arbiters)
 
@@ -539,12 +539,12 @@ class Poll(
         await self.respond(ctx, f'Updated suggestion {code(suggestion.id)}')
 
     @suggest.command('forum')
-    @doc.description('Open up the comment section of a suggestion to everyone.')
+    @doc.description('Open up the comments section of a suggestion to everyone.')
     @doc.argument('suggestion', (
         'The message containing the submission'
         ' (copy the permalink included in the message).'
     ))
-    @doc.argument('enabled', 'Whether to open or close the comment section.')
+    @doc.argument('enabled', 'Whether to open or close the comments section.')
     @doc.restriction(None, 'You can only change the comment access of a suggestion you submitted.')
     @doc.cooldown(1, 5, BucketType.member)
     async def suggest_forum(
@@ -556,8 +556,31 @@ class Poll(
             raise NotAcceptable('You can only change the comment access of a suggestion you submitted.')
 
         await self.update_submission(suggestion, embed, info, public=enabled)
-        res = f'Comment section for suggestion {code(suggestion.id)} is now {strong("on" if enabled else "off")}'
+        res = f'Comments section for suggestion {code(suggestion.id)} is now {strong("on" if enabled else "off")}'
         await self.respond(ctx, res)
+
+    @suggest.command('tally')
+    @doc.description('Count the votes on a suggestion.')
+    @doc.argument('suggestion', 'The message containing the submission.')
+    async def suggest_tally(self, ctx: Circumstances, suggestion: Message):
+        embed, info = await self.fetch_submission(suggestion)
+        category = suggestion.channel
+        target = await self.get_channel_or_404(ctx, category)
+        votes = {str(r.emoji): r.count - r.me for r in suggestion.reactions}
+        votes = {k: votes.get(k, 0) for k in (target.upvote, target.downvote) if k}
+        ballots = self.parse_responses(embed.get_field_value('Response'))
+        ballots = map_reduce(ballots, lambda v: f'{v["emote"]} {strong(v["response"])}',
+                             lambda v: tag_literal('user', v['user_id']),
+                             lambda vs: sorted(set(vs)))
+        lines = []
+        for k, v in votes.items():
+            lines.append(f'{code(v)} {k}')
+        for k, v in ballots.items():
+            lines.append(f'{code(len(v))} {k}\n{blockquote(" ".join(v))}')
+        res = (embed.clear_fields()
+               .add_field(name='Votes', value='\n'.join(lines))
+               .set_timestamp())
+        return await ctx.response(ctx, embed=res).reply().deleter().run()
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
