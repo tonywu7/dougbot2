@@ -59,12 +59,12 @@ class ContentGenerationCommands:
         threshold: Optional[float] = .5,
     ):
         if not content:
+            if not message and reply:
+                message = reply.resolved
             if message:
+                if message.author == self.bot.user:
+                    raise doc.NotAcceptable('no u')
                 content = message.content
-            elif reply:
-                ref = reply.resolved
-                if ref:
-                    content = ref.content
         if not content:
             as_error = True
             if not message and not reply:
