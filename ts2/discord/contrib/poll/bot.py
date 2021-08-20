@@ -583,7 +583,7 @@ class Poll(
 
 class NotSuggestion(NotAcceptable):
     def __init__(self, msg: Union[Message, PartialMessage], *args):
-        link = a(f'Message {code(msg.id)}')
+        link = a(f'Message {code(msg.id)}', msg.jump_url)
         message = f'{link} is not a submission.'
         super().__init__(message, *args)
 
