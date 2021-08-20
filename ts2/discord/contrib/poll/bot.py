@@ -73,7 +73,7 @@ class Poll(
 ):
     _CACHE_VERSION = 2
     _CACHE_TTL = 604800
-    BALLOT_FORMAT = re.compile((
+    RE_BALLOT_FORMAT = re.compile((
         r'^(?P<emote>\S+) \*\*(?P<response>.*)\*\* - '
         r'<@(?P<user_id>\d+)> <t:(?P<timestamp>\d+).*>$'
     ), re.M)
@@ -247,7 +247,7 @@ class Poll(
 
     def parse_responses(self, body: str) -> list[Ballot]:
         ballots: list[Ballot] = []
-        for matched in self.BALLOT_FORMAT.finditer(body):
+        for matched in self.RE_BALLOT_FORMAT.finditer(body):
             ballots.append(matched.groupdict())
         return ballots
 
@@ -312,28 +312,45 @@ class Poll(
         if status:
             updated = self.field_setdefault(updated, 'Response', status, replace=True)
         if comment:
-            updated = self.field_setdefault(updated, 'Comment', comment)
+            updated = self.field_setdefault(updated, 'Comments', comment)
         if edited:
             updated = self.field_setdefault(updated, 'Edited', edited)
         if body:
             updated = updated.set_description(body)
+
         if author:
             url = updated.author.url
             if author.id != info['author_id']:
                 info['attrib_id'] = author.id
                 url = urlqueryset(url, attrib_id=author.id)
             updated = updated.personalized(author, url=url)
+
         if public is not None:
+            info['is_public'] = int(public)
             url = updated.author.url
             url = urlqueryset(url, is_public=int(public))
             updated = updated.set_author_url(url)
+            if public:
+                indicator = strong(
+                    f'{E("star")} Comments section for this submission is open.'
+                    f'\nAnyone can add a comment by using the {code("suggest comment")} command.',
+                )
+            else:
+                indicator = 'Comments section is closed.'
+            updated = self.field_setdefault(updated, 'Forum', indicator, replace=True)
+
         if updated is not embed:
+            updated.raise_if_overflow(NotAcceptable(
+                'This submission has reached its max content size'
+                ' and can no longer be modified.',
+            ))
             try:
                 await original.edit(embed=updated)
             except HTTPException as e:
                 self.log.warning(f'Error while setting embed: {e}', exc_info=e)
             else:
                 self.cache_submission(original.id, updated, info)
+
         if linked:
             linked_msg = channel.get_partial_message(info['linked_id'])
             with suppress(HTTPException):
@@ -370,7 +387,8 @@ class Poll(
         target = await self.get_channel_or_404(ctx, category)
 
         if target.requires_text and not suggestion:
-            raise NotAcceptable(f'Submissions to {tag(category)} must contain text description.')
+            raise NotAcceptable((f'Submissions to {tag(category)} must contain text description:'
+                                 ' what you would like to suggest?'))
 
         msg = ctx.message
         suggestion = self.get_text(target, suggestion)
@@ -438,6 +456,7 @@ class Poll(
         ' to change the uploaded files'
         ' if there are any.'
     ))
+    @doc.cooldown(1, 5, BucketType.member)
     async def suggest_edit(
         self, ctx: Circumstances,
         suggestion: Message,
@@ -467,13 +486,9 @@ class Poll(
         ' (copy the permalink included in the message).'
     ))
     @doc.argument('comment', 'The comment to add.')
-    @doc.restriction(None, (
-        'Only members designated as "arbiters"'
-        ' (who can add responses via reactions)'
-        ' can post comments.'
-    ))
     @doc.use_syntax_whitelist
     @doc.invocation(('suggestion', 'comment'), None)
+    @doc.cooldown(1, 60, BucketType.member)
     async def comment(
         self, ctx: Circumstances,
         suggestion: Message, *, comment: str,
@@ -481,12 +496,20 @@ class Poll(
         if not comment:
             raise NotAcceptable('Comment must not be empty.')
 
+        embed, info = await self.fetch_submission(suggestion)
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
-        if not self.is_arbiter_in(target, ctx.author):
-            raise MissingAnyRole(target.arbiters)
 
-        embed, info = await self.fetch_submission(suggestion)
+        is_arbiter = self.is_arbiter_in(target, ctx.author)
+        is_public = info.get('is_public')
+
+        if not is_arbiter and not is_public:
+            if is_public is not None:
+                link = a(f'suggestion {code(suggestion.id)}', suggestion.jump_url)
+                raise NotAcceptable(f'Comment section for {link} is closed.')
+            else:
+                raise MissingAnyRole(target.arbiters)
+
         comment = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}: {comment}'
         await self.update_submission(suggestion, embed, info, comment=comment)
 
@@ -500,6 +523,7 @@ class Poll(
     ))
     @doc.argument('member', 'The member you would like to credit the suggestion to.')
     @doc.restriction(None, 'You can only change the attribution of a suggestion you submitted.')
+    @doc.cooldown(1, 5, BucketType.member)
     async def suggest_credit(
         self, ctx: Circumstances,
         suggestion: Message,
@@ -513,6 +537,27 @@ class Poll(
         await self.update_submission(suggestion, embed, info, author=member, edited=edited)
 
         await self.respond(ctx, f'Updated suggestion {code(suggestion.id)}')
+
+    @suggest.command('forum')
+    @doc.description('Open up the comment section of a suggestion to everyone.')
+    @doc.argument('suggestion', (
+        'The message containing the submission'
+        ' (copy the permalink included in the message).'
+    ))
+    @doc.argument('enabled', 'Whether to open or close the comment section.')
+    @doc.restriction(None, 'You can only change the comment access of a suggestion you submitted.')
+    @doc.cooldown(1, 5, BucketType.member)
+    async def suggest_forum(
+        self, ctx: Circumstances,
+        suggestion: Message, enabled: bool = True,
+    ):
+        embed, info = await self.fetch_submission(suggestion)
+        if ctx.author.id != info['author_id']:
+            raise NotAcceptable('You can only change the comment access of a suggestion you submitted.')
+
+        await self.update_submission(suggestion, embed, info, public=enabled)
+        res = f'Comment section for suggestion {code(suggestion.id)} is now {strong("on" if enabled else "off")}'
+        await self.respond(ctx, res)
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
@@ -563,7 +608,12 @@ class Poll(
             ballots = [*ballots_dict.values()]
         status = self.build_responses(ballots)
 
-        await self.update_submission(msg, embed, info, status=status)
+        try:
+            await self.update_submission(msg, embed, info, status=status)
+        except NotAcceptable:
+            pass
+        except Exception as e:
+            self.log.warning(f'Error while updating reactions: {e}', exc_info=e)
 
     async def delete_linked_msg(self, msg_id: int, channel: TextChannel):
         if msg_id in self._invalid:
