@@ -435,6 +435,18 @@ class Embed2:
         author = attr.evolve(self.author, url=url)
         return attr.evolve(self, author=author)
 
+    def raise_if_overflow(self, exc: Exception):
+        """Raise `exc` if the body or any field exceeds Discord's length limit.
+
+        :param exc: The exception to throw.
+        :type exc: Exception
+        """
+        if len(self.description) > 6000:
+            raise exc
+        for f in self.fields:
+            if len(f) > 2000:
+                raise exc
+
     def __len__(self) -> int:
         return sum([
             len(self.title), len(self.description),
