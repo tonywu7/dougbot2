@@ -37,9 +37,10 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
-from ts2.discord.utils.common import (Embed2, EmbedPagination, a, chapterize,
-                                      code, pre, strong, tag, tag_literal,
-                                      timestamp, urlqueryset, utcnow, E)
+from ts2.discord.utils.common import (E, Embed2, EmbedPagination, a,
+                                      chapterize, code, pre, strong, tag,
+                                      tag_literal, timestamp, urlqueryset,
+                                      utcnow)
 
 from .models import SuggestionChannel
 
@@ -53,6 +54,7 @@ class SubmissionInfo(TypedDict):
     linked_id: int
     author_id: int
     attrib_id: Optional[int]
+    is_public: Optional[int]
 
 
 class Ballot(TypedDict):
@@ -224,7 +226,7 @@ class Poll(
             info['linked_id'] = int(params['linked_id'])
         except (TypeError, ValueError, KeyError):
             return
-        for key in ('attrib_id',):
+        for key in ('attrib_id', 'is_public'):
             try:
                 info[key] = int(params[key])
             except (TypeError, ValueError, KeyError):
@@ -302,9 +304,11 @@ class Poll(
         edited: Optional[str] = None,
         author: Optional[Member] = None,
         status: Optional[str] = None,
+        public: Optional[bool] = None,
     ):
         channel: TextChannel = original.channel
         updated = embed
+        info = {**info}
         if status:
             updated = self.field_setdefault(updated, 'Response', status, replace=True)
         if comment:
@@ -314,7 +318,15 @@ class Poll(
         if body:
             updated = updated.set_description(body)
         if author:
-            updated = updated.personalized(author, url=embed.author.url)
+            url = updated.author.url
+            if author.id != info['author_id']:
+                info['attrib_id'] = author.id
+                url = urlqueryset(url, attrib_id=author.id)
+            updated = updated.personalized(author, url=url)
+        if public is not None:
+            url = updated.author.url
+            url = urlqueryset(url, is_public=int(public))
+            updated = updated.set_author_url(url)
         if updated is not embed:
             try:
                 await original.edit(embed=updated)
