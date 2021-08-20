@@ -422,6 +422,19 @@ class Embed2:
                              icon_url=guild.icon_url)
         return attr.evolve(self, author=author)
 
+    def set_author_url(self, url: str | None) -> Embed2:
+        """Update the author URL.
+
+        Pass :data:`None` to remove the URL.
+
+        :param url: The URL to use.
+        :type url: str | None
+        :return: The resulting embed.
+        :rtype: :class:`Embed2`
+        """
+        author = attr.evolve(self.author, url=url)
+        return attr.evolve(self, author=author)
+
     def __len__(self) -> int:
         return sum([
             len(self.title), len(self.description),
