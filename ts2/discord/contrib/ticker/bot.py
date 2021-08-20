@@ -23,7 +23,7 @@ from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
                      TextChannel, VoiceChannel, VoiceState)
 from discord.ext import tasks
 from discord.ext.commands import Greedy, group, has_guild_permissions
-from jinja2 import TemplateError, TemplateSyntaxError
+from jinja2 import TemplateSyntaxError
 
 from ts2.discord import server
 from ts2.discord.cog import Gear
@@ -175,7 +175,7 @@ class Ticker(
                 )
         try:
             name = await content.render_timed(None, timeout=10, **variables)
-        except TemplateError as e:
+        except Exception as e:
             raise doc.NotAcceptable(f'Error rendering template: {e}')
         everyone_perms = PermissionOverride(
             view_channel=True, manage_channels=False,
