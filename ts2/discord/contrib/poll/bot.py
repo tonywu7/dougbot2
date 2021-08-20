@@ -39,7 +39,7 @@ from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (Embed2, EmbedPagination, a, chapterize,
                                       code, pre, strong, tag, tag_literal,
-                                      timestamp, urlqueryset, utcnow)
+                                      timestamp, urlqueryset, utcnow, E)
 
 from .models import SuggestionChannel
 
@@ -101,7 +101,9 @@ class Poll(
         if not channel_list:
             channel_list = '(no suggest channels)'
         help_text = (
-            f'To make a suggestion, call {code("suggest")},'
+            f'{strong("See")} {E("fast_forward")} {strong("next page")}'
+            f' {strong("for a list of available suggestion channels.")}'
+            f'\n\nTo make a suggestion, call {code("suggest")},'
             ' followed by the suggestion channel,'
             ' followed by the content of your submission, e.g.: '
             f'{pre("suggest #discord-suggestions Enable threads")}'
