@@ -405,3 +405,17 @@ class ServerQueryCommands:
         ]
         res = Embed2(description='\n'.join(fmts), color=rgba2int(r, g, b))
         return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()
+
+    @command('avatar', aliases=('pfp',))
+    @doc.description("Get a user's avatar (profile pic).")
+    @doc.argument('member', 'The user whose avatar to get.')
+    @doc.invocation((), 'Get your profile pic.')
+    @doc.invocation(('member',), "Get someone else's profile pic.")
+    async def avatar(self, ctx: Circumstances, member: Optional[Member]):
+        if not member:
+            member = ctx.author
+        url = member.avatar_url_as()
+        res = (Embed2(title='Avatar').personalized(member)
+               .set_thumbnail(url=url)
+               .set_description(code(url)))
+        return await ctx.response(ctx, embed=res).deleter().run()
