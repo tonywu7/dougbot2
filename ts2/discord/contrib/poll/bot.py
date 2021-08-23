@@ -365,7 +365,7 @@ class Poll(
     @doc.argument('category', 'The suggestion channel to use.',
                   node='[suggest channel]', signature='[channel]')
     @doc.argument('suggestion', 'Your suggestion here.')
-    @doc.cooldown(1, 5, BucketType.member)
+    @doc.cooldown(1, 60, BucketType.member)
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Show a list of all suggestion channels.')
     @doc.invocation(('category', 'suggestion'), 'Submit a new suggestion.')
