@@ -211,14 +211,15 @@ class MessageCommands:
     ):
         if not message and reply:
             message = reply.resolved
-        if not text and not message:
-            return
         info = []
-        info.append(serialize_message(ctx.message))
+        if ctx.raw_input or ctx.message.embeds or ctx.message.attachments:
+            info.append(serialize_message(ctx.message))
         if message:
             info.append(serialize_message(message))
+        if not info:
+            return
         with io.StringIO() as stream:
-            json.dump(info, stream)
+            json.dump(info, stream, indent=' ')
             stream.seek(0)
             fname = f'message.{localnow().isoformat().replace(":", ".")}.json'
             file = File(stream, filename=fname)
