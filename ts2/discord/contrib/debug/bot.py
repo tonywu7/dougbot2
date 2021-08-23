@@ -22,7 +22,7 @@ import os
 from typing import Literal, Optional, Union
 
 import psutil
-from discord import Member, Role, TextChannel
+from discord import Member, Role, TextChannel, User
 from discord.ext.commands import (BucketType, Converter, command, has_role,
                                   is_owner)
 
@@ -51,7 +51,7 @@ class Debug(
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @command('stderr')
+    @command('stderr', aliases=('log',))
     @doc.description("Send a message into the bot's log file.")
     @doc.argument('level', f'{code("logging")} levels e.g. {code("INFO")}.')
     @doc.argument('text', 'The message to log.')
@@ -68,6 +68,7 @@ class Debug(
         else:
             msg = text
         await ctx.log.log(f'{self.app_label}.log', level, msg)
+        return await ctx.response(ctx).success().run()
 
     @command('throw')
     @doc.description('Throw an exception inside the command handler.')
@@ -125,11 +126,14 @@ class Debug(
     ))
     @doc.restriction(is_owner)
     @doc.hidden
-    async def _blacklist(self, ctx: Circumstances, entity: Union[Member, Role, TextChannel],
-                         free: Optional[Constant[Literal['free']]]):
+    async def _blacklist(
+        self, ctx: Circumstances,
+        entity: Union[User, Member, Role, TextChannel],
+        free: Optional[Constant[Literal['free']]],
+    ):
         if free:
             await ctx.bot.gatekeeper.discard(entity)
-            return await ctx.message.add_reaction('✅')
+            return await ctx.response(ctx).success().run()
         else:
             await ctx.bot.gatekeeper.add(entity)
             msg = f'All events from entity {code(entity)} will be dropped.'

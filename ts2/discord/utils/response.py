@@ -16,11 +16,13 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Coroutine
 from typing import Any, Optional
 
 import attr
-from discord import AllowedMentions, File, Forbidden, Message, MessageReference
+from discord import (AllowedMentions, Emoji, File, Forbidden, Message,
+                     MessageReference, PartialEmoji)
 from discord.ext.commands import Context
 
 from .duckcord.embeds import Embed2
@@ -45,7 +47,21 @@ class ResponseInit:
 
     callbacks: list[Callable[[Message], Coroutine]] = attr.ib(default=attr.Factory(list))
     responders: list[Callable[[Message], Responder]] = attr.ib(default=attr.Factory(list))
+    indicators: list[Emoji | PartialEmoji | str] = attr.ib(default=attr.Factory(list))
+
     direct_message: bool = attr.ib(default=False)
+
+    @classmethod
+    def _attrs_filter(cls, att: attr.Attribute, val):
+        return att.name in {
+            'content',
+            'embed',
+            'files',
+            'delete_after',
+            'allowed_mentions',
+            'reference',
+            'mention_author',
+        }
 
     def timed(self, ttl: float):
         return attr.evolve(self, delete_after=ttl)
@@ -87,6 +103,12 @@ class ResponseInit:
     def dm(self):
         return attr.evolve(self, direct_message=True)
 
+    def success(self):
+        return attr.evolve(self, indicators=[*self.indicators, '✅'])
+
+    def failure(self):
+        return attr.evolve(self, indicators=[*self.indicators, '❌'])
+
     async def send(self, *args, **kwargs) -> Optional[Message]:
         if self.direct_message:
             try:
@@ -96,17 +118,14 @@ class ResponseInit:
         return await self.context.send(*args, **kwargs)
 
     async def run(self, message: Optional[Message] = None, thread: bool = True):
+        await asyncio.gather(*[
+            self.context.message.add_reaction(r)
+            for r in self.indicators
+        ], return_exceptions=True)
         if not message:
             if self.is_empty:
                 return
-            args = attr.asdict(self, recurse=False)
-            del args['context']
-            del args['callbacks']
-            del args['responders']
-            del args['direct_message']
-            if len(args['files']) == 1:
-                args['file'] = args['files'].pop()
-                args['files'] = None
+            args = attr.asdict(self, recurse=False, filter=self._attrs_filter)
             message = await self.send(**args)
         if not message:
             return

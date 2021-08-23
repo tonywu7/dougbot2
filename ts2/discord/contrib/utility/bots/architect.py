@@ -65,3 +65,4 @@ class BotConfigCommands:
         if activity != 'reset' and not name:
             raise doc.NotAcceptable('Activity name cannot be empty.')
         await self.set_presence(activity, name=name, url=url)
+        return await ctx.response(ctx).success().run()
