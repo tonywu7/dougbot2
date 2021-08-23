@@ -52,3 +52,7 @@ def strpduration(s: str) -> timedelta:
     for seg in RE_DURATION.finditer(s):
         seconds += int(seg['num']) * unit[seg['unit']]
     return timedelta(seconds=seconds)
+
+
+def assumed_utc(d: datetime) -> datetime:
+    return d.replace(tzinfo=timezone.utc)

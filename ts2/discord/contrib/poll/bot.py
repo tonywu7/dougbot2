@@ -38,9 +38,9 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (E, Embed2, EmbedPagination, a,
-                                      blockquote, chapterize, code, pre,
-                                      strong, tag, tag_literal, timestamp,
-                                      urlqueryset, utcnow)
+                                      assumed_utc, blockquote, chapterize,
+                                      code, pre, strong, tag, tag_literal,
+                                      timestamp, urlqueryset, utcnow)
 
 from .models import SuggestionChannel
 
@@ -566,19 +566,32 @@ class Poll(
         embed, info = await self.fetch_submission(suggestion)
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
+
         votes = {str(r.emoji): r.count - r.me for r in suggestion.reactions}
         votes = {k: votes.get(k, 0) for k in (target.upvote, target.downvote) if k}
         ballots = self.parse_responses(embed.get_field_value('Response'))
         ballots = map_reduce(ballots, lambda v: f'{v["emote"]} {strong(v["response"])}',
                              lambda v: tag_literal('user', v['user_id']),
                              lambda vs: sorted(set(vs)))
+
         lines = []
         for k, v in votes.items():
             lines.append(f'{code(v)} {k}')
         for k, v in ballots.items():
             lines.append(f'{code(len(v))} {k}\n{blockquote(" ".join(v))}')
+        if lines:
+            report = '\n'.join(lines)
+        else:
+            report = '(No vote casted)'
+
+        suggested = assumed_utc(suggestion.created_at).timestamp()
+        tallied = utcnow().timestamp()
+
         res = (embed.clear_fields()
-               .add_field(name='Votes', value='\n'.join(lines))
+               .add_field(name='Votes', value=report, inline=False)
+               .add_field(name='Reference', value=embed.get_field_value('Reference'))
+               .add_field(name='Suggested', value=timestamp(suggested, 'relative'))
+               .add_field(name='Tallied', value=timestamp(tallied, 'relative'))
                .set_timestamp())
         return await ctx.response(ctx, embed=res).reply().deleter().run()
 

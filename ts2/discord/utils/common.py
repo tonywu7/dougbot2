@@ -7,7 +7,7 @@ from discord.ext.commands import Context
 
 from .async_ import (async_first, async_get, async_list,  # noqa: F401
                      async_save)
-from .datetime import utcnow  # noqa: F401
+from .datetime import assumed_utc, strpduration, utcnow  # noqa: F401
 from .duckcord.color import Color2  # noqa: F401
 from .duckcord.embeds import Embed2, EmbedField  # noqa: F401
 from .duckcord.permissions import PermissionOverride  # noqa: F401
