@@ -23,8 +23,8 @@ import traceback
 from functools import partialmethod
 from typing import Optional, TypedDict
 
-from discord import (AllowedMentions, Color, File, Forbidden, NotFound, Role,
-                     TextChannel)
+from discord import (AllowedMentions, Color, File, Forbidden, Guild, NotFound,
+                     Role, TextChannel)
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
@@ -130,10 +130,10 @@ def register_logger(key: str, name: str):
     logging_classes[key] = name
 
 
-class ContextualLogger:
-    def __init__(self, prefix: str, ctx: Context, config: LoggingConfig):
+class ServerLogger:
+    def __init__(self, prefix: str, guild: Guild, config: LoggingConfig):
         self.prefix = prefix
-        self.ctx = ctx
+        self.guild = guild
         self.config = config
         self._log = logging.getLogger('discord.logger')
 
@@ -152,12 +152,12 @@ class ContextualLogger:
         except AttributeError:
             raise LookupError
         channel = config['channel']
-        channel: TextChannel = self.ctx.guild.get_channel(channel)
+        channel: TextChannel = self.guild.get_channel(channel)
         if not isinstance(channel, TextChannel):
             raise LookupError
         role = config.get('role', None)
         if role:
-            role: Role = self.ctx.guild.get_role(role)
+            role: Role = self.guild.get_role(role)
         name = config.get('name', 'Logging')
         return channel, name, role
 
@@ -235,7 +235,7 @@ async def log_command_error(ctx: Context, config: LoggingConfig, exc: errors.Com
              .set_url(ctx.message.jump_url))
     msg = (f'Error while processing trigger {ctx.invoked_with}: '
            f'{type(exc).__name__}: {exc}')
-    logger = ContextualLogger('discord.exception', ctx, config)
+    logger = ServerLogger('discord.exception', ctx.guild, config)
     return await logger.log(key, level, msg, exc_info=exc_info, embed=embed, embed_only=True)
 
 

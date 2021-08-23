@@ -169,8 +169,10 @@ class Circumstances(Context):
 
     @property
     def log(self):
-        from .ext.logging import ContextualLogger
-        return ContextualLogger('discord.logging', self, self.logconfig)
+        from .ext.logging import ServerLogger
+        if not self.guild:
+            raise NotInServer
+        return ServerLogger('discord.logging', self.guild, self.logconfig)
 
     async def init(self):
         await self._get_server()
