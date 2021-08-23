@@ -56,9 +56,18 @@ class Museum(
     @command('quote')
     @doc.description('Quote another message.')
     @doc.argument('message', 'The message to quote.')
-    @doc.use_syntax_whitelist
+    @doc.accepts_reply('Quote the replied-to message.')
     @doc.invocation(('message',), None)
-    async def quote(self, ctx: Circumstances, message: Message):
+    async def quote(
+        self, ctx: Circumstances,
+        message: Optional[Message],
+        *, reply: Optional[MessageReference],
+    ):
+        if not message:
+            if reply and reply.resolved:
+                message = reply.resolved
+        if not message:
+            raise doc.NotAcceptable('You need to specify the message to quote.')
         header = f'{a(strong("Message"), message.jump_url)} in {tag(message.channel)}\n'
         content = message.content or message.system_content or '(no text content)'
         body = trunc_for_field(f'{header}{content}', 1960)
@@ -73,10 +82,12 @@ class Museum(
         if attachments:
             res = res.add_field(name='Attachments', value=' / '.join(attachments))
         res = (res.personalized(message.author)
-               .set_footer(text='Original message sent')
+               .set_footer(text='Original message sent:')
                .set_timestamp(message.created_at))
         embeds = [res, *[(Embed2.from_dict(e.to_dict())
-                          .set_footer(text=f'From message {message.id}'))
+                          .set_author_url(message.jump_url)
+                          .set_footer(text=f'From message {message.id}, sent:')
+                          .set_timestamp(message.created_at))
                          for e in message.embeds]]
         if message.embeds and not message.content and not message.attachments:
             embeds = embeds[1:]
