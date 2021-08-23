@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 from typing import Literal, Optional
 
 from discord import Activity, ActivityType
@@ -29,8 +30,9 @@ from ts2.discord.ext.common import Choice
 class BotConfigCommands:
     bot: Robot
 
-    @Gear.listener('on_connect')
+    @Gear.listener('on_ready')
     async def resume_presence(self):
+        await asyncio.sleep(10)
         kind, kwargs = self.bot.get_cache((None, None), type=f'{__name__}.activity')
         if kind is None:
             return await self.set_presence('reset')
