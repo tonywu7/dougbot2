@@ -89,6 +89,7 @@ class MessageCommands:
         channel: Optional[TextChannel] = None,
         *, mentions: Optional[dict] = None,
         reply: Optional[Message] = None,
+        suppress_embeds: bool = False,
     ):
         if not content and not embed:
             return
@@ -112,6 +113,8 @@ class MessageCommands:
         try:
             msg = await channel.send(content, embed=embed_obj, reference=ref,
                                      allowed_mentions=allowed_mentions)
+            if suppress_embeds:
+                await msg.edit(suppress=True)
         except HTTPException as e:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
         url = a('Message created:', msg.jump_url)

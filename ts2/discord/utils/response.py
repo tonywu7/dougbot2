@@ -95,7 +95,10 @@ class ResponseInit:
     def autodelete(self, seconds: float):
         return attr.evolve(self, delete_after=seconds)
 
-    def suppress(self):
+    def suppress(self, suppress=True):
+        if not suppress:
+            return self
+
         async def callback(msg: Message):
             return await msg.edit(suppress=True)
         return self.callback(callback)
