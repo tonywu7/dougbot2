@@ -107,10 +107,13 @@ class ChannelFilter:
             self.target = ()
         self.member = member
 
-    def __contains__(self, channel: GuildChannel):
-        p = channel.permissions_for
-        return ((not self.target or isinstance(channel, self.target))
-                and (not self.member or p(self.member).view_channel))
+    def __contains__(self, channel: Optional[GuildChannel]):
+        if channel is None:
+            return True
+        if not self.target or isinstance(channel, self.target):
+            if not self.member or channel.permissions_for(self.member).view_channel:
+                return True
+        return False
 
 
 class PermFilter:
