@@ -84,6 +84,8 @@ class ContentGenerationCommands:
             reference = message.to_reference()
         else:
             reference = ctx.message.to_reference()
+        if reference.channel_id != ctx.channel.id:
+            reference = None
         await ctx.response(ctx, content=res, reference=reference).deleter().run()
         if not has_alpha:
             err = "There wasn't any letter to change"
