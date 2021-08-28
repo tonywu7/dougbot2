@@ -557,7 +557,7 @@ class Ticker(
         ticker = await self.get_ticker_or_404(ctx, channel)
         current_category = ctx.guild.get_channel(ticker.parent_id)
         category = self.get_category(category, current_category)
-        ticker.category_id = category and category.id
+        ticker.parent_id = category and category.id
         ticker.variables = self.get_variables(variables, ticker.variables)
         ticker.expire = self.get_expire(expire_at, expire_in, ctx.timestamp, ticker.expire)
         ticker.refresh = self.get_refresh(refresh, ticker.refresh)

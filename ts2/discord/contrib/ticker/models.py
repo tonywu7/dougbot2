@@ -20,11 +20,14 @@ from typing import Optional
 from django.db import models
 
 from ts2.discord.models import Channel
+from ts2.discord.utils.datetime import utcnow
 
 
 class TickerChannel(models.Model):
     content: str = models.TextField(blank=False)
     variables: dict = models.JSONField(blank=False, default=dict)
+
+    created: datetime = models.DateTimeField(default=utcnow)
     refresh: float = models.FloatField()
     expire: Optional[datetime] = models.DateTimeField(null=True)
 
