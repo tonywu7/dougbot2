@@ -252,7 +252,7 @@ class QuantifiedNPS(QuantifiedNP):
 
 
 def slugify(name: str, sep='-', *, limit=0) -> str:
-    t = re.sub(r'[\W_]+', sep, str(name).strip(sep).lower())
+    t = re.sub(r'[\W_]+', sep, str(name).strip(sep).lower()).strip(sep)
     if limit > 0:
         t = sep.join(t.split(sep)[:limit])
     return t
