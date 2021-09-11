@@ -23,7 +23,7 @@ from graphene_django.converter import convert_django_field
 from .. import forms
 from ..middleware import get_ctx
 from ..models import Channel, ChannelTypeEnum, PermissionField, Role, Server
-from ..thread import get_thread
+from ..updater import get_updater
 from ..utils.graphql import FormMutationMixin, HasContext, ModelMutation
 from ..utils.markdown import sized
 
@@ -68,7 +68,7 @@ class ServerType(DiscordObject, DjangoObjectType):
 
     @staticmethod
     def resolve_emotes(obj: Server, *args, **kwargs):
-        bot = get_thread().client
+        bot = get_updater().client
         guild = bot.get_guild(obj.snowflake)
         if not guild:
             return []

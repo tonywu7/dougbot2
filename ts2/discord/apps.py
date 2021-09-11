@@ -52,8 +52,8 @@ class DiscordBotConfig(AppConfig):
             return
 
         if getattr(settings, 'DISCORD_EAGER_CONNECT', False):
-            from .thread import get_thread
-            get_thread()
+            from .updater import get_updater
+            get_updater()
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
@@ -89,9 +89,9 @@ def get_constant(k: str, default=None):
 
 
 def get_commands(req: HttpRequest) -> list[str]:
-    from .thread import get_thread
+    from .updater import get_updater
     superuser = req.user.is_superuser
-    bot = get_thread().client
+    bot = get_updater().client
     return [*sorted(
         c.qualified_name for c
         in bot.walk_commands()

@@ -34,7 +34,7 @@ from django.views.generic import View
 from ts2.discord.fetch import (DiscordCache, DiscordFetch, app_auth_url,
                                bot_invite_url, create_session)
 from ts2.discord.models import Server
-from ts2.discord.thread import get_thread
+from ts2.discord.updater import get_updater
 from ts2.utils.jwt import validate_token
 
 from ...models import User, manage_permissions_required
@@ -157,7 +157,7 @@ def join(req: HttpRequest) -> HttpResponse:
 
 
 def cleanup_unauthorized_join(guild_id: str):
-    thread = get_thread()
+    thread = get_updater()
 
     async def leave(bot: Bot):
         try:

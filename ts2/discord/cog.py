@@ -36,7 +36,7 @@ class Gear(Cog, metaclass=GearMeta):
         super().__init__()
         self.bot: Robot = bot
         self.app_label = label
-        self.log = logging.getLogger(f'discord.logging.ext.{label}')
+        self.log = logging.getLogger(f'discord.ext.{label}')
 
 
 async def cog_enabled_check(ctx: Context) -> bool:

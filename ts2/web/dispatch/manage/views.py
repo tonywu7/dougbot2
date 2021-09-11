@@ -29,7 +29,7 @@ from ts2.discord.apps import get_extensions
 from ts2.discord.middleware import get_ctx, require_server_access
 from ts2.discord.models import Server
 from ts2.discord.schema.ext.logging import iter_logging_conf
-from ts2.discord.thread import get_thread
+from ts2.discord.updater import get_updater
 
 from ...models import User, manage_permissions_required
 
@@ -134,7 +134,7 @@ class DeleteServerProfileView(View):
                 await guild.leave()
             await delete_server()
 
-        thread = get_thread()
+        thread = get_updater()
         thread.run_coroutine(leave(thread.client))
 
         return redirect(reverse('web:manage.index', kwargs={'guild_id': guild_id}))

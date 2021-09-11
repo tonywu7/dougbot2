@@ -161,7 +161,7 @@ class DiscordContext:
     @classmethod
     async def create(cls, guilds: Iterable[PartialGuild], guild_id: Optional[str | int],
                      token: str, user: User, profile: PartialUser) -> DiscordContext:
-        from .thread import get_thread
+        from .updater import get_updater
 
         if guild_id:
             guild_id = int(guild_id)
@@ -174,7 +174,7 @@ class DiscordContext:
         servers: dict[int, Server] = await get_servers()
         roles: defaultdict[int, set[int]] = defaultdict(set)
 
-        bot = get_thread().client
+        bot = get_updater().client
         for k in servers:
             g: Guild = bot.get_guild(k)
             if not g:

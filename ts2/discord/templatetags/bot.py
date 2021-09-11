@@ -16,13 +16,13 @@
 
 from django.template import Library
 
-from ..thread import get_thread
+from ..updater import get_updater
 
 register = Library()
 
 
 @register.simple_tag(name='avatar')
 def avatar(format: str, size: int):
-    bot = get_thread().client
+    bot = get_updater().client
     avatar = bot.user.avatar_url_as(format=format, static_format=format, size=int(size))
     return str(avatar)

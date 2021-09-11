@@ -72,8 +72,8 @@ class ServerModelSyncForm(forms.ModelForm):
 
     def save(self, commit=True):
         from .server import sync_server_unsafe
-        from .thread import get_thread
-        thread = get_thread()
+        from .updater import get_updater
+        thread = get_updater()
 
         async def sync_models(bot: Bot):
             guild = bot.get_guild(self.instance.snowflake)

@@ -20,7 +20,7 @@ from discord.ext.commands import Bot
 from django import forms
 
 from ts2.discord.models import Server
-from ts2.discord.thread import get_thread
+from ts2.discord.updater import get_updater
 
 
 class UserCreationForm(forms.Form):
@@ -50,7 +50,7 @@ class ServerCreationForm(forms.ModelForm):
         from ts2.discord.server import sync_server_unsafe
 
         server: Server = super().save(*args, **kwargs)
-        thread = get_thread()
+        thread = get_updater()
 
         async def sync_models(bot: Bot):
             guild = bot.get_guild(server.snowflake)
