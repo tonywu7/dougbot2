@@ -92,7 +92,7 @@ class Museum(
         if message.embeds and not message.content and not message.attachments:
             embeds = embeds[1:]
         pages = EmbedPagination(embeds, None, False)
-        return (await ctx.response(ctx, embed=pages).reply()
+        return (await ctx.response(ctx, embed=pages)
                 .responder(pages.with_context(ctx)).deleter().run())
 
     @command('story')
