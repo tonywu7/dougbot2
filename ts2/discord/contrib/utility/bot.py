@@ -16,12 +16,13 @@
 
 from ts2.discord.cog import Gear
 
-from .bots import BotConfigCommands, MessageCommands, ServerQueryCommands
+from .bots import (BotConfigCommands, MessageCommands, QueryCommands,
+                   ServerQueryCommands)
 
 
 class Utilities(
     ServerQueryCommands, MessageCommands,
-    BotConfigCommands,
+    BotConfigCommands, QueryCommands,
     Gear, name='Utilities', order=50,
     description='',
 ):

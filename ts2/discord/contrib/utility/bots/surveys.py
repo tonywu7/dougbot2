@@ -14,30 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import colorsys
-import io
 from collections import defaultdict
-from datetime import datetime, timezone
 from itertools import chain
-from string import hexdigits
 from typing import Optional, Union
 
 import attr
-from discord import (CategoryChannel, File, Guild, Member, Message, Role,
-                     StageChannel, TextChannel, VoiceChannel)
+from discord import (CategoryChannel, Guild, Member, Role, StageChannel,
+                     TextChannel, VoiceChannel)
 from discord.abc import GuildChannel
 from discord.ext.commands import Greedy, command, has_guild_permissions
 from more_itertools import collapse, first, map_reduce
-from PIL import Image, ImageColor
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
-                                      Permissions2, a, chapterize,
+                                      Permissions2, chapterize,
                                       chapterize_fields, code, get_total_perms,
-                                      strong, tag, timestamp, traffic_light)
-from ts2.discord.utils.markdown import rgba2int
+                                      strong, tag, traffic_light)
 
 PERMISSIONS = {
     'General server permissions': [
@@ -78,11 +72,7 @@ PERM_HELP = EmbedPagination(PERM_HELP, 'Permissions', False)
 
 CHANNEL_TYPES = (TextChannel, VoiceChannel, StageChannel)
 
-HEX_DIGITS = set(hexdigits)
-
-
-def ishexdigit(s: str):
-    return all(c in HEX_DIGITS for c in s)
+AnyChannel = Union[TextChannel, VoiceChannel, StageChannel, CategoryChannel]
 
 
 def get_channel_map(guild: Guild) -> dict[Optional[CategoryChannel], list[GuildChannel]]:
@@ -200,7 +190,7 @@ class ServerQueryCommands:
 
     @command('perms')
     @doc.description('Survey role permissions.')
-    @doc.argument('permission', ('The permission to check.'))
+    @doc.argument('permission', 'The permission to check.')
     @doc.argument('roles', 'The role or member whose perms to check.')
     @doc.argument('channel', (
         'Check the perms in the context of this channel.'
@@ -236,10 +226,7 @@ class ServerQueryCommands:
         self, ctx: Circumstances,
         roles: Greedy[Union[Role, Member]],
         permission: Optional[PermissionName] = None,
-        channel: Optional[Union[
-            TextChannel, CategoryChannel,
-            VoiceChannel, StageChannel,
-        ]] = None,
+        channel: Optional[AnyChannel] = None,
     ):
         await ctx.trigger_typing()
         roles: list[Role] = [*collapse([
@@ -343,82 +330,3 @@ class ServerQueryCommands:
         for fieldset in chapterize_fields(fields, linebreak='newline'):
             pages.append(attr.evolve(base_embed, fields=fieldset))
         return pages
-
-    @command('snowflake', aliases=('mtime',))
-    @doc.description('Get the timestamp of a Discord snowflake (ID).')
-    @doc.argument('snowflake', 'The snowflake to convert.')
-    async def snowflake(
-        self, ctx: Circumstances, snowflake: Union[
-            int, Member, Role, Message, TextChannel,
-            VoiceChannel, StageChannel,
-        ],
-    ):
-        if not isinstance(snowflake, int):
-            try:
-                snowflake = snowflake.id
-            except AttributeError:
-                raise doc.NotAcceptable('Invalid argument.')
-        epoch = 1420070400000 + (snowflake >> 22)
-        try:
-            dt = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc)
-        except ValueError:
-            raise doc.NotAcceptable((
-                'Timestamp out of range.'
-                ' Make sure the argument provided is'
-                ' indeed a Discord snowflake.'
-            ))
-        reps = [
-            code(snowflake),
-            code(epoch),
-            code(dt.isoformat()),
-            strong(timestamp(dt, 'full')),
-            timestamp(dt, 'relative'),
-        ]
-        res = Embed2(title='Snowflake', description='\n'.join(reps))
-        return await ctx.response(ctx, embed=res).reply().run()
-
-    @command('color')
-    @doc.description('Preview a color.')
-    @doc.argument('color', (
-        a('CSS color accepted by PIL,',
-          'https://pillow.readthedocs.io/en/stable/reference/ImageColor.html#color-names')
-        + ' such as a hex code.'
-    ))
-    async def color(self, ctx: Circumstances, *, color: str):
-        if color[0] != '#' and ishexdigit(color):
-            color = f'#{color}'
-        try:
-            r, g, b, *a = ImageColor.getrgb(color)
-        except ValueError as e:
-            raise doc.NotAcceptable(str(e))
-        img = Image.new('RGBA', (32, 32), (r, g, b, *a))
-        data = io.BytesIO()
-        img.save(data, 'png')
-        data.seek(0)
-        f = File(data, 'color.png')
-        a = a[0] if a else 255
-        h, ll, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-        hexcode = f'#{rgba2int(r, g, b, a):08x}'
-        h = 360 * h
-        a = a / 255
-        fmts = [
-            strong(code(hexcode)),
-            f'rgba({r}, {g}, {b}, {a:.2f})',
-            f'hsla({h:.1f}deg, {s:.1%}, {ll:.1%}, {a:.1f})',
-        ]
-        res = Embed2(description='\n'.join(fmts), color=rgba2int(r, g, b))
-        return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()
-
-    @command('avatar', aliases=('pfp',))
-    @doc.description("Get a user's avatar (profile pic).")
-    @doc.argument('member', 'The user whose avatar to get.')
-    @doc.invocation((), 'Get your profile pic.')
-    @doc.invocation(('member',), "Get someone else's profile pic.")
-    async def avatar(self, ctx: Circumstances, member: Optional[Member]):
-        if not member:
-            member = ctx.author
-        url = member.avatar_url_as()
-        res = (Embed2(title='Avatar').personalized(member)
-               .set_thumbnail(url=url)
-               .set_description(code(url)))
-        return await ctx.response(ctx, embed=res).deleter().run()
