@@ -33,7 +33,7 @@ from pendulum import DateTime, instance
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
-from ts2.discord.ext.common import Choice, doc
+from ts2.discord.ext.common import Constant, doc
 from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
@@ -41,7 +41,7 @@ from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
 
 from .models import StoryTask
 
-RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)')
+RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)(?!\w)')
 
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
 
@@ -97,27 +97,26 @@ class Museum(
 
     @command('story')
     @doc.description('Join multiple messages into a story.')
-    @doc.argument('begin_or_end', node='begin/end')
-    @doc.accepts_reply('Use the replied-to message as the start/end of the story.')
+    @doc.accepts_reply('Use the replied-to message as the beginning of the story.')
     @doc.use_syntax_whitelist
-    @doc.invocation(('reply', 'begin_or_end'), (
-        'Mark the replied-to message as the start/end of the story.'
+    @doc.invocation(('message',), (
+        'Mark the message (passed as a URL or ID) as the beginning of the story.'
     ))
-    @doc.invocation(('begin_or_end', 'message'), (
-        'Set the passed message as the start/end of the story.'
-        ' The message must be in the current channel.'
+    @doc.invocation(('reply',), (
+        'Mark the replied-to message as the beginning of the story.'
     ))
+    @doc.invocation(('message', 'cancel'), 'Remove a previously set marker.')
     @doc.concurrent(1, BucketType.channel)
     async def story(
         self, ctx: Circumstances,
-        begin_or_end: Choice[Literal['begin', 'end', 'start', 'stop'], Literal['option']],
         message: Optional[Message],
+        cancel: Optional[Constant[Literal['cancel']]],
         *, reply: Optional[MessageReference],
     ):
         if message is None and reply is None:
             raise NotAcceptable(
                 'You need to specify the message where the story'
-                f' will {begin_or_end} by either passing its URL or message ID'
+                ' will begin by either passing its URL or message ID'
                 ' or replying to it.\nIf you did specify it, the bot may not'
                 ' have access to that message.',
             )
@@ -130,29 +129,21 @@ class Museum(
             raise NotAcceptable(f'Message {message.id} is not from this channel. '
                                 f'It is from {tag(message.channel)}')
 
-        if begin_or_end == 'start':
-            begin_or_end = 'begin'
-        elif begin_or_end == 'stop':
-            begin_or_end = 'end'
-
-        SETUP_MSG = ('Story requested by %(author)s\n'
-                     'Setting the %(side)s of the story '
-                     'to %(msg_url)s in %(channel)s')
-        REPLACE_MSG = (f'{SETUP_MSG}, ''replacing previously set marker '
-                       'in %(set_channel)s')
-
-        def as_noun(begin_or_end: str) -> str:
-            return strong('beginning' if begin_or_end == 'begin' else 'end')
+        SETUP_MSG = ('Story requested by %(author)s'
+                     '\nSetting the %(side)s of the story'
+                     ' to %(msg_url)s in %(channel)s')
+        DELETE_MSG = ('Story marker %(msg_url)s in %(channel)s'
+                      ' removed (set by %(author)s)')
 
         msg_url = a('this message', href=message.jump_url)
         msg_id = message.id
         channel_id = ctx.channel.id
         channel = tag(ctx.channel)
 
-        task, created = await self.story_fetch_task(ctx.author.id, begin_or_end, msg_id, channel_id)
+        task, created = await self.story_fetch_task(ctx.author.id, msg_id, channel_id)
         task: StoryTask
 
-        reply_ctx = {'author': tag(ctx.author), 'side': as_noun(begin_or_end),
+        reply_ctx = {'author': tag(ctx.author), 'side': 'beginning',
                      'msg_url': msg_url, 'channel': channel}
 
         if created:
@@ -162,16 +153,16 @@ class Museum(
 
         set_channel = tag_literal('channel', task.channel)
 
-        if task.marked_as == begin_or_end:
-            reply = REPLACE_MSG % {**reply_ctx, 'set_channel': set_channel}
-            await self.story_set_task(task, msg_id, channel_id)
-            embed = Embed2(title='New story', description=reply)
+        if cancel:
+            reply = DELETE_MSG % reply_ctx
+            await self.story_del_task(task)
+            embed = Embed2(title='Reset story', description=reply)
             return await ctx.response(ctx, embed=embed).deleter().run()
 
         if task.channel != channel_id:
-            reply = ('The beginning and ending messages are not in the same channel:\n'
-                     f'The {as_noun(begin_or_end)} is set in {channel}.\n'
-                     f'The {as_noun(task.marked_as)} is set in {set_channel}.')
+            reply = ('The beginning and ending messages are not in the same channel:'
+                     f'\nThe beginning is set in {set_channel}'
+                     f'\nbut the end is set in {channel}.')
             raise NotAcceptable(reply)
 
         target_channel = ctx.guild.get_channel(task.channel)
@@ -185,9 +176,11 @@ class Museum(
             await self.story_del_task(task)
 
     @sync_to_async
-    def story_fetch_task(self, user_id: int, marked_as: str, msg_id: int, channel_id: int) -> StoryTask:
-        return StoryTask.objects.get_or_create(defaults={'marked_as': marked_as, 'message': msg_id,
-                                                         'channel': channel_id}, user=user_id)
+    def story_fetch_task(self, user_id: int, msg_id: int, channel_id: int) -> StoryTask:
+        return StoryTask.objects.get_or_create(defaults={
+            'message': msg_id,
+            'channel': channel_id,
+        }, user=user_id)
 
     @sync_to_async
     def story_set_task(self, task: StoryTask, msg_id: int, channel_id: int) -> StoryTask:
@@ -293,14 +286,15 @@ class StoryCollector:
         stat = (
             Embed2(title='📊 Statistics', description=description)
             .set_timestamp()
-            .add_field(name='Word count', value=len(tokens), inline=True)
-            .add_field(name='Character count', value=len(self.story), inline=True)
-            .set_author(name=self.ctx.me.display_name, icon_url=self.ctx.me.avatar_url)
+            .add_field(name='Messages', value=len(self.messages))
+            .add_field(name='Words', value=len(tokens))
+            .add_field(name='Characters', value=len(self.story))
             .set_footer(text='Story collector')
+            .decorated(self.ctx.guild)
         )
         for contrib in chapterize(contributors, 960):
-            stat = stat.add_field(name='Contributors', value=contrib)
-        stat = stat.add_field(name='Top 5 contributors by messages', value=top_5_authors_msgs)
+            stat = stat.add_field(name='Contributors', value=contrib, inline=False)
+        stat = stat.add_field(name='Top 5 contributors by messages', value=top_5_authors_msgs, inline=False)
         if most_common_words:
-            stat = stat.add_field(name='Most frequent terms', value=most_common_words)
+            stat = stat.add_field(name='Most frequent terms', value=most_common_words, inline=False)
         return stat

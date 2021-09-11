@@ -19,6 +19,5 @@ from django.db import models
 
 class StoryTask(models.Model):
     user: int = models.IntegerField(primary_key=True)
-    marked_as: str = models.CharField(choices=models.TextChoices('begin', 'end').choices, max_length=120)
     message: str = models.IntegerField()
     channel: int = models.IntegerField()
