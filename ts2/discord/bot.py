@@ -50,6 +50,23 @@ from .utils.markdown import code, em, strong
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
 
 
+@explains(CommandNotFound, 'Command not found', 100)
+async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
+    if is_direct_message(ctx):
+        return False
+    cmd = ctx.searched_path or ctx.full_invoked_with
+    try:
+        ctx.bot.manual.lookup(cmd)
+        return False
+    except Exception as e:
+        return str(e), 20
+
+
+@explains(cog.ModuleDisabled, 'Command disabled')
+async def on_disabled(ctx, exc: cog.ModuleDisabled):
+    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+
+
 class RollbackCommand(Exception):
     pass
 
@@ -58,7 +75,8 @@ class Robot(Bot):
 
     DEFAULT_PREFIX = 't;'
     DEFAULT_PERMS = Permissions(261959446262)
-    DEFAULT_MENTIONS = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
+    DEFAULT_MENTIONS = AllowedMentions(everyone=False, roles=False,
+                                       users=True, replied_user=False)
 
     _CACHE_VERSION = 1
 
@@ -76,11 +94,17 @@ class Robot(Bot):
         self.request: aiohttp.ClientSession
         self._cache = caches['discord']
 
-        add_event_listeners(self)
+        add_base_listeners(self)
+        add_reply_listener(self)
+
         add_base_commands(self)
-        load_extensions(self)
-        create_manual(self)
+        add_ping_command(self)
+        add_status_command(self)
+
+        self.load_extensions()
+        self.create_manual()
         define_errors()
+
         self.gatekeeper = gatekeeper.Gatekeeper()
 
     async def _init_client_session(self):
@@ -177,18 +201,6 @@ class Robot(Bot):
             return await log_command_error(ctx, ctx.logconfig, exc)
         await log_command_error(ctx, ctx.logconfig, exc)
 
-    @staticmethod
-    @dm.accepts_dms
-    @doc.description('Get help about commands.')
-    @doc.argument('query', 'A command name, such as "echo" or "prefix set".')
-    @doc.invocation((), 'See all commands.')
-    @doc.invocation(('query',), 'See help for a command.')
-    async def send_help(ctx: Circumstances, *, query: str = ''):
-        return await ctx.bot.manual.do_help(ctx, query)
-
-    def command_is_hidden(self, cmd):
-        return self.manual.commands[cmd.qualified_name].invisible
-
     def get_cache_key(self, **keys):
         args = [f'{k}={v}' for k, v in keys.items()]
         return ':'.join([__name__, 'cache', *args])
@@ -204,25 +216,25 @@ class Robot(Bot):
         key = self.get_cache_key(**keys)
         self._cache.delete(key, version=self._CACHE_VERSION)
 
-    async def set_presence(self, kind: str, **kwargs):
-        if kind == 'reset':
-            await self.change_presence(activity=None)
-            self.del_cache(type=f'{__name__}.activity')
-            return
-        try:
-            presence_t = getattr(ActivityType, kind)
-        except AttributeError:
-            return
-        activity = Activity(type=presence_t, **kwargs)
-        self.set_cache((kind, kwargs), None, type=f'{__name__}.activity')
-        await self.change_presence(activity=activity)
-
     async def set_exit_status(self):
         await self.change_presence(activity=Game('System Restart. Please hold.'))
         self.log.info('Exit indicator is set!')
 
+    def load_extensions(self):
+        app = get_app()
+        for label, ext in app.ext_map.items():
+            cog_cls = ext.target
+            self.add_cog(cog_cls(label, self))
 
-def add_event_listeners(self: Robot):
+    def create_manual(self):
+        title = f'{get_constant("branding_full")}: Command list'
+        color = get_constant('site_color')
+        if color:
+            color = int(color, 16)
+        doc.init_bot(self, title, color)
+
+
+def add_base_listeners(self: Robot):
     @self.check_once
     async def command_global_check(ctx: Circumstances) -> bool:
         for check in asyncio.as_completed([
@@ -250,28 +262,6 @@ def add_event_listeners(self: Robot):
             prefix = await self.get_server_prefix(msg.guild.id)
             example = f'{prefix}echo'
             return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')
-
-    @self.listen('on_message')
-    async def on_bot_reply(msg: Message):
-        if msg.author != self.user:
-            return
-        ref: MessageReference = msg.reference
-        if not ref or not ref.cached_message:
-            return
-        referrer: Message = ref.cached_message
-        self.set_cache(msg.id, 31536000, referrer=referrer.id)
-
-    @self.listen('on_raw_message_delete')
-    async def on_command_call_delete(ev: RawMessageDeleteEvent):
-        channel = self.get_channel(ev.channel_id)
-        if not channel:
-            return
-        referred = self.get_cache(None, referrer=ev.message_id)
-        if referred is None:
-            return
-        self.del_cache(referrer=ev.message_id)
-        msg = channel.get_partial_message(referred)
-        await msg.delete(delay=0)
 
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
@@ -308,17 +298,40 @@ def add_event_listeners(self: Robot):
             return await guild.leave()
         await sync_server(guild)
 
-    @self.listen('on_ready')
-    async def resume_presence():
-        await asyncio.sleep(10)
-        kind, kwargs = self.get_cache((None, None), type=f'{__name__}.activity')
-        if kind is None:
-            return await self.set_presence('reset')
-        await self.set_presence(kind, **kwargs)
+
+def add_reply_listener(self: Robot):
+    @self.listen('on_message')
+    async def on_bot_reply(msg: Message):
+        if msg.author != self.user:
+            return
+        ref: MessageReference = msg.reference
+        if not ref or not ref.cached_message:
+            return
+        referrer: Message = ref.cached_message
+        self.set_cache(msg.id, 31536000, referrer=referrer.id)
+
+    @self.listen('on_raw_message_delete')
+    async def on_command_call_delete(ev: RawMessageDeleteEvent):
+        channel = self.get_channel(ev.channel_id)
+        if not channel:
+            return
+        referred = self.get_cache(None, referrer=ev.message_id)
+        if referred is None:
+            return
+        self.del_cache(referrer=ev.message_id)
+        msg = channel.get_partial_message(referred)
+        await msg.delete(delay=0)
 
 
 def add_base_commands(self: Robot):
-    self.command('help')(self.send_help)
+    @self.command('help')
+    @dm.accepts_dms
+    @doc.description('Get help about commands.')
+    @doc.argument('query', 'A command name, such as "echo" or "prefix set".')
+    @doc.invocation((), 'See all commands.')
+    @doc.invocation(('query',), 'See help for a command.')
+    async def send_help(ctx: Circumstances, *, query: str = ''):
+        return await ctx.bot.manual.do_help(ctx, query)
 
     @self.command('about')
     @doc.description('Print info about the bot.')
@@ -333,22 +346,6 @@ def add_base_commands(self: Robot):
             .personalized(ctx.me)
         )
         return await ctx.send(embed=embed)
-
-    @self.command('status')
-    @doc.description("Change the bot's status.")
-    @doc.argument('activity', 'The type of activity.')
-    @doc.argument('name', 'The description of the status.')
-    @doc.restriction(is_owner)
-    @doc.hidden
-    async def status(
-        ctx: Circumstances,
-        activity: Choice[Literal['playing', 'watching', 'listening', 'streaming', 'reset']],
-        *, name: str = '', url: Optional[str] = None,
-    ):
-        if activity != 'reset' and not name:
-            raise doc.NotAcceptable('Activity name cannot be empty.')
-        await self.set_presence(activity, name=name, url=url)
-        return await ctx.response(ctx).success().run()
 
     @self.command('echo')
     @dm.accepts_dms
@@ -369,6 +366,21 @@ def add_base_commands(self: Robot):
         example = f'Example: {strong(f"{prefix}help")}'
         await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
 
+    @get_prefix.command('set')
+    @doc.description('Set a new prefix for this server.')
+    @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
+    @doc.example('?', f'Set the command prefix to {code("?")}')
+    @doc.restriction(has_guild_permissions, manage_guild=True)
+    async def set_prefix(ctx: Circumstances, prefix: str):
+        try:
+            await ctx.set_prefix(prefix)
+            await get_prefix(ctx)
+        except ValueError as e:
+            await ctx.send(f'{strong("Error:")} {e}')
+            raise
+
+
+def add_ping_command(self: Robot):
     @self.command('ping')
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances):
@@ -395,52 +407,47 @@ def add_base_commands(self: Robot):
         await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
         edit_latency = (utcnow() - edit_start).total_seconds() * 1000
 
-        await msg.edit(content=f'Gateway: {code(f"{gateway_latency:.3f}ms")}\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}')
+        await msg.edit(content=(f'Gateway: {code(f"{gateway_latency:.3f}ms")}'
+                                f'\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}'))
 
-    @get_prefix.command('set')
-    @doc.description('Set a new prefix for this server.')
-    @doc.argument('prefix', 'The new prefix to use. Spaces will be trimmed.')
-    @doc.example('?', f'Set the command prefix to {code("?")}')
-    @doc.restriction(has_guild_permissions, manage_guild=True)
-    async def set_prefix(ctx: Circumstances, prefix: str):
+
+def add_status_command(self: Robot):
+    async def set_presence(kind: str, **kwargs):
+        if kind == 'reset':
+            await self.change_presence(activity=None)
+            self.del_cache(type=f'{__name__}.activity')
+            return
         try:
-            await ctx.set_prefix(prefix)
-            await get_prefix(ctx)
-        except ValueError as e:
-            await ctx.send(f'{strong("Error:")} {e}')
-            raise
+            presence_t = getattr(ActivityType, kind)
+        except AttributeError:
+            return
+        activity = Activity(type=presence_t, **kwargs)
+        self.set_cache((kind, kwargs), None, type=f'{__name__}.activity')
+        await self.change_presence(activity=activity)
 
+    @self.listen('on_ready')
+    async def resume_presence():
+        await asyncio.sleep(10)
+        kind, kwargs = self.get_cache((None, None), type=f'{__name__}.activity')
+        if kind is None:
+            return await set_presence('reset')
+        await set_presence(kind, **kwargs)
 
-def load_extensions(self: Robot, *args, **kwargs):
-    app = get_app()
-    for label, ext in app.ext_map.items():
-        cog_cls = ext.target
-        self.add_cog(cog_cls(label, self))
-
-
-def create_manual(self: Robot):
-    title = f'{get_constant("branding_full")}: Command list'
-    color = get_constant('site_color')
-    if color:
-        color = int(color, 16)
-    doc.init_bot(self, title, color)
-
-
-@explains(CommandNotFound, 'Command not found', 100)
-async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
-    if is_direct_message(ctx):
-        return False
-    cmd = ctx.searched_path or ctx.full_invoked_with
-    try:
-        ctx.bot.manual.lookup(cmd)
-        return False
-    except Exception as e:
-        return str(e), 20
-
-
-@explains(cog.ModuleDisabled, 'Command disabled')
-async def on_disabled(ctx, exc: cog.ModuleDisabled):
-    return f'This command belongs to the {exc.module} module, which has been disabled.', 20
+    @self.command('status')
+    @doc.description("Change the bot's status.")
+    @doc.argument('activity', 'The type of activity.')
+    @doc.argument('name', 'The description of the status.')
+    @doc.restriction(is_owner)
+    @doc.hidden
+    async def status(
+        ctx: Circumstances,
+        activity: Choice[Literal['playing', 'watching', 'listening', 'streaming', 'reset']],
+        *, name: str = '', url: Optional[str] = None,
+    ):
+        if activity != 'reset' and not name:
+            raise doc.NotAcceptable('Activity name cannot be empty.')
+        await set_presence(activity, name=name, url=url)
+        return await ctx.response(ctx).success().run()
 
 
 def define_errors():

@@ -200,6 +200,9 @@ class Manual:
          .responder(rich_help.with_context(ctx))
          .deleter().run())
 
+    def is_hidden(self, cmd: Command):
+        return self.commands[cmd.qualified_name].invisible
+
 
 def set_manual_getter(getter: Callable[[Context], Manual]):
     global get_manual

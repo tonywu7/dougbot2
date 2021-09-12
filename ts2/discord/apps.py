@@ -95,7 +95,7 @@ def get_commands(req: HttpRequest) -> list[str]:
     return [*sorted(
         c.qualified_name for c
         in bot.walk_commands()
-        if not bot.command_is_hidden(c) or superuser
+        if not bot.manual.is_hidden(c) or superuser
     )]
 
 
