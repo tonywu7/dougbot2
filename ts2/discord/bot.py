@@ -17,15 +17,16 @@
 import asyncio
 import logging
 from contextlib import suppress
-from typing import Optional, TypeVar
+from typing import Literal, Optional, TypeVar
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Client, Forbidden, Game, Guild, Intents,
-                     Message, MessageReference, NotFound, Permissions,
+from discord import (Activity, ActivityType, AllowedMentions, Client,
+                     Forbidden, Game, Guild, Intents, Message,
+                     MessageReference, NotFound, Permissions,
                      RawMessageDeleteEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
-                                  errors, has_guild_permissions)
+                                  errors, has_guild_permissions, is_owner)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.core.cache import caches
@@ -39,6 +40,7 @@ from .ext import dm
 from .ext.acl import acl
 from .ext.autodoc import Manual, add_error_names, explain_exception, explains
 from .ext.logging import log_command_error, log_exception
+from .ext.types.patterns import Choice
 from .models import Server
 from .server import sync_server
 from .utils.async_ import async_atomic
@@ -60,11 +62,12 @@ class Robot(Bot):
 
     DEFAULT_PREFIX = 't;'
     DEFAULT_PERMS = Permissions(261959446262)
+    DEFAULT_MENTIONS = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
 
     _CACHE_VERSION = 1
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        options['allowed_mentions'] = AllowedMentions(everyone=False, roles=False, users=True, replied_user=False)
+        options['allowed_mentions'] = self.DEFAULT_MENTIONS
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
         options.setdefault('intents', Intents.all())
@@ -75,14 +78,14 @@ class Robot(Bot):
         self.log = logging.getLogger('discord.bot')
         self.manual: Manual
         self.request: aiohttp.ClientSession
+        self._cache = caches['discord']
 
         add_event_listeners(self)
-        register_base_commands(self)
+        add_base_commands(self)
         load_extensions(self)
         create_manual(self)
         define_errors()
         self.gatekeeper = gatekeeper.Gatekeeper()
-        self._cache = caches['discord']
 
     async def _init_client_session(self):
         if hasattr(self, 'request'):
@@ -202,6 +205,19 @@ class Robot(Bot):
         key = self.get_cache_key(**keys)
         self._cache.delete(key, version=self._CACHE_VERSION)
 
+    async def set_presence(self, kind: str, **kwargs):
+        if kind == 'reset':
+            await self.change_presence(activity=None)
+            self.del_cache(type=f'{__name__}.activity')
+            return
+        try:
+            presence_t = getattr(ActivityType, kind)
+        except AttributeError:
+            return
+        activity = Activity(type=presence_t, **kwargs)
+        self.set_cache((kind, kwargs), None, type=f'{__name__}.activity')
+        await self.change_presence(activity=activity)
+
     async def set_exit_status(self):
         await self.change_presence(activity=Game('System Restart. Please hold.'))
         self.log.info('Exit indicator is set!')
@@ -294,8 +310,16 @@ def add_event_listeners(self: Robot):
             return await guild.leave()
         await sync_server(guild)
 
+    @self.listen('on_ready')
+    async def resume_presence():
+        await asyncio.sleep(10)
+        kind, kwargs = self.get_cache((None, None), type=f'{__name__}.activity')
+        if kind is None:
+            return await self.set_presence('reset')
+        await self.set_presence(kind, **kwargs)
 
-def register_base_commands(self: Robot):
+
+def add_base_commands(self: Robot):
     self.command('help')(self.send_help)
 
     @self.command('about')
@@ -312,6 +336,22 @@ def register_base_commands(self: Robot):
         )
         return await ctx.send(embed=embed)
 
+    @self.command('status')
+    @doc.description("Change the bot's status.")
+    @doc.argument('activity', 'The type of activity.')
+    @doc.argument('name', 'The description of the status.')
+    @doc.restriction(is_owner)
+    @doc.hidden
+    async def status(
+        ctx: Circumstances,
+        activity: Choice[Literal['playing', 'watching', 'listening', 'streaming', 'reset']],
+        *, name: str = '', url: Optional[str] = None,
+    ):
+        if activity != 'reset' and not name:
+            raise doc.NotAcceptable('Activity name cannot be empty.')
+        await self.set_presence(activity, name=name, url=url)
+        return await ctx.response(ctx).success().run()
+
     @self.command('echo')
     @dm.accepts_dms
     @doc.description('Send the command arguments back.')
@@ -323,11 +363,6 @@ def register_base_commands(self: Robot):
         else:
             await ctx.reply(text)
 
-    @self.command('ping')
-    @doc.description('Test the network latency between the bot and Discord.')
-    async def ping(ctx: Circumstances):
-        await ctx.send(f':PONG {utctimestamp()}')
-
     @self.group('prefix', invoke_without_command=True)
     @doc.description('Get the command prefix for the bot in this server.')
     @doc.invocation((), 'Print the prefix.')
@@ -335,6 +370,11 @@ def register_base_commands(self: Robot):
         prefix = escape_markdown(ctx.server.prefix)
         example = f'Example: {strong(f"{prefix}help")}'
         await ctx.send(f'Prefix is {strong(prefix)}\n{example}')
+
+    @self.command('ping')
+    @doc.description('Test the network latency between the bot and Discord.')
+    async def ping(ctx: Circumstances):
+        await ctx.send(f':PONG {utctimestamp()}')
 
     @self.listen('on_message')
     async def on_ping(msg: Message):
@@ -513,5 +553,4 @@ def define_errors():
         'Oh no!',
         'Oopsie!',
         'Aw, snap!',
-        "That's not supposed to happen...",
     )

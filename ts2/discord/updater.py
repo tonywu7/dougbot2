@@ -27,14 +27,18 @@ updater_thread: BotRunner[Robot] = None
 
 def get_updater():
     global updater_thread
+
     if updater_thread is None:
         if no_credentials():
             raise ValueError('Discord credentials are missing.')
+
         config = {
             'intents': Intents(guilds=True, members=True),
         }
         updater_thread = BotRunner(Robot, config, listen=True, daemon=True)
         updater_thread.start()
+
     with updater_thread.connect:
         updater_thread.connect.wait_for(updater_thread.connected)
+
     return updater_thread
