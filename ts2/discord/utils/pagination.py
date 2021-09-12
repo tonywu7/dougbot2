@@ -17,13 +17,13 @@
 import enum
 import re
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
-from typing import Generic, Literal, Optional, TypeVar, Union
+from typing import Generic, Optional, TypeVar, Union
 
 import attr
 from discord import (Client, Embed, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
-from more_itertools import peekable, split_before
+from more_itertools import peekable, split_at, split_before
 
 from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
@@ -168,15 +168,8 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
     return split_before(items, splitter)
 
 
-def chapterize_fields(
-    fields: Iterable[EmbedField],
-    pagesize: int = 720,
-    linebreak: Literal[
-        'exact',
-        'whitespace',
-        'newline',
-    ] = 'newline',
-) -> Iterator[list[EmbedField]]:
+def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
+                      linebreak=lambda c: c == '\n') -> Iterator[list[EmbedField]]:
     if sum(len(f) for f in fields) < pagesize:
         yield [*fields]
         return
@@ -190,11 +183,8 @@ def chapterize_fields(
             yield page
             page = []
         if next_len > pagesize:
-            head, *tails = [*chapterize(
-                next_field.value, pagesize,
-                linebreak=linebreak, leeway=pagesize,
-                maxsplit=1, closing='', opening='',
-            )]
+            head, *tails = [*chapterize(next_field.value, pagesize,
+                                        pred=linebreak, maxsplit=1)]
             next(fields)
             page.append(attr.evolve(next_field, value=head))
             fields.prepend(*[attr.evolve(next_field, value=v) for v in tails])
@@ -204,53 +194,41 @@ def chapterize_fields(
         yield page
 
 
-def chapterize(
-    text: str, length: int = 1920, leeway=32,
-    closing='', opening='',
-    linebreak: Literal[
-        'exact',
-        'whitespace',
-        'newline',
-    ] = 'whitespace',
-    maxsplit: int = float('inf'),
-) -> Iterator[str]:
-    if len(text) < length:
+def chapterize(text: str, maxlen: int, pred: Callable[[str], bool] = str.isspace,
+               *, hyphen='-', maxsplit=float('inf')) -> Iterable[str]:
+    if maxsplit < 1:
         yield text
         return
-    split = 0
+    items = peekable(split_at(text, pred, -1, True))
+    buffer = []
+    length = 0
+    splits = 0
+    processed = 0
     while True:
-        cutoff = text[length:length + 1]
-        if not cutoff:
-            yield text
+        if splits == maxsplit:
+            yield text[processed:]
             return
-        if linebreak == 'exact':
-            yield text[0:length] + closing
-            text = opening + text[length + 1:]
-            continue
-        if linebreak == 'newline':
-            def check(s: str):
-                return s == '\n'
-        elif linebreak == 'whitespace':
-            check = str.isspace
-        for i in range(length - 1, length - leeway - 1, -1):
-            if check(text[i:i + 1]):
-                break
-        else:
-            before = text[0:length - leeway] + closing
-            if before:
-                yield before
-            text = opening + text[length - leeway:]
-            split += 1
-            if split > maxsplit:
-                yield text
-                return
-            continue
-        before = yield text[0:i] + closing
-        if before:
-            yield before
-        text = opening + text[i + 1:]
-        if split > maxsplit:
-            yield text
+        try:
+            if len(items.peek()) + length > maxlen:
+                splits += 1
+                if buffer:
+                    yield ''.join(buffer)
+                    buffer = []
+                    processed += length
+                    length = 0
+                else:
+                    oversized = ''.join(next(items))
+                    pos = maxlen - len(hyphen)
+                    yield oversized[:pos] + hyphen
+                    processed += pos
+                    items.prepend(oversized[pos:])
+            else:
+                word = ''.join(next(items))
+                buffer.append(word)
+                length += len(word)
+        except StopIteration:
+            if buffer:
+                yield ''.join(buffer)
             return
 
 

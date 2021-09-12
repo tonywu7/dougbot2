@@ -142,7 +142,7 @@ class ServerQueryCommands:
             fields.append(EmbedField(name=name, value='\n'.join(lines), inline=True))
         pages: list[Embed2] = []
         base_embed = Embed2(title='Channels').decorated(ctx.guild)
-        for fieldset in chapterize_fields(fields, linebreak='newline'):
+        for fieldset in chapterize_fields(fields):
             pages.append(attr.evolve(base_embed, fields=fieldset))
         pagination = EmbedPagination(pages, 'Channels', False)
         return (await ctx.response(ctx, embed=pagination)
@@ -180,8 +180,7 @@ class ServerQueryCommands:
 
         lines = [getline(r) for r in roles]
         body = '\n'.join(lines)
-        sections = chapterize(body, 720, 720, closing='', opening='',
-                              linebreak='newline')
+        sections = chapterize(body, 720, lambda c: c == '\n')
         pages = [Embed2(description=c).decorated(ctx.guild) for c in sections]
         pagination = EmbedPagination(pages, 'Roles', False)
         return (await ctx.response(ctx, embed=pagination)
@@ -327,6 +326,6 @@ class ServerQueryCommands:
                   for k, v in content.items()]
         pages: list[Embed2] = []
         base_embed = Embed2(description=description)
-        for fieldset in chapterize_fields(fields, linebreak='newline'):
+        for fieldset in chapterize_fields(fields):
             pages.append(attr.evolve(base_embed, fields=fieldset))
         return pages

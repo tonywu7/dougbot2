@@ -115,7 +115,7 @@ class Poll(
             ' copy the link, then:'
             f'{pre("suggest edit (paste link here) (updated suggestion)")}'
         )
-        channel_lists = chapterize(channel_list, 1280, linebreak='newline')
+        channel_lists = chapterize(channel_list, 1280, lambda c: c == '\n')
         channel_lists = [f'{strong("Channels")}\n{channels}'
                          for channels in channel_lists]
         base = Embed2().decorated(ctx.guild)

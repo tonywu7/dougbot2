@@ -240,7 +240,7 @@ class StoryCollector:
         if not story or story.isspace():
             return await self._warn('Gathered no text from all messages!')
 
-        for chapter in chapterize(self.gen_story(), closing='...', opening='(continued) '):
+        for chapter in chapterize(self.gen_story(), 1920):
             await (self.ctx.response(self.ctx, content=chapter)
                    .mentions(None).reply(True).suppress().run())
         await self.ctx.response(self.ctx, embed=self.gen_stats()).reply(notify=True).run()

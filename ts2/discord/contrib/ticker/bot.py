@@ -338,7 +338,7 @@ class Ticker(
             ticker_list = '(none)'
         embed = Embed2().decorated(ctx.guild)
         ticker_page = [embed.set_description(d) for d
-                       in chapterize(ticker_list, 480)]
+                       in chapterize(ticker_list, 480, lambda c: c == '\n')]
         pagination = EmbedPagination(ticker_page, 'News ticker channels')
         return (
             await ctx.response(ctx, embed=pagination)
