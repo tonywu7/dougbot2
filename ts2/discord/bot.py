@@ -74,7 +74,7 @@ class RollbackCommand(Exception):
 class Robot(Bot):
 
     DEFAULT_PREFIX = 't;'
-    DEFAULT_PERMS = Permissions(261959446262)
+    DEFAULT_PERMS = Permissions(534689869558)
     DEFAULT_MENTIONS = AllowedMentions(everyone=False, roles=False,
                                        users=True, replied_user=False)
 
