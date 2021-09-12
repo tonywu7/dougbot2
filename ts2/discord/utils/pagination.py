@@ -23,7 +23,7 @@ import attr
 from discord import (Client, Embed, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
-from more_itertools import peekable, split_at, split_before
+from more_itertools import peekable, split_before
 
 from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
@@ -194,42 +194,33 @@ def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
         yield page
 
 
+# From ddarknut. Blessed.
 def chapterize(text: str, maxlen: int, pred: Callable[[str], bool] = str.isspace,
                *, hyphen='-', maxsplit=float('inf')) -> Iterable[str]:
-    if maxsplit < 1:
+    if len(hyphen) > maxlen:
+        raise ValueError('Hyphenation cannot be longer than length limit.')
+    if not text or maxsplit < 1:
         yield text
         return
-    items = peekable(split_at(text, pred, -1, True))
-    buffer = []
-    length = 0
+
+    end = sep = begin = 0
     splits = 0
-    processed = 0
-    while True:
-        if splits == maxsplit:
-            yield text[processed:]
+    while begin < len(text):
+        if end >= len(text) or splits >= maxsplit:
+            yield text[begin:]
             return
-        try:
-            if len(items.peek()) + length > maxlen:
-                splits += 1
-                if buffer:
-                    yield ''.join(buffer)
-                    buffer = []
-                    processed += length
-                    length = 0
-                else:
-                    oversized = ''.join(next(items))
-                    pos = maxlen - len(hyphen)
-                    yield oversized[:pos] + hyphen
-                    processed += pos
-                    items.prepend(oversized[pos:])
+        if pred(text[end]):
+            sep = end
+        end += 1
+        if end > begin + maxlen:
+            if sep > begin:
+                end = sep
+                yield text[begin:end]
             else:
-                word = ''.join(next(items))
-                buffer.append(word)
-                length += len(word)
-        except StopIteration:
-            if buffer:
-                yield ''.join(buffer)
-            return
+                end -= len(hyphen) + 1
+                yield text[begin:end] + hyphen
+            begin = end
+            splits += 1
 
 
 def format_page_number(idx: int, total: int, sep: str = '/'):
