@@ -340,10 +340,13 @@ class Poll(
             updated = self.field_setdefault(updated, 'Forum', indicator, replace=True)
 
         if updated is not embed:
-            updated.raise_if_overflow(NotAcceptable(
-                'This submission has reached its max content size'
-                ' and can no longer be modified.',
-            ))
+            try:
+                updated.check_oversized()
+            except ValueError:
+                raise NotAcceptable(
+                    'This submission has reached its max content size'
+                    ' and can no longer be modified.',
+                )
             try:
                 await original.edit(embed=updated)
             except HTTPException as e:

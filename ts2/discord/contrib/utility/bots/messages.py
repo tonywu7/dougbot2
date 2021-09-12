@@ -18,8 +18,8 @@ import io
 from typing import Optional, Union
 
 import simplejson as json
-from discord import (AllowedMentions, Emoji, File, HTTPException, Message,
-                     MessageReference, Object, PartialEmoji, TextChannel)
+from discord import (AllowedMentions, Emoji, File, Message, MessageReference,
+                     Object, PartialEmoji, TextChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
 from more_itertools import always_iterable, first
 
@@ -115,7 +115,7 @@ class MessageCommands:
                                      allowed_mentions=allowed_mentions)
             if suppress_embeds:
                 await msg.edit(suppress=True)
-        except HTTPException as e:
+        except Exception as e:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
