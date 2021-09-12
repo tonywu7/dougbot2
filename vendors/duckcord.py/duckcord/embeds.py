@@ -34,6 +34,15 @@ T = TypeVar('T')
 _EMPTY = Embed.Empty
 _EmptyType = type(_EMPTY)
 
+LEN_LIMIT_TITLE = 256
+LEN_LIMIT_DESC = 4096
+LEN_LIMIT_NUM_FIELDS = 25
+LEN_LIMIT_FIELD_NAME = 256
+LEN_LIMIT_FIELD_VALUE = 1024
+LEN_LIMIT_FOOTER_TEXT = 2048
+LEN_LIMIT_AUTHOR_NAME = 256
+LEN_LIMIT_EMBED = 6000
+
 
 def _is_empty(v: _EmptyType | None) -> bool:
     return v is None or type(v) is _EmptyType
@@ -86,6 +95,12 @@ class EmbedField(_Serializable):
     def __len__(self):
         return len(self.name) + len(self.value)
 
+    def check_oversized(self):
+        if len(self.name) > LEN_LIMIT_FIELD_NAME:
+            raise EmbedOversizedError(f'Field "{self.name}": field name', LEN_LIMIT_FIELD_NAME)
+        if len(self.value) > LEN_LIMIT_FIELD_VALUE:
+            raise EmbedOversizedError(f'Field "{self.name}": field content', LEN_LIMIT_FIELD_VALUE)
+
 
 @attr.s(slots=True, eq=True, frozen=True)
 class EmbedAuthor(_Serializable):
@@ -96,6 +111,10 @@ class EmbedAuthor(_Serializable):
 
     def __len__(self):
         return len(self.name)
+
+    def check_oversized(self):
+        if len(self.name) > LEN_LIMIT_AUTHOR_NAME:
+            raise EmbedOversizedError('Author name', LEN_LIMIT_AUTHOR_NAME)
 
 
 @attr.s(slots=True, eq=True, frozen=True)
@@ -120,6 +139,10 @@ class EmbedFooter(_Serializable):
 
     def __len__(self):
         return len(self.text)
+
+    def check_oversized(self):
+        if len(self.text) > LEN_LIMIT_FOOTER_TEXT:
+            raise EmbedOversizedError('Footer text', LEN_LIMIT_FOOTER_TEXT)
 
 
 @attr.s(slots=True, eq=True, frozen=True)
@@ -216,12 +239,15 @@ class Embed2:
         """
         return Embed2(**data)
 
-    def to_dict(self) -> dict:
+    def to_dict(self, ensure_limits=True) -> dict:
         """Serialize the embed to a :class:`dict`.
 
         :return: The result dictionary
         :rtype: :class:`dict`
         """
+        if ensure_limits:
+            self.check_oversized()
+
         info = attr.asdict(self, recurse=True, filter=attr.filters.exclude(type(Embed.Empty)))
 
         timestamp = self.timestamp
@@ -435,17 +461,24 @@ class Embed2:
         author = attr.evolve(self.author, url=url)
         return attr.evolve(self, author=author)
 
-    def raise_if_overflow(self, exc: Exception):
-        """Raise `exc` if the body or any field exceeds Discord's length limit.
+    def check_oversized(self) -> None:
+        """Raise an exception if any component of the embed is over Discord's\
+            length limits.
 
-        :param exc: The exception to throw.
-        :type exc: Exception
+        :raises: :class:duckcord.embeds.EmbedOversizedError
         """
-        if len(self.description) > 6000:
-            raise exc
+        if len(self.title) > LEN_LIMIT_TITLE:
+            raise EmbedOversizedError('Embed title', LEN_LIMIT_TITLE)
+        if len(self.description) > LEN_LIMIT_DESC:
+            raise EmbedOversizedError('Embed description', LEN_LIMIT_DESC)
+        if len(self.fields) > LEN_LIMIT_NUM_FIELDS:
+            raise EmbedOversizedError('Embed fields', LEN_LIMIT_NUM_FIELDS, 'fields')
         for f in self.fields:
-            if len(f) > 2000:
-                raise exc
+            f.check_oversized()
+        if isinstance(self.author, EmbedAuthor):
+            self.author.check_oversized()
+        if isinstance(self.footer, EmbedFooter):
+            self.footer.check_oversized()
 
     def __len__(self) -> int:
         return sum([
@@ -453,3 +486,8 @@ class Embed2:
             sum(len(f) for f in self.fields),
             len(self.footer), len(self.author),
         ])
+
+
+class EmbedOversizedError(ValueError):
+    def __init__(self, component: str, limit: str, unit='characters'):
+        super().__init__(f'{component} oversized: {limit} {unit}')
