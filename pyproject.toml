@@ -53,6 +53,7 @@ toml = "^0.10.2"
 dateparser = "^1.0.0"
 asyncstdlib = "^3.9.2"
 Pint = "^0.17"
+APScheduler = "^3.7.0"
 
 [tool.poetry.dev-dependencies]
 logging_tree = "^1.9"
