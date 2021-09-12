@@ -17,14 +17,13 @@
 import asyncio
 import logging
 from contextlib import suppress
-from typing import Literal, Optional, TypeVar
+from typing import Literal, Optional
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (Activity, ActivityType, AllowedMentions, Client,
-                     Forbidden, Game, Guild, Intents, Message,
-                     MessageReference, NotFound, Permissions,
-                     RawMessageDeleteEvent)
+from discord import (Activity, ActivityType, AllowedMentions, Forbidden, Game,
+                     Guild, Intents, Message, MessageReference, NotFound,
+                     Permissions, RawMessageDeleteEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
                                   errors, has_guild_permissions, is_owner)
 from discord.utils import escape_markdown
@@ -47,9 +46,6 @@ from .utils.async_ import async_atomic
 from .utils.common import Embed2, is_direct_message
 from .utils.datetime import utcnow, utctimestamp
 from .utils.markdown import code, em, strong
-
-T = TypeVar('T', bound=Client)
-U = TypeVar('U', bound=Bot)
 
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
 
@@ -97,21 +93,24 @@ class Robot(Bot):
         self.log.info('Started an aiohttp.ClientSession')
 
     @classmethod
-    async def _get_prefix(cls, *, bot_id: int, guild_id: int):
+    async def get_server_prefix(cls, guild_id: int) -> str:
         @sync_to_async
         def get():
             return Server.objects.get(pk=guild_id).prefix
-        return [await get()]
+        return await get()
 
     @classmethod
     async def which_prefix(cls, bot: Bot, msg: Message):
-        bot_id = bot.user.id
         if msg.guild is None:
-            return ['']
+            return ''
         try:
-            return await cls._get_prefix(bot_id=bot_id, guild_id=msg.guild.id)
+            prefix = await cls.get_server_prefix(msg.guild.id)
+            content: str = msg.content
+            if content.lower().startswith(prefix.lower()):
+                return content[:len(prefix)]
+            return '\x00'
         except Server.DoesNotExist:
-            return ['\x00']
+            return '\x00'
 
     def dispatch(self, event_name, *args, **kwargs):
         task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
@@ -248,8 +247,7 @@ def add_event_listeners(self: Robot):
         if is_direct_message(msg):
             return
         if msg.content == f'<@!{self.user.id}>':
-            prefixes = await self.which_prefix(self, msg)
-            prefix = prefixes[0]
+            prefix = await self.get_server_prefix(msg.guild.id)
             example = f'{prefix}echo'
             return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')
 
