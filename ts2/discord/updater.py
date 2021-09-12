@@ -34,6 +34,7 @@ def get_updater():
 
         config = {
             'intents': Intents(guilds=True, members=True),
+            'set_presence': False,
         }
         updater_thread = BotRunner(Robot, config, listen=True, daemon=True)
         updater_thread.start()

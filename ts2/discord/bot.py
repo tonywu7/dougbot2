@@ -89,10 +89,11 @@ class Robot(Bot):
         options.setdefault('strip_after_prefix', True)
         super().__init__(loop=loop, **options)
 
+        self._cache = caches['discord']
         self.log = logging.getLogger('discord.bot')
+
         self.manual: Manual
         self.request: aiohttp.ClientSession
-        self._cache = caches['discord']
 
         add_base_listeners(self)
         add_reply_listener(self)
@@ -106,6 +107,7 @@ class Robot(Bot):
         define_errors()
 
         self.gatekeeper = gatekeeper.Gatekeeper()
+        self.set_presence = options.get('set_presence', True)
 
     async def _init_client_session(self):
         if hasattr(self, 'request'):
@@ -413,6 +415,8 @@ def add_ping_command(self: Robot):
 
 def add_status_command(self: Robot):
     async def set_presence(kind: str, **kwargs):
+        if not self.set_presence:
+            return
         if kind == 'reset':
             await self.change_presence(activity=None)
             self.del_cache(type=f'{__name__}.activity')
@@ -427,7 +431,8 @@ def add_status_command(self: Robot):
 
     @self.listen('on_ready')
     async def resume_presence():
-        await asyncio.sleep(10)
+        if not self.set_presence:
+            return
         kind, kwargs = self.get_cache((None, None), type=f'{__name__}.activity')
         if kind is None:
             return await set_presence('reset')
