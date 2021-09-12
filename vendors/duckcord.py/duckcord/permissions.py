@@ -480,6 +480,10 @@ class PermissionOverride(PermissionOverwrite):
     def __hash__(self):
         return hash((type(self), self._allowed, self._denied, 37))
 
+    def __bool__(self) -> bool:
+        """Return :data:`True` if this override explicitly allows/denies anything."""
+        return bool(self.allowed.value | self.denied.value)
+
     def _set(self, key, value):
         name = type(self).__name__
         raise NotImplementedError(
