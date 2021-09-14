@@ -19,7 +19,7 @@ import logging
 import re
 from contextlib import suppress
 from datetime import datetime
-from typing import Optional, TypedDict, Union
+from typing import Literal, Optional, TypedDict, Union
 from urllib.parse import parse_qs, urlsplit
 
 import inflect
@@ -33,9 +33,10 @@ from django.utils.datastructures import MultiValueDict
 from more_itertools import first, map_reduce
 
 from ts2.discord.cog import Gear
-from ts2.discord.context import Circumstances
+from ts2.discord.context import Circumstances, on_error_reset_cooldown
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
+from ts2.discord.ext.common import Constant
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (E, Embed2, EmbedPagination, a,
                                       assumed_utc, blockquote, chapterize,
@@ -372,12 +373,14 @@ class Poll(
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Show a list of all suggestion channels.')
     @doc.invocation(('category', 'suggestion'), 'Submit a new suggestion.')
+    @on_error_reset_cooldown
     async def suggest(
         self, ctx: Circumstances,
         category: Optional[Union[TextChannel, str]],
         *, suggestion: str = '',
     ):
         if category is None:
+            ctx.command.reset_cooldown(ctx)
             return await self.send_channel_list(ctx)
 
         if not isinstance(category, TextChannel):
@@ -565,7 +568,11 @@ class Poll(
     @suggest.command('tally')
     @doc.description('Count the votes on a suggestion.')
     @doc.argument('suggestion', 'The message containing the submission.')
-    async def suggest_tally(self, ctx: Circumstances, suggestion: Message):
+    @doc.argument('anonymous', "Whether to omit vote casters' username from the report.")
+    async def suggest_tally(
+        self, ctx: Circumstances, suggestion: Message,
+        anonymous: Optional[Constant[Literal['anonymous']]] = False,
+    ):
         embed, info = await self.fetch_submission(suggestion)
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
@@ -581,7 +588,8 @@ class Poll(
         for k, v in votes.items():
             lines.append(f'{code(v)} {k}')
         for k, v in ballots.items():
-            lines.append(f'{code(len(v))} {k}\n{blockquote(" ".join(v))}')
+            lines.append((f'{code(len(v))} {k}\n{blockquote(" ".join(v))}'
+                          if not anonymous else f'{code(len(v))} {k}'))
         if lines:
             report = '\n'.join(lines)
         else:
