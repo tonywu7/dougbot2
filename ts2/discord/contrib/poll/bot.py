@@ -56,6 +56,7 @@ class SubmissionInfo(TypedDict):
     author_id: int
     attrib_id: Optional[int]
     is_public: Optional[int]
+    obfuscate: Optional[int]
 
 
 class Ballot(TypedDict):
@@ -74,10 +75,12 @@ class Poll(
 ):
     _CACHE_VERSION = 2
     _CACHE_TTL = 604800
+
     RE_BALLOT_FORMAT = re.compile((
         r'^(?P<emote>\S+) \*\*(?P<response>.*)\*\* - '
         r'<@(?P<user_id>\d+)> <t:(?P<timestamp>\d+).*>$'
     ), re.M)
+    RE_OBFUSCATED = re.compile(r'\[\(anonymous\)\]\((\d+)\)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -213,6 +216,10 @@ class Poll(
             except Exception:
                 pass
 
+    async def reset_votes(self, target: SuggestionChannel, msg: Message):
+        for e in target.reactions_cleaned:
+            await msg.clear_reaction(e)
+
     def parse_return_url(self, embed: Embed2) -> Optional[SubmissionInfo]:
         url = embed.author and embed.author.url
         if not isinstance(url, str):
@@ -227,7 +234,7 @@ class Poll(
             info['linked_id'] = int(params['linked_id'])
         except (TypeError, ValueError, KeyError):
             return
-        for key in ('attrib_id', 'is_public'):
+        for key in ('attrib_id', 'is_public', 'obfuscate'):
             try:
                 info[key] = int(params[key])
             except (TypeError, ValueError, KeyError):
@@ -246,18 +253,26 @@ class Poll(
         embed = Embed2.upgrade(embed)
         return embed, info
 
-    def parse_responses(self, body: str) -> list[Ballot]:
+    def parse_responses(self, body: str, obfuscated: bool = False) -> list[Ballot]:
         ballots: list[Ballot] = []
+        if obfuscated:
+            body = self.RE_OBFUSCATED.sub(lambda m: f'<@{m.group(1)}>', body)
         for matched in self.RE_BALLOT_FORMAT.finditer(body):
             ballots.append(matched.groupdict())
         return ballots
 
-    def build_responses(self, ballots: list[Ballot]) -> str:
+    def build_responses(self, ballots: list[Ballot], obfuscated: bool = False) -> str:
         lines = []
+        if obfuscated:
+            def caster(ballot: Ballot):
+                return f'[(anonymous)]({ballot["user_id"]})'
+        else:
+            def caster(ballot: Ballot):
+                return tag_literal('member', ballot['user_id'])
         for b in ballots:
             lines.append(
                 f'{b["emote"]} {strong(b["response"])}'
-                f' - {tag_literal("member", b["user_id"])}'
+                f' - {caster(b)}'
                 f' {timestamp(b["timestamp"], "relative")}',
             )
         return '\n'.join(lines)
@@ -306,6 +321,7 @@ class Poll(
         author: Optional[Member] = None,
         status: Optional[str] = None,
         public: Optional[bool] = None,
+        obfuscate: Optional[bool] = None,
     ):
         channel: TextChannel = original.channel
         updated = embed
@@ -339,6 +355,12 @@ class Poll(
             else:
                 indicator = 'Comments section is closed.'
             updated = self.field_setdefault(updated, 'Forum', indicator, replace=True)
+
+        if obfuscate is not None:
+            info['obfuscate'] = int(obfuscate)
+            url = updated.author.url
+            url = urlqueryset(url, obfuscate=int(obfuscate))
+            updated = updated.set_author_url(url)
 
         if updated is not embed:
             try:
@@ -568,10 +590,10 @@ class Poll(
     @suggest.command('tally')
     @doc.description('Count the votes on a suggestion.')
     @doc.argument('suggestion', 'The message containing the submission.')
-    @doc.argument('anonymous', "Whether to omit vote casters' username from the report.")
+    @doc.argument('anonymize', "Whether to omit vote casters' username from the report.")
     async def suggest_tally(
         self, ctx: Circumstances, suggestion: Message,
-        anonymous: Optional[Constant[Literal['anonymous']]] = False,
+        anonymize: Optional[Constant[Literal['anonymize']]] = False,
     ):
         embed, info = await self.fetch_submission(suggestion)
         category = suggestion.channel
@@ -579,7 +601,7 @@ class Poll(
 
         votes = {str(r.emoji): r.count - r.me for r in suggestion.reactions}
         votes = {k: votes.get(k, 0) for k in (target.upvote, target.downvote) if k}
-        ballots = self.parse_responses(embed.get_field_value('Response'))
+        ballots = self.parse_responses(embed.get_field_value('Response'), info.get('obfuscate'))
         ballots = map_reduce(ballots, lambda v: f'{v["emote"]} {strong(v["response"])}',
                              lambda v: tag_literal('user', v['user_id']),
                              lambda vs: sorted(set(vs)))
@@ -589,7 +611,7 @@ class Poll(
             lines.append(f'{code(v)} {k}')
         for k, v in ballots.items():
             lines.append((f'{code(len(v))} {k}\n{blockquote(" ".join(v))}'
-                          if not anonymous else f'{code(len(v))} {k}'))
+                          if not anonymize else f'{code(len(v))} {k}'))
         if lines:
             report = '\n'.join(lines)
         else:
@@ -605,6 +627,24 @@ class Poll(
                .add_field(name='Tallied', value=timestamp(tallied, 'relative'))
                .set_timestamp())
         return await ctx.response(ctx, embed=res).reply().deleter().run()
+
+    @suggest.command('obfuscate')
+    @doc.description('Toggle username omission in votes.')
+    @doc.argument('suggestion', 'The message containing the submission.')
+    async def suggest_obfuscate(
+        self, ctx: Circumstances, suggestion: Message,
+    ):
+        embed, info = await self.fetch_submission(suggestion)
+        category = suggestion.channel
+        target = await self.get_channel_or_404(ctx, category)
+        obfuscated = bool(info.get('obfuscate'))
+        res = self.parse_responses(embed.get_field_value('Response'), obfuscated)
+        obfuscated = not obfuscated
+        res = self.build_responses(res, obfuscated)
+        await self.update_submission(suggestion, embed, info, status=res, obfuscate=obfuscated)
+        await self.reset_votes(target, suggestion)
+        await self.add_reactions(target, suggestion)
+        await ctx.response(ctx).success().run()
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
@@ -641,7 +681,8 @@ class Poll(
             return
 
         res = embed.get_field_value('Response')
-        ballots = self.parse_responses(res)
+        obfuscated = info.get('obfuscate')
+        ballots = self.parse_responses(res, obfuscated)
         vote = {
             'emote': emote, 'response': text,
             'user_id': ev.member.id,
@@ -653,7 +694,7 @@ class Poll(
             ballots_dict = {b['user_id']: b for b in ballots}
             ballots_dict[str(ev.member.id)] = vote
             ballots = [*ballots_dict.values()]
-        status = self.build_responses(ballots)
+        status = self.build_responses(ballots, obfuscated)
 
         try:
             await self.update_submission(msg, embed, info, status=status)
