@@ -15,9 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import io
+from datetime import timezone
 from typing import Optional, Union
 
 import simplejson as json
+import toml
 from discord import (AllowedMentions, Emoji, File, Message, MessageReference,
                      Object, PartialEmoji, TextChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
@@ -28,9 +30,25 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Dictionary, JinjaTemplate,
                                     format_exception, get_traceback)
 from ts2.discord.ext.template import get_environment
-from ts2.discord.utils.common import (Embed2, a, code, serialize_message,
-                                      strong, trunc_for_field)
+from ts2.discord.utils.common import Embed2, a, code, strong, trunc_for_field
 from ts2.discord.utils.datetime import localnow
+
+
+def serialize_message(message: Message):
+    author = message.author
+    return {
+        'id': message.id,
+        'created_at': message.created_at.replace(tzinfo=timezone.utc).isoformat(),
+        'author': {
+            'id': author.id,
+            'name': str(author),
+            'display_name': author.display_name,
+            'avatar_url': str(author.avatar_url),
+        },
+        'content': message.content,
+        'embeds': [e.to_dict() for e in message.embeds],
+        'files': [f.url for f in message.attachments],
+    }
 
 
 def get_allowed_mentions(info: dict) -> AllowedMentions:
@@ -120,6 +138,41 @@ class MessageCommands:
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
         await ctx.response(ctx, embed=reply).reply().run()
+
+    @command('stdin')
+    @doc.description('Serialize a message to be used in the stdout command.')
+    @doc.argument('message', 'The message to serialize')
+    @doc.accepts_reply('Use the replied-to message.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('message',), None)
+    @doc.invocation(('reply',), None)
+    async def stdin(
+        self, ctx: Circumstances,
+        message: Optional[Message], *,
+        reply: Optional[MessageReference] = None,
+    ):
+        if not message and reply:
+            message = reply.resolved
+        if not message:
+            raise doc.NotAcceptable('No message specified.')
+        info = {'content': message.content}
+        embed = first(message.embeds, None)
+        if embed:
+            info['embed'] = Embed2.upgrade(embed).to_dict()
+        if message.reference and message.reference.resolved:
+            info['reply'] = str(message.reference.resolved.id)
+        info['mentions'] = {
+            'everyone': str(bool(message.mention_everyone)),
+            'roles': [str(r.id) for r in message.role_mentions],
+            'users': [str(u.id) for u in message.mentions],
+        }
+        info['suppress_embeds'] = str(message.flags.suppress_embeds)
+        with io.StringIO() as stream:
+            toml.dump(info, stream)
+            stream.seek(0)
+            fname = f'message.{localnow().isoformat().replace(":", ".")}.toml'
+            file = File(stream, filename=fname)
+            await ctx.send(file=file)
 
     @command('redirect')
     @doc.description('Copy the specified message to another channel.')

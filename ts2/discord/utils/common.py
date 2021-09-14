@@ -1,8 +1,23 @@
+# common.py
+# Copyright (C) 2021  @tonyzbf +https://github.com/tonyzbf/
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from collections.abc import MutableMapping
-from datetime import timezone
 from typing import Optional, TypeVar, Union
 
-from discord import DMChannel, Message, TextChannel
+from discord import DMChannel, GroupChannel, Message, TextChannel
 from discord.ext.commands import Context
 
 from .async_ import (async_first, async_get, async_list,  # noqa: F401
@@ -31,24 +46,8 @@ _VT = TypeVar('_VT')
 
 
 def is_direct_message(ctx: Union[Message, Context, TextChannel]):
-    return isinstance(ctx, DMChannel) or isinstance(ctx.channel, DMChannel)
-
-
-def serialize_message(message: Message):
-    author = message.author
-    return {
-        'id': message.id,
-        'created_at': message.created_at.replace(tzinfo=timezone.utc).isoformat(),
-        'author': {
-            'id': author.id,
-            'name': str(author),
-            'display_name': author.display_name,
-            'avatar_url': str(author.avatar_url),
-        },
-        'content': message.content,
-        'embeds': [e.to_dict() for e in message.embeds],
-        'files': [f.url for f in message.attachments],
-    }
+    cls = (DMChannel, GroupChannel)
+    return isinstance(ctx, cls) or isinstance(getattr(ctx, 'channel', None), cls)
 
 
 class BigIntDict(MutableMapping[_KT, _VT]):
