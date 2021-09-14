@@ -45,6 +45,21 @@ def requires_server(f):
     return wrapped
 
 
+def on_error_reset_cooldown(f):
+    @wraps(f)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await f(*args, **kwargs)
+        except Exception:
+            if isinstance(args[0], Context):
+                ctx = args[0]
+            else:
+                ctx = args[1]
+            ctx.command.reset_cooldown(ctx)
+            raise
+    return wrapper
+
+
 # 'Cause of ...
 class Circumstances(Context):
 
