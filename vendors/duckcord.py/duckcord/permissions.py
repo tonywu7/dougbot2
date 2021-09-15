@@ -91,6 +91,10 @@ class Permissions2(Permissions):
 
     __int__ = __index__
 
+    def __bool__(self) -> bool:
+        """Return :data:`True` if this permission allows anything."""
+        return bool(self.value)
+
     def __hash__(self):
         """Return a hash for this :class:`Permissions2`.
 
@@ -481,8 +485,7 @@ class PermissionOverride(PermissionOverwrite):
         return hash((type(self), self._allowed, self._denied, 37))
 
     def __bool__(self) -> bool:
-        """Return :data:`True` if this override explicitly allows/denies anything."""
-        return bool(self.allowed.value | self.denied.value)
+        return self.is_empty()
 
     def _set(self, key, value):
         name = type(self).__name__
@@ -526,6 +529,7 @@ class PermissionOverride(PermissionOverwrite):
         return cls._from_values(allow.value, deny.value)
 
     def is_empty(self) -> bool:
+        """Return :data:`True` if this override explicitly allows/denies anything."""
         return self._allowed == 0 and self._denied == 0
 
     def evolve(self, **kwargs: bool | None) -> PermissionOverride:
