@@ -29,9 +29,10 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
-                                      Permissions2, chapterize,
-                                      chapterize_fields, code, get_total_perms,
-                                      strong, tag, traffic_light)
+                                      PermissionOverride, Permissions2,
+                                      chapterize, chapterize_fields, code,
+                                      get_total_perms, strong, tag,
+                                      traffic_light)
 
 PERMISSIONS = {
     'General server permissions': [
@@ -73,16 +74,7 @@ PERM_HELP = EmbedPagination(PERM_HELP, 'Permissions', False)
 CHANNEL_TYPES = (TextChannel, VoiceChannel, StageChannel)
 
 AnyChannel = Union[TextChannel, VoiceChannel, StageChannel, CategoryChannel]
-
-
-def get_channel_map(guild: Guild) -> dict[Optional[CategoryChannel], list[GuildChannel]]:
-    return {k: v for k, v in guild.by_category()}
-
-
-def category_name(c: Optional[CategoryChannel]) -> str:
-    if c:
-        return c.name
-    return '(no category)'
+ChannelMap = dict[Optional[CategoryChannel], list[GuildChannel]]
 
 
 class ChannelFilter:
@@ -123,6 +115,31 @@ class PermFilter:
         return perm <= self.target
 
 
+def get_channel_map(guild: Guild) -> ChannelMap:
+    return {k: v for k, v in guild.by_category()}
+
+
+def filter_channel_map(channel_map: ChannelMap, filter_: ChannelFilter) -> ChannelMap:
+    mapped = defaultdict(list)
+    for category, channels in channel_map.items():
+        if category not in filter_:
+            continue
+        for ch in channels:
+            if ch in filter_:
+                mapped[category].append(ch)
+    return {**mapped}
+
+
+def category_name(c: Optional[CategoryChannel]) -> str:
+    if c:
+        return c.name
+    return '(no category)'
+
+
+def get_indicators(s: set[bool]) -> str:
+    return ' '.join(traffic_light(v, strict=True) for v in s)
+
+
 class ServerQueryCommands:
     @command('channels')
     @doc.description('List channels in the server.')
@@ -130,15 +147,12 @@ class ServerQueryCommands:
     async def channels(self, ctx: Circumstances):
         await ctx.trigger_typing()
         channel_map = get_channel_map(ctx.guild)
-        channels_filtered = ChannelFilter(None, ctx.author)
+        filter_ = ChannelFilter(None, ctx.author)
         fields: list[EmbedField] = []
-        for category, channels in channel_map.items():
-            if category not in channels_filtered:
-                continue
+        for category, channels in filter_channel_map(channel_map, filter_).items():
             name = category_name(category)
             lines = [f'{code(ch.position)} {tag(ch)}'
-                     for ch in channels
-                     if ch in channels_filtered]
+                     for ch in channels]
             fields.append(EmbedField(name=name, value='\n'.join(lines), inline=True))
         pages: list[Embed2] = []
         base_embed = Embed2(title='Channels').decorated(ctx.guild)
@@ -296,7 +310,7 @@ class ServerQueryCommands:
                     categorized[k].append((doc.readable_perm_name(p), p in allowed))
         description = ' '.join(tag(r) for r in roles)
         if channel:
-            description = f'{description}\nin {tag(channel)}'
+            description = f'{description} in {tag(channel)}'
         return self._perms_embeds(categorized, description)
 
     def get_perm_at(
@@ -325,7 +339,209 @@ class ServerQueryCommands:
         fields = [EmbedField(name=k, value=v, inline=True)
                   for k, v in content.items()]
         pages: list[Embed2] = []
-        base_embed = Embed2(description=description)
+        base_embed = Embed2(description=strong(description))
         for fieldset in chapterize_fields(fields):
             pages.append(attr.evolve(base_embed, fields=fieldset))
+        return pages
+
+    @command('overrides')
+    @doc.description('Survey channel overrides.')
+    @doc.use_syntax_whitelist
+    @doc.invocation(('target',), (
+        'List all channels having any override for this role/member.'
+    ))
+    @doc.invocation(('permission',), (
+        'List all channels having any override for this permission.'
+    ))
+    @doc.invocation(('target', 'permission'), (
+        'List all channels having overrides for'
+        ' this role/member and permission combination.'
+    ))
+    @doc.invocation(('channel',), (
+        'List all roles/members having overrides in this channel.'
+    ))
+    @doc.invocation(('permission', 'channel'), (
+        'List all roles/members having overrides'
+        ' for this permission in this channel.'
+    ))
+    @doc.invocation(('target', 'channel'), (
+        'List all overrides for this role/member in this channel.'
+    ))
+    @doc.invocation(('target', 'permission', 'channel'), (
+        'Show the override for this role/member'
+        ' and permission in this channel.'
+    ))
+    @doc.restriction(has_guild_permissions, manage_roles=True)
+    async def overrides(
+        self, ctx: Circumstances,
+        target: Optional[Union[Role, Member]] = None,
+        channel: Optional[AnyChannel] = None,
+        permission: Optional[PermissionName] = None,
+    ):
+        if not target and not permission and not channel:
+            raise doc.SendHelp()
+
+        await ctx.trigger_typing()
+
+        if not channel:
+            channel_filter = ChannelFilter(Permissions2(view_channel=True), ctx.author)
+            channel_map = get_channel_map(ctx.guild)
+            channels = filter_channel_map(channel_map, channel_filter)
+            pages = self.list_override_channels(channels, target, permission)
+
+        elif not target:
+            pages = self.list_override_targets(channel, permission)
+
+        else:
+            pages = self.list_overrides(channel, target, permission)
+
+        title = 'Permission overrides'
+        pagination = EmbedPagination(pages, title, False)
+        return (await ctx.response(ctx, embed=pagination)
+                .responder(pagination.with_context(ctx))
+                .deleter().run())
+
+    def list_override_channels(
+        self, channel_map: ChannelMap,
+        target: Optional[Union[Role, Member]],
+        perm: Optional[PermissionName],
+    ) -> list[Embed2]:
+
+        if target is not None and perm is not None:
+            def get_overrides(c: AnyChannel) -> set[Optional[bool]]:
+                overwrites = c.overwrites
+                if target not in overwrites:
+                    return set()
+                override = PermissionOverride.upgrade(c.overwrites_for(target))
+                return {getattr(override, perm.perm_name)}
+
+            description = f'{doc.readable_perm_name(perm.perm_name)}, {tag(target)}'
+
+        elif target is not None:
+            def get_overrides(c: AnyChannel) -> set[Optional[bool]]:
+                overwrites = c.overwrites
+                if target not in overwrites:
+                    return set()
+                override = PermissionOverride.upgrade(c.overwrites_for(target))
+                settings = set()
+                if override.allowed:
+                    settings.add(True)
+                if override.denied:
+                    settings.add(False)
+                return settings
+
+            description = tag(target)
+
+        elif perm is not None:
+            def get_overrides(c: AnyChannel) -> set[Optional[bool]]:
+                overwrites = c.overwrites
+                name = perm.perm_name
+                settings = set()
+                for o in overwrites.values():
+                    settings.add(getattr(o, name))
+                return settings
+
+            description = doc.readable_perm_name(perm.perm_name)
+
+        else:
+            raise ValueError
+
+        results: dict[AnyChannel, set[bool]] = {}
+        for c in collapse(channel_map.items()):
+            if c is None:
+                continue
+            settings = get_overrides(c)
+            settings.discard(None)
+            if not settings:
+                continue
+            results[c] = settings
+
+        output: dict[str, str] = {}
+        for category, channels in channel_map.items():
+            name = category_name(category)
+            settings = results.get(category)
+            if settings:
+                name = f'{get_indicators(settings)} {name}'
+            lines = []
+            for ch in channels:
+                settings = results.get(ch)
+                if settings:
+                    lines.append(f'{get_indicators(settings)} {tag(ch)}')
+            if not lines:
+                continue
+            output[name] = '\n'.join(lines)
+
+        base_embed = Embed2(description=strong(description))
+        res = [EmbedField(k, v, False) for k, v in output.items()]
+        pages = []
+        for fieldset in chapterize_fields(res):
+            pages.append(attr.evolve(base_embed, fields=fieldset))
+        return pages
+
+    def list_override_targets(
+        self, channel: AnyChannel,
+        perm: Optional[PermissionName],
+    ) -> list[Embed2]:
+
+        if perm:
+            def get_overrides(override: PermissionOverride) -> set[Optional[bool]]:
+                return {getattr(override, perm.perm_name, None)}
+            description = f'{doc.readable_perm_name(perm.perm_name)} in {tag(channel)}'
+
+        else:
+            def get_overrides(override: PermissionOverride) -> set[Optional[bool]]:
+                settings = set()
+                if override.allowed:
+                    settings.add(True)
+                if override.denied:
+                    settings.add(False)
+                return settings
+            description = f'in {tag(channel)}'
+
+        results: dict[Union[Role, Member], set[bool]] = {}
+        for target, overwrite in reversed(channel.overwrites.items()):
+            override = PermissionOverride.upgrade(overwrite)
+            settings = get_overrides(override)
+            settings.discard(None)
+            if not settings:
+                continue
+            results[target] = settings
+
+        lines: list[str] = [f'{get_indicators(v)} {tag(k)}' for k, v in results.items()]
+        if lines:
+            content = '\n'.join(lines)
+        else:
+            content = '(no overrides)'
+        base_embed = Embed2(description=strong(description))
+        pages = []
+        for chapter in chapterize(content, 720, lambda c: c == '\n'):
+            pages.append(base_embed.add_field(name='Settings', value=chapter, inline=False))
+        return pages
+
+    def list_overrides(
+        self, channel: AnyChannel,
+        target: Union[Role, Member],
+        perm: Optional[PermissionName],
+    ):
+        description = f'{tag(target)} in {tag(channel)}'
+        settings: dict[str, bool] = {}
+        override = PermissionOverride.upgrade(channel.overwrites_for(target))
+        for p in override.allowed:
+            settings[p] = True
+        for p in override.denied:
+            settings[p] = False
+        if perm:
+            name = perm.perm_name
+            settings = {name: settings.get(name)}
+
+        lines = [f'{traffic_light(v, True)} {doc.readable_perm_name(k)}'
+                 for k, v in settings.items()]
+        if lines:
+            content = '\n'.join(lines)
+        else:
+            content = '(no overrides)'
+        base_embed = Embed2(description=strong(description))
+        pages = []
+        for chapter in chapterize(content, 720, lambda c: c == '\n'):
+            pages.append(base_embed.add_field(name='Settings', value=chapter, inline=False))
         return pages
