@@ -237,7 +237,7 @@ class Circumstances(Context):
 
     async def send_help(self, query: str = None, category='normal'):
         query = query or self.command.qualified_name
-        return await self.bot.send_help(self, category, query=query)
+        return await self.bot.manual.do_help(self, query)
 
     async def call(self, cmd: Command, *args, **kwargs):
         async with self.acquire_concurrency(cmd):
