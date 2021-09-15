@@ -174,11 +174,16 @@ class ServerQueryCommands:
         ' plus roles that are displayed in the sidebar separately.'
     ))
     async def roles(self, ctx: Circumstances, *, role: Optional[Role] = None):
-        def getline(r):
+        def getline(r: Role):
+            info = []
+            if r.hoist:
+                info.append('⤒')
+            if r.mentionable:
+                info.append('@')
+            info.append(tag(r))
             if r.color.value:
-                return f'{tag(r)} {code(f"#{r.color.value:06x}")}'
-            else:
-                return tag(r)
+                info.append(code(f'#{r.color.value:06x}'))
+            return ' '.join(info)
 
         if role:
             roles = [role]
