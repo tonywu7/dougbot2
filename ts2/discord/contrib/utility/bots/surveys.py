@@ -254,7 +254,10 @@ class ServerQueryCommands:
             )
         channel_map = get_channel_map(ctx.guild)
         if isinstance(channel, CategoryChannel):
-            channels = channel.channels
+            if roles and permission:
+                channels = channel.channels
+            else:
+                channels = [channel]
         elif channel:
             channels = [channel]
         else:
