@@ -43,7 +43,7 @@ from .lang import (QuantifiedNP, pl_cat_predicative, readable_perm_name,
 _Converter = Union[Converter, type[Converter]]
 _Annotation = Union[type, _Converter]
 
-_AllChannelTypes = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel]
+_AnyChannel = Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.CategoryChannel]
 _TextAndVCs = Union[discord.TextChannel, discord.VoiceChannel]
 
 CheckPredicate = Callable[[Context], bool]
@@ -73,8 +73,8 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
     discord.Emoji: QuantifiedNP('emote', predicative='must be in servers the bot is in'),
     discord.PartialEmoji: QuantifiedNP('emote id'),
 
-    _AllChannelTypes: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
-    Optional[_AllChannelTypes]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+    _AnyChannel: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
+    Optional[_AnyChannel]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     _TextAndVCs: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     Optional[_TextAndVCs]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
 }
