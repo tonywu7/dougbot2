@@ -626,7 +626,7 @@ class Poll(
                .add_field(name='Suggested', value=timestamp(suggested, 'relative'))
                .add_field(name='Tallied', value=timestamp(tallied, 'relative'))
                .set_timestamp())
-        return await ctx.response(ctx, embed=res).reply().deleter().run()
+        return await ctx.response(ctx, embed=res).deleter().run()
 
     @suggest.command('obfuscate')
     @doc.description('Toggle username omission in votes.')
