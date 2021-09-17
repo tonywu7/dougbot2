@@ -94,7 +94,7 @@ class ChannelPlacement(TypedDict):
 
 
 class Ticker(
-    Gear, name='Ticker', order=50,
+    Gear, name='Ticker', order=51,
     description='Manage \"news tickers\": display & hoist messages in the channel list',
 ):
     def __init__(self, *args, **kwargs):
