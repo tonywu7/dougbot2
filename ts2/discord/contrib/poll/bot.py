@@ -575,6 +575,7 @@ class Poll(
     @doc.argument('enabled', 'Whether to open or close the comments section.')
     @doc.restriction(None, 'You can only change the comment access of a suggestion you submitted.')
     @doc.cooldown(1, 5, BucketType.member)
+    @doc.hidden
     async def suggest_forum(
         self, ctx: Circumstances,
         suggestion: Message, enabled: bool = True,
@@ -591,6 +592,7 @@ class Poll(
     @doc.description('Count the votes on a suggestion.')
     @doc.argument('suggestion', 'The message containing the submission.')
     @doc.argument('anonymize', "Whether to omit vote casters' username from the report.")
+    @doc.hidden
     async def suggest_tally(
         self, ctx: Circumstances, suggestion: Message,
         anonymize: Optional[Constant[Literal['anonymize']]] = False,
@@ -631,6 +633,7 @@ class Poll(
     @suggest.command('obfuscate')
     @doc.description('Toggle username omission in votes.')
     @doc.argument('suggestion', 'The message containing the submission.')
+    @doc.hidden
     async def suggest_obfuscate(
         self, ctx: Circumstances, suggestion: Message,
     ):
