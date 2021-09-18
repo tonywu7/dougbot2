@@ -85,7 +85,7 @@ class Museum(
                .set_footer(text='Original message sent:')
                .set_timestamp(message.created_at))
         embeds = [res, *[(Embed2.from_dict(e.to_dict())
-                          .set_author_url(message.jump_url)
+                          .set_author(name=str(message.author), url=message.jump_url)
                           .set_footer(text=f'From message {message.id}, sent:')
                           .set_timestamp(message.created_at))
                          for e in message.embeds]]
