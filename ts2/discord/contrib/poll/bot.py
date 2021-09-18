@@ -840,6 +840,103 @@ class Polling(
             for id_ in ev.message_ids
         ])
 
+    @suggest.command('migrate')
+    @doc.description('Migrate old system.')
+    @doc.hidden
+    async def migrate(
+        self, ctx: Circumstances,
+        oldest: Message,
+        newest: Message,
+        dryrun: bool = True,
+    ):
+        def parse_return_url(embed: Embed2):
+            url = embed.author and embed.author.url
+            if not isinstance(url, str):
+                return
+            split = urlsplit(url)
+            params = MultiValueDict(parse_qs(split.query))
+            if params.get('type') != f'{self.app_label}.suggestion':
+                return
+            info = {}
+            try:
+                info['author_id'] = int(params['author_id'])
+                info['linked_id'] = int(params['linked_id'])
+            except (TypeError, ValueError, KeyError):
+                return
+            for key in ('attrib_id', 'is_public', 'obfuscate'):
+                try:
+                    info[key] = int(params[key])
+                except (TypeError, ValueError, KeyError):
+                    info[key] = None
+            return info
+        target = await self.get_channel_or_404(ctx, oldest.channel)
+        options = target.all_emotes
+        updated: list[tuple[Message, Embed2]] = []
+        failed: list[tuple[Message, Exception]] = []
+        archive: dict[str, dict] = {}
+        async with ctx.typing():
+            async for msg in ctx.channel.history(after=oldest, before=newest):
+                try:
+                    msg: Message
+                    if msg.author != ctx.bot.user:
+                        continue
+                    embed = first(msg.embeds, None)
+                    if not embed:
+                        continue
+                    embed = Embed2.upgrade(embed)
+                    info = parse_return_url(embed)
+                    if not info:
+                        continue
+                    query = {
+                        'linked': info['linked_id'],
+                        'author': info['author_id'],
+                        'attrib': info['attrib_id'] or 0,
+                        'single': not target.voting_history,
+                        'forum': info['is_public'] or 0,
+                        'anon': info['obfuscate'] or 0,
+                        'options': base64.urlsafe_b64encode(json.dumps(options).encode()).decode('ascii'),
+                    }
+                    url = urlunsplit((*urlsplit(embed.author.url)[:3], urlencode({k: v for k, v in query.items() if v}), ''))
+                    embed = embed.set_author_url(url)
+                    poll = Poll.from_embed(embed)
+                    upgraded = poll.to_embed(msg)
+                    assert embed.description == upgraded.description, 'content'
+                    assert embed.title == upgraded.title, 'title'
+                    assert embed.author.name == upgraded.author.name, 'author'
+                    assert embed.timestamp.timestamp() == upgraded.timestamp.timestamp(), 'timestamp'
+                    assert embed.color.value == upgraded.color.value, 'color'
+                    assert upgraded.get_field_value('Reference'), 'reference'
+                    for f in ('Reference', 'Response', 'Comments', 'Edited'):
+                        assert embed.get_field_value(f) == upgraded.get_field_value(f), f
+                    updated.append((msg, upgraded))
+                    archive[str(msg.id)] = embed.to_dict()
+                except Exception as e:
+                    failed.append((msg, e))
+            failures = '\n'.join([f'{a(i, m.jump_url)} {type(e)}: {e}' for i, (m, e) in enumerate(failed)])
+            description = f'{tag(ctx.channel)}\nSuccessful {len(updated)} Failed {len(failed)}\n{failures}'
+            pages = []
+            for c in chapterize(description, 720, lambda c: c == '\n'):
+                pages.append(Embed2(title='Migration', description=c))
+            pager = EmbedPagination(pages, None)
+            await ctx.response(ctx, embed=pager).responder(pager.with_context(ctx)).run()
+            if updated:
+                await ctx.response(ctx, embed=updated[0][1]).run()
+        if dryrun:
+            return
+        import io
+        f = io.StringIO(json.dumps(archive))
+        ff = File(f, filename='archive.json')
+        await ctx.send(file=ff)
+        async with ctx.typing():
+            import time
+            ctime = time.time()
+            for i, (msg, embed) in enumerate(updated, 1):
+                await msg.edit(embed=embed)
+                if time.time() - ctime > 5:
+                    ctime = time.time()
+                    await ctx.send(f'Migrated {i} of {len(updated)} embeds')
+            return await ctx.send(f'Migrated {len(updated)} embeds')
+
 
 class NotPoll(NotAcceptable):
     def __init__(self, msg: Union[Message, PartialMessage], *args):
