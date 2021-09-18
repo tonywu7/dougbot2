@@ -496,7 +496,7 @@ class Polling(
     def get_suggestion_text(self, target: SuggestionChannel, content: str):
         if target.requires_text and not content:
             raise NotAcceptable((
-                f'Submissions to {tag_literal(target.channel_id)}'
+                f'Submissions to {tag_literal("channel", target.channel_id)}'
                 ' must contain text description:'
                 ' what you would like to suggest?'
             ))
@@ -646,9 +646,10 @@ class Polling(
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
 
+        content = self.get_suggestion_text(target, content)
         poll.edit(ctx.author, content)
-        links = self.get_suggestion_links(target, poll.get_external_links())
 
+        links = self.get_suggestion_links(target, poll.get_external_links())
         preamble = self.get_preamble(target, poll.author_id, links)
         await self.update_submission(poll, suggestion, linked=preamble)
 
