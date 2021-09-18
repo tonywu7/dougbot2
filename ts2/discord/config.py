@@ -53,8 +53,11 @@ class CommandAppConfig(AppConfig):
     default = False
 
     def public_views(cls) -> list[AnnotatedPattern]:
-        routes: Iterable[URLPattern] = import_string(f'{cls.name}.urls.public_views')
-        return [r.pattern for r in routes]
+        try:
+            routes: Iterable[URLPattern] = import_string(f'{cls.name}.urls.public_views')
+            return [r.pattern for r in routes]
+        except ModuleNotFoundError:
+            return []
 
 
 class AnnotatedPattern:
