@@ -20,6 +20,7 @@ import logging
 import re
 from contextlib import suppress
 from datetime import datetime, timezone
+from textwrap import dedent
 from typing import Literal, Optional, Union
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
@@ -30,10 +31,11 @@ from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
                      Member, Message, PartialEmoji, PartialMessage,
                      RawBulkMessageDeleteEvent, RawMessageDeleteEvent,
                      RawReactionActionEvent, Role, TextChannel)
-from discord.ext.commands import BucketType, MissingAnyRole, group
+from discord.ext.commands import (BucketType, EmojiConverter, EmojiNotFound,
+                                  MissingAnyRole, group)
 from django.core.cache import caches
 from django.utils.datastructures import MultiValueDict
-from more_itertools import first, map_reduce
+from more_itertools import chunked, first, map_reduce, split_before
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances, on_error_reset_cooldown
@@ -106,7 +108,7 @@ class Poll:
         self.content = content
         self.choices = {**choices}
 
-        self.origin_url: str = ''
+        self.origin_url: str = 'https://discord.com'
         self.linked_msg: int = 0
 
         self.author_id: int = 0
@@ -324,6 +326,7 @@ class Poll:
     def tally(self, origin: Message, hide_username: bool = False) -> Embed2:
         scores = {str(r.emoji): r.count - r.me for r in origin.reactions}
         scores = {k: scores.get(k, 0) for k in self.minor_choices}
+        scores = {k: v for k, v in scores.items() if v}
 
         votes = map_reduce(
             self.votes, lambda v: f'{v.emote} {strong(v.text)}',
@@ -332,8 +335,8 @@ class Poll:
         )
 
         lines = []
-        for k, v in scores.items():
-            lines.append(f'{code(v)} {k}')
+        for row in chunked(scores.items(), 6):
+            lines.append('\n'.join([f'{code(v)} {k}' for k, v in row]))
         for k, v in votes.items():
             lines.append((f'{code(len(v))} {k}\n{blockquote(" ".join(v))}'
                           if not hide_username else f'{code(len(v))} {k}'))
@@ -739,19 +742,6 @@ class Polling(
                f' {strong("on" if enabled else "off")}')
         await self.respond(ctx, res)
 
-    @suggest.command('tally')
-    @doc.description('Count the votes on a suggestion.')
-    @doc.argument('suggestion', 'The message containing the submission.')
-    @doc.argument('anonymize', "Whether to omit vote casters' username from the report.")
-    @doc.hidden
-    async def suggest_tally(
-        self, ctx: Circumstances, suggestion: Message,
-        anonymize: Optional[Constant[Literal['anonymize']]] = False,
-    ):
-        poll = await self.fetch_submission(suggestion)
-        res = poll.tally(suggestion, bool(anonymize))
-        return await ctx.response(ctx, embed=res).deleter().run()
-
     @suggest.command('obfuscate')
     @doc.description('Toggle username omission in votes.')
     @doc.argument('suggestion', 'The message containing the submission.')
@@ -765,6 +755,92 @@ class Polling(
         await self.reset_votes(poll, suggestion)
         await self.add_reactions(poll, suggestion)
         await ctx.response(ctx).success().run()
+
+    @group('poll', case_insensitive=True, invoke_without_command=True)
+    @doc.description('Make a poll.')
+    @doc.argument('content', 'Question and options for the poll.', node='[poll]')
+    @doc.invocation((), 'Get help on how to format your question.')
+    @doc.invocation(('content',), 'Make a poll.')
+    async def poll(self, ctx: Circumstances, *, content: str = ''):
+        HELP_TEXT = dedent("""\
+        To make a poll, type the command, followed by the prompt/question of your poll: ```
+        poll What's for lunch?
+        ```Then, for each of your choices, **start a new line**\
+            (shift-enter on desktop, on mobile look for the return key),\
+            **begin with a dash `-`, and then type your option:\
+            each option should be on its own line.**
+        Your command should look like this: ```
+        poll What's for lunch?
+        - Five Guys
+        - sweetgreen
+        - Ippudo
+        - Katz's
+        - MáLà Project
+        ```You may have up to 10 options in your poll.
+        """)
+        if not content:
+            res = Embed2(title='How-to use the poll command', description=HELP_TEXT)
+            return await ctx.response(ctx, embed=res).autodelete(90).deleter().run()
+
+        items: list[str] = []
+        for lines in split_before(content.splitlines(), lambda s: s[:1] == '-'):
+            items.append('\n'.join(lines))
+
+        choices = items[1:]
+        if not choices:
+            raise NotAcceptable((
+                'Cannot parse any option from your input.'
+                '\nTo see how to format the command,'
+                ' run it without any input.'
+            ))
+        if len(choices) < 2:
+            raise NotAcceptable('At least 2 options are required.')
+        if len(choices) > 10:
+            raise NotAcceptable('You can specify at most 10 options.')
+
+        converter = EmojiConverter()
+        emotes = ('1\ufe0f\u20e3 2\ufe0f\u20e3 3\ufe0f\u20e3 4\ufe0f\u20e3 5\ufe0f\u20e3'
+                  ' 6\ufe0f\u20e3 7\ufe0f\u20e3 8\ufe0f\u20e3 9\ufe0f\u20e3 🔟'
+                  .split(' '))
+        lines: dict[str, str] = {}
+        for bullet, option in zip(emotes, choices):
+            option = option.removeprefix('-').strip()
+            try:
+                word, *rest = option.split(' ', 1)
+                emote = await converter.convert(ctx, word)
+            except EmojiNotFound:
+                pass
+            else:
+                if emote.is_usable() and str(emote) not in lines:
+                    bullet = str(emote)
+                    option = ' '.join(rest)
+            lines[bullet] = option
+
+        prompt = items[0]
+        options = '\n'.join([f'- {emote} {line}' for emote, line in lines.items()])
+        description = f'{prompt}\n{options}'
+
+        poll = Poll(description, {k: '' for k in lines})
+        poll.set_origin(ctx.message)
+        poll.set_author(ctx.author)
+        try:
+            msg = await ctx.response(ctx, embed=poll.to_embed()).run()
+        except ValueError as e:
+            raise NotAcceptable(f'Your poll is too long: {e}')
+        await self.add_reactions(poll, msg)
+        await ctx.response(ctx).deleter().run(msg)
+
+    @poll.command('tally', aliases=('count',))
+    @doc.description('Count the votes on a poll.')
+    @doc.argument('poll', 'The message containing the poll.')
+    @doc.argument('anonymize', "Whether to omit vote casters' username from the result.")
+    async def suggest_tally(
+        self, ctx: Circumstances, poll: Message,
+        anonymize: Optional[Constant[Literal['anonymize']]] = False,
+    ):
+        submission = await self.fetch_submission(poll)
+        res = submission.tally(poll, bool(anonymize))
+        return await ctx.response(ctx, embed=res).deleter().run()
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
