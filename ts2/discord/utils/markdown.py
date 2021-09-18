@@ -16,13 +16,10 @@
 
 from __future__ import annotations
 
-import random
 import re
-from collections import deque
 from datetime import datetime
 from io import StringIO
 from math import floor
-from statistics import mean
 from textwrap import indent
 from typing import Literal
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
@@ -227,36 +224,6 @@ def urlqueryset(u: str, **query) -> str:
 
 def sized(u: str, s: int) -> str:
     return urlqueryset(u, size=s)
-
-
-def spongebob(
-    s: str, ratio: float = .5,
-    *, lookback: int = 2,
-    bias: float = .75,
-) -> tuple[str, bool]:
-    history: deque[bool] = deque(maxlen=lookback)
-    buffer = []
-    has_alpha = False
-    complement = 1 - bias
-    for char in s:
-        if not char.isalpha():
-            buffer.append(char)
-            continue
-        has_alpha = True
-        change = random.random()
-        if history:
-            if mean(history) < .5:
-                change = change * bias + complement
-            else:
-                change = change * bias
-        if change < ratio:
-            buffer.append(char.lower())
-            history.append(False)
-        else:
-            buffer.append(char.upper())
-            history.append(True)
-    res = ''.join(buffer)
-    return res, has_alpha
 
 
 def rgba2int(r: int, g: int, b: int, a: int | None = None) -> int:
