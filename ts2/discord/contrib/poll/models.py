@@ -48,8 +48,7 @@ class SuggestionChannel(models.Model):
         return [f.name for f in cls._meta.fields if not f.is_relation]
 
     @property
-    def reactions_cleaned(self) -> dict[str, str]:
-        return {
-            RE_UNICODE_VARIATIONS.sub('', k): v
-            for k, v in self.reactions.items() if k
-        }
+    def all_emotes(self) -> dict[str, str]:
+        emotes = {self.upvote: '', self.downvote: '', **self.reactions}
+        return {RE_UNICODE_VARIATIONS.sub('', k): v
+                for k, v in emotes.items() if k}

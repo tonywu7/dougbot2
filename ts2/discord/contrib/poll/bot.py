@@ -15,14 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import base64
 import logging
 import re
 from contextlib import suppress
-from datetime import datetime
-from typing import Literal, Optional, TypedDict, Union
-from urllib.parse import parse_qs, urlsplit
+from datetime import datetime, timezone
+from typing import Literal, Optional, Union
+from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
+import attr
 import inflect
+import simplejson as json
 from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
                      Member, Message, PartialEmoji, PartialMessage,
                      RawBulkMessageDeleteEvent, RawMessageDeleteEvent,
@@ -38,10 +41,10 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.ext.common import Constant
 from ts2.discord.utils.async_ import async_get, async_list
-from ts2.discord.utils.common import (E, Embed2, EmbedPagination, a,
-                                      assumed_utc, blockquote, chapterize,
+from ts2.discord.utils.common import (E, Embed2, EmbedField, EmbedPagination,
+                                      a, assumed_utc, blockquote, chapterize,
                                       code, pre, strong, tag, tag_literal,
-                                      timestamp, urlqueryset, utcnow)
+                                      timestamp, utcnow)
 
 from .models import SuggestionChannel
 
@@ -51,29 +54,312 @@ inflection = inflect.engine()
 RE_URL = re.compile(r'https?://\S*(\.\S+)+\S*')
 
 
-class SubmissionInfo(TypedDict):
-    linked_id: int
-    author_id: int
-    attrib_id: Optional[int]
-    is_public: Optional[int]
-    obfuscate: Optional[int]
+def _default_int(v, default=0) -> int:
+    try:
+        return int(v)
+    except Exception:
+        return 0
 
 
-class Ballot(TypedDict):
-    emote: str
-    response: str
-    user_id: str
-    timestamp: Union[str, datetime]
+@attr.s(frozen=True, slots=True)
+class Vote:
+    user_id: int = attr.ib(converter=int)
+    created: float = attr.ib(converter=float)
+    emote: str = attr.ib()
+    text: Optional[str] = attr.ib(default=None)
 
 
-_Submission = tuple[Embed2, SubmissionInfo]
+@attr.s(frozen=True, slots=True)
+class Comment:
+    user_id: int = attr.ib(converter=int)
+    created: float = attr.ib(converter=float)
+    content: str = attr.ib()
 
 
-class Poll(
+@attr.s(frozen=True, slots=True)
+class EditTime:
+    user_id: int = attr.ib(converter=int)
+    modified: float = attr.ib(converter=float)
+
+
+class Poll:
+
+    RE_VOTE = re.compile((
+        r'^(?P<emote>\S+) \*\*(?P<text>.*)\*\* - '
+        r'<@(?P<user_id>\d+)> <t:(?P<created>\d+).*>$'
+    ), re.MULTILINE)
+    RE_EDIT_TIME = re.compile((
+        r'^<@(?P<user_id>\d+)> <t:(?P<modified>\d+).*>$'
+    ), re.MULTILINE)
+    RE_COMMENT = re.compile((
+        r'^<@(?P<user_id>\d+)> <t:(?P<created>\d+).*>:'
+        r' (?P<content>.+)$'
+    ), re.MULTILINE)
+    RE_OBFUSCATION = re.compile(r'\[\(anonymous\)\]\((?P<id>\d+)\)')
+
+    def __init__(
+        self, content: str, choices: dict[EmoteType, Optional[str]],
+        *, author: str = 'unknown', title: str = 'Poll',
+    ):
+        self.title = title
+        self.author = author
+        self.content = content
+        self.choices = {**choices}
+
+        self.origin_url: str = ''
+        self.linked_msg: int = 0
+
+        self.author_id: int = 0
+        self.author_icon: str = ''
+        self.attrib_id: int = 0
+
+        self.color: int = 0
+        self.created: float = utcnow().timestamp()
+
+        self.votes: list[Vote] = []
+        self.comments: list[Comment] = []
+        self.edits: list[EditTime] = []
+
+        self.single_choice = False
+        self.forum = False
+        self.obfuscated = False
+
+    @classmethod
+    def from_embed(cls, embed: Embed2):
+        title = embed.title
+        content = embed.description
+        author = embed.author.name
+        url = urlsplit(embed.author.url)
+        config = MultiValueDict(parse_qs(url.query))
+        choices = json.loads(base64.urlsafe_b64decode(config['options']).decode('utf8'))
+        poll = cls(content, choices, author=author, title=title)
+
+        poll.origin_url = urlunsplit((url.scheme, url.netloc, url.path, '', ''))
+        poll.load_config(config)
+
+        poll.load_votes(embed.get_field_value('Response'))
+        poll.load_comments(embed.get_field_value('Comments'))
+        poll.load_edits(embed.get_field_value('Edited'))
+
+        if embed.timestamp:
+            poll.created = assumed_utc(embed.timestamp).timestamp()
+        poll.author_icon = embed.author.icon_url or ''
+        poll.color = embed.color.value or poll.color
+
+        return poll
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.__dict__.setdefault('single_choice', False)
+        self.__dict__.setdefault('forum', False)
+        self.__dict__.setdefault('obfuscated', False)
+
+    def deobfuscate(self, text: str) -> str:
+        return self.RE_OBFUSCATION.sub(r'<@\g<id>>', text)
+
+    def load_config(self, config: dict):
+        self.linked_msg = _default_int(config.get('linked'))
+        self.author_id = _default_int(config.get('author'))
+        self.attrib_id = _default_int(config.get('attrib'))
+        self.single_choice = bool(_default_int(config.get('single')))
+        self.forum = bool(_default_int(config.get('forum')))
+        self.obfuscated = bool(_default_int(config.get('anon')))
+
+    def load_votes(self, text: str):
+        text = self.deobfuscate(text)
+        self.votes = [Vote(**v.groupdict()) for v
+                      in self.RE_VOTE.finditer(text)]
+
+    def load_comments(self, text: str):
+        text = self.deobfuscate(text)
+        self.comments = [Comment(**c.groupdict()) for c
+                         in self.RE_COMMENT.finditer(text)]
+
+    def load_edits(self, text: str):
+        text = self.deobfuscate(text)
+        self.edits = [EditTime(**e.groupdict()) for e
+                      in self.RE_EDIT_TIME.finditer(text)]
+
+    def vote(self, member: Member, option: EmoteType):
+        emote = str(option)
+        try:
+            text = self.choices[emote]
+        except KeyError:
+            raise ValueError(f'Invalid option {option}')
+        self.votes.append(Vote(member.id, utcnow().timestamp(), emote, text))
+        if self.single_choice:
+            unique_votes = {v.user_id: v for v in self.votes}
+            self.votes = [*unique_votes.values()]
+
+    def comment(self, member: Member, content: str):
+        self.comments.append(Comment(member.id, utcnow().timestamp(), content))
+
+    def edit(self, member: Member, content: str):
+        self.content = content
+        self.touch(member)
+
+    def touch(self, member: Member):
+        self.edits.append(EditTime(member.id, utcnow().timestamp()))
+
+    def set_origin(self, msg: Message):
+        self.origin_url = msg.jump_url
+
+    def set_linked(self, msg: Message):
+        self.linked_msg = msg.id
+
+    def set_credit(self, member: Member):
+        self.author = str(member)
+        self.attrib_id = member.id
+        self.author_icon = str(member.avatar_url)
+        self.color = member.color.value
+
+    def set_author(self, member: Member):
+        self.set_credit(member)
+        self.author_id = member.id
+
+    def get_user_display(self, user_id: int) -> str:
+        if self.obfuscated:
+            return a('(anonymous)', user_id)
+        else:
+            return tag_literal('user', user_id)
+
+    def get_external_links(self) -> list[str]:
+        return [m.group(0) for m in RE_URL.finditer(self.content)]
+
+    def gen_permalink(self, message: Message) -> EmbedField:
+        permalink = a(strong('Permalink'), message.jump_url)
+        return EmbedField('Reference', permalink, False)
+
+    def gen_votes(self) -> EmbedField:
+        lines: list[str] = []
+        for v in self.votes:
+            if not v.text:
+                continue
+            lines.append(
+                f'{v.emote} {strong(v.text)}'
+                f' - {self.get_user_display(v.user_id)}'
+                f' {timestamp(v.created, "relative")}',
+            )
+        return EmbedField('Response', '\n'.join(lines), False)
+
+    def gen_comments(self) -> EmbedField:
+        lines = []
+        for c in self.comments:
+            lines.append(
+                f'{self.get_user_display(c.user_id)}'
+                f' {timestamp(c.created, "relative")}'
+                f': {c.content}',
+            )
+        return EmbedField('Comments', '\n'.join(lines), False)
+
+    def gen_history(self) -> EmbedField:
+        lines = []
+        for edit in self.edits:
+            lines.append(
+                f'{self.get_user_display(edit.user_id)}'
+                f' {timestamp(edit.modified, "relative")}',
+            )
+        return EmbedField('Edited', '\n'.join(lines), False)
+
+    def gen_forum(self) -> EmbedField:
+        indicator = strong(
+            f'{E("star")} Comments section for this submission is open.'
+            f'\nAnyone can add a comment by using the {code("suggest comment")} command.',
+        )
+        return EmbedField('Forum', indicator, False)
+
+    def to_url(self) -> str:
+        params = {
+            'linked': self.linked_msg,
+            'author': self.author_id,
+            'attrib': self.attrib_id,
+            'single': int(self.single_choice),
+            'forum': int(self.forum),
+            'anon': int(self.obfuscated),
+        }
+        options = json.dumps(self.choices)
+        params['options'] = base64.urlsafe_b64encode(options.encode()).decode('ascii')
+        query = urlencode({k: v for k, v in params.items() if v})
+        return urlunsplit((*urlsplit(self.origin_url)[:3], query, ''))
+
+    def to_embed(self, message: Optional[Message] = None) -> Embed2:
+        fields = []
+        if message:
+            fields.append(self.gen_permalink(message))
+        if self.votes:
+            fields.append(self.gen_votes())
+        if self.comments:
+            fields.append(self.gen_comments())
+        if self.edits:
+            fields.append(self.gen_history())
+        if self.forum:
+            fields.append(self.gen_forum())
+        title = self.title or 'Poll'
+        content = self.content or '(no text content)'
+        return (
+            Embed2(title=title, description=content, fields=fields)
+            .set_author(name=self.author, url=self.to_url(), icon_url=self.author_icon)
+            .set_timestamp(self.timestamp)
+            .set_color(self.color)
+        )
+
+    def can_update(self, member: Member) -> bool:
+        return member.id == self.author_id or member.id == self.attrib_id
+
+    def can_delete(self, member: Member) -> bool:
+        return member.id == self.author_id
+
+    @property
+    def minor_choices(self) -> list[str]:
+        return [k for k, v in self.choices.items() if not v]
+
+    @property
+    def major_choices(self) -> dict[str, str]:
+        return {k: v for k, v in self.choices.items() if v}
+
+    @property
+    def timestamp(self) -> datetime:
+        return datetime.fromtimestamp(self.created, timezone.utc)
+
+    def tally(self, origin: Message, hide_username: bool = False) -> Embed2:
+        scores = {str(r.emoji): r.count - r.me for r in origin.reactions}
+        scores = {k: scores.get(k, 0) for k in self.minor_choices}
+
+        votes = map_reduce(
+            self.votes, lambda v: f'{v.emote} {strong(v.text)}',
+            lambda v: tag_literal('user', v.user_id),
+            lambda vs: sorted(set(vs)),
+        )
+
+        lines = []
+        for k, v in scores.items():
+            lines.append(f'{code(v)} {k}')
+        for k, v in votes.items():
+            lines.append((f'{code(len(v))} {k}\n{blockquote(" ".join(v))}'
+                          if not hide_username else f'{code(len(v))} {k}'))
+        if lines:
+            report = '\n'.join(lines)
+        else:
+            report = '(No vote casted)'
+
+        polled = self.timestamp
+        tallied = utcnow().timestamp()
+
+        return (
+            self.to_embed(origin)
+            .clear_fields()
+            .add_field(name='Polled', value=timestamp(polled, 'relative'))
+            .add_field(name='Counted', value=timestamp(tallied, 'relative'))
+            .add_field(name='Votes', value=report, inline=False)
+            .set_timestamp()
+        )
+
+
+class Polling(
     Gear, name='Poll', order=20,
     description='Suggestions & polls',
 ):
-    _CACHE_VERSION = 2
+    _CACHE_VERSION = 5
     _CACHE_TTL = 604800
 
     RE_BALLOT_FORMAT = re.compile((
@@ -139,33 +425,93 @@ class Poll(
         else:
             return suggest
 
-    def field_setdefault(
-        self, embed: Embed2, key: str, line: str,
-        *, replace=False, inline=False,
-    ) -> Embed2:
-        for idx, field in enumerate(embed.fields):
-            if field.name == key:
-                if replace:
-                    value = line
-                else:
-                    value = f'{field.value}\n{line}'
-                break
+    def get_cache_key(self, msg_id: int):
+        return f'{__name__}:{self.app_label}:suggestion:{msg_id}'
+
+    def cache_submission(self, msg_id: int, poll: Poll):
+        key = self.get_cache_key(msg_id)
+        self._cache.set(key, poll, timeout=self._CACHE_TTL, version=self._CACHE_VERSION)
+
+    def invalidate_submission(self, msg_id: int):
+        key = self.get_cache_key(msg_id)
+        self._cache.delete(key, version=self._CACHE_VERSION)
+
+    def get_cached_submission(self, msg_id: int) -> Optional[Poll]:
+        key = self.get_cache_key(msg_id)
+        return self._cache.get(key, None, self._CACHE_VERSION)
+
+    def parse_submission(self, msg: Message) -> Poll:
+        if msg.author != self.bot.user:
+            raise NotPoll(msg)
+        embed = first(msg.embeds, None)
+        if not embed:
+            raise NotPoll(msg)
+        embed = Embed2.upgrade(embed)
+        try:
+            return Poll.from_embed(embed)
+        except Exception:
+            raise NotPoll(msg)
+
+    async def fetch_submission(self, msg: PartialMessage) -> Poll:
+        msg_id = msg.id
+        if msg_id in self._invalid:
+            raise NotPoll(msg)
+        channel = msg.channel
+        poll = self.get_cached_submission(msg_id)
+        if not poll:
+            if isinstance(msg, PartialMessage):
+                msg: Message = await channel.fetch_message(msg_id)
+            try:
+                poll = self.parse_submission(msg)
+            except NotPoll:
+                self._invalid.add(msg_id)
+                raise
+            self.cache_submission(msg_id, poll)
+        return poll
+
+    async def update_submission(self, poll: Poll, origin: PartialMessage,
+                                *, linked: Optional[str] = None):
+        channel: TextChannel = origin.channel
+        updated = poll.to_embed(origin)
+        try:
+            updated.check_oversized()
+        except ValueError:
+            raise NotAcceptable(
+                'This submission has reached its max content size'
+                ' and can no longer be modified.',
+            )
+        try:
+            await origin.edit(embed=updated)
+        except HTTPException as e:
+            self.log.warning(f'Error while setting embed: {e}', exc_info=e)
         else:
-            idx = len(embed.fields)
-            value = line
-        return embed.set_field_at(idx, name=key, value=value, inline=inline)
+            self.cache_submission(origin.id, poll)
 
-    def is_arbiter_in(self, target: SuggestionChannel, member: Member) -> bool:
-        roles: list[Role] = member.roles
-        return {r.id for r in roles} & set(target.arbiters)
+        if linked:
+            linked_msg = channel.get_partial_message(poll.linked_msg)
+            with suppress(HTTPException):
+                await linked_msg.edit(allowed_mentions=AllowedMentions.none(),
+                                      content=linked)
 
-    def get_text(self, target: SuggestionChannel, content: str) -> str:
+    def get_suggestion_text(self, target: SuggestionChannel, content: str):
         if target.requires_text and not content:
-            raise NotAcceptable((f'Submissions to {tag_literal("channel", target.channel_id)}'
-                                 ' must contain text description.'))
+            raise NotAcceptable((
+                f'Submissions to {tag_literal(target.channel_id)}'
+                ' must contain text description:'
+                ' what you would like to suggest?'
+            ))
         return content
 
-    async def get_files(self, target: SuggestionChannel, msg: Message) -> list[File]:
+    def get_suggestion_links(self, target: SuggestionChannel, links: list[str]):
+        min_links = target.requires_links
+        if min_links and len(links) < min_links:
+            err = (f'Submissions to {tag_literal("channel", target.channel_id)}'
+                   f' must include at least {min_links}'
+                   f' {inflection.plural_noun("link", min_links)}.')
+            raise NotAcceptable(err)
+        return links
+
+    async def get_suggestion_files(self, target: SuggestionChannel, msg: Message) -> list[File]:
         min_uploads = target.requires_uploads
         if min_uploads and len(msg.attachments) < min_uploads:
             err = (f'Submissions to {tag(msg.channel)} require'
@@ -174,19 +520,6 @@ class Poll(
             raise NotAcceptable(err)
         return await asyncio.gather(*[att.to_file() for att in msg.attachments])
 
-    def get_links(self, target: SuggestionChannel, content: str) -> list[str]:
-        min_links = target.requires_links
-        if min_links:
-            links = [m.group(0) for m in RE_URL.finditer(content)]
-            if len(links) < min_links:
-                err = (f'Submissions to {tag_literal("channel", target.channel_id)}'
-                       f' must include at least {min_links}'
-                       f' {inflection.plural_noun("link", min_links)}.')
-                raise NotAcceptable(err)
-            return links
-        else:
-            return []
-
     def get_preamble(
         self, target: SuggestionChannel,
         author_id: int, links: list[str],
@@ -194,193 +527,19 @@ class Poll(
         prefix = f'{target.title} submitted by {tag_literal("member", author_id)}:'
         return '\n'.join([prefix, *links])
 
-    def build_return_url(
-        self, src: str,
-        author: Member,
-        linked: Message,
-    ) -> tuple[str, SubmissionInfo]:
-        info = {
-            'linked_id': linked.id,
-            'author_id': author.id,
-        }
-        url = urlqueryset(src, type=f'{self.app_label}.suggestion', **info)
-        return url, info
+    def is_arbiter_in(self, target: SuggestionChannel, member: Member) -> bool:
+        roles: list[Role] = member.roles
+        return {r.id for r in roles} & set(target.arbiters)
 
-    async def add_reactions(self, target: SuggestionChannel, msg: Message):
-        emotes = [target.upvote, target.downvote]
-        for e in target.reactions_cleaned:
-            emotes.append(e)
-        for e in filter(None, emotes):
-            try:
+    async def add_reactions(self, poll: Poll, msg: Message):
+        for e in filter(None, poll.choices):
+            with suppress(Exception):
                 await msg.add_reaction(e)
-            except Exception:
-                pass
 
-    async def reset_votes(self, target: SuggestionChannel, msg: Message):
-        for e in target.reactions_cleaned:
-            await msg.clear_reaction(e)
-
-    def parse_return_url(self, embed: Embed2) -> Optional[SubmissionInfo]:
-        url = embed.author and embed.author.url
-        if not isinstance(url, str):
-            return
-        split = urlsplit(url)
-        params = MultiValueDict(parse_qs(split.query))
-        if params.get('type') != f'{self.app_label}.suggestion':
-            return
-        info: SubmissionInfo = {}
-        try:
-            info['author_id'] = int(params['author_id'])
-            info['linked_id'] = int(params['linked_id'])
-        except (TypeError, ValueError, KeyError):
-            return
-        for key in ('attrib_id', 'is_public', 'obfuscate'):
-            try:
-                info[key] = int(params[key])
-            except (TypeError, ValueError, KeyError):
-                info[key] = None
-        return info
-
-    def parse_submission(self, msg: Message) -> _Submission:
-        if msg.author != self.bot.user:
-            raise NotSuggestion(msg)
-        embed = first(msg.embeds, None)
-        if not embed:
-            raise NotSuggestion(msg)
-        info = self.parse_return_url(embed)
-        if not info:
-            raise NotSuggestion(msg)
-        embed = Embed2.upgrade(embed)
-        return embed, info
-
-    def parse_responses(self, body: str, obfuscated: bool = False) -> list[Ballot]:
-        ballots: list[Ballot] = []
-        if obfuscated:
-            body = self.RE_OBFUSCATED.sub(lambda m: f'<@{m.group(1)}>', body)
-        for matched in self.RE_BALLOT_FORMAT.finditer(body):
-            ballots.append(matched.groupdict())
-        return ballots
-
-    def build_responses(self, ballots: list[Ballot], obfuscated: bool = False) -> str:
-        lines = []
-        if obfuscated:
-            def caster(ballot: Ballot):
-                return f'[(anonymous)]({ballot["user_id"]})'
-        else:
-            def caster(ballot: Ballot):
-                return tag_literal('member', ballot['user_id'])
-        for b in ballots:
-            lines.append(
-                f'{b["emote"]} {strong(b["response"])}'
-                f' - {caster(b)}'
-                f' {timestamp(b["timestamp"], "relative")}',
-            )
-        return '\n'.join(lines)
-
-    def get_cache_key(self, msg_id: int):
-        return f'{__name__}:{self.app_label}:suggestion:{msg_id}'
-
-    def cache_submission(self, msg_id: int, embed: Embed2, info: SubmissionInfo):
-        key = self.get_cache_key(msg_id)
-        self._cache.set(key, (embed, info), timeout=self._CACHE_TTL, version=self._CACHE_VERSION)
-
-    def invalidate_submission(self, msg_id: int):
-        key = self.get_cache_key(msg_id)
-        self._cache.delete(key, version=self._CACHE_VERSION)
-
-    def get_cached_submission(self, msg_id: int) -> Union[tuple[None, None], _Submission]:
-        key = self.get_cache_key(msg_id)
-        return self._cache.get(key, (None, None), self._CACHE_VERSION)
-
-    async def fetch_submission(self, msg: Union[Message, PartialMessage]):
-        embed: Embed2
-        info: SubmissionInfo
-        msg_id = msg.id
-        if msg_id in self._invalid:
-            raise NotSuggestion(msg)
-        channel = msg.channel
-        embed, info = self.get_cached_submission(msg_id)
-        if not embed:
-            if isinstance(msg, PartialMessage):
-                msg: Message = await channel.fetch_message(msg_id)
-            try:
-                embed, info = self.parse_submission(msg)
-            except NotSuggestion:
-                self._invalid.add(msg_id)
-                raise
-            self.cache_submission(msg_id, embed, info)
-        return embed, info
-
-    async def update_submission(
-        self, original: Union[Message, PartialMessage],
-        embed: Embed2, info: SubmissionInfo,
-        *, body: Optional[str] = None,
-        linked: Optional[str] = None,
-        comment: Optional[str] = None,
-        edited: Optional[str] = None,
-        author: Optional[Member] = None,
-        status: Optional[str] = None,
-        public: Optional[bool] = None,
-        obfuscate: Optional[bool] = None,
-    ):
-        channel: TextChannel = original.channel
-        updated = embed
-        info = {**info}
-        if status:
-            updated = self.field_setdefault(updated, 'Response', status, replace=True)
-        if comment:
-            updated = self.field_setdefault(updated, 'Comments', comment)
-        if edited:
-            updated = self.field_setdefault(updated, 'Edited', edited)
-        if body:
-            updated = updated.set_description(body)
-
-        if author:
-            url = updated.author.url
-            if author.id != info['author_id']:
-                info['attrib_id'] = author.id
-                url = urlqueryset(url, attrib_id=author.id)
-            updated = updated.personalized(author, url=url)
-
-        if public is not None:
-            info['is_public'] = int(public)
-            url = updated.author.url
-            url = urlqueryset(url, is_public=int(public))
-            updated = updated.set_author_url(url)
-            if public:
-                indicator = strong(
-                    f'{E("star")} Comments section for this submission is open.'
-                    f'\nAnyone can add a comment by using the {code("suggest comment")} command.',
-                )
-            else:
-                indicator = 'Comments section is closed.'
-            updated = self.field_setdefault(updated, 'Forum', indicator, replace=True)
-
-        if obfuscate is not None:
-            info['obfuscate'] = int(obfuscate)
-            url = updated.author.url
-            url = urlqueryset(url, obfuscate=int(obfuscate))
-            updated = updated.set_author_url(url)
-
-        if updated is not embed:
-            try:
-                updated.check_oversized()
-            except ValueError:
-                raise NotAcceptable(
-                    'This submission has reached its max content size'
-                    ' and can no longer be modified.',
-                )
-            try:
-                await original.edit(embed=updated)
-            except HTTPException as e:
-                self.log.warning(f'Error while setting embed: {e}', exc_info=e)
-            else:
-                self.cache_submission(original.id, updated, info)
-
-        if linked:
-            linked_msg = channel.get_partial_message(info['linked_id'])
-            with suppress(HTTPException):
-                await linked_msg.edit(content=linked)
+    async def reset_votes(self, poll: Poll, msg: Message):
+        for emote in poll.major_choices:
+            with suppress(Exception):
+                await msg.clear_reaction(emote)
 
     async def respond(self, ctx: Circumstances, content: str):
         return (await ctx.response(ctx, content=content)
@@ -406,22 +565,23 @@ class Poll(
             return await self.send_channel_list(ctx)
 
         if not isinstance(category, TextChannel):
-            raise NotAcceptable(f'No such channel {category}.')
+            raise NotAcceptable(f'No such text channel {category}.')
 
         if not category.permissions_for(ctx.author).read_messages:
             raise NotAcceptable((f'You cannot submit to {tag(category)} because'
                                  ' the channel is not visible to you.'))
 
         target = await self.get_channel_or_404(ctx, category)
-
-        if target.requires_text and not suggestion:
-            raise NotAcceptable((f'Submissions to {tag(category)} must contain text description:'
-                                 ' what you would like to suggest?'))
-
         msg = ctx.message
-        suggestion = self.get_text(target, suggestion)
-        files = await self.get_files(target, msg)
-        links = self.get_links(target, suggestion)
+
+        suggestion = self.get_suggestion_text(target, suggestion)
+        poll = Poll(suggestion, target.all_emotes, title=target.title)
+        poll.set_author(ctx.author)
+        poll.set_origin(msg)
+        poll.single_choice = not target.voting_history
+
+        links = self.get_suggestion_links(target, poll.get_external_links())
+        files = await self.get_suggestion_files(target, msg)
 
         async with self._sequential, ctx.typing():
 
@@ -429,25 +589,15 @@ class Poll(
             content = self.get_preamble(target, ctx.author.id, links)
             kwargs['content'] = content
             kwargs['files'] = files or None
-            associated: Message = await category.send(**kwargs)
+            linked: Message = await category.send(**kwargs)
+            poll.set_linked(linked)
 
-            src = ctx.message.jump_url
-            author = ctx.author
-            return_url, info = self.build_return_url(src, author, associated)
-            submission = (
-                Embed2(title=target.title or 'Suggestion',
-                       description=suggestion or None)
-                .set_timestamp(ctx.timestamp)
-                .personalized(ctx.author, url=return_url)
-            )
+            submission = poll.to_embed()
             res: Message = await category.send(embed=submission)
 
-        referrer = a(strong('Permalink'), res.jump_url)
-        postsubmit = submission.add_field(name='Reference', value=referrer, inline=False)
-        self.cache_submission(res.id, postsubmit, info)
-
-        await res.edit(embed=postsubmit)
-        await self.add_reactions(target, res)
+        self.cache_submission(res.id, poll)
+        await res.edit(embed=poll.to_embed(res))
+        await self.add_reactions(poll, res)
         await self.respond(ctx, 'Thank you for the suggestion!')
 
     @suggest.command('delete', aliases=('remove', 'del', 'rm'))
@@ -458,11 +608,10 @@ class Poll(
     ))
     async def suggest_delete(self, ctx: Circumstances, suggestion: Message):
         category: TextChannel = suggestion.channel
-        embed, info = await self.fetch_submission(suggestion)
-        author = ctx.author
-        if author.id != info['author_id'] and author.id != info.get('attrib_id'):
+        poll = await self.fetch_submission(suggestion)
+        if not poll.can_delete(ctx.author):
             raise NotAcceptable("You cannot delete someone else's suggestion.")
-        associated = category.get_partial_message(info['linked_id'])
+        associated = category.get_partial_message(poll.linked_msg)
         await associated.delete(delay=0)
         await suggestion.delete(delay=0)
         await self.respond(ctx, f'Deleted suggestion {code(suggestion.id)}')
@@ -490,20 +639,18 @@ class Poll(
         suggestion: Message,
         *, content: str = '',
     ):
-        embed, info = await self.fetch_submission(suggestion)
-        author = ctx.author
-        if author.id != info['author_id'] and author.id != info.get('attrib_id'):
+        poll = await self.fetch_submission(suggestion)
+        if not poll.can_update(ctx.author):
             raise NotAcceptable("You cannot edit someone else's suggestion.")
 
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
 
-        content = self.get_text(target, content)
-        links = self.get_links(target, content)
-        preamble = self.get_preamble(target, info['author_id'], links)
-        edited = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}'
-        await self.update_submission(suggestion, embed, info, body=content,
-                                     linked=preamble, edited=edited)
+        poll.edit(ctx.author, content)
+        links = self.get_suggestion_links(target, poll.get_external_links())
+
+        preamble = self.get_preamble(target, poll.author_id, links)
+        await self.update_submission(poll, suggestion, linked=preamble)
 
         await self.respond(ctx, f'Edited suggestion {code(suggestion.id)}')
 
@@ -524,12 +671,12 @@ class Poll(
         if not comment:
             raise NotAcceptable('Comment must not be empty.')
 
-        embed, info = await self.fetch_submission(suggestion)
+        poll = await self.fetch_submission(suggestion)
         category = suggestion.channel
         target = await self.get_channel_or_404(ctx, category)
 
         is_arbiter = self.is_arbiter_in(target, ctx.author)
-        is_public = info.get('is_public')
+        is_public = poll.forum
 
         if not is_arbiter and not is_public:
             if is_public is not None:
@@ -538,8 +685,8 @@ class Poll(
             else:
                 raise MissingAnyRole(target.arbiters)
 
-        comment = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}: {comment}'
-        await self.update_submission(suggestion, embed, info, comment=comment)
+        poll.comment(ctx.author, comment)
+        await self.update_submission(poll, suggestion)
 
         await self.respond(ctx, f'Comment added to suggestion {code(suggestion.id)}')
 
@@ -557,12 +704,14 @@ class Poll(
         suggestion: Message,
         member: Member,
     ):
-        embed, info = await self.fetch_submission(suggestion)
-        if ctx.author.id != info['author_id']:
+        poll = await self.fetch_submission(suggestion)
+        if not poll.can_delete(ctx.author):
             raise NotAcceptable('You can only change the attribution of a suggestion you submitted.')
 
-        edited = f'{tag(ctx.author)} {timestamp(ctx.timestamp, "relative")}'
-        await self.update_submission(suggestion, embed, info, author=member, edited=edited)
+        if poll.attrib_id:
+            poll.touch(ctx.author)
+        poll.set_credit(member)
+        await self.update_submission(poll, suggestion)
 
         await self.respond(ctx, f'Updated suggestion {code(suggestion.id)}')
 
@@ -580,12 +729,13 @@ class Poll(
         self, ctx: Circumstances,
         suggestion: Message, enabled: bool = True,
     ):
-        embed, info = await self.fetch_submission(suggestion)
-        if ctx.author.id != info['author_id']:
+        poll = await self.fetch_submission(suggestion)
+        if not poll.can_delete(ctx.author):
             raise NotAcceptable('You can only change the comment access of a suggestion you submitted.')
-
-        await self.update_submission(suggestion, embed, info, public=enabled)
-        res = f'Comments section for suggestion {code(suggestion.id)} is now {strong("on" if enabled else "off")}'
+        poll.forum = enabled
+        await self.update_submission(poll, suggestion)
+        res = (f'Comments section for suggestion {code(suggestion.id)} is now'
+               f' {strong("on" if enabled else "off")}')
         await self.respond(ctx, res)
 
     @suggest.command('tally')
@@ -597,37 +747,8 @@ class Poll(
         self, ctx: Circumstances, suggestion: Message,
         anonymize: Optional[Constant[Literal['anonymize']]] = False,
     ):
-        embed, info = await self.fetch_submission(suggestion)
-        category = suggestion.channel
-        target = await self.get_channel_or_404(ctx, category)
-
-        votes = {str(r.emoji): r.count - r.me for r in suggestion.reactions}
-        votes = {k: votes.get(k, 0) for k in (target.upvote, target.downvote) if k}
-        ballots = self.parse_responses(embed.get_field_value('Response'), info.get('obfuscate'))
-        ballots = map_reduce(ballots, lambda v: f'{v["emote"]} {strong(v["response"])}',
-                             lambda v: tag_literal('user', v['user_id']),
-                             lambda vs: sorted(set(vs)))
-
-        lines = []
-        for k, v in votes.items():
-            lines.append(f'{code(v)} {k}')
-        for k, v in ballots.items():
-            lines.append((f'{code(len(v))} {k}\n{blockquote(" ".join(v))}'
-                          if not anonymize else f'{code(len(v))} {k}'))
-        if lines:
-            report = '\n'.join(lines)
-        else:
-            report = '(No vote casted)'
-
-        suggested = assumed_utc(suggestion.created_at).timestamp()
-        tallied = utcnow().timestamp()
-
-        res = (embed.clear_fields()
-               .add_field(name='Votes', value=report, inline=False)
-               .add_field(name='Reference', value=embed.get_field_value('Reference'))
-               .add_field(name='Suggested', value=timestamp(suggested, 'relative'))
-               .add_field(name='Tallied', value=timestamp(tallied, 'relative'))
-               .set_timestamp())
+        poll = await self.fetch_submission(suggestion)
+        res = poll.tally(suggestion, bool(anonymize))
         return await ctx.response(ctx, embed=res).deleter().run()
 
     @suggest.command('obfuscate')
@@ -637,16 +758,11 @@ class Poll(
     async def suggest_obfuscate(
         self, ctx: Circumstances, suggestion: Message,
     ):
-        embed, info = await self.fetch_submission(suggestion)
-        category = suggestion.channel
-        target = await self.get_channel_or_404(ctx, category)
-        obfuscated = bool(info.get('obfuscate'))
-        res = self.parse_responses(embed.get_field_value('Response'), obfuscated)
-        obfuscated = not obfuscated
-        res = self.build_responses(res, obfuscated)
-        await self.update_submission(suggestion, embed, info, status=res, obfuscate=obfuscated)
-        await self.reset_votes(target, suggestion)
-        await self.add_reactions(target, suggestion)
+        poll = await self.fetch_submission(suggestion)
+        poll.obfuscated = not poll.obfuscated
+        await self.update_submission(poll, suggestion)
+        await self.reset_votes(poll, suggestion)
+        await self.add_reactions(poll, suggestion)
         await ctx.response(ctx).success().run()
 
     @Gear.listener('on_raw_reaction_add')
@@ -668,8 +784,8 @@ class Poll(
 
         target: SuggestionChannel
         emote = str(ev.emoji)
-        text = target.reactions_cleaned.get(emote)
-        if text is None:
+        text = target.all_emotes.get(emote)
+        if not text:
             return
 
         if not self.is_arbiter_in(target, ev.member):
@@ -678,29 +794,18 @@ class Poll(
         msg_id = ev.message_id
         msg = channel.get_partial_message(msg_id)
         try:
-            embed, info = await self.fetch_submission(msg)
-        except NotSuggestion:
+            poll = await self.fetch_submission(msg)
+        except NotPoll:
             self._invalid.add(msg_id)
             return
 
-        res = embed.get_field_value('Response')
-        obfuscated = info.get('obfuscate')
-        ballots = self.parse_responses(res, obfuscated)
-        vote = {
-            'emote': emote, 'response': text,
-            'user_id': ev.member.id,
-            'timestamp': utcnow(),
-        }
-        if target.voting_history:
-            ballots.append(vote)
-        else:
-            ballots_dict = {b['user_id']: b for b in ballots}
-            ballots_dict[str(ev.member.id)] = vote
-            ballots = [*ballots_dict.values()]
-        status = self.build_responses(ballots, obfuscated)
+        try:
+            poll.vote(ev.member, emote)
+        except ValueError:
+            return
 
         try:
-            await self.update_submission(msg, embed, info, status=status)
+            await self.update_submission(poll, msg)
         except NotAcceptable:
             pass
         except Exception as e:
@@ -710,10 +815,10 @@ class Poll(
         if msg_id in self._invalid:
             return
         self._invalid.add(msg_id)
-        embed, info = self.get_cached_submission(msg_id)
-        if embed is None:
+        poll = self.get_cached_submission(msg_id)
+        if poll is None:
             return
-        linked = channel.get_partial_message(info['linked_id'])
+        linked = channel.get_partial_message(poll.linked_msg)
         self._invalid.add(linked.id)
         await linked.delete(delay=0)
         self.invalidate_submission(msg_id)
@@ -736,7 +841,7 @@ class Poll(
         ])
 
 
-class NotSuggestion(NotAcceptable):
+class NotPoll(NotAcceptable):
     def __init__(self, msg: Union[Message, PartialMessage], *args):
         link = a(f'Message {code(msg.id)}', msg.jump_url)
         message = f'{link} is not a submission.'

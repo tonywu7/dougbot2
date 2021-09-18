@@ -15,5 +15,5 @@ class PollConfig(CommandAppConfig):
 
     @classproperty
     def target(cls) -> Gear:
-        from .bot import Poll
-        return Poll
+        from .bot import Polling
+        return Polling
