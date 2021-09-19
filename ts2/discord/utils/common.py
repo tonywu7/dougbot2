@@ -30,10 +30,10 @@ from .duckcord.permissions import Permissions2, get_total_perms  # noqa: F401
 from .events import (DeleteResponder, EmoteResponder, Responder,  # noqa: F401
                      emote_added, emote_matches, emote_no_bots, event_filter,
                      run_responders, start_responders)
-from .markdown import (E, a, arrow, blockquote, code, em, pre,  # noqa: F401
-                       redact, sized, strike, strong, tag, tag_literal,
-                       timestamp, traffic_light, u, unmarked, untagged,
-                       unwrap_codeblock, urlqueryset, verbatim)
+from .markdown import (E, a, arrow, blockquote, code, em,  # noqa: F401
+                       iter_urls, pre, redact, sized, strike, strong, tag,
+                       tag_literal, timestamp, traffic_light, u, unmarked,
+                       untagged, unwrap_codeblock, urlqueryset, verbatim)
 from .pagination import (EmbedPagination, ParagraphStream,  # noqa: F401
                          TextPagination, chapterize, chapterize_fields,
                          chapterize_items, limit_results, page_embed2,

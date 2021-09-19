@@ -21,7 +21,7 @@ from datetime import datetime
 from io import StringIO
 from math import floor
 from textwrap import indent
-from typing import Literal
+from typing import Iterable, Literal
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 from discord import Role
@@ -36,6 +36,8 @@ RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
 
 RE_CODE_START = re.compile(r'```(\w+)$')
 RE_CODE_END = re.compile(r'^(.*?)```')
+
+RE_URL = re.compile(r'https?://\S*(\.\S+)+\S*')
 
 _TIMESTAMP_FORMATS = Literal[
     'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
@@ -231,3 +233,8 @@ def rgba2int(r: int, g: int, b: int, a: int | None = None) -> int:
         return (r << 16) + (g << 8) + b
     else:
         return (r << 24) + (g << 16) + (b << 8) + a
+
+
+def iter_urls(s: str) -> Iterable[str]:
+    for m in RE_URL.finditer(s):
+        yield m.group(0)

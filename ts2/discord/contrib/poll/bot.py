@@ -45,15 +45,14 @@ from ts2.discord.ext.common import Constant
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (E, Embed2, EmbedField, EmbedPagination,
                                       a, assumed_utc, blockquote, chapterize,
-                                      code, pre, strong, tag, tag_literal,
-                                      timestamp, utcnow)
+                                      code, iter_urls, pre, strong, tag,
+                                      tag_literal, timestamp, utcnow)
 
 from .models import SuggestionChannel
 
 EmoteType = Union[Emoji, PartialEmoji, str]
 
 inflection = inflect.engine()
-RE_URL = re.compile(r'https?://\S*(\.\S+)+\S*')
 
 
 def _default_int(v, default=0) -> int:
@@ -226,7 +225,7 @@ class Poll:
             return tag_literal('user', user_id)
 
     def get_external_links(self) -> list[str]:
-        return [m.group(0) for m in RE_URL.finditer(self.content)]
+        return [*iter_urls(self.content)]
 
     def gen_permalink(self, message: Message) -> EmbedField:
         permalink = a(strong('Permalink'), message.jump_url)
