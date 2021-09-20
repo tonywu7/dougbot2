@@ -30,8 +30,8 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.types.models import PermissionName
 from ts2.discord.utils.common import (Embed2, EmbedField, EmbedPagination,
                                       PermissionOverride, Permissions2,
-                                      chapterize, chapterize_fields, code,
-                                      get_total_perms, strong, tag,
+                                      can_embed, chapterize, chapterize_fields,
+                                      code, get_total_perms, strong, tag,
                                       traffic_light)
 
 PERMISSIONS = {
@@ -144,6 +144,7 @@ class ServerQueryCommands:
     @command('channels')
     @doc.description('List channels in the server.')
     @doc.restriction(None, 'Will only list channels visible to you.')
+    @can_embed
     async def channels(self, ctx: Circumstances):
         await ctx.trigger_typing()
         channel_map = get_channel_map(ctx.guild)
@@ -173,6 +174,7 @@ class ServerQueryCommands:
         ' in the server, this will only show you the roles you have'
         ' plus roles that are displayed in the sidebar separately.'
     ))
+    @can_embed
     async def roles(self, ctx: Circumstances, *, role: Optional[Role] = None):
         def getline(r: Role):
             info = []
@@ -240,6 +242,7 @@ class ServerQueryCommands:
         ' if it has this permission in this channel.'
     ))
     @doc.restriction(has_guild_permissions, manage_roles=True)
+    @can_embed
     async def perms(
         self, ctx: Circumstances,
         roles: Greedy[Union[Role, Member]],
@@ -380,6 +383,7 @@ class ServerQueryCommands:
         ' and permission in this channel.'
     ))
     @doc.restriction(has_guild_permissions, manage_roles=True)
+    @can_embed
     async def overrides(
         self, ctx: Circumstances,
         target: Optional[Union[Role, Member]] = None,

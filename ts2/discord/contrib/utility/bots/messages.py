@@ -30,7 +30,8 @@ from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Dictionary, JinjaTemplate,
                                     format_exception, get_traceback)
 from ts2.discord.ext.template import get_environment
-from ts2.discord.utils.common import Embed2, a, code, strong, trunc_for_field
+from ts2.discord.utils.common import (Embed2, a, can_upload, code, strong,
+                                      trunc_for_field)
 from ts2.discord.utils.datetime import localnow
 
 
@@ -146,6 +147,7 @@ class MessageCommands:
     @doc.use_syntax_whitelist
     @doc.invocation(('message',), None)
     @doc.invocation(('reply',), None)
+    @can_upload
     async def stdin(
         self, ctx: Circumstances,
         message: Optional[Message], *,
@@ -259,6 +261,7 @@ class MessageCommands:
     @doc.use_syntax_whitelist
     @doc.invocation(('message', 'text'), None)
     @doc.hidden
+    @can_upload
     async def ofstream(
         self, ctx: Circumstances,
         message: Optional[Message],

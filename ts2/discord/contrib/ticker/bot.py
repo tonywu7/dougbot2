@@ -35,7 +35,7 @@ from ts2.discord.ext.template import CommandTemplate, get_environment
 from ts2.discord.models import Channel
 from ts2.discord.utils.async_ import (async_delete, async_get, async_list,
                                       async_save)
-from ts2.discord.utils.common import (Embed2, EmbedPagination,
+from ts2.discord.utils.common import (Embed2, EmbedPagination, can_embed,
                                       PermissionOverride, chapterize, code,
                                       tag, tag_literal, timestamp, utcnow)
 
@@ -321,6 +321,7 @@ class Ticker(
 
     @group('ticker', case_insensitive=True, invoke_without_command=True)
     @doc.description('List all VCs currently used for message hoisting.')
+    @can_embed
     async def ticker(self, ctx: Circumstances):
         channels = [c.id for c in ctx.guild.channels]
         q = TickerChannel.objects.filter(channel_id__in=channels)
@@ -490,6 +491,7 @@ class Ticker(
         manage_channels=True,
         manage_roles=True,
     )
+    @can_embed
     async def ticker_create(
         self, ctx: Circumstances,
         category: Union[AnyChannel, Constant[Literal['top']]],
@@ -543,6 +545,7 @@ class Ticker(
         manage_channels=True,
         manage_roles=True,
     )
+    @can_embed
     async def ticker_update(
         self, ctx: Circumstances,
         channel: VoiceChannel,
@@ -578,6 +581,7 @@ class Ticker(
         manage_channels=True,
         manage_roles=True,
     )
+    @can_embed
     async def ticker_remove(self, ctx: Circumstances, channels: Greedy[VoiceChannel]):
         deleted: list[str] = []
         async with ctx.typing():

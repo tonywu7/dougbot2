@@ -25,7 +25,8 @@ from discord import (Activity, ActivityType, AllowedMentions, Forbidden, Game,
                      Guild, Intents, Message, MessageReference, NotFound,
                      Permissions, RawMessageDeleteEvent)
 from discord.ext.commands import (Bot, CommandInvokeError, CommandNotFound,
-                                  errors, has_guild_permissions, is_owner)
+                                  bot_has_permissions, errors,
+                                  has_guild_permissions, is_owner)
 from discord.utils import escape_markdown
 from django.conf import settings
 from django.core.cache import caches
@@ -337,6 +338,7 @@ def add_base_commands(self: Robot):
 
     @self.command('about')
     @doc.description('Print info about the bot.')
+    @bot_has_permissions(embed_links=True)
     async def about(ctx: Circumstances, *, rest: str = None):
         versions = ' '.join([code(f'{pkg}/{v}') for pkg, v
                              in list_versions().items()])
@@ -504,11 +506,15 @@ def define_errors():
         (errors.BotMissingAnyRole,
          errors.MissingRole),
         'Where my roles at??',
+        "Can't do that sorry",
+        'No command execution without required roles',
     )
     add_error_names(
         (errors.BotMissingPermissions,
          Forbidden),
         'Where my perms at??',
+        "Can't do that sorry",
+        'No command execution without required perms',
     )
     add_error_names(
         errors.MissingRequiredArgument,

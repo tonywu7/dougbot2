@@ -27,7 +27,8 @@ from PIL import Image, ImageColor
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
-from ts2.discord.utils.common import Embed2, a, code, strong, timestamp
+from ts2.discord.utils.common import (Embed2, a, can_embed, can_upload, code,
+                                      strong, timestamp)
 from ts2.discord.utils.markdown import rgba2int
 
 HEX_DIGITS = set(hexdigits)
@@ -41,6 +42,7 @@ class QueryCommands:
     @command('snowflake', aliases=('mtime',))
     @doc.description('Get the timestamp of a Discord snowflake (ID).')
     @doc.argument('snowflake', 'The snowflake to convert.')
+    @can_embed
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
             int, Member, Role, Message, TextChannel, User,
@@ -78,6 +80,8 @@ class QueryCommands:
           'https://pillow.readthedocs.io/en/stable/reference/ImageColor.html#color-names')
         + ' such as a hex code.'
     ))
+    @can_embed
+    @can_upload
     async def color(self, ctx: Circumstances, *, color: Union[Role, str]):
         if isinstance(color, Role):
             color = f'#{color.color.value:06x}'
@@ -112,6 +116,7 @@ class QueryCommands:
     @doc.argument('member', 'The user whose avatar to get.')
     @doc.invocation((), 'Get your profile pic.')
     @doc.invocation(('member',), "Get someone else's profile pic.")
+    @can_embed
     async def avatar(self, ctx: Circumstances, member: Optional[Member]):
         if not member:
             member = ctx.author

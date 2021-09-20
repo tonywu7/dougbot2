@@ -31,7 +31,8 @@ from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
                      Member, Message, PartialEmoji, PartialMessage,
                      RawBulkMessageDeleteEvent, RawMessageDeleteEvent,
                      RawReactionActionEvent, Role, TextChannel)
-from discord.ext.commands import (BucketType, EmojiConverter, EmojiNotFound,
+from discord.ext.commands import (BotMissingPermissions, BucketType,
+                                  EmojiConverter, EmojiNotFound,
                                   MissingAnyRole, group)
 from django.core.cache import caches
 from django.utils.datastructures import MultiValueDict
@@ -44,9 +45,9 @@ from ts2.discord.ext.autodoc import NotAcceptable
 from ts2.discord.ext.common import Constant
 from ts2.discord.utils.async_ import async_get, async_list
 from ts2.discord.utils.common import (E, Embed2, EmbedField, EmbedPagination,
-                                      a, assumed_utc, blockquote, chapterize,
-                                      code, iter_urls, pre, strong, tag,
-                                      tag_literal, timestamp, utcnow)
+                                      a, assumed_utc, blockquote, can_embed,
+                                      chapterize, code, iter_urls, pre, strong,
+                                      tag, tag_literal, timestamp, utcnow)
 
 from .models import SuggestionChannel
 
@@ -533,6 +534,19 @@ class Polling(
         roles: list[Role] = member.roles
         return {r.id for r in roles} & set(target.arbiters)
 
+    async def deliver(self, channel: TextChannel, **kwargs):
+        perms = channel.permissions_for(channel.guild.me)
+        missing = []
+        for required in ('send_messages', 'attach_files',
+                         'embed_links', 'add_reactions'):
+            if not getattr(perms, required):
+                missing.append(required)
+        if missing:
+            exc = BotMissingPermissions(missing)
+            exc.channel = channel
+            raise exc
+        return await channel.send(**kwargs)
+
     async def add_reactions(self, poll: Poll, msg: Message):
         for e in filter(None, poll.choices):
             with suppress(Exception):
@@ -556,6 +570,7 @@ class Polling(
     @doc.use_syntax_whitelist
     @doc.invocation((), 'Show a list of all suggestion channels.')
     @doc.invocation(('category', 'suggestion'), 'Submit a new suggestion.')
+    @can_embed
     @on_error_reset_cooldown
     async def suggest(
         self, ctx: Circumstances,
@@ -591,11 +606,11 @@ class Polling(
             content = self.get_preamble(target, ctx.author.id, links)
             kwargs['content'] = content
             kwargs['files'] = files or None
-            linked: Message = await category.send(**kwargs)
+            linked: Message = await self.deliver(category, **kwargs)
             poll.set_linked(linked)
 
             submission = poll.to_embed()
-            res: Message = await category.send(embed=submission)
+            res: Message = await self.deliver(category, embed=submission)
 
         self.cache_submission(res.id, poll)
         await res.edit(embed=poll.to_embed(res))
@@ -760,6 +775,7 @@ class Polling(
     @doc.argument('content', 'Question and options for the poll.', node='[poll]')
     @doc.invocation((), 'Get help on how to format your question.')
     @doc.invocation(('content',), 'Make a poll.')
+    @can_embed
     async def poll(self, ctx: Circumstances, *, content: str = ''):
         HELP_TEXT = dedent("""\
         To make a poll, type the command, followed by the prompt/question of your poll: ```
@@ -823,7 +839,7 @@ class Polling(
         poll.set_origin(ctx.message)
         poll.set_author(ctx.author)
         try:
-            msg = await ctx.response(ctx, embed=poll.to_embed()).run()
+            msg = await self.deliver(ctx.channel, embed=poll.to_embed())
         except ValueError as e:
             raise NotAcceptable(f'Your poll is too long: {e}')
         await self.add_reactions(poll, msg)
@@ -833,6 +849,7 @@ class Polling(
     @doc.description('Count the votes on a poll.')
     @doc.argument('poll', 'The message containing the poll.')
     @doc.argument('anonymize', "Whether to omit vote casters' username from the result.")
+    @can_embed
     async def suggest_tally(
         self, ctx: Circumstances, poll: Message,
         anonymize: Optional[Constant[Literal['anonymize']]] = False,
@@ -920,7 +937,7 @@ class Polling(
 class NotPoll(NotAcceptable):
     def __init__(self, msg: Union[Message, PartialMessage], *args):
         link = a(f'Message {code(msg.id)}', msg.jump_url)
-        message = f'{link} is not a submission.'
+        message = f'{link} is not a poll submission.'
         super().__init__(message, *args)
 
 

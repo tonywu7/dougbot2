@@ -34,6 +34,7 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Constant, doc
+from ts2.discord.utils.checks import can_embed
 from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
@@ -58,6 +59,7 @@ class Museum(
     @doc.argument('message', 'The message to quote.')
     @doc.accepts_reply('Quote the replied-to message.')
     @doc.invocation(('message',), None)
+    @can_embed
     async def quote(
         self, ctx: Circumstances,
         message: Optional[Message],
@@ -107,6 +109,7 @@ class Museum(
     ))
     @doc.invocation(('message', 'cancel'), 'Remove a previously set marker.')
     @doc.concurrent(1, BucketType.channel)
+    @can_embed
     async def story(
         self, ctx: Circumstances,
         message: Optional[Message],

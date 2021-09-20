@@ -20,7 +20,7 @@ from typing import Literal, Optional
 
 import pytz
 from discord import Member
-from discord.ext.commands import command, group
+from discord.ext.commands import bot_has_permissions, command, group
 from discord.utils import escape_markdown
 from geopy import Location
 from geopy.exc import GeocoderTimedOut
@@ -129,6 +129,7 @@ class Personalize(
     @command('me', invoke_without_command=True)
     @accepts_dms
     @doc.description('Print your settings within the bot.')
+    @bot_has_permissions(embed_links=True)
     async def me(self, ctx: Circumstances):
         profile: User = await User.async_get(ctx.author)
 
@@ -174,6 +175,7 @@ class Personalize(
     @doc.example(('40 -74', '52.3676° N, 4.9041° E'), 'Using the geographical coordinates of your location.')
     @doc.example(('Seattle WA', 'Straße des 17. Juni', '国会議事堂前駅'), 'Or search for a place directly.')
     @Maybe.ensure
+    @bot_has_permissions(embed_links=True)
     async def timezone(
         self, ctx: Circumstances,
         reset: Maybe[Constant[Literal['-reset']], None],
@@ -302,6 +304,7 @@ class Personalize(
     @doc.invocation(('help',), 'Show help on how to specify a format.')
     @doc.invocation(('reset',), 'Reset your date format to the default value.')
     @doc.invocation(('format_string',), 'Set your datetime format.')
+    @bot_has_permissions(embed_links=True)
     async def date_format(
         self, ctx: Circumstances,
         help: Optional[Constant[Literal['-help']]] = None,

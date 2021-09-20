@@ -26,7 +26,8 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext.common import Maybe, RegExp, User, doc, lang
 from ts2.discord.ext.services.datetime import Timezone
 from ts2.discord.ext.services.oeis import OEIS
-from ts2.discord.utils.common import Color2, Embed2, async_first, code, tag
+from ts2.discord.utils.common import (Color2, Embed2, async_first, can_embed,
+                                      code, tag)
 
 from ..models import RoleTimezone
 
@@ -45,6 +46,7 @@ class WebServiceCommands:
     @doc.example('A018226', 'Find the magic numbers.')
     @doc.cooldown(1, 10, BucketType.guild)
     @doc.concurrent(1, BucketType.guild)
+    @can_embed
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
                    a_number: Optional[RegExp[Literal[r'[Aa]\d+', 'A-number', 'such as A0000045']]] = None):
         if integers:
@@ -90,6 +92,7 @@ class WebServiceCommands:
         ' or a server role, if it is associated with a timezone.'
     ))
     @Maybe.ensure
+    @can_embed
     async def time(
         self, ctx: Circumstances, *,
         subject: Maybe[Union[Timezone, Member, Role], None],
