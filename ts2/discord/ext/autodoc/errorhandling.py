@@ -23,7 +23,7 @@ from collections.abc import Callable, Coroutine
 from functools import wraps
 from typing import Literal, Optional, Union
 
-from discord import AllowedMentions
+from discord import AllowedMentions, Forbidden
 from discord.ext.commands import Context, errors
 
 from ...utils.duckcord.color import Color2
@@ -88,7 +88,11 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
     else:
         allowed_mentions = AllowedMentions.none()
     embed = Embed2(color=Color2.red(), title=title, description=msg).set_timestamp(None)
-    await ctx.send(embed=embed, delete_after=autodelete, allowed_mentions=allowed_mentions)
+    kwargs = {'delete_after': autodelete, 'allowed_mentions': allowed_mentions}
+    try:
+        await ctx.send(embed=embed, **kwargs)
+    except Forbidden:
+        await ctx.send(content=str(embed), **kwargs)
 
 
 async def explain_exception(ctx: Context, exc: Exception):
