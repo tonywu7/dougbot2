@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 from discord import Forbidden, NotFound
+from discord.abc import GuildChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
@@ -117,15 +118,27 @@ async def on_not_owner(ctx, exc):
 @explains(errors.MissingPermissions, 'Missing perms', 0)
 async def on_missing_perms(ctx, exc: errors.MissingPermissions):
     perms = _format_permissions(exc.missing_perms)
-    explanation = f'You are missing the {perms} in this server.'
+    try:
+        channel: GuildChannel = getattr(exc, 'channel')
+    except AttributeError:
+        where = ''
+    else:
+        where = f' in {channel.mention}'
+    explanation = f'You are missing the {perms}{where}.'
     return explanation, 20
 
 
 @explains(errors.BotMissingPermissions, 'Bot missing perms', 0)
 async def on_bot_missing_perms(ctx, exc: errors.BotMissingPermissions):
     perms = _format_permissions(exc.missing_perms)
-    explaination = ('The bot is missing at least one of the following perms'
-                    f' needed to run this command:\n{perms}')
+    try:
+        channel: GuildChannel = getattr(exc, 'channel')
+    except AttributeError:
+        where = ''
+    else:
+        where = f' in {channel.mention}'
+    explaination = (f'The bot is missing the {perms}{where}'
+                    f' required to run this command.')
     return explaination, 60
 
 
