@@ -20,8 +20,8 @@ from datetime import datetime, timezone
 from string import hexdigits
 from typing import Optional, Union
 
-from discord import (File, Member, Message, Role, StageChannel, TextChannel,
-                     VoiceChannel)
+from discord import (Emoji, File, Member, Message, PartialEmoji, Role,
+                     StageChannel, TextChannel, User, VoiceChannel)
 from discord.ext.commands import command
 from PIL import Image, ImageColor
 
@@ -43,8 +43,8 @@ class QueryCommands:
     @doc.argument('snowflake', 'The snowflake to convert.')
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
-            int, Member, Role, Message, TextChannel,
-            VoiceChannel, StageChannel,
+            int, Member, Role, Message, TextChannel, User,
+            VoiceChannel, StageChannel, Emoji, PartialEmoji,
         ],
     ):
         if not isinstance(snowflake, int):
