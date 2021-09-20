@@ -487,6 +487,17 @@ class Embed2:
             len(self.footer), len(self.author),
         ])
 
+    def __str__(self) -> str:
+        lines = []
+        if self.title:
+            lines.append(f'__**{self.title}**__')
+        if self.description:
+            lines.append(self.description + '\n')
+        for f in self.fields:
+            lines.append(f'**{f.name}**')
+            lines.append(f.value + '\n')
+        return '\n'.join(lines)
+
 
 class EmbedOversizedError(ValueError):
     def __init__(self, component: str, limit: str, unit='characters'):
