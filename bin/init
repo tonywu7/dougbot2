@@ -1,5 +1,4 @@
 #!/bin/bash
-source /application/.venv/bin/activate
 set -eux
 
 TARGET=$(pwd)/instance
@@ -17,6 +16,9 @@ fi
 
 # Collect static
 yes yes | python3 manage.py collectstatic -c
+
+# Install NLTK data
+python3 -m nltk.downloader -d $NLTK_DATA stopwords punkt
 
 # Apply migrations
 python3 manage.py migrate --skip-checks

@@ -1,20 +1,5 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.9.6-buster AS build
-
-# Prerequisites
-RUN apt-get update && \
-    apt-get -y install libmemcached-dev
-
-# Setup environment
-ENV POETRY_VERSION=1.1.7
-RUN python3 -m pip install poetry==$POETRY_VERSION
-
-WORKDIR /application/
-COPY pyproject.toml poetry.lock /application/
-RUN poetry config virtualenvs.in-project true && \
-    poetry install --no-dev --no-interaction --no-ansi
-
 # Compile assets
 FROM node:14-alpine AS assets
 
@@ -29,28 +14,41 @@ RUN NODE_ENV=production npm run build && \
     npm prune --production
 
 # Setup environment
-FROM python:3.9.6-slim-buster AS runtime
+FROM --platform=linux/amd64 python:3.9-slim-buster AS runtime
 
 RUN apt-get update && \
-    apt-get -y install libmemcached-dev
+    apt-get -y install libmemcached-dev gcc zlib1g-dev && \
+    apt-get clean
 
-# Finalize file system
-COPY --from=build /application/.venv /application/.venv
-COPY --from=assets /application/build /application/build
-RUN python3 -m venv /application/.venv
-COPY ./ /application/
+# Setup environment
+ENV POETRY_VERSION=1.1.7 \
+    PIP_NO_CACHE_DIR=false \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random
 
 WORKDIR /application/
-SHELL [ "/bin/bash", "-c" ]
+COPY pyproject.toml poetry.lock /application/
 
-ENV PYTHONFAULTHANDLER=1
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONHASHSEED=random
+RUN python3 -m pip install -U poetry==$POETRY_VERSION
+RUN python3 -m poetry install --no-dev --no-interaction --no-ansi
 
-# Setup project
-ENV DJANGO_SETTINGS_MODULE=ts2.conf.production
-RUN ./bin/setup
+RUN apt-get -y purge gcc zlib1g-dev && \
+    apt-get -y autoremove
 
 RUN adduser -u 5555 --disabled-password --gecos "" ts2 && \
     chown -R ts2 /application
 USER ts2
+
+# Finalize file system
+COPY --from=assets /application/build /application/build
+COPY ./ /application/
+
+SHELL [ "/bin/bash", "-c" ]
+
+# Setup project
+ENV DJANGO_SETTINGS_MODULE=ts2.conf.production \
+    NLTK_DATA=/application/instance/nltk_data
+
+RUN ./bin/setup
