@@ -13,15 +13,15 @@
         "declarationMap": true,
         "noImplicitAny": true,
         "paths": {
-            "web/*": ["./ts2/web/index/*"]
+            "web/*": ["./ts2-web/web/*"]
         },
         "typeRoots": [
             "node_modules/@types",
-            "ts2/**/@types",
+            "ts2-web/**/@types",
         ]
     },
     "include": [
-        "./ts2/**/*.ts",
-        "./ts2/**/*.js",
+        "./ts2-web/**/*.ts",
+        "./ts2-web/**/*.js",
     ],
 }

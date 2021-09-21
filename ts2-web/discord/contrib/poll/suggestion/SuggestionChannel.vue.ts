@@ -31,14 +31,12 @@ import {
     SuggestionChannelType,
     UpdateSuggestChannelsMutation,
     UpdateSuggestChannelsMutationVariables,
+    KeyValuePairInput,
+    KeyValuePairType,
 } from './@types/graphql/schema'
 import SUGGEST_CHANNELS from './graphql/query/suggest-channels.graphql'
 import DELETE_SUGGEST_CHANNELS from './graphql/mutation/delete-suggest-channels.graphql'
 import UPDATE_SUGGEST_CHANNELS from './graphql/mutation/update-suggest-channels.graphql'
-import {
-    KeyValuePairInput,
-    KeyValuePairType,
-} from '../../../../internet/web/apps/timezones/@types/graphql/schema'
 import { Color } from 'web/components/modal/bootstrap'
 import { displayNotification } from 'web/components/utils/modal'
 

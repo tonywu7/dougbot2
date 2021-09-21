@@ -24,7 +24,7 @@ COPY package.json package-lock.json webpack.config.js tsconfig.json \
 RUN npm install -g npm@latest && npm i
 
 COPY ./scripts /application/scripts
-COPY ./ts2 /application/ts2
+COPY ./ts2-web /application/ts2-web
 RUN NODE_ENV=production npm run build && \
     npm prune --production
 

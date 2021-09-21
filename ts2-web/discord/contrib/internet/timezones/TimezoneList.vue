@@ -27,7 +27,7 @@
 </template>
 <script lang="ts" src="./TimezoneList.vue.ts"></script>
 <style lang="scss" scoped>
-    @import '~/../ts2/web/index/styles/colors';
+    @import '~/../ts2-web/web/styles/colors';
 
     .timezone-list-container {
         display: flex;

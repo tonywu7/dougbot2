@@ -11,7 +11,7 @@ const devMode = process.env.NODE_ENV !== 'production'
 
 const BASE = path.resolve(__dirname)
 const PROJECT = BASE
-const SOURCE = path.resolve(BASE, 'ts2')
+const SOURCE = path.resolve(BASE, 'ts2-web')
 const DEST = path.resolve(PROJECT, 'build', 'ts2')
 const APPS = Object.assign(
   {},
@@ -100,7 +100,7 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
-      web: path.resolve(__dirname, 'ts2', 'web', 'index'),
+      web: path.resolve(__dirname, 'ts2-web', 'web'),
     },
   },
 

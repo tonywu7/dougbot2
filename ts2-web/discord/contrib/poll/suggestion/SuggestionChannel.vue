@@ -124,7 +124,7 @@
 </template>
 <script lang="ts" src="./SuggestionChannel.vue.ts"></script>
 <style lang="scss" scoped>
-    @import "~/../ts2/web/index/styles/colors";
+    @import "~/../ts2-web/web/styles/colors";
 
     .suggestion-channel-tabs {
         display: flex;
