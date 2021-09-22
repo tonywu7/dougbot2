@@ -21,7 +21,6 @@ from django.conf import settings
 from django.core.checks import CheckMessage, Error, register
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.signals import connection_created
-from django.http import HttpRequest
 
 from .config import AnnotatedPattern, CommandAppConfig
 
@@ -35,12 +34,14 @@ class DiscordBotConfig(AppConfig):
     url_map: dict[str, list[AnnotatedPattern]] = {}
 
     def sqlite_pragma(self, *, sender, connection: BaseDatabaseWrapper, **kwargs):
+        """Enable foreign keys and WAL-mode."""
         if connection.vendor == 'sqlite':
             with connection.cursor() as cursor:
                 cursor.execute('PRAGMA foreign_keys=ON;')
                 cursor.execute('PRAGMA journal_mode=WAL;')
 
     def ready(self) -> None:
+        """Find installed cogs and start Discord listener."""
         connection_created.connect(self.sqlite_pragma)
         for k, v in apps.app_configs.items():
             if isinstance(v, CommandAppConfig):
@@ -57,11 +58,13 @@ class DiscordBotConfig(AppConfig):
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
+        """Return a mapping of installed cogs."""
         return {**self.ext_map}
 
 
 @register('discord')
 def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[CheckMessage]:
+    """Check if Discord client id, secret, or bot token is missing."""
     if no_credentials():
         return [Error('Discord credentials are missing.',
                       hint='Run the init command to supply them.',
@@ -70,34 +73,39 @@ def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[Ch
 
 
 def no_credentials():
+    """Return True if any required Discord client credentials is not provided in settings."""
     return (not settings.DISCORD_CLIENT_ID
             or not settings.DISCORD_CLIENT_SECRET
             or not settings.DISCORD_BOT_TOKEN)
 
 
 def server_allowed(server_id: int):
+    """Check if this guild is whitelisted for the program.
+
+    The bot will only respond to events from whitelisted guilds, and
+    only whitelisted ones appear on the web console.
+
+    Whitelist is provided through `ALLOWED_GUILDS` in Django settings
+    as a list of guild IDs. If no ID is provided (default), all guilds
+    are allowed.
+    """
     allowed = settings.ALLOWED_GUILDS
     return not allowed or server_id in allowed
 
 
 def get_app() -> DiscordBotConfig:
+    """Access the Django config for the discord app."""
     return apps.get_app_config('discord')
 
 
 def get_constant(k: str, default=None):
+    """Retrieve a value from the `INSTANCE_CONSTANTS` mapping in settings.
+
+    Used for defining miscellaneous values such as bot colors.
+    """
     return settings.INSTANCE_CONSTANTS.get(k.upper(), default)
 
 
-def get_commands(req: HttpRequest) -> list[str]:
-    from .updater import get_updater
-    superuser = req.user.is_superuser
-    bot = get_updater().client
-    return [*sorted(
-        c.qualified_name for c
-        in bot.walk_commands()
-        if not bot.manual.is_hidden(c) or superuser
-    )]
-
-
 def get_extensions() -> list[CommandAppConfig]:
+    """Return app configs for the list of installed cogs."""
     return [app for app in get_app().ext_map.values() if not app.hidden]

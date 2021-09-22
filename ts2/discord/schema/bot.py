@@ -14,10 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from django.http import HttpRequest
 from graphene import Field, List, ObjectType, String
 
-from ..apps import get_commands
+from ..updater import get_updater
 from ..utils.graphql import HasContext
+
+
+def get_commands(req: HttpRequest) -> list[str]:
+    """Get a list of available bot commands to be provided to the web API."""
+    superuser = req.user.is_superuser
+    bot = get_updater().client
+    return [*sorted(
+        c.qualified_name for c
+        in bot.walk_commands()
+        if not bot.manual.is_hidden(c) or superuser
+    )]
 
 
 class BotType(ObjectType):

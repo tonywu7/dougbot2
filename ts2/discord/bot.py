@@ -53,8 +53,10 @@ log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
 
 @explains(CommandNotFound, 'Command not found', 100)
 async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
+    """Reply with autocorrect suggestions when someone attempts to call a non-existing command."""
     if is_direct_message(ctx):
         return False
+    # TODO: Will deprecate.
     cmd = ctx.searched_path or ctx.full_invoked_with
     try:
         ctx.bot.manual.lookup(cmd)
@@ -65,14 +67,18 @@ async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
 
 @explains(cog.ModuleDisabled, 'Command disabled')
 async def on_disabled(ctx, exc: cog.ModuleDisabled):
+    """Indicate disabled cog."""
     return f'This command belongs to the {exc.module} module, which has been disabled.', 20
 
 
 class RollbackCommand(Exception):
+    """Exception to be raised to Django transaction manager when a command unsuccessfully ran."""
+
     pass
 
 
 class Robot(Bot):
+    """Subclass of `discord.ext.commands.Bot` with aiohttp and custom method overrides."""
 
     DEFAULT_PREFIX = 't;'
     DEFAULT_PERMS = Permissions(534689869558)
@@ -85,6 +91,7 @@ class Robot(Bot):
         options['allowed_mentions'] = self.DEFAULT_MENTIONS
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
+        # TODO: Remove unnecessary intents.
         options.setdefault('intents', Intents.all())
         options.setdefault('case_insensitive', True)
         options.setdefault('strip_after_prefix', True)
@@ -110,17 +117,9 @@ class Robot(Bot):
         self.gatekeeper = gatekeeper.Gatekeeper()
         self.set_presence = options.get('set_presence', True)
 
-    async def _init_client_session(self):
-        if hasattr(self, 'request'):
-            await self.request.close()
-        self.request = aiohttp.ClientSession(
-            loop=asyncio.get_running_loop(),
-            headers={'User-Agent': settings.USER_AGENT},
-        )
-        self.log.info('Started an aiohttp.ClientSession')
-
     @classmethod
     async def get_server_prefix(cls, guild_id: int) -> str:
+        """Fetch this server's command prefix from the database."""
         @sync_to_async
         def get():
             return Server.objects.get(pk=guild_id).prefix
@@ -128,6 +127,7 @@ class Robot(Bot):
 
     @classmethod
     async def which_prefix(cls, bot: Bot, msg: Message):
+        """Find and return the prefix found in this message, if any."""
         if msg.guild is None:
             return ''
         try:
@@ -140,6 +140,10 @@ class Robot(Bot):
             return '\x00'
 
     def dispatch(self, event_name, *args, **kwargs):
+        """Override event dispatching.
+
+        Pass the event through Gatekeeper before dispatching it.
+        """
         task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
 
         def callback(task: asyncio.Task):
@@ -155,6 +159,11 @@ class Robot(Bot):
         task.add_done_callback(callback)
 
     async def get_context(self, message: Message, *args, **kwargs) -> Circumstances:
+        """Override context creation.
+
+        Use the custom `Circumstances` class, ensure server profile exists in
+        database for this guild, and prevent hidden commands from running.
+        """
         ctx: Circumstances = await super().get_context(message, cls=Circumstances)
         try:
             await ctx.init()
@@ -167,6 +176,15 @@ class Robot(Bot):
         return ctx
 
     async def invoke(self, ctx: Circumstances):
+        """Override command invocation.
+
+        Run post command checks, check if the command ran successfully,
+        and check if subcommands did indeed run.
+
+        Rollback the database
+        transaction for the current execution if it is deemed unsuccessful
+        so that no change to data is made.
+        """
         with suppress(RollbackCommand):
             async with async_atomic():
                 await super().invoke(ctx)
@@ -175,18 +193,42 @@ class Robot(Bot):
                     raise RollbackCommand()
 
     async def on_command_returned(self, ctx: Circumstances):
+        """Run errands when command finishes running in invoke().
+
+        Check if subcommands did run (via property in `Circumstances`).
+        """
         if ctx.subcommand_not_completed:
             await ctx.command.dispatch_error(ctx, CommandNotFound())
 
+    async def _init_client_session(self):
+        """Start an `aiohttp.ClientSession` and keep it alive with the bot."""
+        if hasattr(self, 'request'):
+            await self.request.close()
+        self.request = aiohttp.ClientSession(
+            loop=asyncio.get_running_loop(),
+            headers={'User-Agent': settings.USER_AGENT},
+        )
+        self.log.info('Started an aiohttp.ClientSession')
+
     async def before_identify_hook(self, shard_id, *, initial=False):
+        """Override event before IDENTIFY.
+
+        Run aiohttp init.
+        """
         await self._init_client_session()
         return await super().before_identify_hook(shard_id, initial=initial)
 
     async def on_ready(self):
+        """Indicate bot ready."""
         self.log.info('Bot ready')
         self.log.info(f'User {self.user}')
 
     async def on_message(self, message: Message):
+        """Override default message handler.
+
+        Catch exceptions raised in handler but outside of command invocation,
+        consider them command invoke errors, and handle them.
+        """
         try:
             return await super().on_message(message)
         except Exception as exc:
@@ -197,6 +239,11 @@ class Robot(Bot):
             return await self.on_command_error(ctx, exc)
 
     async def on_command_error(self, ctx: Circumstances, exc: Exception):
+        """Override default command error handler.
+
+        Reply with a friendly explanation on why the command failed,
+        and log the error.
+        """
         try:
             await explain_exception(ctx, exc)
         except Exception as exc:
@@ -205,32 +252,40 @@ class Robot(Bot):
         await log_command_error(ctx, ctx.logconfig, exc)
 
     def get_cache_key(self, **keys):
+        """Format a prefixed string to be used as a redis cache key."""
         args = [f'{k}={v}' for k, v in keys.items()]
         return ':'.join([__name__, 'cache', *args])
 
     def get_cache(self, default=None, /, **keys):
+        """Retrieve a value from the redis cache."""
         return self._cache.get(self.get_cache_key(**keys), default, self._CACHE_VERSION)
 
     def set_cache(self, value, ttl: Optional[float], /, **keys):
+        """Set a value in the redis cache."""
         key = self.get_cache_key(**keys)
         self._cache.set(key, value, timeout=ttl, version=self._CACHE_VERSION)
 
     def del_cache(self, **keys):
+        """Invalidate a value in the redis cache."""
         key = self.get_cache_key(**keys)
         self._cache.delete(key, version=self._CACHE_VERSION)
 
     async def set_exit_status(self):
+        """Set the bot's presence to indicate that the bot is about to shutdown."""
         await self.change_presence(activity=Game('System Restart. Please hold.'))
         self.log.info('Exit indicator is set!')
 
     def load_extensions(self):
+        """Load all cogs from the bot's Django app config."""
         app = get_app()
         for label, ext in app.ext_map.items():
             cog_cls = ext.target
             self.add_cog(cog_cls(label, self))
 
     def create_manual(self):
+        """Initialize help command content."""
         title = f'{get_constant("branding_full")}: Command list'
+        # TODO: Better instance customization with YAML (see python discord.)
         color = get_constant('site_color')
         if color:
             color = int(color, 16)
@@ -238,8 +293,15 @@ class Robot(Bot):
 
 
 def add_base_listeners(self: Robot):
+    """Add essential checks and event listeners to a bot instance."""
+
     @self.check_once
     async def command_global_check(ctx: Circumstances) -> bool:
+        """Check preconditions applicable before any other checks.
+
+        Check if the cog is marked as disabled on the web console.
+        Check if the command can be run in DMs (if the context is a DM context.
+        """
         for check in asyncio.as_completed([
             cog.cog_enabled_check(ctx),
             dm.dm_allowed_check(ctx),
@@ -250,6 +312,10 @@ def add_base_listeners(self: Robot):
 
     @self.check
     async def command_check(ctx: Circumstances) -> bool:
+        """Check preconditions applicable to all commands.
+
+        Check if the member satisfy the command's access control policy.
+        """
         for check in asyncio.as_completed([
             acl.acl_check(ctx),
         ]):
@@ -259,6 +325,7 @@ def add_base_listeners(self: Robot):
 
     @self.listen('on_message')
     async def on_bare_mention(msg: Message):
+        """Reply with the bot's prefix in this server if the bot is mentioned without anything else."""
         if is_direct_message(msg):
             return
         if msg.content == f'<@!{self.user.id}>':
@@ -268,6 +335,10 @@ def add_base_listeners(self: Robot):
 
     @self.listen('on_guild_join')
     async def on_guild_join(guild: Guild):
+        """Check if this guild has been whitelisted for the program upon joining.
+
+        If it is not, leave immediately.
+        """
         self.log.info(f'Joined {guild}')
         if not server_allowed(guild.id):
             self.log.warning(f'{guild} is not in the list of allowed guilds!')
@@ -277,6 +348,7 @@ def add_base_listeners(self: Robot):
     @self.listen('on_guild_channel_update')
     @self.listen('on_guild_channel_delete')
     async def update_channels(channel, updated=None):
+        """Synchronize guild channels to the database."""
         updated = updated or channel
         await sync_server(updated.guild, info=False, roles=False)
         self.log.debug(f'Updated channels for {updated.guild}; reason: {repr(updated)}')
@@ -285,17 +357,20 @@ def add_base_listeners(self: Robot):
     @self.listen('on_guild_role_update')
     @self.listen('on_guild_role_delete')
     async def update_roles(role, updated=None):
+        """Synchronize guild roles to the database."""
         updated = updated or role
         await sync_server(role.guild, info=False, channels=False)
         self.log.debug(f'Updated roles for {updated.guild}; reason: {repr(updated)}')
 
     @self.listen('on_guild_update')
     async def update_server(before: Guild, after: Guild):
+        """Synchronize guild details to the database."""
         await sync_server(after, roles=False, channels=False, layout=False)
         self.log.debug(f'Updated server info for {after}; reason: {repr(after)}')
 
     @self.listen('on_guild_available')
     async def update_server_initial(guild: Guild):
+        """Run synchronization when the bot reconnects to a guild."""
         if not server_allowed(guild.id):
             self.log.warning(f'{guild} is not in the list of allowed guilds!')
             return await guild.leave()
@@ -303,6 +378,13 @@ def add_base_listeners(self: Robot):
 
 
 def add_reply_listener(self: Robot):
+    """Implement a listener that auto-deletes the bot's replies to commands.
+
+    Listen to message delete events. If the bot has replied to the deleted message,
+    delete the reply as well to reduce clutter.
+
+    Does not always succeed. Relies on the reply being found in the redis cache.
+    """
     @self.listen('on_message')
     async def on_bot_reply(msg: Message):
         if msg.author != self.user:
@@ -327,6 +409,7 @@ def add_reply_listener(self: Robot):
 
 
 def add_base_commands(self: Robot):
+    """Add basic commands to a bot instance."""
     @self.command('help')
     @dm.accepts_dms
     @doc.description('Get help about commands.')
@@ -385,6 +468,7 @@ def add_base_commands(self: Robot):
 
 
 def add_ping_command(self: Robot):
+    """Implement a ping command for testing network latency."""
     @self.command('ping')
     @doc.description('Test the network latency between the bot and Discord.')
     async def ping(ctx: Circumstances):
@@ -416,7 +500,10 @@ def add_ping_command(self: Robot):
 
 
 def add_status_command(self: Robot):
+    """Implement command for setting the bot's presence."""
+
     async def set_presence(kind: str, **kwargs):
+        """Set the bot's presence and persist it in the redis cache."""
         if not self.set_presence:
             return
         if kind == 'reset':
@@ -433,6 +520,7 @@ def add_status_command(self: Robot):
 
     @self.listen('on_ready')
     async def resume_presence():
+        """Restore the bot's presence if one is found in the cache."""
         if not self.set_presence:
             return
         kind, kwargs = self.get_cache((None, None), type=f'{__name__}.activity')
@@ -458,6 +546,7 @@ def add_status_command(self: Robot):
 
 
 def define_errors():
+    """Add some more friendly error messages."""
     from .ext.autodoc import exceptions
     from .ext.types.patterns import (InvalidChoices, InvalidRange,
                                      RegExpMismatch)

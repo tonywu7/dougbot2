@@ -16,7 +16,7 @@
 
 import logging
 
-from discord.ext.commands import Bot, Cog, CogMeta, Context
+from discord.ext.commands import Cog, CogMeta, Context
 from discord.ext.commands.errors import DisabledCommand
 from django.apps import apps
 
@@ -24,14 +24,18 @@ from .config import CommandAppConfig
 
 
 class GearMeta(CogMeta):
-    def __new__(cls, *args, order: int = 50, **kwargs):
+    """Subclass of `discord.ext.commands.CogMeta` with arbitrary sort order."""
+
+    def __new__(cls, *args, order: int = 50, **kwargs):  # noqa: D102
         new_cls = super().__new__(cls, *args, **kwargs)
         new_cls.sort_order = order
         return new_cls
 
 
 class Gear(Cog, metaclass=GearMeta):
-    def __init__(self, label: str, bot: Bot, *args, **kwargs):
+    """Subclass of `discord.ext.commands.Cog` with type annotations and a default logger."""
+
+    def __init__(self, label: str, bot, *args, **kwargs):
         from .bot import Robot
         super().__init__()
         self.bot: Robot = bot
@@ -40,6 +44,11 @@ class Gear(Cog, metaclass=GearMeta):
 
 
 async def cog_enabled_check(ctx: Context) -> bool:
+    """Check if the cog this command belongs to is enabled.
+
+    Cogs are always enabled for the bot's owner or in a DM context
+    (no server profile exists).
+    """
     from .models import Server
     if await ctx.bot.is_owner(ctx.author):
         return True
@@ -59,6 +68,11 @@ async def cog_enabled_check(ctx: Context) -> bool:
 
 
 class ModuleDisabled(DisabledCommand):
+    """Exception for when a command is called but its cog has been disabled.
+
+    Subclass of `discord.ext.commands.DisabledCommand`.
+    """
+
     def __init__(self, cog: Cog, *args):
         self.module = cog.qualified_name
         super().__init__(message=f'Attempted to use disabled module {cog.qualified_name}', *args)

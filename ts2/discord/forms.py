@@ -26,18 +26,24 @@ from .models import Server
 
 
 class ServerCreateForm(forms.ModelForm):
+    """`ModelForm` for creating a server profile."""
+
     class Meta:
         model = Server
         fields = ['snowflake', 'invited_by', 'disabled']
 
 
 class ServerPrefixForm(forms.ModelForm):
+    """`ModelForm` for setting the prefix for a server."""
+
     class Meta:
         model = Server
         fields = ('prefix',)
 
 
 class ServerExtensionsForm(forms.ModelForm):
+    """`ModelForm` for modifying enabled cogs for a server."""
+
     extensions = forms.JSONField(required=False)
 
     class Meta:
@@ -64,6 +70,8 @@ class ServerExtensionsForm(forms.ModelForm):
 
 
 class ServerModelSyncForm(forms.ModelForm):
+    """`ModelForm` for requesting a server's channels and roles to be synced."""
+
     instance: Server
 
     class Meta:
@@ -92,4 +100,5 @@ class ServerModelSyncForm(forms.ModelForm):
         return self.instance
 
     def user_tests(self, req: HttpRequest) -> bool:
+        # TODO: Remove
         return req.user.is_superuser

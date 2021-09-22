@@ -29,30 +29,38 @@ from django.utils.safestring import SafeString, mark_safe
 
 
 class CommandAppConfig(AppConfig):
+    """Subclass of Django AppConfig with extra metadata for displaying on webpages."""
+
     @classproperty
     def title(cls) -> str:
+        """Return the title of this app."""
         raise NotImplementedError
 
     @classproperty
     def icon(cls) -> SafeString:
+        """Return the HTML markup for the icon of this app."""
         raise NotImplementedError
 
     @classproperty
     def target(cls) -> Cog:
+        """Return the discord.py cog associated with this Django app."""
         raise NotImplementedError
 
     @classproperty
     def icon_and_title(cls) -> SafeString:
+        """Return the icon and title as HTML markup."""
         return mark_safe(f'{cls.icon} {cls.title}')
 
     @classproperty
     def hidden(self) -> bool:
+        """Return True if this app should be hidden from the web console."""
         return False
 
     label: str
     default = False
 
     def public_views(cls) -> list[AnnotatedPattern]:
+        """Return the list of endpoints from this app that should appear in the web console sidebar."""
         try:
             routes: Iterable[URLPattern] = import_string(f'{cls.name}.urls.public_views')
             return [r.pattern for r in routes]
@@ -61,6 +69,8 @@ class CommandAppConfig(AppConfig):
 
 
 class AnnotatedPattern:
+    """Mixin for Django URL pattern classes containing cosmetic metadata such as titles and icons."""
+
     name: str
 
     def __init__(self, *args, title: str, icon: str, color: Optional[int] = None, **kwargs):
@@ -71,15 +81,38 @@ class AnnotatedPattern:
 
 
 class AnnotatedRoutePattern(AnnotatedPattern, RoutePattern):
+    """Django RoutePattern containing metadata on how it should be displayed in a webpage."""
+
     pass
 
 
 class AnnotatedRegexPattern(AnnotatedPattern, RegexPattern):
+    """Django RegexPattern containing metadata on how it should be displayed in a webpage."""
+
     pass
 
 
 def annotated(route: str, view: Callable, name: str, title: str, icon: str,
               color: Optional[int] = None, kwargs=None, pattern_t=AnnotatedRegexPattern):
+    """Create a Django `URLPattern` with additional info.
+
+    :param route: The URL route.
+    :type route: str
+    :param view: The associated view function.
+    :type view: Callable
+    :param name: The name of the route used for reverse lookup.
+    :type name: str
+    :param title: The title of the endpoint to be displayed on a webpage.
+    :type title: str
+    :param icon: The icon of the endpoint to be displayed on a webpage.
+    :type icon: str
+    :param color: The text color of the displayed hyperlink, defaults to None
+    :type color: Optional[int], optional
+    :param pattern_t: The `URLPattern` subclass to use, defaults to `AnnotatedRegexPattern`
+    :type pattern_t: URLPattern, optional
+    :return: The created URL pattern object.
+    :rtype: URLPattern
+    """
     pattern = pattern_t(route, name=name, is_endpoint=True,
                         title=title, icon=icon, color=color)
     return URLPattern(pattern, view, kwargs, name)

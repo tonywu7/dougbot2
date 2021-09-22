@@ -23,7 +23,9 @@ from .utils.parsers.structural import (StructuralArgumentParser,
 
 
 class DelegateMixin:
-    def __new__(cls, this):
+    """Mixin that intercepts all attribute access and delegate it to an underlying object."""
+
+    def __new__(cls, this):  # noqa: D102
         obj = object.__new__(cls)
         obj.__dict__['this'] = this
         return obj
@@ -43,6 +45,7 @@ class DelegateMixin:
         return unbound.__get__(self)
 
     def unwrap(self):
+        """Access the underlying object."""
         this = object.__getattribute__(self, 'this')
         while True:
             if isinstance(this, DelegateMixin):
@@ -65,6 +68,12 @@ class DelegateMixin:
 
 
 class CommonCommandDelegate(DelegateMixin):
+    """Mixin for `discord.ext.commands.Command`.
+
+    Override _parse_arguments to implement structural argument parsing
+    (using JSON/TOML code blocks as command input).
+    """
+
     async def _parse_arguments(self, ctx: Context):
         try:
             return await self._parse_structured(ctx)
@@ -76,8 +85,18 @@ class CommonCommandDelegate(DelegateMixin):
 
 
 class CommandDelegate(CommonCommandDelegate, Command):
+    """Subclass for `discord.ext.commands.Command` with mixins.
+
+    Substitute the original class in command creation.
+    """
+
     pass
 
 
 class GroupDelegate(CommonCommandDelegate, Group):
+    """Subclass for `discord.ext.commands.Group` with mixins.
+
+    Substitute the original class in command group creation.
+    """
+
     pass
