@@ -32,11 +32,11 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.urls import reverse
+from duckcord.permissions import Permissions2
 
 from ts2.utils.jwt import gen_token
 
 from .utils.datetime import utcnow, utctimestamp
-from .utils.duckcord.permissions import Permissions2
 
 OAUTH2_PROTOCOL = 'https'
 OAUTH2_DOMAIN = 'discord.com'

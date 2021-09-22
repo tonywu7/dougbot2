@@ -21,8 +21,8 @@ from collections.abc import Callable
 from discord import Role
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
+from duckcord.permissions import Permissions2
 
-from ...utils.duckcord.permissions import Permissions2
 from ..autodoc import accepts
 
 

@@ -31,10 +31,10 @@ from django.db import models
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
+from duckcord.color import Color2
+from duckcord.permissions import Permissions2
 
 from .config import CommandAppConfig
-from .utils.duckcord.color import Color2
-from .utils.duckcord.permissions import Permissions2
 from .utils.fields import ColorField, NumbersListField, PermissionField
 
 inflection = inflect.engine()

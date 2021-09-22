@@ -23,10 +23,10 @@ from typing import Optional
 
 import attr
 from discord.ext.commands import Bot, Command, Context
+from duckcord.color import Color2
+from duckcord.embeds import Embed2, EmbedField
 
 from ...utils.common import is_direct_message
-from ...utils.duckcord.color import Color2
-from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.events import DeleteResponder, start_responders
 from ...utils.markdown import blockquote, em, strong
 from ...utils.pagination import EmbedPagination, chapterize_items

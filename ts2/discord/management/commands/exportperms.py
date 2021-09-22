@@ -19,9 +19,9 @@ from typing import TypedDict
 
 import simplejson
 from django.core.management.base import BaseCommand
+from duckcord.permissions import Permissions2
 
 from ...ext.autodoc.lang import readable_perm_name
-from ...utils.duckcord.permissions import Permissions2
 
 L1 = Permissions2(
     administrator=True,

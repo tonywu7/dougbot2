@@ -27,9 +27,9 @@ from discord import (AllowedMentions, Color, File, Forbidden, Guild, NotFound,
                      Role, TextChannel)
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
+from duckcord.embeds import Embed2
 
 from ...utils.datetime import localnow, utcnow
-from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
 

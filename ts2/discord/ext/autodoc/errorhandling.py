@@ -25,9 +25,9 @@ from typing import Literal, Optional, Union
 
 from discord import AllowedMentions, Forbidden
 from discord.ext.commands import Context, errors
+from duckcord.color import Color2
+from duckcord.embeds import Embed2
 
-from ...utils.duckcord.color import Color2
-from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import code, strong
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception], ...]]

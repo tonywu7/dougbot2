@@ -22,6 +22,7 @@ import pytz
 from discord import Member
 from discord.ext.commands import bot_has_permissions, command, group
 from discord.utils import escape_markdown
+from duckcord.embeds import Embed2
 from geopy import Location
 from geopy.exc import GeocoderTimedOut
 
@@ -32,7 +33,6 @@ from ...ext.autodoc import NotAcceptable
 from ...ext.dm import accepts_dms
 from ...ext.types.functional import Maybe
 from ...ext.types.patterns import Constant
-from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import a, arrow, blockquote, code, verbatim
 from ...utils.pagination import EmbedPagination
 from ..services import ServiceUnavailable

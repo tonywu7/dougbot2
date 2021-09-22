@@ -27,6 +27,7 @@ from asgiref.sync import sync_to_async
 from discord import Message, MessageReference, Object, TextChannel
 from discord.ext.commands import BucketType, command
 from django.conf import settings
+from duckcord.embeds import Embed2
 from nltk.corpus import stopwords
 from pendulum import DateTime, instance
 
@@ -35,7 +36,6 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Constant, doc
 from ts2.discord.utils.checks import can_embed
-from ts2.discord.utils.duckcord.embeds import Embed2
 from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
 from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
                                           chapterize, trunc_for_field)

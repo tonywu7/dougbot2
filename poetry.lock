@@ -312,6 +312,25 @@ tzlocal = "*"
 calendars = ["convertdate", "hijri-converter", "convertdate"]
 
 [[package]]
+name = "discord.jinja"
+version = "0.0.0"
+description = "Template rendering for discord.py"
+category = "main"
+optional = false
+python-versions = ">=3.9"
+develop = false
+
+[package.dependencies]
+"discord.py" = "*"
+jinja2 = ">=2.10"
+
+[package.source]
+type = "git"
+url = "https://git.dougdistrict.xyz/discord.jinja.git"
+reference = "master"
+resolved_reference = "9111a99bf78e0cdf87d2399871a1ecc87e06aa48"
+
+[[package]]
 name = "discord.py"
 version = "1.7.3"
 description = "A Python wrapper for the Discord API"
@@ -443,6 +462,25 @@ python-versions = "*"
 [package.dependencies]
 "discord.py" = "*"
 pytest-asyncio = "*"
+
+[[package]]
+name = "duckcord.py"
+version = "0.0.1"
+description = "discord.py dataclasses but with more duck-typing."
+category = "main"
+optional = false
+python-versions = ">=3.9"
+develop = false
+
+[package.dependencies]
+attrs = "*"
+"discord.py" = "*"
+
+[package.source]
+type = "git"
+url = "https://git.dougdistrict.xyz/duckcord.py.git"
+reference = "master"
+resolved_reference = "fb69e77d9e3f43a15e8ea2bc251d4c8782277b67"
 
 [[package]]
 name = "duckdb"
@@ -1269,7 +1307,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9.6"
-content-hash = "0176abdbd96d099a4c11ae8e245ad2452e0bc16e564329bbeba4c3c3ef17df15"
+content-hash = "4456650d8471b7c18fc167b1caa3d1e6648e4dec45f0034abe08c64232bbadba"
 
 [metadata.files]
 aiodns = [
@@ -1486,6 +1524,7 @@ dateparser = [
     {file = "dateparser-1.0.0-py2.py3-none-any.whl", hash = "sha256:17202df32c7a36e773136ff353aa3767e987f8b3e27374c39fd21a30a803d6f8"},
     {file = "dateparser-1.0.0.tar.gz", hash = "sha256:159cc4e01a593706a15cd4e269a0b3345edf3aef8bf9278a57dac8adf5bf1e4a"},
 ]
+"discord.jinja" = []
 "discord.py" = [
     {file = "discord.py-1.7.3-py3-none-any.whl", hash = "sha256:c6f64db136de0e18e090f6752ea68bdd4ab0a61b82dfe7acecefa22d6477bb0c"},
     {file = "discord.py-1.7.3.tar.gz", hash = "sha256:462cd0fe307aef8b29cbfa8dd613e548ae4b2cb581d46da9ac0d46fb6ea19408"},
@@ -1526,6 +1565,7 @@ dpytest = [
     {file = "dpytest-0.5.3-py3-none-any.whl", hash = "sha256:d991909aca44ac095157ddca4e7f68e928e277d19bdc2a9d2908d3346b5ca309"},
     {file = "dpytest-0.5.3.tar.gz", hash = "sha256:cfd8afb929bf006972c4bd9c13b36f9dee19a057d4c408b4b6b31acfea340ff4"},
 ]
+"duckcord.py" = []
 duckdb = [
     {file = "duckdb-0.2.9-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:ac886826b8e2add255aa3ae3101e65da34c32125799c3a460f5abedaaaa09749"},
     {file = "duckdb-0.2.9-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:2ecd22aef9009604786029a434c38454a18b003ecbf8eecd78962c014a3f3039"},

@@ -19,9 +19,8 @@ from typing import Optional, Union
 
 import discord
 from django.db import models
-
-from .duckcord.color import Color2
-from .duckcord.permissions import Permissions2
+from duckcord.color import Color2
+from duckcord.permissions import Permissions2
 
 
 class PermissionField(models.BigIntegerField):

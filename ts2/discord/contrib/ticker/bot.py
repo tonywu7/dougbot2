@@ -23,6 +23,7 @@ from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
                      TextChannel, VoiceChannel, VoiceState)
 from discord.ext import tasks
 from discord.ext.commands import Greedy, group, has_guild_permissions
+from discord_jinja import CommandTemplate, get_environment
 from jinja2 import TemplateSyntaxError
 
 from ts2.discord import server
@@ -31,13 +32,13 @@ from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Choice, Constant, Datetime, Dictionary,
                                     JinjaTemplate, Timedelta, unpack_dict)
-from ts2.discord.ext.template import CommandTemplate, get_environment
 from ts2.discord.models import Channel
 from ts2.discord.utils.async_ import (async_delete, async_get, async_list,
                                       async_save)
-from ts2.discord.utils.common import (Embed2, EmbedPagination, can_embed,
-                                      PermissionOverride, chapterize, code,
-                                      tag, tag_literal, timestamp, utcnow)
+from ts2.discord.utils.common import (Embed2, EmbedPagination,
+                                      PermissionOverride, can_embed,
+                                      chapterize, code, tag, tag_literal,
+                                      timestamp, utcnow)
 
 from .models import TickerChannel
 

@@ -19,16 +19,16 @@ from typing import Optional, TypeVar, Union
 
 from discord import DMChannel, GroupChannel, Message, TextChannel
 from discord.ext.commands import Context
+from duckcord.color import Color2  # noqa: F401
+from duckcord.embeds import Embed2, EmbedField  # noqa: F401
+from duckcord.permissions import PermissionOverride  # noqa: F401
+from duckcord.permissions import Permissions2, get_total_perms  # noqa: F401
 
 from .async_ import (async_first, async_get, async_list,  # noqa: F401
                      async_save)
 from .checks import (can_embed, can_manage_messages,  # noqa: F401
                      can_mention_everyone, can_react, can_upload)
 from .datetime import assumed_utc, strpduration, utcnow  # noqa: F401
-from .duckcord.color import Color2  # noqa: F401
-from .duckcord.embeds import Embed2, EmbedField  # noqa: F401
-from .duckcord.permissions import PermissionOverride  # noqa: F401
-from .duckcord.permissions import Permissions2, get_total_perms  # noqa: F401
 from .events import (DeleteResponder, EmoteResponder, Responder,  # noqa: F401
                      emote_added, emote_matches, emote_no_bots, event_filter,
                      run_responders, start_responders)

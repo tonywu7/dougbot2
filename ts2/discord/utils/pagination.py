@@ -23,9 +23,9 @@ import attr
 from discord import (Client, Embed, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
+from duckcord.embeds import Embed2, EmbedField
 from more_itertools import peekable, split_before
 
-from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
 from .markdown import strong, u
 

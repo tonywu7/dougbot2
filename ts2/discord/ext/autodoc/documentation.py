@@ -30,9 +30,9 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Cog, Command, Context, Converter, Greedy
 from discord.utils import escape_markdown
+from duckcord.embeds import Embed2, EmbedField
 from more_itertools import partition, split_at
 
-from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, pre, strong, u
 from ...utils.pagination import EmbedPagination, chapterize_fields

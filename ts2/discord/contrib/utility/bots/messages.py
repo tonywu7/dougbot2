@@ -23,13 +23,13 @@ import toml
 from discord import (AllowedMentions, Emoji, File, Message, MessageReference,
                      Object, PartialEmoji, TextChannel)
 from discord.ext.commands import Greedy, command, has_guild_permissions
+from discord_jinja import get_environment
 from more_itertools import always_iterable, first
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import (Dictionary, JinjaTemplate,
                                     format_exception, get_traceback)
-from ts2.discord.ext.template import get_environment
 from ts2.discord.utils.common import (Embed2, a, can_upload, code, strong,
                                       trunc_for_field)
 from ts2.discord.utils.datetime import localnow

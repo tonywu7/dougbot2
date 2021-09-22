@@ -17,7 +17,7 @@ RUN NODE_ENV=production npm run build && \
 FROM --platform=linux/amd64 python:3.9-slim-buster AS runtime
 
 RUN apt-get update && \
-    apt-get -y install libmemcached-dev gcc zlib1g-dev && \
+    apt-get -y install libmemcached-dev git gcc zlib1g-dev && \
     apt-get clean
 
 # Setup environment
@@ -34,7 +34,7 @@ COPY pyproject.toml poetry.lock /application/
 RUN python3 -m pip install -U poetry==$POETRY_VERSION
 RUN python3 -m poetry install --no-dev --no-interaction --no-ansi
 
-RUN apt-get -y purge gcc zlib1g-dev && \
+RUN apt-get -y purge git gcc zlib1g-dev && \
     apt-get -y autoremove
 
 RUN adduser -u 5555 --disabled-password --gecos "" ts2 && \

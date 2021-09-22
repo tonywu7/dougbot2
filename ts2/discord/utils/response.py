@@ -24,8 +24,8 @@ import attr
 from discord import (AllowedMentions, Emoji, File, Forbidden, Message,
                      MessageReference, PartialEmoji)
 from discord.ext.commands import Context
+from duckcord.embeds import Embed2
 
-from .duckcord.embeds import Embed2
 from .events import (DeleteResponder, Responder, run_responders,
                      start_responders)
 from .markdown import tag
