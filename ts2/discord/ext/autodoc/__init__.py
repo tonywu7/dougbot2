@@ -4,7 +4,7 @@ from .decorators import (accepts, accepts_reply, argument, concurrent,
                          invocation, restriction, use_syntax_whitelist)
 from .documentation import Documentation, readable_perm_name
 from .errorhandling import add_error_names, explain_exception, explains
-from .exceptions import NoSuchCommand, NotAcceptable, ReplyRequired, SendHelp
+from .exceptions import NoSuchCommand, NotAcceptable, ReplyRequired
 from .manual import Manual, init_bot, set_manual_getter
 
 explanations = explanations
@@ -22,7 +22,6 @@ __all__ = [
     'concurrent',
     'accepts_reply',
     'accepts',
-    'SendHelp',
     'NotAcceptable',
     'NoSuchCommand',
     'ReplyRequired',

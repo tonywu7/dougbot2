@@ -29,7 +29,7 @@ from ...utils.markdown import code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
 from .errorhandling import (append_matching_quotes_hint, append_quotation_hint,
-                            explain_exception, explains, prepend_argument_hint)
+                            explains, prepend_argument_hint)
 from .lang import (describe_concurrency, indicate_eol, indicate_extra_text,
                    pl_cat_predicative)
 
@@ -50,14 +50,6 @@ async def explains_required_reply(ctx, exc) -> tuple[str, int]:
 @explains(exceptions.NotAcceptable, 'Input not acceptable', priority=5)
 async def explains_not_acceptable(ctx, exc) -> tuple[str, int]:
     return str(exc), 60
-
-
-@explains(exceptions.SendHelp, priority=50)
-async def send_help(ctx, exc: exceptions.SendHelp):
-    await ctx.send_help(ctx.command.qualified_name, exc.category)
-    if isinstance(exc.__cause__, Exception):
-        await explain_exception(ctx, exc.__cause__)
-    return False
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)
@@ -231,11 +223,14 @@ async def explains_bad_invite(ctx: Context, exc: errors.BadInviteArgument) -> tu
 @explains(errors.BadBoolArgument, 'Incorrect value to a true/false argument')
 @prepend_argument_hint(sep='\n⚠️ ')
 async def explains_bad_boolean(ctx: Context, exc: errors.BadBoolArgument) -> tuple[str, int]:
-    return ((strong(escape_markdown(exc.argument)) + ' is not an acceptable answer to a true/false question in English.\n\n')
-            + ('The following are considered to be true: '
-               'yes, y, true, t, 1, enable, on\n'
-               'The following are considered to be false: '
-               'no, n, false, f, 0, disable, off')), 60
+    return (
+        (strong(escape_markdown(exc.argument))
+         + ' is not an acceptable answer to a true/false question in English.\n\n')
+        + ('The following are considered to be true: '
+           'yes, y, true, t, 1, enable, on\n'
+           'The following are considered to be false: '
+           'no, n, false, f, 0, disable, off')
+    ), 60
 
 
 @explains(errors.ChannelNotReadable, 'No access to channel')

@@ -38,12 +38,6 @@ class MissingExamples(BadDocumentation):
         self.message = f'{call_sign}: No command example provided'
 
 
-class SendHelp(UserInputError):
-    def __init__(self, category='normal', *args):
-        self.category = category
-        super().__init__(message=None, *args)
-
-
 class NotAcceptable(UserInputError):
     def __init__(self, message, *args):
         super().__init__(message=message, *args)

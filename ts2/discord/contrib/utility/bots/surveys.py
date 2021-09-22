@@ -391,7 +391,7 @@ class ServerQueryCommands:
         permission: Optional[PermissionName] = None,
     ):
         if not target and not permission and not channel:
-            raise doc.SendHelp()
+            return await ctx.send_help()
 
         await ctx.trigger_typing()
 

@@ -31,7 +31,10 @@ from ...utils.duckcord.embeds import Embed2
 from ...utils.markdown import code, strong
 
 _ExceptionType = Union[type[Exception], tuple[type[Exception], ...]]
-_ExceptionHandler = Callable[[Context, Exception], Coroutine[None, None, Union[tuple[str, float], Literal[False], None]]]
+_ExceptionHandler = Callable[
+    [Context, Exception],
+    Coroutine[None, None, Union[tuple[str, float], Literal[False], None]],
+]
 
 exception_handlers: list[tuple[int, str, _ExceptionType, _ExceptionHandler]] = []
 exception_names: dict[_ExceptionType, set[str]] = defaultdict(set)
