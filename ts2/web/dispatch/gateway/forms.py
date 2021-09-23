@@ -24,6 +24,9 @@ from ts2.discord.updater import get_updater
 
 
 class UserCreationForm(forms.Form):
+    """Initial user registration after someone authenticated\
+    through Discord for the first time."""
+
     username = forms.CharField()
     snowflake = forms.IntegerField()
 
@@ -42,6 +45,9 @@ class UserCreationForm(forms.Form):
 
 
 class ServerCreationForm(forms.ModelForm):
+    """Initial server registration after the bot is invited to\
+    a guild for the first time."""
+
     class Meta:
         model = Server
         fields = ['snowflake', 'invited_by', 'disabled']

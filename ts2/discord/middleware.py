@@ -48,12 +48,15 @@ M = TypeVar('M', bound=Model)
 
 GUILD_ID = 'guild_id'
 
+AccessLevel = Literal['read', 'write', 'execute']
+
 
 def _http_safe_method(req: HttpRequest) -> bool:
     return req.method in ('GET', 'HEAD', 'OPTIONS')
 
 
 def unsafe(req, view_func):
+    """Return `True` if this view is CSRF-protected and this request uses an unsafe HTTP method."""
     return (
         not getattr(view_func, 'csrf_exempt', False)
         and not _http_safe_method(req)
@@ -61,6 +64,7 @@ def unsafe(req, view_func):
 
 
 async def fetch_discord_info(req: HttpRequest):
+    """Get Discord user info for the currently authenticated user."""
     user: User = req.user
 
     @sync_to_async
@@ -93,12 +97,14 @@ async def fetch_discord_info(req: HttpRequest):
 
 @sync_to_async
 def invalidate_cache(req: HttpRequest):
+    """Invalidate all cached Discord data for the currently authenticated user."""
     user_id = req.user.pk
     cache = DiscordCache(user_id)
     cache.invalidate()
 
 
 async def logout_current_user(req: HttpResponse) -> HttpResponse:
+    """Log out current user."""
     await sync_to_async(logout)(req)
     message = 'Your Discord login credentials have expired. Please log in through Discord again.'
     accept = req.headers.get('Accept', '').lower()
@@ -111,16 +117,19 @@ async def logout_current_user(req: HttpResponse) -> HttpResponse:
 
 @sync_to_async
 def disable_server(server: Server):
+    """Mark this server as disabled such that its preferences cannot be modified on the web."""
     server.disabled = True
     server.save()
 
 
 def message_server_disabled(req):
+    """Flash a message to the next response indicating the server profile is disabled."""
     messages.error(req, ('The bot no longer has access to this server. '
                          'You must manually invite the bot again to continue managing the bot in this server.'))
 
 
 async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
+    """Clean up if Discord returns 4xx for API requests."""
     message_server_disabled(req)
     await invalidate_cache(req)
     ctx = get_ctx(req, logout=False)
@@ -130,6 +139,7 @@ async def handle_discord_forbidden(req: HttpRequest) -> HttpResponse:
 
 
 def handle_server_disabled(req: HttpRequest) -> HttpResponse:
+    """Redirect all server endpoints to index if server is disabled."""
     message_server_disabled(req)
     ctx = get_ctx(req)
     redirect_url = reverse('web:manage.index', kwargs={GUILD_ID: ctx.server_id})
@@ -138,11 +148,44 @@ def handle_server_disabled(req: HttpRequest) -> HttpResponse:
     return redirect(redirect_url)
 
 
-AccessLevel = Literal['read', 'write', 'execute']
+def maybe_public_url(request: HttpRequest) -> str:
+    """Return a public version of the current endpoint or the index page if there is no such version.
+
+    A public URL is one not prefixed with a guild ID. For example,
+
+        /web/267624335836053506/manage
+
+    is a prefixed URL, scoped under this particular guild (and has guild-related controls),
+    whereas,
+
+        /web/manage
+
+    is the public version of this URL.
+
+    Not all endpoints has a corresponding public version.
+
+    :param request: [description]
+    :type request: HttpRequest
+    :return: [description]
+    :rtype: str
+    """
+    resolved = request.resolver_match
+    kwargs = {**resolved.kwargs}
+    kwargs.pop(GUILD_ID, None)
+    try:
+        public = reverse(resolved.view_name, kwargs=kwargs)
+    except NoReverseMatch:
+        return reverse('web:index')
+    return public
 
 
 @dataclass
 class DiscordContext:
+    """Holder for Discord API data for currently authenticated user.
+
+    Initialized by the middleware and attached to every HTTP request.
+    """
+
     access_token: str
 
     web_user: User
@@ -161,6 +204,20 @@ class DiscordContext:
     @classmethod
     async def create(cls, guilds: Iterable[PartialGuild], guild_id: Optional[str | int],
                      token: str, user: User, profile: PartialUser) -> DiscordContext:
+        """Populate the context object from Discord API data.
+
+        :param guilds: List of guilds the user is in
+        :type guilds: Iterable[PartialGuild]
+        :param guild_id: ID of currently requested guild,
+        if the current URL is a guild management endpoint
+        :type guild_id: Optional[Union[str, int]]
+        :param token: The user's access token
+        :type token: str
+        :param user: Current user's Django User object
+        :type user: User
+        :param profile: Current user's Discord profile
+        :type profile: PartialUser
+        """
         from .updater import get_updater
 
         if guild_id:
@@ -219,6 +276,20 @@ class DiscordContext:
                    permissions=permissions)
 
     def check_access(self, access: AccessLevel, server_id: Optional[Union[str, int]] = None) -> bool:
+        """Check if the current user has a certain level of access for managing this server.
+
+        "Read" access grants viewing privilege to the management console.
+        "Write" access allows the user to modify settings.
+        "Execute" access allows the user to join the bot to the guild, or remove it from the guild.
+
+        :param access: The level to check
+        :type access: Literal['read', 'write', 'execute']
+        :param server_id: The guild to check, defaults to None,
+        which checks the currently requested guild
+        :type server_id: Optional[Union[str, int]], optional
+        :return: If the user has this level of access
+        :rtype: bool
+        """
         server_id = server_id or self.server_id
         try:
             return access in self.permissions[int(server_id)]
@@ -226,6 +297,7 @@ class DiscordContext:
             return False
 
     def assert_access(self, access: AccessLevel, server_id: Optional[Union[str, int]] = None) -> None:
+        """Check access level and raise HTTP 403 if the user doesn't have that access."""
         if not self.check_access(access, server_id):
             if self.check_access('read', server_id):
                 raise PermissionDenied('You are in read-only mode.')
@@ -233,28 +305,34 @@ class DiscordContext:
 
     @property
     def readonly(self) -> bool:
+        """Return True if this user only has read access to this guild."""
         return self.permissions[self.server_id] == frozenset({'read'})
 
     @property
     def info(self) -> Optional[PartialGuild]:
+        """Return metadata for the currently requested guild if the user is in it."""
         return self.servers.get(self.server_id)
 
     @property
     def joined(self) -> bool:
+        """Return True if the bot has joined this guild."""
         return self.server_id in self.joined_servers
 
     @property
     def joined_servers(self) -> dict[int, PartialGuild]:
+        """Return all servers the bot has joined that this user can see."""
         return {k: v for k, v in self.servers.items()
                 if v.joined and self.check_access('read', k)}
 
     @property
     def pending_servers(self) -> dict[int, PartialGuild]:
+        """Return all servers the bot has not joined that this user has management access in."""
         return {k: v for k, v in self.servers.items()
                 if not v.joined and self.check_access('execute', k)}
 
     @property
     def extensions(self) -> dict[str, tuple[bool, CommandAppConfig]]:
+        """Return all installed apps associated with cogs and whether or not they are enabled."""
         extensions = {conf.label: conf for conf in get_extensions()}
         if not self.server:
             return {label: (False, conf) for label, conf in extensions.items()}
@@ -263,22 +341,36 @@ class DiscordContext:
 
     @property
     def user_id(self):
+        """Get the current user's ID (the same as their Discord ID)."""
         return self.web_user.pk
 
     @property
     def username(self):
+        """Get the current user's site username (the same as their Discord username + discriminator)."""
         return self.web_user.username
 
     @property
     def is_staff(self):
+        """Return True if the current user is staff on the website."""
         return self.web_user.is_staff
 
     @property
     def is_superuser(self):
+        """Return True if the current user is a Django auth superuser of the website."""
         return self.web_user.is_superuser
 
     def fetch_server(self, server_id: Union[str, int], access: Literal['read', 'write'],
                      deny=True, queryset=Server.objects) -> Optional[Server]:
+        """Get a server's profile and bot settings, checking the user's access first.
+
+        :param server_id: The server to retrieve
+        :type server_id: Union[str, int]
+        :param access: The access level to request
+        :type access: Literal['read', 'write']
+        :param deny: Whether to raise HTTP 403 if the user doesn't have that access, defaults to True
+        :type deny: bool, optional
+        :param queryset: The queryset to use for fetching, defaults to Server.objects
+        """
         if deny:
             self.assert_access(access, server_id)
             return queryset.get(snowflake=server_id)
@@ -288,6 +380,8 @@ class DiscordContext:
 
 
 class DiscordContextMiddleware:
+    """Django middleware responsible for loading Discord data and ensuring access control."""
+
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -329,14 +423,33 @@ class DiscordContextMiddleware:
 
 
 class Logout(Exception):
+    """Exception indicating that the currently authenticated user must be logged out."""
+
     pass
 
 
 class ServerDisabled(Exception):
+    """Exception indicating that the currently requested server is disabled and can't be modified."""
+
     pass
 
 
 def get_ctx(req: HttpRequest, logout: bool = True) -> Optional[DiscordContext]:
+    """Get the DiscordContext object from the current request context.
+
+    If the current user's Discord credential is missing or invalid, such that
+    the Discord context was not created, return None.
+
+    If `logout` is `True` and there is no Discord context, invalidate the current
+    session.
+
+    :param req: Request context
+    :type req: HttpRequest
+    :param logout: Whether to force the current user to logout, defaults to True
+    :type logout: bool, optional
+    :raises PermissionDenied: When the current user should be logged out because
+    they are no longer authenticated with Discord.
+    """
     try:
         return req.discord
     except AttributeError:
@@ -346,6 +459,11 @@ def get_ctx(req: HttpRequest, logout: bool = True) -> Optional[DiscordContext]:
 
 
 def require_server_presence(f):
+    """Decorate a view function to ensure that currently requested server has a profile in the database.
+
+    If a profile doesn't exist, the view function will not run and the user
+    will be redirected to the management homepage.
+    """
     @wraps(f)
     def check_server(request: HttpRequest, *args, **kwargs):
         ctx = get_ctx(request)
@@ -356,6 +474,12 @@ def require_server_presence(f):
 
 
 def require_server_access(permission: AccessLevel, exists: bool = True):
+    """Decorate a view function to ensure that the current user can access the current server.
+
+    If `exists` is `True`, also require that the server has a profile in the database;
+    otherwise, the user can view pages such as the bot invite page that is accessible
+    before a server profile is created.
+    """
     def wrapper(view_func):
         @wraps(view_func)
         def check_perm(request: HttpRequest, *args, **kwargs):
@@ -372,18 +496,8 @@ def require_server_access(permission: AccessLevel, exists: bool = True):
     return wrapper
 
 
-def maybe_public_url(request: HttpRequest) -> str:
-    resolved = request.resolver_match
-    kwargs = {**resolved.kwargs}
-    kwargs.pop(GUILD_ID, None)
-    try:
-        public = reverse(resolved.view_name, kwargs=kwargs)
-    except NoReverseMatch:
-        return reverse('web:index')
-    return public
-
-
 def optional_server_access(permission: AccessLevel):
+    """Decorate a view function to ensure guild access and possibly redirect to public URLs if need be."""
     def wrapper(view_func):
         @wraps(view_func)
         def check_perms(request: HttpRequest, *args, guild_id=None, **kwargs):
@@ -401,6 +515,11 @@ def intersect_server_model(
     collection: Mapping[Union[str, int], T],
     server_id: str, q: Union[type[M], QuerySet[M]],
 ) -> dict[int, T]:
+    """Filter a guild ID-keyed collection to include only guilds in the Server queryset.
+
+    Used to, for example, ensure some server-related data only contains those visible
+    to the current user so that unrelated info is not accidentally exposed.
+    """
     if issubclass(q, Model):
         q = q.objects
     collection = {int(k): t for k, t in collection.items()}
@@ -413,6 +532,11 @@ def get_server_scoped_model(
     req: HttpRequest, descriptor: ForwardManyToOneDescriptor,
     server_id: str, access: str, *, target_field=GUILD_ID, **filters,
 ) -> QuerySet[M]:
+    """Filter a queryset to include only those related to this server.
+
+    Used to ensure the current user doesn't have access to server-related models
+    irrelevant to the server they are currently managing.
+    """
     get_ctx(req, logout=False).assert_access(access, server_id)
     model = descriptor.field.model
     q = model.objects

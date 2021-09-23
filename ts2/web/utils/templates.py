@@ -55,6 +55,7 @@ KWARGS = re.compile(rf'^(?P<keyword>{IDENTIFIER})=(?P<value>.+)')
 
 
 def parse_token(token: str) -> tuple[str | None, template.Variable]:
+    # TODO: remove
     kwarg = KWARGS.fullmatch(token)
     if kwarg:
         keyword = kwarg['keyword']
@@ -91,6 +92,7 @@ def _may_be_keyword(p: Parameter):
 
 
 def assert_valid_identifier(s: str):
+    """Make sure the string could be a legal Python identifier."""
     if not s:
         raise ValueError('Identifier cannot be empty')
     try:
@@ -102,6 +104,10 @@ def assert_valid_identifier(s: str):
 
 
 def unpack_attributes(node: ast.Attribute):
+    """Convert an AST attribute to its string representation and return it.
+
+    Result can be used to initialize a Django template Variable object.
+    """
     if isinstance(node.value, ast.Attribute):
         return f'{unpack_attributes(node.value)}.{node.attr}'
     elif isinstance(node.value, ast.Name):
@@ -110,7 +116,20 @@ def unpack_attributes(node: ast.Attribute):
         raise ValueError(node.value)
 
 
-def create_tag_parser(library: template.Library, start: str, end: Optional[str] = None) -> Callable[[Parser, Token], N]:
+def create_tag_parser(library: template.Library, start: str, end: Optional[str] = None):
+    """Create a Django template tag parser from the callable it decorates.
+
+    The resulting parser optionally supports parsing enclosing blocks,
+    which Django's simple tag creator currently doesn't support.
+
+    :param library: The template library to register the parser to
+    :type library: template.Library
+    :param start: The starting tag to use
+    :type start: str
+    :param end: The ending tag to use, if the parser should support parsing
+    an enclosing template block, defaults to None
+    :type end: Optional[str], optional
+    """
     if not start:
         raise ValueError('Tag cannot be empty')
 
@@ -231,20 +250,31 @@ def create_tag_parser(library: template.Library, start: str, end: Optional[str] 
 
 
 def domtokenlist(*tokens: str):
+    """Create a DOMTokenList (space-separated items) from a list of strings."""
     return ' '.join(itertools.chain.from_iterable(t.split(' ') for t in filter(None, tokens) if t)).strip()
 
 
 def domtokenstr(tokens: str):
+    """Parse and reformat a space-separated string of items into a well-formated DOMTokenList."""
     return ' '.join([t for t in tokens.split(' ') if t]).strip()
 
 
 def unwrap(context: template.Context, maybe_var: T) -> T:
+    """Retrieve the value of a Django template Variable.
+
+    If the passed-in object is not a Variable, return it unchanged.
+    """
     if isinstance(maybe_var, template.Variable):
         return maybe_var.resolve(context)
     return maybe_var
 
 
 def optional_attr(attr: str, value: Optional[Any]):
+    """Include the attribute `attr` only if `value` has any value.
+
+    Prevents falsy values from being coerced into a string and included
+    in the attributes for an HTML tag.
+    """
     if value is True:
         return mark_safe(attr)
     elif value:

@@ -26,6 +26,7 @@ from ...models import User
 
 
 def revoke(req: HttpRequest):
+    """Revoke OAuth tokens for the current user."""
     if req.user.is_anonymous:
         return
     user: User = req.user
@@ -39,6 +40,11 @@ def revoke(req: HttpRequest):
 
 
 def rm(req: HttpRequest):
+    """Remove all data related to the current user from the website.
+
+    Currently this removes objects whose primary key is the user's
+    Discord ID.
+    """
     if req.user.is_anonymous:
         return
     user_id = req.user.pk

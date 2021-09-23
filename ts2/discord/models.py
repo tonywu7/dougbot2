@@ -20,7 +20,7 @@ import logging
 import re
 from collections.abc import Iterable
 from operator import attrgetter, itemgetter
-from typing import Generic, Protocol, TypeVar, Union
+from typing import Generic, TypeVar, Union
 
 import discord
 import inflect
@@ -29,7 +29,6 @@ from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import CASCADE, SET_NULL
-from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 from duckcord.color import Color2
 from duckcord.permissions import Permissions2
@@ -54,6 +53,7 @@ log = logging.getLogger('discord.models')
 
 
 def make_channel_type() -> models.IntegerChoices:
+    """Derive a Django `IntegerChoices` enum from discord.py's enum of channel types."""
     class ClassDict(dict):
         _member_names = []
 
@@ -76,6 +76,9 @@ FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
 
 
 def validate_prefix(prefix: str):
+    """Validate a string as a command prefix ensuring\
+    it doesn't begin with characters that are markdown characters."""
+
     if FORBIDDEN_PREFIXES.match(prefix):
         raise ValidationError(
             '* _ | ~ ` > are markdown characters. '
@@ -87,7 +90,10 @@ def validate_prefix(prefix: str):
 
 
 class NamingMixin:
+    """Mixin providing a __str__ and __repr__ for models that have IDs."""
+
     def discriminator(self, sep='#') -> str:
+        """Print the type of this class and its primary key together as a string."""
         return f'{type(self).__name__}{sep}{self.pk}'
 
     def __str__(self):
@@ -101,24 +107,23 @@ class NamingMixin:
 
 
 class ModelTranslator(Generic[T, U]):
+    """Interface defining methods expected to create a Django model from a discord.py model."""
+
     @classmethod
     def from_discord(cls, discord_model: T) -> U:
+        """Create a Django model from a Discord model from discord.py."""
         raise NotImplementedError
 
     @classmethod
     def updatable_fields(cls) -> list[str]:
+        """Return a list of keys that should be updated in the\
+        Django model if the Discord model has been changed."""
         raise NotImplementedError
 
 
-class ORMAccess(Protocol):
-    objects: BaseManager
-
-
-class ServerScoped(ORMAccess):
-    guild: Server
-
-
 class Entity(NamingMixin, models.Model):
+    """Abstract base class representing a Discord model."""
+
     snowflake: int = models.BigIntegerField(verbose_name='id', primary_key=True, db_index=True)
 
     class Meta:
@@ -126,6 +131,11 @@ class Entity(NamingMixin, models.Model):
 
 
 class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
+    """Represent a Discord guild.
+
+    Contains most per-guild bot configurations.
+    """
+
     _extensions: str = models.TextField(blank=True)
 
     invited_by = models.ForeignKey('web.User', on_delete=SET_NULL, null=True, related_name='invited_servers')
@@ -145,6 +155,7 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:
+        """Return all bot cogs this server has enabled."""
         if not self._extensions:
             return {}
         exts = self._extensions.split(',')
@@ -219,6 +230,8 @@ class Role(Entity, ModelTranslator[discord.Role, 'Role']):
 
 
 class Blacklisted(Entity):
+    """Represent a Discord entity that is barred from interacting with the bot."""
+
     class Meta:
         verbose_name = 'blacklisted entity'
         verbose_name_plural = 'blacklisted entities'

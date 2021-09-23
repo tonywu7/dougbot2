@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Passive Discord gateway receiver."""
+"""Discord gateway listener."""
 
 from discord import Intents
 
@@ -26,6 +26,7 @@ updater_thread: BotRunner[Robot] = None
 
 
 def get_updater():
+    """Get the thread currently running the listener, or start it if there isn't one."""
     global updater_thread
 
     if updater_thread is None:

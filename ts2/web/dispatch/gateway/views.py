@@ -43,6 +43,7 @@ from .forms import ServerCreationForm, UserCreationForm
 
 
 def verify_state(req: HttpRequest, sub=None, aud=None) -> tuple[str, Optional[dict]]:
+    """Validate the JWT in the `state` parameter in the OAuth return request."""
     cookie_token = req.COOKIES.get('state')
     params_token = req.GET.get('state')
     state, token = validate_token(req, params_token, sub, aud)
@@ -54,6 +55,7 @@ def verify_state(req: HttpRequest, sub=None, aud=None) -> tuple[str, Optional[di
 
 
 def user_login(req: HttpRequest) -> HttpResponse:
+    """Redirect to the Discord login page."""
     redirect_uri, token = app_auth_url(req, req.GET.get('next'))
     res = redirect(redirect_uri)
     res.set_cookie('state', token, settings.JWT_DEFAULT_EXP, secure=True, httponly=True, samesite='Lax')
@@ -61,6 +63,7 @@ def user_login(req: HttpRequest) -> HttpResponse:
 
 
 def user_logout(req: HttpRequest) -> HttpResponse:
+    """Logout current user and redirect to index."""
     if req.user.is_authenticated:
         DiscordCache(req.user.snowflake).invalidate()
     logout(req)
@@ -68,10 +71,13 @@ def user_logout(req: HttpRequest) -> HttpResponse:
 
 
 def invalid_login(req: HttpRequest, reason: str) -> HttpResponse:
+    """Respond with an error page in case the login credentials are incorrect."""
     return render(req, 'ts2/gateway/invalid-login.html', {'login_state': reason}, status=400)
 
 
 class CreateUserView(View):
+    """GET/POST view for user login."""
+
     def create_user(self, username, snowflake) -> User:
         user = User(username=username, snowflake=snowflake)
         perms = Permission.objects.filter(
@@ -104,7 +110,8 @@ class CreateUserView(View):
         if tokens is None:
             return render(req, 'ts2/gateway/invalid-login.html', {'login_state': 'incorrect_credentials'})
 
-        return render(req, 'ts2/gateway/postlogin.html', {'form': UserCreationForm(data={**tokens, 'handoff': handoff})})
+        return render(req, 'ts2/gateway/postlogin.html',
+                      {'form': UserCreationForm(data={**tokens, 'handoff': handoff})})
 
     def post(self, req: HttpRequest) -> HttpResponse:
         invalid_data = redirect(reverse('web:login_invalid', kwargs={'reason': 'invalid_payload'}))
@@ -143,6 +150,7 @@ class CreateUserView(View):
 @login_required
 @manage_permissions_required
 def join(req: HttpRequest) -> HttpResponse:
+    """Redirect to the Discord guild join portal for bots."""
     guild_id = req.POST.get('guild_id')
     if not guild_id:
         raise SuspiciousOperation('Invalid parameters.')
@@ -156,25 +164,31 @@ def join(req: HttpRequest) -> HttpResponse:
     return res
 
 
-def cleanup_unauthorized_join(guild_id: str):
-    thread = get_updater()
-
-    async def leave(bot: Bot):
-        try:
-            guild = await bot.fetch_guild(int(guild_id))
-        except Forbidden:
-            return
-        await guild.leave()
-
-    thread.run_coroutine(leave(thread.client))
-
-    try:
-        Server.objects.get(snowflake=guild_id).delete()
-    except Server.DoesNotExist:
-        pass
-
-
 class CreateServerProfileView(View):
+    @staticmethod
+    def cleanup_unauthorized_join(guild_id: str):
+        """Remove the bot from a guild and delete the guild's profile if the bot\
+        should not have been invited.
+
+        This could happen if someone joined the bot to a server through an OAuth URL
+        that is fabricated (which would contain an invalid `state` parameter).
+        """
+        thread = get_updater()
+
+        async def leave(bot: Bot):
+            try:
+                guild = await bot.fetch_guild(int(guild_id))
+            except Forbidden:
+                return
+            await guild.leave()
+
+        thread.run_coroutine(leave(thread.client))
+
+        try:
+            Server.objects.get(snowflake=guild_id).delete()
+        except Server.DoesNotExist:
+            pass
+
     @staticmethod
     @login_required
     @manage_permissions_required
@@ -185,7 +199,7 @@ class CreateServerProfileView(View):
         guild_id = req.GET.get('guild_id')
         state, token = verify_state(req, sub=guild_id, aud=req.user.pk)
         if state != 'valid' or not guild_id:
-            cleanup_unauthorized_join(guild_id)
+            CreateServerProfileView.cleanup_unauthorized_join(guild_id)
             raise SuspiciousOperation('Bad credentials.')
         return render(req, 'ts2/gateway/joined.html', {
             'form': ServerCreationForm(data={
@@ -222,4 +236,9 @@ class CreateServerProfileView(View):
 @login_required
 @require_POST
 def refresh_servers(req: HttpRequest):
+    """Force refresh the internal Discord server cache for this user.
+
+    The cache is refreshed whenever a request is made that is not safe (POST, etc).
+    This view simply triggers the refresh then redirect back to the same page.
+    """
     return redirect(req.POST.get('dest', reverse('web:index')))

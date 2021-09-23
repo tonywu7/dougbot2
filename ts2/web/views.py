@@ -19,6 +19,7 @@ from django.shortcuts import redirect
 
 
 def remove_suffix(req: HttpRequest, **kwargs) -> HttpResponse:
+    """Redirect a request to a path ending in .html to the one without the suffix."""
     p = req.get_full_path()
     res = redirect(p.removesuffix('.html').removesuffix('.htm'))
     res.status_code = 308

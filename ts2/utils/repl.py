@@ -29,6 +29,8 @@ missing = object()
 
 @dataclass
 class Question:
+    """A question in a REPL form."""
+
     key: str
     prompt: str
     required: bool
@@ -38,8 +40,11 @@ class Question:
 
 
 class TemplateQuestionMixin:
+    """Mixin providing convenient methods for creating yes/no and multiple-choice questions."""
+
     @classmethod
     def yes_no(cls, key: str, prompt='Confirm?', required=True, default='yes', strict=False):
+        """Create a question that can be answered with yes or no."""
         return Question(key, f'{prompt} (yes or no)', required, default, cls._truth_converter(strict))
 
     @classmethod
@@ -51,6 +56,7 @@ class TemplateQuestionMixin:
     @classmethod
     def multiple_choice(cls, key: str, choices: list[str] | dict[int, str], required=True,
                         prefix='Choose one of the following', postfix: str = None, default=missing):
+        """Create a multiple-choice question."""
         if isinstance(choices, Mapping):
             numbered_choices = {v: int(k) for k, v in choices.items()}
         else:
@@ -93,6 +99,8 @@ class TemplateQuestionMixin:
 
 
 class Form(TemplateQuestionMixin, Cmd):
+    """Form input in the command-line."""
+
     def __init__(self, questions: list[Question]):
         super().__init__()
         self.filled = False
@@ -104,18 +112,22 @@ class Form(TemplateQuestionMixin, Cmd):
 
     @property
     def formdata(self) -> dict[str, str]:
+        """Return the form data including unfilled questions as a mapping."""
         return {**self._form}
 
     @property
     def formdata_filled(self) -> dict[str, str]:
+        """Return the form data including only filled questions."""
         return {k: v for k, v in self._form.items() if v is not missing}
 
     @property
     def formdata_missing(self) -> dict[str, str]:
+        """Return the form data including only questions left blank."""
         return {k: v for k, v in self._form.items() if v is missing}
 
     @property
     def current(self) -> Question:
+        """Get the currently displayed question."""
         return self._current
 
     def _prompt_pass(self) -> str:

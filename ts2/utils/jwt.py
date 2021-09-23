@@ -28,6 +28,14 @@ from django.http import HttpRequest
 
 def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: str = '', aud: str = '',
               nbf: datetime | timedelta = timedelta(seconds=0), **claims) -> str:
+    """Create a JWT.
+
+    Arguments are standard JWT claims. Additional claims may be passed with **kwargs.
+    Signed with `SECRET_KEY`.
+
+    By default, `iat` and `nbf` are current time, `iss` is the domain of the current site.
+    A UUID will be generated for `jti`.
+    """
     payload = {f'ts2:{k}': v for k, v in claims.items()}
     now = datetime.now(timezone.utc)
     payload['iss'] = iss = get_current_site(req).domain
@@ -48,6 +56,21 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
 
 
 def validate_token(req: HttpRequest, token: str, sub=None, aud=None) -> tuple[str, Optional[dict]]:
+    """Validate a JWT against a request.
+
+    :param req: The request context
+    :type req: HttpRequest
+    :param token: The token to validate
+    :type token: str
+    :param sub: The expected subject, defaults to None (do not check `sub`)
+    :type sub: str, optional
+    :param aud: The expected audience, defaults to None (consider `iss` as `aud`)
+    :type aud: str, optional
+    :return: A tuple, the first item is either `'valid'`, `'invalid'`
+    (any claim except `exp` failed to validate), or `'expired'`,
+    the second item is the decoded token, if it is validated, otherwise `None`
+    :rtype: tuple[str, Optional[dict]]
+    """
     iss = get_current_site(req).domain
     aud = str(aud or iss)
     try:

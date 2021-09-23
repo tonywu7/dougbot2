@@ -35,6 +35,7 @@ from ...models import User, manage_permissions_required
 
 
 def user_invited_guild(user: User, guild_id: str) -> bool:
+    """Check if this user invited the bot to this guild."""
     return user.invited_servers.filter(snowflake__exact=guild_id).exists()
 
 
@@ -92,6 +93,8 @@ def logging_config(req: HttpRequest, **kwargs) -> HttpResponse:
 
 
 class DeleteServerProfileView(View):
+    """View handling server removals and bot leaves."""
+
     @staticmethod
     @login_required
     @manage_permissions_required
@@ -141,6 +144,7 @@ class DeleteServerProfileView(View):
 
 
 class ResetServerDataView(View):
+    """For resetting a guild's server profile while keeping the bot in the guild."""
     @staticmethod
     @login_required
     @manage_permissions_required

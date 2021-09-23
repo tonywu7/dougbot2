@@ -30,8 +30,19 @@ U = TypeVar('U', bound=Bot)
 
 
 class BotRunner(threading.Thread, Generic[T]):
+    """threading.Thread dedicated to running a discord.py client."""
+
     def __init__(self, client_cls: type[T], client_opts: dict,
                  listen=True, *args, **kwargs) -> None:
+        """Initialize the thread.
+
+        :param client_cls: The discord.py client class to use.
+        :type client_cls: type[discord.Client]
+        :param client_opts: Options to be passed to the client's initializer.
+        :type client_opts: dict
+        :param listen: Whether to listen for Discord gateway events, defaults to True
+        :type listen: bool, optional
+        """
         super().__init__(*args, **kwargs)
         self.log = logging.getLogger('discord.runner')
 
@@ -53,12 +64,17 @@ class BotRunner(threading.Thread, Generic[T]):
         self._data: Any
 
     def get_client(self) -> Optional[T]:
+        """Get the client in this thread if it has been created and is running."""
         try:
             return self.client
         except AttributeError:
             return None
 
     def run_client(self):
+        """Start the client in the current thread.
+
+        Creates a new asyncio event loop in the thread.
+        """
         with self.init:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -89,16 +105,20 @@ class BotRunner(threading.Thread, Generic[T]):
         loop.run_forever()
 
     def run_coroutine(self, coro):
+        """Submit a coroutine to be run in this thread's event loop."""
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future.result()
 
     def initialized(self) -> bool:
+        """Return True if a client has been created for this thread."""
         return hasattr(self, 'client')
 
     def logged_in(self) -> bool:
+        """Return True if the client has successfully authenticated with Discord."""
         return self._logged_in
 
     def connected(self) -> bool:
+        """Return True if the client has successfully connected to the Gateway."""
         return self._connected
 
     def run(self) -> None:

@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Functions for synchronizing Discord models to the database."""
+
 import asyncio
 from collections.abc import Generator
 from contextlib import asynccontextmanager, suppress
@@ -35,6 +37,7 @@ _unordered_write = None
 
 
 def channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
+    """Iterate over guild channels, including categories, in the order they appear in the sidebar."""
     for cat, channels in guild.by_category():
         if cat:
             yield cat
@@ -43,6 +46,7 @@ def channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
 
 
 def text_channels_ordered_1d(guild: Guild) -> Generator[GuildChannel]:
+    """Iterate over text channels in the order they appear in the sidebar."""
     for c in channels_ordered_1d(guild):
         if c.type in (ChannelType.text, ChannelType.news, ChannelType.category):
             yield c
@@ -111,6 +115,7 @@ def _get_event() -> asyncio.Event:
 
 @asynccontextmanager
 async def exclusive_sync():
+    """Block other threads from syncing to the database until the context manager exits."""
     _get_event().clear()
     try:
         yield
@@ -119,19 +124,29 @@ async def exclusive_sync():
 
 
 async def wait_until_free():
+    """Wait until no other thread is syncing."""
     return await _get_event().wait()
 
 
 @sync_to_async(thread_sensitive=False)
 def sync_server_unsafe(*args, **kwargs):
+    """Sync server but run it in a dedicated thread such that no particular order is guaranteed.
+
+    See `asgiref.sync` for more info.
+    """
     return _sync_server(*args, **kwargs)
 
 
 @sync_to_async
 def sync_server_threadsafe(guild: Guild, **kwargs):
+    """Sync server in the main Django thread such that database operations are guaranteed sequential.
+
+    See `asgiref.sync` for more info.
+    """
     return _sync_server(guild, **kwargs)
 
 
 async def sync_server(guild: Guild, **kwargs):
+    """Wait until no other thread is syncing server models, then sync server models."""
     await wait_until_free()
     await sync_server_threadsafe(guild, **kwargs)

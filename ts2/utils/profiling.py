@@ -27,12 +27,22 @@ log = logging.getLogger('util.datetime')
 
 @contextmanager
 def cprofile(out: str, enabled: bool = True):
+    """Profile the context block with cProfile.
+
+    :param out: The path to output the profile result
+    :type out: str
+    :param enabled: Whether to enable the profiler immediately,
+    defaults to True; if False, the profiler must be manually enabled
+    :type enabled: bool, optional
+    :yield: A `cProfile.Profile` object
+    """
     pr = cProfile.Profile()
     if enabled:
         pr.enable()
     try:
         yield pr
     finally:
+        # FIXME: logical error
         if not enabled:
             pass
         pr.disable()
@@ -40,6 +50,7 @@ def cprofile(out: str, enabled: bool = True):
 
 
 def abenchmark(func):
+    """Decorate an async function and log its execution time every time it is called."""
     name = objpath(func)
 
     @wraps(func)
@@ -53,6 +64,7 @@ def abenchmark(func):
 
 
 def benchmark(func):
+    """Decorate a function and log its execution time every time it is called."""
     name = objpath(func)
 
     @wraps(func)
@@ -67,6 +79,7 @@ def benchmark(func):
 
 @contextmanager
 def benchmark_block(name):
+    """Record and log the time it takes to finish the context block."""
     start = time.time()
     try:
         yield

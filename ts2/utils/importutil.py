@@ -20,10 +20,12 @@ from pkgutil import iter_modules
 
 
 def objpath(obj):
+    """Return the module path and type name of an object as a fully-qualified name."""
     return f'{obj.__module__}.{obj.__qualname__}'
 
 
 def load_object(qualname: str):
+    """Import an object by its fully-qualified name."""
     parts = qualname.split('.')
     mod, funcname = '.'.join(parts[:-1]), parts[-1]
     func = getattr(import_module(mod), funcname)
@@ -33,22 +35,18 @@ def load_object(qualname: str):
 def iter_module_tree(pkg: str, depth: int = 1, parts: list[str] = None) -> Generator[list[str], None, None]:
     """Recursively iterate over an import path yielding subpackages.
 
-    Parameters
-    ----------
-    pkg : str
-        Filesystem path of the module to iterate, e.g. `str(Path(__file__).with_name('views'))`
-    depth : int, optional
-        Search depth, 1 will find all immediate subpackages of a module, by default 1
-
-    Yields
-    -------
-    Generator[list[str], None, None]
-        Lists of qualified name components not including the root module that is searched
+    :param pkg: Filesystem path of the module to iterate, e.g. `str(Path(__file__).with_name('views'))`
+    :type pkg: str
+    :param depth: Search depth, 1 will find all immediate subpackages of a module, default to 1
+    :type depth: int, optional
+    :yield: Lists of qualified name components not including the root module that is searched
+    :rtype: Generator[list[str], None, None]
 
     Examples
     --------
     >>> for parts in iter_module_tree(str(Path(__file__).with_name('views')), 2):
     ...     import_module(f'.views.{".".join(parts)}', __package__)
+
     """
     if not depth:
         return

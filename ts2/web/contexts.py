@@ -23,6 +23,7 @@ from ts2.discord.templatetags.bot import avatar
 
 
 def user_info(req: HttpRequest):
+    """Provide shortcuts to user details."""
     return {
         'user_authenticated': req.user.is_authenticated,
         'user_superuser': req.user.is_superuser,
@@ -30,6 +31,7 @@ def user_info(req: HttpRequest):
 
 
 def discord_info(req: HttpRequest):
+    """Provide access to the request's Discord context."""
     return {
         'discord': get_ctx(req, False),
     }
@@ -51,6 +53,7 @@ def instance_constants(req: HttpRequest):
 
 
 def opengraph(req: HttpRequest):
+    """Provide info to be used in Open Graph meta tags."""
     const = instance_constants(req)
     graph = {
         'color': const['SITE_COLOR'],

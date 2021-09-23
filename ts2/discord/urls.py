@@ -10,6 +10,8 @@ app_name = 'ext'
 
 
 def collect_urls():
+    """Find all URLs exposed by bot cogs."""
+    # TODO: rewrite
     root = DiscordBotConfig.name
     urls = []
     for extension, in iter_module_tree(str(Path(__file__).with_name('contrib')), 1):
