@@ -24,6 +24,8 @@ from duckcord.permissions import Permissions2
 
 
 class PermissionField(models.BigIntegerField):
+    """Django integer field representing a discord.py Permissions object."""
+
     def to_python(self, value) -> Union[discord.Permissions, None]:
         number = super().to_python(value)
         if number is None:
@@ -42,6 +44,8 @@ class PermissionField(models.BigIntegerField):
 
 
 class ColorField(models.IntegerField):
+    """Django integer field representing a discord.py Color object."""
+
     def to_python(self, value) -> Union[Color2, None]:
         number = super().to_python(value)
         if number is None:
@@ -60,6 +64,8 @@ class ColorField(models.IntegerField):
 
 
 class NumbersListField(models.JSONField):
+    """A subclass of JSONField that ensures the data can only be an array of numbers."""
+
     def from_db_value(self, value, expression, connection):
         struct = super().from_db_value(value, expression, connection)
         if not isinstance(struct, Iterable):
@@ -73,6 +79,9 @@ class NumbersListField(models.JSONField):
 
 
 class RecordField(models.JSONField):
+    """A subclass of JSONField that ensures the data can only be a single-level\
+    string to string mapping."""
+
     def from_db_value(self, value, expression, connection):
         struct = super().from_db_value(value, expression, connection)
         if not isinstance(struct, dict):

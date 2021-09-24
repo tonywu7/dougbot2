@@ -21,9 +21,11 @@ register = template.Library()
 
 @register.filter(name='item')
 def item(value, arg):
+    """Django template filter version of __getitem__."""
     return value[arg]
 
 
 @register.filter(name='attr')
 def attr(value, arg):
+    """Django template filter version of __getattr__."""
     return getattr(value, arg)

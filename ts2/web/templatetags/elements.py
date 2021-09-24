@@ -34,6 +34,11 @@ register = Library()
 
 @create_tag_parser(register, 'set', 'endset')
 class BlockAssignmentNode(Node):
+    """Assign a template block to a variable.
+
+    Implements Jinja's set block.
+    """
+
     def __init__(self, nodelist: NodeList, var_name: Variable) -> None:
         self.nodelist = nodelist
         self.var_name = var_name.var
@@ -46,6 +51,8 @@ class BlockAssignmentNode(Node):
 @create_tag_parser(register, 'section', 'endsection')
 @dataclass
 class SectionNode(Node):
+    """Render a section in the main content."""
+
     nodelist: NodeList
     id: str
     title: str
@@ -64,6 +71,7 @@ class SectionNode(Node):
 
 
 def reverse_universal(ctx: Context, view: str, **kwargs):
+    """Return a guild-scoped version of the view if it is available."""
     try:
         snowflake = ctx['discord'].server_id
         url = reverse(view, kwargs={'guild_id': snowflake, **kwargs})
@@ -75,6 +83,7 @@ def reverse_universal(ctx: Context, view: str, **kwargs):
 
 
 def is_current_view(req: HttpRequest, view: str, **kwargs):
+    """Return True if the currently requested view is this view."""
     resolved = req.resolver_match
     if not resolved:
         return False
@@ -83,6 +92,8 @@ def is_current_view(req: HttpRequest, view: str, **kwargs):
 
 @create_tag_parser(register, 'sidebarlink')
 class SidebarLinkNode(Node):
+    """Render a link to be used in the sidebar."""
+
     def __init__(self, view: Variable, name: Variable, icon: Variable, **url_kwargs):
         self.view = view
         self.name = name
@@ -111,6 +122,8 @@ class SidebarLinkNode(Node):
 @create_tag_parser(register, 'chapter', 'endchapter')
 @dataclass
 class SidebarSectionNode(Node):
+    """Create an accordion in the sidebar."""
+
     nodelist: NodeList
     id: str
     name: str

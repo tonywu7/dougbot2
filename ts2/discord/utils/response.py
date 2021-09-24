@@ -33,6 +33,11 @@ from .markdown import tag
 
 @attr.s
 class ResponseInit:
+    """Utility class for specifying common command responses with a fluent interface.
+
+    Each method except `run()` returns the object itself, allowing chaining.
+    """
+
     context: Context = attr.ib()
 
     content: Optional[str] = attr.ib(default=None)
@@ -64,38 +69,59 @@ class ResponseInit:
         }
 
     def timed(self, ttl: float):
+        # TODO: remove
+        """Delete the response after this many seconds."""
         return attr.evolve(self, delete_after=ttl)
 
     def mentions(self, mentions: AllowedMentions | None):
+        """Set the `allowed_mentions` parameter of the outgoing message."""
         if mentions is None:
             mentions = AllowedMentions.none()
         return attr.evolve(self, allowed_mentions=mentions)
 
     def reply(self, notify: bool = False):
+        """Use Discord's reply feature when sending the response."""
         return attr.evolve(self, reference=self.context.message, mention_author=notify)
 
     def pingback(self):
+        """Prepend the message content with a mention of the user calling the command."""
         content = self.content or ''
         content = f'{tag(self.context.author)} {content}'
         return attr.evolve(self, content=content)
 
     def responder(self, responder_init: Callable[[Message], Responder]):
+        """Add a Responder to listen for events after the message is sent.
+
+        The callback should take the resulting message and return a Responder.
+        """
         init = attr.evolve(self)
         init.responders = [*self.responders, responder_init]
         return init
 
     def callback(self, cb: Callable[[Message], Coroutine[None, None, Any]]):
+        """Add an arbitrary callback to be run after the message is sent.
+
+        The callback should take the resulting message and return a coroutine.
+        """
         init = attr.evolve(self)
         init.callbacks = [*self.callbacks, cb]
         return init
 
     def deleter(self):
+        """Enable the deleter responder for this response.
+
+        Allows the caller of the command to delete this response
+        with a reaction.
+        """
         return self.responder(lambda msg: DeleteResponder(self.context, msg))
 
     def autodelete(self, seconds: float):
+        """Delete the response after this many seconds."""
         return attr.evolve(self, delete_after=seconds)
 
     def suppress(self, suppress=True):
+        """Suppress/allow embeds in the response as soon as the message is sent."""
+
         if not suppress:
             return self
 
@@ -104,15 +130,19 @@ class ResponseInit:
         return self.callback(callback)
 
     def dm(self):
+        """Set the response to DM the command caller instead of sending it to the current channel."""
         return attr.evolve(self, direct_message=True)
 
     def success(self):
+        """React to the command invocation with a green checkmark indicating success."""
         return attr.evolve(self, indicators=[*self.indicators, '✅'])
 
     def failure(self):
+        """React to the command invocation with a red cross indicating failure/error."""
         return attr.evolve(self, indicators=[*self.indicators, '❌'])
 
     async def send(self, *args, **kwargs) -> Optional[Message]:
+        """Deliver the response."""
         if self.direct_message:
             try:
                 return await self.context.author.send(*args, **kwargs)
@@ -121,6 +151,22 @@ class ResponseInit:
         return await self.context.send(*args, **kwargs)
 
     async def run(self, message: Optional[Message] = None, thread: bool = True):
+        """Execute the response.
+
+        Send out the message, run all callbacks, and begin listening for events.
+
+        If `message` is specified, no message will be sent and callbacks
+        and responders will run on this message instead.
+
+        :param message: The message to react/listen, defaults to None
+        :type message: Optional[Message], optional
+        :param thread: If True, run responders in a separate thread,
+        otherwise run them in the current event loop,
+        defaults to True
+        :type thread: bool, optional
+        :return: The message that was sent
+        :rtype: Message
+        """
         await asyncio.gather(*[
             self.context.message.add_reaction(r)
             for r in self.indicators
@@ -144,4 +190,8 @@ class ResponseInit:
 
     @property
     def is_empty(self):
+        """Return True if no text, embed, nor file has been set for the response.
+
+        Attempting to send a message at this state will fail.
+        """
         return not self.content and not self.embed and not self.files

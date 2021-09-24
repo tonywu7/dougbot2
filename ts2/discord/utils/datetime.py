@@ -38,6 +38,17 @@ def utctimestamp() -> float:
 
 
 def strpduration(s: str) -> timedelta:
+    """Convert strings representing a duration to a `timedelta` object.
+
+    Examples are `90s`, `1m30s`, `7d`, etc.
+
+    Parsing is lenient: the function will consider any number followed by
+    any word beginning with any of the possible units as part of
+    the duration, thus the following will all return a non-zero duration:
+
+        7 yes, 5 moments, 4d6d9y
+
+    """
     seconds = 0
     unit = {
         'y': 31536000,
@@ -55,4 +66,6 @@ def strpduration(s: str) -> timedelta:
 
 
 def assumed_utc(d: datetime) -> datetime:
+    """Assume this datetime (maybe naive) has a value representing a time in UTC\
+    and return an aware datetime."""
     return d.replace(tzinfo=timezone.utc)

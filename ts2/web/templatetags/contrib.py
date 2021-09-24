@@ -28,6 +28,8 @@ register = Library()
 
 @create_tag_parser(register, 'extensions_list')
 class ExtensionListNode(Node):
+    """Render all extension endpoints in the sidebar."""
+
     def __init__(self):
         super().__init__()
 

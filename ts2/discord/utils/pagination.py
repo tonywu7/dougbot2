@@ -39,6 +39,7 @@ PageProvider = Callable[[PartialEmoji], PageContent]
 
 
 class ParagraphStream:
+    """Continuous iterator over multiple strings."""
 
     class BLOCK(enum.Enum):
         PRESERVE = 0
@@ -51,6 +52,7 @@ class ParagraphStream:
         self.blockquote = blockquote
 
     def append(self, text: str):
+        """Add text to the end of string."""
         self.lines.extend(filter(None, text.split('\n')))
 
     def __len__(self) -> int:
@@ -105,6 +107,7 @@ class ParagraphStream:
 
 
 def trunc_for_field(text: str, size=960, placeholder=' ... (truncated)') -> str:
+    """Limit the length of a string if it exceeds a size limit."""
     actual_size = size - len(placeholder)
     if len(text) >= actual_size:
         return f'{text[:actual_size]}{placeholder}'
@@ -112,6 +115,7 @@ def trunc_for_field(text: str, size=960, placeholder=' ... (truncated)') -> str:
 
 
 def page_plaintext(sections: tuple[str, str], title=None, description=None, footer=None, divider='') -> str:
+    # TODO: remove
     lines = []
     if title:
         lines.append(u(strong(title)))
@@ -132,6 +136,7 @@ def page_plaintext(sections: tuple[str, str], title=None, description=None, foot
 
 
 def page_embed(sections: tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed:
+    # TODO: remove
     embed = Embed(title=title, description=description)
     for title, body in sections:
         embed.add_field(name=title, value=body, inline=False)
@@ -141,6 +146,7 @@ def page_embed(sections: tuple[str, str], title=Embed.Empty, description=Embed.E
 
 
 def page_embed2(sections: tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed2:
+    # TODO: remove
     embed = Embed2(title=title, description=description).set_footer(text=footer)
     for title, body in sections:
         embed = embed.add_field(name=title, value=body, inline=False)
@@ -148,12 +154,15 @@ def page_embed2(sections: tuple[str, str], title=Embed.Empty, description=Embed.
 
 
 def limit_results(results: list[str], limit: int) -> list[str]:
+    # TODO: remove
     if len(results) <= limit:
         return results
     return results[:limit] + [f'({len(results) - limit} more)']
 
 
 def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[list[S]]:
+    """Break a sequence of items with sizes into groups,\
+    breaking whenever the size of the group reaches a threshold."""
     current_len = 0
 
     def splitter(item: S):
@@ -170,6 +179,8 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
 
 def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
                       linebreak=lambda c: c == '\n') -> Iterator[list[EmbedField]]:
+    """Rearrange a list of embed fields and breaking fields longer than a certain size into\
+    separate fields sharing the same name."""
     if sum(len(f) for f in fields) < pagesize:
         yield [*fields]
         return
@@ -197,6 +208,9 @@ def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
 # From ddarknut. Blessed.
 def chapterize(text: str, maxlen: int, pred: Callable[[str], bool] = str.isspace,
                *, hyphen='-', maxsplit=float('inf')) -> Iterable[str]:
+    """Break long text into smaller parts of roughly the same size while\
+    avoiding breaking inside words/lines."""
+
     if len(hyphen) > maxlen:
         raise ValueError('Hyphenation cannot be longer than length limit.')
     if not text or maxsplit < 1:
@@ -224,6 +238,8 @@ def chapterize(text: str, maxlen: int, pred: Callable[[str], bool] = str.isspace
 
 
 def format_page_number(idx: int, total: int, sep: str = '/'):
+    """Indicate an item's position, such as `1/6` for the first item\
+    in a total of six items."""
     if idx < 0:
         idx = total + idx
     if idx < 0 or idx >= total:
@@ -232,11 +248,17 @@ def format_page_number(idx: int, total: int, sep: str = '/'):
 
 
 class Paginator(EmoteResponder):
+    """An EmoteResponder that edits message contents on reactions.
+
+    Initialized by the Pagination class.
+    """
+
     def __init__(self, provider: PageProvider, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.provider = provider
 
     async def handle(self, event: RawReactionActionEvent) -> bool:
+        """Change message content on reactions."""
         text, embed = self.provider(event.emoji)
         if not text and not embed:
             return
@@ -244,6 +266,11 @@ class Paginator(EmoteResponder):
 
 
 class NullPaginator(Paginator):
+    """A paginator that does nothing.
+
+    Used when there is only one page (and thus reactions are not needed).
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -258,6 +285,12 @@ class NullPaginator(Paginator):
 
 
 class Pagination:
+    """Create a paginator from multiple "pages" of text/embeds.
+
+    Pagination objects are callable and returns a Paginator when called.
+    Thus Pagination objects are reusable, while Paginators are not.
+    """
+
     def __init__(self, content: Sequence[PageContent]) -> None:
         self.content = content
         self.actions = {
@@ -273,12 +306,15 @@ class Pagination:
                 self.embed_transform(k, embed))
 
     def get_text(self, k: int) -> str:
+        """Get the text at page `k` (zero-indexed), applying text transforms."""
         return self.text_transform(k, self.content[k][0])
 
     def get_embed(self, k: int) -> Embed2:
+        """Get the embed at page `k` (zero-indexed), applying text transforms."""
         return self.embed_transform(k, self.content[k][1])
 
     def index_setter(self) -> PageProvider:
+        """Return a callable that returns the corresponding page when called with an emote."""
         index = 0
 
         def provider(emote: PartialEmoji) -> PageContent:
@@ -292,41 +328,59 @@ class Pagination:
         return provider
 
     async def reply(self, ctx: Context, ttl: int) -> tuple[Message, Paginator]:
+        # TODO: delete
         text, embed = self[0]
         msg = await ctx.reply(content=text, embed=embed)
         return msg, self(ctx.bot, msg, ttl, ctx.author)
 
     def __call__(self, client: Client, message: Message, ttl: int, *users: Union[int, Member]) -> Paginator:
+        """Make a Paginator from this Pagination to be used in message replies."""
         if len(self.content) > 1:
             return Paginator(self.index_setter(), client=client, message=message,
                              ttl=ttl, users=users, emotes=self.actions.keys())
         return NullPaginator()
 
     def text_transform(self, idx: int, body: str) -> str:
+        """Modify the text page before returning it.
+
+        Subclasses can override this method for custom behaviors, such
+        as adding page numbers.
+        """
         return body
 
     def embed_transform(self, idx: int, embed: Embed2) -> Embed2:
+        """Modify the embed page before returning it.
+
+        Subclasses can override this method for custom behaviors, such
+        as adding page numbers.
+        """
         return embed
 
 
 class TextPagination(Pagination):
+    """A Pagination that provides only text content."""
+
     def __init__(self, texts: Sequence[str], title: str) -> None:
         super().__init__([(s, None) for s in texts])
         self.title = title
 
     def text_transform(self, idx: int, body: str) -> str:
+        """Add a title and a page number to each page."""
         if not body:
             return
         return f'{strong(self.title)} ({format_page_number(idx, len(self.content))})\n\n{body}'
 
 
 class EmbedPagination(Pagination):
+    """A Pagination that provides only embed content."""
+
     def __init__(self, embeds: Sequence[Embed2], title: Optional[str], set_timestamp: bool = True) -> None:
         super().__init__([(None, e) for e in embeds])
         self.title = title
         self.timestamp = set_timestamp
 
     def embed_transform(self, idx: int, embed: Embed2) -> Embed2:
+        """Set the page number in the title and optionally the timestamp."""
         if not embed:
             return
         if self.title:
@@ -336,9 +390,15 @@ class EmbedPagination(Pagination):
         return embed
 
     def to_dict(self):
+        """Convert the first page to a dict.
+
+        This allows the Pagination object to be passed where `discord.abc.Messageable`
+        expects an `Embed` object.
+        """
         return self.get_embed(0).to_dict()
 
     def with_context(self, ctx: Context, ttl=600):
+        """Create a Paginator object attached to this Context."""
         def from_message(m: Message):
             return self(ctx.bot, m, ttl, ctx.author)
         return from_message

@@ -53,6 +53,9 @@ def is_direct_message(ctx: Union[Message, Context, TextChannel]):
 
 
 class BigIntDict(MutableMapping[_KT, _VT]):
+    """A mutable mapping in which string representations of a JavaScript big integer\
+    (> 2^53) are converted to int before being used as keys."""
+
     def __init__(self, mapping: Optional[MutableMapping[_KT, _VT]]) -> None:
         if mapping:
             self._map = {self._convert(k): v for k, v in mapping.items()}

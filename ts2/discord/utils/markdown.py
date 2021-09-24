@@ -55,6 +55,7 @@ TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
 
 
 def tag(obj) -> str:
+    # TODO: remove
     if isinstance(obj, User):
         return f'<@{obj.id}>'
     if isinstance(obj, GuildChannel):
@@ -67,6 +68,7 @@ def tag(obj) -> str:
 
 
 def tag_literal(kind: str, val: int):
+    """Format this integer as a Discord mention as if it is a Discord object."""
     return {
         'user': '<@%(val)s>',
         'member': '<@%(val)s>',
@@ -76,50 +78,70 @@ def tag_literal(kind: str, val: int):
 
 
 def em(s: str) -> str:
+    """Format as italics."""
     return f'_{s}_'
 
 
 def strong(s: str) -> str:
+    """Format as bold."""
     return f'**{s}**'
 
 
 def u(s: str) -> str:
+    """Format as underline."""
     return f'__{s}__'
 
 
 def code(s: str) -> str:
+    """Format as monospace characters."""
     return f'`{s}`'
 
 
 def pre(s: str, lang='') -> str:
+    """Format as a code block, optionally with syntax highlighting."""
     return f'```{lang}\n{s}\n```'
 
 
 def strike(s: str) -> str:
+    """Format as a strikethrough."""
     return f'~~{s}~~'
 
 
 def redact(s: str) -> str:
+    """Format as redaction."""
     return f'||{s}||'
 
 
 def blockquote(s: str) -> str:
+    """Format as a blockquote.
+
+    The > character is added at the beginnings
+    of every new line.
+    """
     return indent(s, '> ', predicate=lambda t: True)
 
 
 def E(s: str) -> str:
+    # TODO: use the emoji package
+    """Format as a Discord emote by name."""
     return f':{s}:'
 
 
 def a(text: str, href: str) -> str:
+    """Format as a markdown hyperlink."""
     return f'[{text}]({href})'
 
 
 def verbatim(text: str) -> str:
+    """Escape all markdowns in the text and format it as a monospace string."""
     return code(escape_markdown(text))
 
 
 def traffic_light(val: bool | None, strict=False):
+    """Convert truthy values to the `green` emoji and falsy values to `red`.
+
+    If `strict` is True, convert `None` to the `yellow` emoji.
+    """
     if val:
         return '🟢'
     elif strict and val is None:
@@ -129,6 +151,7 @@ def traffic_light(val: bool | None, strict=False):
 
 
 def arrow(d: Literal['N', 'E', 'S', 'W']) -> str:
+    """Make an arrow of pointing towards a direction."""
     return {
         'N': '↑',
         'E': '→',
@@ -137,14 +160,14 @@ def arrow(d: Literal['N', 'E', 'S', 'W']) -> str:
     }[d]
 
 
-def unmark_element(element, stream=None):
+def _unmark_element(element, stream=None):
     # https://stackoverflow.com/a/54923798/10896407
     if stream is None:
         stream = StringIO()
     if element.text:
         stream.write(element.text)
     for sub in element:
-        unmark_element(sub, stream)
+        _unmark_element(sub, stream)
     if element.tail:
         stream.write(element.tail)
     return stream.getvalue()
@@ -154,19 +177,29 @@ def timestamp(t: datetime | float | int | str, f: Literal[
     'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
     'full', 'long', 'date', 'relative',
 ]) -> str:
+    """Create a Discord timestamp markdown from a timestamp.
+
+    :param t: The timestamp
+    :type t: Union[datetime, float, int, str]
+    :param f: The displayed format
+    :type f: Literal['yy/mm/dd', 'hh:mm:ss', 'hh:mm',
+        'full', 'long', 'date', 'relative']
+    """
     if isinstance(t, datetime):
         t = t.timestamp()
     if isinstance(t, str):
         t = float(t)
+    # TODO: accept also directly specifying the format
     return f'<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>'
 
 
-Markdown.output_formats['plain'] = unmark_element
+Markdown.output_formats['plain'] = _unmark_element
 _md = Markdown(output_format='plain')
 _md.stripTopLevelTags = False
 
 
 def untagged(text: str) -> str:
+    """Remove all user/role/channel mentions and show their IDs instead."""
     text = RE_USER_MENTION.sub(r'user:\1', text)
     text = RE_ROLE_MENTION.sub(r'role:\1', text)
     text = RE_CHANNEL_MENTION.sub(r'channel:\1', text)
@@ -174,10 +207,16 @@ def untagged(text: str) -> str:
 
 
 def unmarked(text: str) -> str:
+    """Try to remove all markdowns from the string."""
     return _md.convert(text)
 
 
-def unwrap_codeblock(text: str, lang: str) -> str:
+def unwrap_codeblock(text: str, lang: str = '') -> str:
+    """Remove the opening and closing backticks from a code block.
+
+    If `lang` is specified, assert that the code block is marked
+    as this language too.
+    """
     text = text.strip()
     sig = f'```{lang}'
     if not text.startswith(f'{sig}\n'):
@@ -188,6 +227,17 @@ def unwrap_codeblock(text: str, lang: str) -> str:
 
 
 def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
+    """Find and return the first valid code blocks matching\
+    this language from the text.
+
+    :param text: The text to search
+    :type text: str
+    :param langs: Find only code blocks in these languages.
+    :type langs: tuple[str, ...]
+    :return: The code block with backticks stripped, and the position
+    in the original string at which it ends.
+    :rtype: tuple[str, int]
+    """
     lines = iter(text.splitlines())
     passed = []
     block = []
@@ -217,6 +267,7 @@ def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
 
 
 def urlqueryset(u: str, **query) -> str:
+    """Replace the query in this URL with these params."""
     url = urlsplit(u)
     par = MultiValueDict(parse_qs(url.query))
     par.update(query)
@@ -225,10 +276,15 @@ def urlqueryset(u: str, **query) -> str:
 
 
 def sized(u: str, s: int) -> str:
+    """Add a `size=` parameter to the URL.
+
+    Used for Discord asset URLs.
+    """
     return urlqueryset(u, size=s)
 
 
 def rgba2int(r: int, g: int, b: int, a: int | None = None) -> int:
+    """Convert an RGB(A) tuple to its integer representation (numeric value of the hex code)."""
     if a is None:
         return (r << 16) + (g << 8) + b
     else:
@@ -236,5 +292,10 @@ def rgba2int(r: int, g: int, b: int, a: int | None = None) -> int:
 
 
 def iter_urls(s: str) -> Iterable[str]:
+    """Iterate over all URLs in text.
+
+    A substring is consider a URL if Discord
+    will display it as one.
+    """
     for m in RE_URL.finditer(s):
         yield m.group(0)

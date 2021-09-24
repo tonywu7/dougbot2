@@ -34,6 +34,7 @@ def _rename_to_input(s: str) -> str:
 
 
 def input_from_type(t: type[ObjectType], **overrides) -> type[InputObjectType]:
+    """Generate an InputObjectType from an Object."""
     __dict__ = {k: v for k, v in overrides.items() if v}
 
     for k, v in t._meta.fields.items():
@@ -49,6 +50,8 @@ def input_from_type(t: type[ObjectType], **overrides) -> type[InputObjectType]:
 
 
 class ModelMutation(Generic[T], Mutation):
+    """Mixin providing methods for working with mutations on Django models."""
+
     class Meta:
         abstract = True
 
@@ -71,18 +74,26 @@ class ModelMutation(Generic[T], Mutation):
 
     @classmethod
     def get_queryset(cls) -> QuerySet[T]:
+        """Get the default queryset of this model."""
         return cls._model.objects.all()
 
     @classmethod
     def get_instance(cls, req: HttpRequest, item_id: str) -> T:
+        """Get the object this mutation applies to."""
         return cls.get_queryset().get(pk=item_id)
 
     @classmethod
     def mutate(cls, *args, **kwargs):
+        """Apply the mutation.
+
+        Subclasses must override this method.
+        """
         raise NotImplementedError
 
 
 class FormMutationMixin(Generic[U]):
+    """Mixin providing conversion from a mutation to a Django form."""
+
     def __init_subclass__(cls, **kwargs) -> None:
         try:
             cls._form = cls.Meta.form
@@ -92,6 +103,7 @@ class FormMutationMixin(Generic[U]):
 
     @classmethod
     def get_form(cls, arguments: dict, instance=None, raise_invalid=True) -> Form:
+        """Create a form using this mutation's form class and arguments."""
         form_cls = cls._form
         kwargs = {'data': arguments}
         if issubclass(form_cls, ModelForm):
@@ -103,22 +115,30 @@ class FormMutationMixin(Generic[U]):
 
 
 class HasContext(Protocol):
+    """The `info` parameter in graphene callbacks with access to the request context."""
+
     context: HttpRequest
 
 
 class KeyValuePairType(ObjectType):
+    """Utility type for representing a dictionary with arbitrary keys as a list."""
+
     key: str = NonNull(String)
     value: str = NonNull(String)
 
     @classmethod
     def from_dict(cls, record: dict[str, str]) -> list[KeyValuePairType]:
+        """Create a list of key-value pairs from a dict."""
         return [KeyValuePairType(str(k), str(v)) for k, v in record.items()]
 
 
 class KeyValuePairInput(InputObjectType):
+    """Key-value pair type as input."""
+
     key: str = Argument(String, required=True)
     value: str = Argument(String, required=True)
 
     @classmethod
     def to_dict(cls, kvp: list[KeyValuePairInput]) -> dict[str, str]:
+        """Create a dict represented by this list of key-value pairs."""
         return {item.key: item.value for item in kvp}

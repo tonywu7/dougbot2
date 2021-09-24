@@ -35,6 +35,12 @@ SyncEventFilter = Callable[..., bool]
 
 
 def event_filter(ev_filter: EventFilter) -> Decorator:
+    """Provide a wrapper to a discord.py event listener so that the listener\
+    runs only if the passed-in callable returns True.
+
+    The callable accepts the same arguments that will be passed to the
+    event handler.
+    """
     def wrapper(f: Callable[..., Coroutine]):
         @wraps(f)
         async def wrapped(*args, **kwargs):
@@ -45,26 +51,31 @@ def event_filter(ev_filter: EventFilter) -> Decorator:
 
 
 def emote_no_bots(event: RawReactionActionEvent):
+    """Allow a reaction event if the event is not from a bot user."""
     return not event.member or not event.member.bot
 
 
 def emote_added(event: RawReactionActionEvent):
+    """Allow a reaction event if the event adds a reaction."""
     return event.event_type == 'REACTION_ADD'
 
 
 def reaction_from(*ids: int):
+    """Allow a reaction event if the event comes from one of the specified users."""
     def check(event: RawReactionActionEvent, ids=frozenset(ids)):
         return event.user_id in ids
     return check
 
 
 def reaction_on(*ids: int):
+    """Allow a reaction event if the event originates from one of the messages."""
     def check(event: RawReactionActionEvent, ids=frozenset(ids)):
         return event.message_id in ids
     return check
 
 
 def emote_matches(*emotes: str | int):
+    """Allow a reaction event if the emote used is one of the specified emotes."""
     def check_emote(event: RawReactionActionEvent):
         id_ = event.emoji.id or event.emoji.name
         return id_ in emotes
@@ -72,6 +83,8 @@ def emote_matches(*emotes: str | int):
 
 
 class Responder:
+    """Wait for discord.py events and run a coroutine if there is a match."""
+
     def __init__(self, events: dict[str, Callable[..., bool]],
                  client: Client, ttl: float) -> None:
         self.log = logging.getLogger('discord.responder')
@@ -81,15 +94,28 @@ class Responder:
         self.end: float
 
     def check(self, event: str, args) -> bool:
+        # TODO: delete
         return all(t(args) for t in self.events[event])
 
     async def on_start(self):
+        """Execute before the responder begins listening for events.
+
+        Subclasses should override this method for startup tasks.
+
+        This method should return True if the responder should run.
+        If it returns False, the responder will not listen to events at all.
+        """
         return True
 
     async def on_finish(self):
+        """Execute after the responder has reached its TTL and is about to stop.
+
+        Subclasses should override this method for shutdown/cleanup tasks.
+        """
         return
 
     async def init(self) -> bool:
+        """Perform startup tasks."""
         try:
             return await self.on_start()
         except Exception as e:
@@ -97,12 +123,17 @@ class Responder:
             return False
 
     async def cleanup(self):
+        """Clean up after responder has finished listening.
+
+        All exceptions are ignored.
+        """
         try:
             return await self.on_finish()
         except Exception:
             pass
 
     async def run(self):
+        """Listen for events."""
         self.end = time.perf_counter() + self.ttl
 
         while True:
@@ -136,6 +167,12 @@ class Responder:
         await self.cleanup()
 
     async def handle(self, args: Union[Any, tuple]) -> Optional[bool]:
+        """Callback for when the responder received a matching event.
+
+        It receives all values as provided by discord.py to the event listener as arguments.
+
+        Subclasses must override this method to implement their own logic.
+        """
         raise NotImplementedError
 
     def __await__(self):
@@ -143,6 +180,12 @@ class Responder:
 
 
 class EmoteResponder(Responder):
+    """Listen for reaction events and run tasks.
+
+    This can be used to implement emote-based menus.
+    Currently this has been used for bot response pagination and deletion.
+    """
+
     def __init__(
         self, users: Iterable[int | Member], emotes: list[Emoji | PartialEmoji | str],
         message: Message, *args, **kwargs,
@@ -171,16 +214,20 @@ class EmoteResponder(Responder):
         super().__init__(events, *args, **kwargs)
 
     async def on_start(self):
+        """Add all emotes on start."""
         for emote in self.emotes:
             await self.message.add_reaction(emote)
         return True
 
     async def on_finish(self):
+        """Clear out tracked emotes on finish."""
         for emote in self.emotes:
             await self.message.clear_reaction(emote)
 
 
 class DeleteResponder(EmoteResponder):
+    """Listen for a reaction to the trashcan emote and delete a message."""
+
     def __init__(self, ctx: Context, message: Message, ttl: int = 300) -> None:
         super().__init__([ctx.author.id], ['🗑'], client=ctx.bot, message=message, ttl=ttl)
 
@@ -190,6 +237,7 @@ class DeleteResponder(EmoteResponder):
 
 
 async def run_responders(*responders: Responder):
+    """Run responders concurrently in the current event loop."""
     should_run = []
     for r in responders:
         if await r.init():
@@ -200,6 +248,10 @@ async def run_responders(*responders: Responder):
 
 
 def start_responders(*responders: Responder):
+    """Run responders concurrently in a new loop in a separate thread.
+
+    Responders are responsible for thread safety.
+    """
     loop = asyncio.get_running_loop()
 
     def run():

@@ -30,6 +30,7 @@ U = TypeVar('U')
 
 
 def memoize(obj: object, k: str, *args, factory=list, setter=list.append):
+    """Memoize metadata about a function so that decorators can be applied in arbitrary orders."""
     memo: list
     try:
         memo = getattr(obj, k)
@@ -44,6 +45,7 @@ dict_memoize = partial(memoize, factory=dict, setter=dict.__setitem__)
 
 
 def get_memo(obj, k: str, *members: str, default: T) -> T:
+    """Get a previously memoized attribute from an object."""
     memo = getattr(obj, k, _MISS)
     if memo is not _MISS:
         return memo

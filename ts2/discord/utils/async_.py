@@ -81,6 +81,7 @@ class async_atomic:
 
 
 class Promise:
+    # TODO: remove
     @classmethod
     async def resolve(cls, *args, **kwargs):
         return args, kwargs

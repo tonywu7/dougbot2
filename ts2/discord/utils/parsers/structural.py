@@ -41,6 +41,11 @@ def _is_greedy(annotation) -> bool:
 
 
 def get_live_converter(annotation, default):
+    """Get a discord.py-compatible converter function based on the annotation object.
+
+    The returning function is for either a regular type, or a union type
+    (the `Union` converter), or the `Greedy` converter.
+    """
 
     if annotation is Parameter.empty:
         raise StructuralParsingError()
@@ -94,6 +99,8 @@ def get_live_converter(annotation, default):
 
 
 class StructuredView(StringView):
+    """Emulation of discord.py's StringView that has its content already parsed and structured."""
+
     def __init__(self, items: list):
         self.items = [str(i) for i in items]
         self.idx = 0
@@ -147,6 +154,29 @@ class StructuredView(StringView):
 
 
 class StructuralArgumentParser:
+    """Parse command arguments sent as structured text: TOML or JSON.
+
+    Instead of putting command arguments on the same line in order,
+    this allows people to specify arguments like a form, and reducing
+    the likelihood of incorrect quotation (because quotation is not
+    a concept most ordinary users are familiar with).
+
+    Thus, for example, for a command that takes arguments `channel`,
+    `role`, and `user`, instead of writing:
+
+        command #channel @role @user
+
+    It is possible to write:
+
+        command ```toml
+        role = 'role'
+        user = 'user'
+        channel = 'channel'
+        ```
+
+    This makes it significantly easier to write complex commands.
+    """
+
     def __init__(self, ctx: Context):
         self.ctx = ctx
         self.params: dict[str, Parameter] = {}
@@ -159,6 +189,8 @@ class StructuralArgumentParser:
             self.params[k] = v
 
     def get_raw_input(self):
+        """Retrieve everything after the prefix and command from the message."""
+
         ctx = self.ctx
         full_invoked_with = ' '.join({
             **{k: True for k in ctx.invoked_parents},
@@ -170,6 +202,7 @@ class StructuralArgumentParser:
                 .strip())
 
     def loads(self) -> Optional[dict]:
+        """Try to find and load a JSON/TOML string."""
         text = self.get_raw_input()
         data: Optional[dict] = None
         for lang, loader, exceptions in [
@@ -186,6 +219,8 @@ class StructuralArgumentParser:
         return data
 
     def default_args(self):
+        """Prepare the default argument array, depending on\
+        whether the command is from a cog."""
         cmd = self.ctx.command
         if cmd.cog is None:
             return [self.ctx]
@@ -193,6 +228,7 @@ class StructuralArgumentParser:
             return [cmd.cog, self.ctx]
 
     def apply(self):
+        """Populate the context's args and kwargs using the parsed result."""
         args = self.ctx.args = self.default_args()
         kwargs = self.ctx.kwargs
         for k, v in self.params.items():
@@ -215,6 +251,11 @@ class StructuralArgumentParser:
                 kwargs[k] = parsed
 
     async def parse(self):
+        """Attempt to parse the dictionary and convert all values to their expected types.
+
+        This essentially replicates discord.py's parsing process, except string scanning
+        is not necessary.
+        """
         data = self.loads()
         if data is None:
             raise StructuralParsingError()
@@ -238,9 +279,11 @@ class StructuralArgumentParser:
             self.ctx.view = view
 
     async def __call__(self):
+        """Run the parser on this message and populate the arguments."""
         await self.parse()
         self.apply()
 
 
 class StructuralParsingError(Exception):
+    """Exception for when the message does not contain a valid TOML/JSON string."""
     pass

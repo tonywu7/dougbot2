@@ -49,6 +49,7 @@ def fullfilename(context):
 
 @register.simple_tag(takes_context=True)
 def viewname(context: template.Context):
+    """Get the current view name."""
     try:
         req = context['request']
         return req.resolver_match.view_name
