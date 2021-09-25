@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+import mimetypes
 import string
 from collections import Counter
 from collections.abc import AsyncGenerator
@@ -24,7 +25,7 @@ from typing import Literal, Optional
 
 import nltk
 from asgiref.sync import sync_to_async
-from discord import Message, MessageReference, Object, TextChannel
+from discord import Message, MessageReference, Object, TextChannel, Attachment
 from discord.ext.commands import BucketType, command
 from django.conf import settings
 from duckcord.embeds import Embed2
@@ -45,6 +46,13 @@ from .models import StoryTask
 RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)(?!\w)')
 
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
+
+
+def maybe_image(att: Attachment) -> bool:
+    contenttype: Optional[str] = att.content_type
+    if not contenttype:
+        contenttype, encoding = mimetypes.guess_type(att.url, False)
+    return contenttype and contenttype.startswith('image/')
 
 
 class Museum(
@@ -77,7 +85,7 @@ class Museum(
         image = False
         attachments = []
         for att in message.attachments:
-            if not image and att.content_type.startswith('image/'):
+            if not image and maybe_image(att):
                 res = res.set_image(url=att.url)
                 image = True
             attachments.append(a(att.filename, att.url))
