@@ -305,7 +305,7 @@ class DiscordContext:
 
     @property
     def readonly(self) -> bool:
-        """Return True if this user only has read access to this guild."""
+        """Whether this user only has read access to this guild."""
         return self.permissions[self.server_id] == frozenset({'read'})
 
     @property
@@ -315,7 +315,7 @@ class DiscordContext:
 
     @property
     def joined(self) -> bool:
-        """Return True if the bot has joined this guild."""
+        """Whether the bot has joined this guild."""
         return self.server_id in self.joined_servers
 
     @property
@@ -351,12 +351,12 @@ class DiscordContext:
 
     @property
     def is_staff(self):
-        """Return True if the current user is staff on the website."""
+        """Whether the current user is staff on the website."""
         return self.web_user.is_staff
 
     @property
     def is_superuser(self):
-        """Return True if the current user is a Django auth superuser of the website."""
+        """Whether the current user is a Django auth superuser of the website."""
         return self.web_user.is_superuser
 
     def fetch_server(self, server_id: Union[str, int], access: Literal['read', 'write'],

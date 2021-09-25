@@ -138,15 +138,26 @@ def _get_type_converter(t: type):
 
 
 def add_type_description(t: _Annotation, np: QuantifiedNP):
+    """Set this type's text description globally."""
     _type_descriptions[t] = np
 
 
 def add_type_converter(t: _Annotation, c: Callable[[_Annotation], _Annotation]):
+    """Use the callable globally to transform this annotation before further processing."""
     _type_converters.append((t, c))
 
 
 @attr.s(eq=True, hash=True)
 class Argument:
+    """Represent an argument for a command.
+
+    Argument objects keep track of the argument's name, expected types,
+    default values, and displayed names in command help.
+
+    Argument objects are populated by the Documentation class when
+    it inspects a command's function signature.
+    """
+
     key: str = attr.ib(order=False)
     annotation: _Annotation = attr.ib(order=False)
     accepts: QuantifiedNP = attr.ib(order=False)
@@ -164,23 +175,37 @@ class Argument:
 
     @property
     def is_hidden(self) -> str:
+        """Whether this argument is marked as hidden or is private.
+
+        Hidden arguments are not shown in the help page.
+        """
         return self.hidden or self.key[0] == '_'
 
     @property
     def is_unused(self) -> bool:
+        """Whether this argument is a "rest value" argument and\
+        is expected to not be used.
+
+        In discord.py, this is usually the first keyword-only argument.
+        The argument is expected to not be used if it doesn't have an
+        annotation or if the annotation is `str`.
+        """
         return (self.final and self.is_optional
                 and not self.help
                 and not self.description)
 
     @property
     def is_optional(self) -> bool:
+        """Whether this argument has a default value."""
         return self.default is not attr.NOTHING
 
     @cached_property
     def slug(self) -> str:
+        """Return a kebab-case version of the argument name."""
         return slugify(singularize(self.key))
 
     def describe(self) -> str:
+        """Describe what this argument does and what it takes in the Argument secion."""
         if self.description:
             return self.description
         if self.is_unused:
@@ -195,6 +220,7 @@ class Argument:
             accepts = f'{accepts}; optional'
             if self.default:
                 accepts = f'{accepts}, default is {self.default}'
+        # TODO: use 1st person instead
         if self.help:
             accepts = f'{self.help} Accepts {accepts}'
         else:
@@ -202,6 +228,14 @@ class Argument:
         return accepts
 
     def as_node(self) -> str:
+        """Print this argument saying what type of info it accepts.
+
+        This is used to format the list of possible ways to use a command,
+        for example:
+
+            message [channel] [content]
+
+        """
         if self.node:
             return self.node
         if self.is_unused:
@@ -213,6 +247,10 @@ class Argument:
         return f'[{self.accepts.concise(1)}]'
 
     def __str__(self):
+        """Print the argument's name in manpage style.
+
+        This is used to show the command signature in the synopsis.
+        """
         if self.signature:
             return self.signature
         if self.is_unused:
@@ -230,6 +268,7 @@ class Argument:
 
     @classmethod
     def from_parameter(cls, param: Parameter) -> Argument:
+        """Create an Argument description from an `inspect.Parameter` object."""
         key = param.name
         annotation = param.annotation
         if annotation is Parameter.empty:
@@ -247,6 +286,7 @@ class Argument:
 
     @classmethod
     def infer_accepts(cls, annotation: _Annotation) -> QuantifiedNP:
+        """Create a phrase in natural English describing the type of info this argument expects."""
         if _is_type_union(annotation):
             return cls.infer_union_type(annotation)
         conv = _get_type_converter(annotation)
@@ -261,6 +301,7 @@ class Argument:
 
     @classmethod
     def infer_union_type(cls, annotation) -> QuantifiedNP:
+        """Handle Union types while describing the argument's type."""
         defined = _get_description(annotation)
         if defined:
             return defined
@@ -272,21 +313,65 @@ class Argument:
 
 @attr.s(eq=True, hash=True)
 class CommandSignature:
+    """An ordered of Arguments representing one possible way to call a command.
+
+    This object is used to format command synopsis and syntax help.
+    """
+
     arguments: tuple[Argument, ...] = attr.ib(converter=lambda args: tuple(sorted(args)))
     description: str = attr.ib(default='', hash=False)
 
     def as_synopsis(self) -> str:
+        """Print a manpage style signature.
+
+        For example, with a command whose function signature is
+
+            `message(channel: Channel, *, content: Optional[str] = None)`
+
+        This prints
+
+            `message ‹channel› [content]`
+
+        """
         return ' '.join(filter(None, (str(arg) for arg in self.arguments)))
 
     def as_node(self) -> str:
+        """Print the signature indicating the types of each argument.
+
+        For example, with a command whose function signature is
+
+            `message(channel: Channel, *, content: Optional[str] = None)`
+
+        This prints
+
+            `message [text channel] [text content ...]`
+
+        """
         return ' '.join(filter(None, (arg.as_node() for arg in self.arguments)))
 
     def as_frozenset(self) -> tuple[str, ...]:
+        """Return the names of these arguments as a frozenset (thus ignoring the order).
+
+        This is useful as dict keys in mappings of command signatures.
+        """
         return frozenset(arg.key for arg in self.arguments if not arg.is_hidden)
 
 
 @attr.s(kw_only=True)
 class Documentation:
+    """Documentation objects contain all information necessary\
+    to produce a detailed help page for a command.
+
+    The autodoc module instantiates one Documentation object from one
+    discord.py Command object, reading its function signature and generating
+    descriptions.
+
+    This relies on the Command callbacks being augmented with the provided decorators,
+    which convey the command's description, call syntax, and usage examples, etc.
+
+    See `autodoc.decorators` for more info.
+    """
+
     name: str = attr.ib()
     parent: str = attr.ib()
 
@@ -314,6 +399,7 @@ class Documentation:
 
     @classmethod
     def from_command(cls, cmd: Command) -> Documentation:
+        """Generate a documentation from a Command object."""
         doc = cls(name=cmd.name, parent=cmd.full_parent_name,
                   call_sign=cmd.qualified_name,
                   standalone=getattr(cmd, 'invoke_without_command', True),
@@ -326,13 +412,44 @@ class Documentation:
 
     @property
     def invisible(self):
+        """Whether or not this command should be hidden from the table of contents.
+
+        A command is visible if it is marked with the `autodoc.hidden` decorator
+        or if it is a command group that cannot be called without subcommands
+        (`invoke_without_command=False`).
+        """
         return self.hidden or not self.standalone
 
     @property
     def full_aliases(self) -> list[str]:
+        """All possible names for this command (including parent command).
+
+        This is used to provide search results for a command if people look it up
+        by its alias.
+        """
         return [f'{self.parent} {alias}' for alias in self.aliases]
 
     def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
+        """Iterate over all possible call syntaxes for this command.
+
+        Syntaxes are different if they take different sets of arguments.
+        This happens when the command accepts optional arguments
+        (thus where it runs without the optional argument and where it runs
+        with the argument are two different call styles.
+
+        For example, a command whose function signature is
+
+            `message(channel: Channel, *, content: Optional[str] = None)`
+
+        will have two call styles:
+
+            `message channel`
+
+            `message channel content`
+
+        This helps clarify to people how the command may behave differently
+        depending on how they call it.
+        """
         if options is None:
             options = deque(self.arguments.values())
         if stack is None:
@@ -355,22 +472,8 @@ class Documentation:
             yield from self.iter_call_styles(options, stack)
             options.appendleft(stack.pop())
 
-    def format_examples(
-        self, examples: list[tuple[str, Optional[str]]],
-        transform=lambda s: strong(escape_markdown(s)),
-    ) -> str:
-        if not examples:
-            return '(none)'
-        lines = []
-        for invocation, explanation in examples:
-            if isinstance(invocation, tuple):
-                invocation = '\n'.join(invocation)
-            lines.append(transform(invocation))
-            if explanation:
-                lines.append(blockquote(explanation))
-        return '\n'.join(lines)
-
     def infer_arguments(self, args: dict[str, Parameter]):
+        """Create Argument objects from a Parameter mapping."""
         # Cannot use ismethod
         # Always skip the first argument which is either self/cls or context
         # If it is self/cls, ignore subsequent ones
@@ -393,12 +496,14 @@ class Documentation:
         self.arguments = arguments
 
     def build_signatures(self):
+        """Create a mapping of all call signatures for this command."""
         signatures = OrderedDict()
         for sig in self.iter_call_styles():
             signatures[sig.as_frozenset()] = sig
         return signatures
 
     def build_synopsis(self):
+        """Format the Synopsis section."""
         lines = []
         for keys, sig in self.invocations.items():
             if keys not in self.invalid_syntaxes:
@@ -407,14 +512,41 @@ class Documentation:
             lines.append(f'{subc} [...]')
         return tuple(lines)
 
+    def format_examples(
+        self, examples: list[tuple[str, Optional[str]]],
+        transform=lambda s: strong(escape_markdown(s)),
+    ) -> str:
+        """Format the Examples section of the help page."""
+        if not examples:
+            return '(none)'
+        lines = []
+        for invocation, explanation in examples:
+            if isinstance(invocation, tuple):
+                invocation = '\n'.join(invocation)
+            lines.append(transform(invocation))
+            if explanation:
+                lines.append(blockquote(explanation))
+        return '\n'.join(lines)
+
     def ensure_signatures(self):
+        """Build function signatures if it has not been done."""
         if self.invocations is None:
             self.invocations = self.build_signatures()
 
     def add_subcommand(self, command: Command, doc: Documentation):
+        """Add the documentation of this command's subcommand to the collection.
+
+        Since there will only ever be one Documentation object for each Command
+        object, all documentations will have a reference to those of their
+        subcommands. This creates a tree structure.
+        """
         self.subcommands[command.qualified_name] = doc
 
     def add_restriction(self, wrapper: CheckWrapper, desc: str, /, **kwargs):
+        """Document a command check, cooldown, or concurrency limit.
+
+        Natural language description will be generated for each restrictions.
+        """
         if desc:
             self.restrictions.append(desc)
         else:
@@ -425,6 +557,7 @@ class Documentation:
                 self.restrictions.append(wrapper.__doc__)
 
     def finalize(self):
+        """Generate all texts and produce the final embed object for this documentation."""
         if self.frozen:
             return
         self.frozen = True
@@ -469,10 +602,15 @@ class Documentation:
         self.rich_help = self.generate_help()
 
     def assert_documentations(self):
+        """Assert that documentations must contain some required information.
+
+        Currently, this logs a warning if the command does not have a description.
+        """
         if not self.description:
             log.warning(MissingDescription(self.call_sign))
 
     def generate_help(self) -> EmbedPagination:
+        """Format the help embed."""
         sections = [EmbedField(k, v, False) for k, v
                     in self.sections.items() if v]
         chapters = chapterize_fields(sections, MANPAGE_MAX_LEN)
@@ -483,6 +621,8 @@ class Documentation:
         return rich_help
 
     def format_argument_highlight(self, args: list, kwargs: dict, color='white') -> tuple[str, Optional[Argument]]:
+        """Create an indicator, akin to the location indicator of Python's SyntaxError\
+        messages, showing where the parameter parsing has gone wrong."""
         args: deque = deque(args)
         kwargs: deque = deque(kwargs.items())
         arguments: deque = deque([*dropwhile(

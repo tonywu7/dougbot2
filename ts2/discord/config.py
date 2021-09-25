@@ -53,7 +53,7 @@ class CommandAppConfig(AppConfig):
 
     @classproperty
     def hidden(self) -> bool:
-        """Return True if this app should be hidden from the web console."""
+        """If this app should be hidden from the web console."""
         return False
 
     label: str

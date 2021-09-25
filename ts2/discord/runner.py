@@ -110,15 +110,15 @@ class BotRunner(threading.Thread, Generic[T]):
         return future.result()
 
     def initialized(self) -> bool:
-        """Return True if a client has been created for this thread."""
+        """Whether a client has been created for this thread."""
         return hasattr(self, 'client')
 
     def logged_in(self) -> bool:
-        """Return True if the client has successfully authenticated with Discord."""
+        """Whether the client has successfully authenticated with Discord."""
         return self._logged_in
 
     def connected(self) -> bool:
-        """Return True if the client has successfully connected to the Gateway."""
+        """Whether the client has successfully connected to the Gateway."""
         return self._connected
 
     def run(self) -> None:

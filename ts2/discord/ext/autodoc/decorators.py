@@ -253,6 +253,7 @@ def accepts(*args, **kwargs):
 
 
 def convert_with(c):
+    """Use the decorated function to convert this type."""
     def wrapper(obj):
         add_type_converter(obj, c)
         return obj

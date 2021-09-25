@@ -23,6 +23,7 @@ register = Library()
 
 @register.simple_tag(name='avatar')
 def avatar(format: str, size: int):
+    """Get the bot's profile picture to be displayed on the web."""
     bot = get_updater().client
     avatar = bot.user.avatar_url_as(format=format, static_format=format, size=int(size))
     return str(avatar)

@@ -41,6 +41,7 @@ exception_names: dict[_ExceptionType, set[str]] = defaultdict(set)
 
 
 def full_invoked_with(self: Context):
+    """Return the fully-qualified sequence of command names that has been parsed."""
     return ' '.join({**{k: True for k in self.invoked_parents},
                      self.invoked_with: True}.keys())
 
@@ -86,6 +87,24 @@ def explains(exc: _ExceptionType, name: Optional[str] = None, priority=0):
 
 async def reply_command_failure(ctx: Context, title: str, msg: str,
                                 autodelete: float = 60, ping=False):
+    # TODO: Mention help command.
+    # TODO: Rename ping to notify
+    # TODO: Standardize a DocumentationContext typing protocol
+    """Format an error message as an embed and send it using the current context.
+
+    :param ctx: The current command context
+    :type ctx: Context
+    :param title: Title of the error message (the embed)
+    :type title: str
+    :param msg: Details of the error
+    :type msg: str
+    :param autodelete: Number of seconds before cleaning up the error,
+    defaults to 60; this is passed to the discord.py's `delete_after`
+    parameter, thus `None` will prevent the error from being autodeleted
+    :type autodelete: float, optional
+    :param ping: Whether to notify the caller of the error, defaults to False
+    :type ping: bool, optional
+    """
     if ping:
         allowed_mentions = AllowedMentions(everyone=False, roles=False, users=False, replied_user=True)
     else:
@@ -99,6 +118,11 @@ async def reply_command_failure(ctx: Context, title: str, msg: str,
 
 
 async def explain_exception(ctx: Context, exc: Exception):
+    """Find a processor to describe this exception in a human-friendly way.
+
+    Processors for a particular Exception class are added using the
+    `explains()` decorator.
+    """
     if isinstance(exc, errors.CommandInvokeError):
         exc = exc.original or exc.__cause__
     for _, _, exc_t, handler in reversed(exception_handlers):
@@ -121,6 +145,11 @@ async def explain_exception(ctx: Context, exc: Exception):
 
 
 def prepend_argument_hint(sep='\n\n', include_types=False):
+    """Prepend an error message with an indicator on the currently parsing parameter.
+
+    Exception processors handling argument-related exceptions (e.g. `BadArgument`)
+    can decorate with this function to clarify which parameter is causing an issue.
+    """
     def wrapper(f: _ExceptionHandler):
         @wraps(f)
         async def handler(ctx: Context, exc: errors.UserInputError):
@@ -146,6 +175,8 @@ def prepend_argument_hint(sep='\n\n', include_types=False):
 
 
 def append_matching_quotes_hint():
+    # TODO: move to explanations.py
+    """Indicate that the quotes in the message don't match."""
     example = code('"There\\"s a quote in this sentence"')
     backslash = code('\\')
 
@@ -164,6 +195,9 @@ def append_matching_quotes_hint():
 
 
 def append_quotation_hint():
+    # TODO: move to explanations.py
+    """Hint that quotations may be needed (e.g. if there are\
+    more arguments found than the command can accept)."""
     example_correct = code('poll "Bring back Blurple"')
     example_incorrect = f'{code("poll Bring back Blurple")} (will be recognized as 3 arguments)'
 
@@ -184,6 +218,11 @@ def append_quotation_hint():
 
 
 def add_error_names(exc: _ExceptionType, *names: str):
+    """Add additional names (titles) to an exception type.
+
+    When explaining errors, titles will be chosen at random.
+    This adds some variations to error messages.
+    """
     if not isinstance(exc, tuple):
         exc = (exc,)
     for e in exc:

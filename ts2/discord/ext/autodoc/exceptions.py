@@ -21,6 +21,8 @@ from ...utils.markdown import strong
 
 
 class BadDocumentation(UserWarning):
+    """Warning used internally to indicate missing documentation info."""
+
     def __init__(self, message: str) -> None:
         self.message = message
 
@@ -29,21 +31,33 @@ class BadDocumentation(UserWarning):
 
 
 class MissingDescription(BadDocumentation):
+    """Warning used internally to indicate missing documentation description."""
+
     def __init__(self, call_sign: str) -> None:
         self.message = f'{call_sign}: No description provided'
 
 
 class MissingExamples(BadDocumentation):
+    """Warning used internally to indicate missing documentation examples."""
+
     def __init__(self, call_sign: str) -> None:
         self.message = f'{call_sign}: No command example provided'
 
 
 class NotAcceptable(UserInputError):
+    """Generic commands exception for when the input provided is malformed or unexpected.
+
+    This is raised in command callbacks for input errors that can't be determined
+    during parsing or conversion.
+    """
+
     def __init__(self, message, *args):
         super().__init__(message=message, *args)
 
 
 class NoSuchCommand(ValueError):
+    """Exception raised by a Manual object when it fails to look up a command."""
+
     def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
         super().__init__(*args)
         if potential_match:
@@ -56,5 +70,10 @@ class NoSuchCommand(ValueError):
 
 
 class ReplyRequired(BadArgument):
+    # TODO: discord.py 2.0: incorporate reply into standard parameter parsing
+    # instead of relying on converters and before invoke hooks.
+    """Special error to indicate that the command must be run while replying to a message."""
+
     def __call__(self):
+        # FIXME: __init__, not __call__
         return super().__call__(message='You need to call this command while replying to a message.')

@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Natural language utilities."""
+
 from __future__ import annotations
 
 import re
@@ -41,19 +43,37 @@ BUCKET_DESCRIPTIONS = {
 
 
 def pluralize(count: int, term: str) -> str:
+    """Return the plural version of `term`."""
     return inflection.plural_noun(term, count)
 
 
 def singularize(term: str) -> str:
+    """Return the singular version of `term`.
+
+    If `term` is already singular, return it as-is.
+    """
     return inflection.singular_noun(term) or term
 
 
 def plural_clause(count: int, term: str, verb: str) -> str:
+    """Return a plural number version of this noun phrase."""
     term = pluralize(count, term)
     return f'{term} {inflection.plural_verb(verb, count)}'
 
 
 def coord_conj(*terms: str, conj='and', oxford=True) -> str:
+    """Join multiple terms together as a coordinating conjunction.
+
+    :Example:
+
+    .. code-block::
+
+        >>> coord_conj("apple", "orange", "banana")
+        ... 'apple, orange, and banana'
+        >>> coord_conj("apple", "orange", "banana", oxford=False)
+        ... 'apple, orange and banana'
+
+    """
     if not terms:
         return ''
     if len(terms) == 1:
@@ -66,6 +86,7 @@ def coord_conj(*terms: str, conj='and', oxford=True) -> str:
 
 
 def either_or(*terms: str, sep=', ') -> str:
+    """Phrase multiple terms into the expression "either ..., or ..., or ..."."""
     if not terms:
         return ''
     if len(terms) == 1:
@@ -77,14 +98,38 @@ def either_or(*terms: str, sep=', ') -> str:
 
 
 def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> str:
+    # FIXME: rename to predicative
+    """Create an attributive phrase expressing multiple kinds of some category.
+
+    :Example:
+
+    .. code-block::
+
+        >>> pl_cat_attributive("fruit", ["apple", "orange", "banana"], ': ')
+        ... 'fruits: apple, orange, and banana'
+
+    """
     return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
 
 
 def pl_cat_predicative(category: str, terms: list[str], sep=' ', conj='and') -> str:
+    # FIXME: rename to attributive
+    """Create an predicative phrase expressing multiple kinds of some category.
+
+    :Example:
+
+    .. code-block::
+
+        >>> pl_cat_predicative("apple", ["red", "green", "blue"])
+        ... 'red, green, and blue apples'
+
+    """
     return f'{coord_conj(*terms, conj=conj)}{sep}{pluralize(len(terms), category)}'
 
 
 class QuantifiedNP:
+    """Quantified noun phrase."""
+
     def __init__(self, *nouns, concise: str = None, attributive: str = '',
                  predicative: str = '', conjunction: str = 'or',
                  definite=False, uncountable=False):
@@ -192,6 +237,8 @@ class QuantifiedNP:
 
 
 class QuantifiedNPS(QuantifiedNP):
+    """Multiple quantified noun phrases."""
+
     def __init__(self, *phrases: QuantifiedNP):
         self.phrases = phrases
 
@@ -252,6 +299,16 @@ class QuantifiedNPS(QuantifiedNP):
 
 
 def slugify(name: str, sep='-', *, limit=0) -> str:
+    """Convert arbitrary text to a URL-safe, kebab-case string (a slug in publishing).
+
+    :Example:
+
+    .. code-block::
+
+        >>> slugify('at The Times, stories about Mr. Obama generally get one of two names.')
+        ... 'at-the-times-stories-about-mr-obama-generally-get-one-of-two-names'
+
+    """
     t = re.sub(r'[\W_]+', sep, str(name).strip(sep).lower()).strip(sep)
     if limit > 0:
         t = sep.join(t.split(sep)[:limit])
@@ -259,11 +316,12 @@ def slugify(name: str, sep='-', *, limit=0) -> str:
 
 
 class PartOfSpeech(TypedDict):
-    PRP_NOM: str
-    PRP_ACC: str
-    DET_POSS: str
-    PRP_POSS: str
-    PRP_REFL: str
+    """Pronoun variations based on cases and part-of-speech info."""
+    PRP_NOM: str  # Nominative
+    PRP_ACC: str  # Accusative
+    DET_POSS: str  # Possessive determiner
+    PRP_POSS: str  # Possessive pronoun
+    PRP_REFL: str  # Reflexive pronoun
 
 
 _3RD_PERSON_PLURAL: PartOfSpeech = {
@@ -285,6 +343,12 @@ _2ND_PERSON_SINGULAR: PartOfSpeech = {
 
 def address(msg: str, person: User, ctx: Optional[Context] = None,
             sentence=True, **infinitives: str) -> str:
+    """Formularize a sentence in 2nd person or 3rd person based on the User being addressed\
+    and optionally the Context object.
+
+    For example, if the User is not the same as the `author` of the Context,
+    this returns a sentence phrased in 3rd-person singular.
+    """
     pos: PartOfSpeech
     third_person = not ctx or ctx.author.id != person.id
     if third_person:
@@ -304,14 +368,17 @@ def address(msg: str, person: User, ctx: Optional[Context] = None,
 
 
 def indicate_eol(s: StringView) -> str:
+    """Indicate the end of line of a discord.py StringView."""
     return f'{s.buffer[:s.index + 1]} ←'
 
 
 def indicate_extra_text(s: StringView) -> str:
+    """Indicate the portion of a StringView that has not been parsed."""
     return f'{s.buffer[:s.index]} → {s.buffer[s.index:]} ←'
 
 
 def describe_concurrency(number: int, bucket: BucketType):
+    """Describe a concurrency setting in a human-friendly way."""
     bucket_type = BUCKET_DESCRIPTIONS[bucket]
     info = (f'concurrency: maximum {number} {pluralize(number, "call")} '
             f'running at the same time {bucket_type}')
@@ -320,6 +387,8 @@ def describe_concurrency(number: int, bucket: BucketType):
 
 @cache
 def readable_perm_name(p: str) -> str:
+    """Modify a discord.py Permissions attribute so that it uses terms\
+    on the Discord UI that are more familiar to people."""
     return (
         p.replace('_', ' ')
         .replace('guild', 'server')

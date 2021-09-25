@@ -39,6 +39,23 @@ get_manual: Callable[[Context], Manual] = None
 
 @attr.s
 class Manual:
+    """A collection of command help pages.
+
+    A fully-instantiated discord.py Bot instance creates a Manual by
+    passing itself to the `from_bot` method. The Manual is then responsible
+    for walking through all registered commands in the Bot, creating
+    a Documentation object for each Command, and create a table of contents
+    embed.
+
+    The bot is responsible for creating its own help command and call
+    appropriate functions on the Manual to generate help pages. This means
+    the help command itself can also be augmented using this module.
+
+    The Manual object does not keep track of command (de)registration
+    after it has been finalized. If e.g. the Bot loads a new cog,
+    it is responsible for creating an up-to-date Manual object.
+    """
+
     MANPAGE_MAX_LEN = 1280
 
     commands: dict[str, Documentation] = attr.ib(factory=dict)
@@ -56,6 +73,7 @@ class Manual:
 
     @classmethod
     def from_bot(cls, bot: Bot):
+        """Instantiate a Manual from a Bot instance whose commands are fully registered."""
         man = Manual()
         sections: dict[tuple[int, str], list[str]] = defaultdict(list)
         descriptions = {}
@@ -90,6 +108,7 @@ class Manual:
     def propagate_restrictions(self, tree: dict[str, Documentation],
                                stack: list[list[str]],
                                seen: set[str]):
+        """Include restrictions from parent commands in subcommands' help page."""
         for call_sign, doc in tree.items():
             if call_sign in seen:
                 continue
@@ -103,6 +122,7 @@ class Manual:
             stack.pop()
 
     def register_aliases(self):
+        """Create a mapping of all possible command names to support lookup by aliases."""
         aliases: dict[str, list[str]] = defaultdict(list)
         for call_sign, doc in self.commands.items():
             aliased_prefixes = [*aliases[doc.parent]]
@@ -115,6 +135,7 @@ class Manual:
                 self.aliases[alias] = call_sign
 
     def finalize(self):
+        """Generate all help pages and the table of content."""
         if self.frozen:
             return
         self.frozen = True

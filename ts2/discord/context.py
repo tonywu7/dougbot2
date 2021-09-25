@@ -160,13 +160,13 @@ class Circumstances(Context):
 
     @property
     def full_invoked_with(self) -> str:
-        """Return the fully-qualified sequence of command names that has been parsed."""
+        """The fully-qualified sequence of command names that has been parsed."""
         return ' '.join({**{k: True for k in self.invoked_parents},
                          self.invoked_with: True}.keys())
 
     @property
     def raw_input(self) -> str:
-        """Return the rest of the message content after all parsed commands."""
+        """The rest of the message content after all parsed commands."""
         msg: str = self.view.buffer
         return (msg.removeprefix(self.prefix)
                 .strip()[len(self.full_invoked_with):]
@@ -174,12 +174,12 @@ class Circumstances(Context):
 
     @property
     def is_direct_message(self):
-        """Return `True` if the current context is in a DM."""
+        """Whether the current context is in a DM."""
         return is_direct_message(self.channel)
 
     @property
     def server(self):
-        """Return current guild's server profile in the database.
+        """Current guild's server profile in the database.
 
         :raises NotInServer: if the current guild does not have a profile
         or if the current context is not a guild context (e.g. in a DM).
@@ -191,7 +191,7 @@ class Circumstances(Context):
 
     @property
     def logconfig(self) -> dict:
-        """Return the logging config for the current guild.
+        """Logging config for the current guild.
 
         Returns an empty dict if no server profile exists for this context.
         """
@@ -202,7 +202,7 @@ class Circumstances(Context):
 
     @property
     def log(self):
-        """Get a `ServerLogger` attached to the current guild.
+        """The `ServerLogger` attached to the current guild.
 
         :raises NotInServer: if the current context is not a guild context.
         """

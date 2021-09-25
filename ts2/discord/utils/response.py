@@ -190,7 +190,7 @@ class ResponseInit:
 
     @property
     def is_empty(self):
-        """Return True if no text, embed, nor file has been set for the response.
+        """Whether no text, embed, nor file has been set for the response.
 
         Attempting to send a message at this state will fail.
         """
