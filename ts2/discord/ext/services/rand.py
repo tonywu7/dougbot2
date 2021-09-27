@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: Users of Faker should keep their own instances instead
+
 from collections import OrderedDict
 
 from faker import Faker
@@ -35,6 +37,7 @@ FakerLocales = Choice[[*LOCALES.keys()], 'language code']
 
 
 def get_faker(locale: str = 'en-US') -> Faker:
+    """Get the program's global Faker instance."""
     global fake
     if not fake:
         fake = Faker(LOCALES)

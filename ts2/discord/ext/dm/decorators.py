@@ -18,5 +18,6 @@ from ...utils.functional import dict_memoize
 
 
 def accepts_dms(f):
+    """Mark this command as functional in direct messages."""
     dict_memoize(f, '__command_info__', 'direct_message', True)
     return f

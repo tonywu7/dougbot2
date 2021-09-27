@@ -25,6 +25,20 @@ def log_exception(
     level: int = logging.ERROR,
     superuser: bool = False,
 ):
+    """Add a log config entry for the decorated Exception class.
+
+    :param name: The title of the log message
+    :type name: str
+    :param key: A unique name for the log config, defaults to None,
+    in which case the exception's class name is used
+    :type key: Optional[str], optional
+    :param level: The logging level for this exception, defaults to logging.ERROR;
+    this affects the behavior when logging the stderr, which uses the logging module
+    :type level: int, optional
+    :param superuser: Whether the config for this exception should
+    only be visible to superusers on the website, defaults to False
+    :type superuser: bool, optional
+    """
     def wrapper(exc: type[Exception], key=key):
         key = key or exc.__name__
         if key in exceptions:
@@ -43,5 +57,6 @@ def log_exception(
 
 
 def ignore_exception(exc: type[Exception]):
+    """Ignore this exception so that it is never logged."""
     bypassed.add(exc)
     return exc

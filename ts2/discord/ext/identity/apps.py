@@ -6,6 +6,8 @@ from ...config import CommandAppConfig
 
 
 class IdentityConfig(CommandAppConfig):
+    # TODO: deprecate
+
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'ts2.discord.ext.identity'
     default = True

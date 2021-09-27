@@ -34,6 +34,8 @@ R = TypeVar('R')
 
 
 class DoesConversion(Protocol[T]):
+    """Protocol for a discord.py command converter."""
+
     @classmethod
     async def convert(ctx: Context, arg: str) -> T:
         ...
@@ -41,6 +43,25 @@ class DoesConversion(Protocol[T]):
 
 @convert_with(lambda t: t._converter)
 class Maybe(Converter, Generic[T, U]):
+    """Converter wrapper that retains conversion errors and never fails.
+
+    Maybe implements `__class_getitem__`. Use it with another converter:
+    instead of:
+
+        async def command(ctx, number: int)
+
+    Annotate the function like:
+
+        async def command(ctx, number: Maybe[int])
+
+    The command will receive a `Maybe` object containing the converted value
+    if conversion succeeded, or the error if it failed.
+
+    The `convert` method here delegate the actual conversion task to
+    the `Context` object; thus it should be compatible with all converters
+    (including `Union`, `Optional`, and `Greedy`).
+    """
+
     name = '<param>'
 
     def __init__(self, position: int = 0,
@@ -59,6 +80,10 @@ class Maybe(Converter, Generic[T, U]):
 
     @property
     def value(self):
+        """The result of the conversion, if any.
+
+        :raises ValueError: if conversion failed.
+        """
         if self.result is not Parameter.empty:
             return self.result
         elif self.default is not Parameter.empty:
@@ -67,6 +92,15 @@ class Maybe(Converter, Generic[T, U]):
 
     @classmethod
     def ensure(cls, f):
+        """Decorate a command callback such that arguments annotated with `Maybe`\
+        are guaranteed to receive a `Maybe` instance even if that argument is not\
+        provided in the message (with appropriate default values).
+
+        Due to the way discord.py's argument parsing is implemented, missing optional
+        arguments are automatically filled with their default values as defined
+        in the function signature. The resulting wrapper from this decorator
+        processes all the arguments first before passing it to the actual command callback.
+        """
         sig = signature(f)
         paramlist = [*sig.parameters.values()]
         defaults = {}
@@ -124,6 +158,10 @@ class Maybe(Converter, Generic[T, U]):
 
     @classmethod
     def asdict(cls, **items: Maybe[R]) -> dict[str, R]:
+        """Unwrap all successfully parsed `Maybe` instances and return the results as a mapping.
+
+        This is semantically similar to Django form's `cleaned_data` attribute.
+        """
         return defaultdict(lambda: None, {
             k: v.value if isinstance(v, cls) else v for k, v in items.items()
             if not isinstance(v, cls) or v.value is not None
@@ -131,10 +169,15 @@ class Maybe(Converter, Generic[T, U]):
 
     @classmethod
     def astuple(cls, *items: Maybe[R]) -> tuple[R, ...]:
+        """Unwrap all successfully parsed `Maybe` instances and return the results as a tuple."""
         return tuple(v.value if isinstance(v, cls) else v for v in items)
 
     @classmethod
     def errordict(cls, **items: Maybe) -> dict[str, list[Exception]]:
+        """Unwrap all failed `Maybe` instances and return the exceptions as a mapping.
+
+        This is semantically similar to Django form's `errors` attribute.
+        """
         errors = {}
         for k, v in items.items():
             if isinstance(v, cls) and v.errors:
@@ -143,10 +186,12 @@ class Maybe(Converter, Generic[T, U]):
 
     @classmethod
     def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, list[Exception]]]:
+        """Unwrap all `Maybe` instances and return the results and exceptions as mappings."""
         return cls.asdict(**items), cls.errordict(**items)
 
     @classmethod
     def reconstruct(cls, *items: Optional[Maybe]) -> str:
+        """Reconstruct the command invocation (as a string) from `Maybe` objects."""
         args: list[str] = []
         last_index = 0
         for item in items:

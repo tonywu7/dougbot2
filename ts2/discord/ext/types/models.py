@@ -28,9 +28,18 @@ from ..autodoc import accepts
 
 @accepts('permission name')
 class PermissionName(Converter):
+    """Ensure the argument is a valid Discord permission.
+
+    Accepts all flag attributes from the `Permissions` class;
+    additionally accepts names where `guild` is replaced with `server`.
+
+    Converter keeps the converted perm name and returns itself.
+    """
+
     perm_name: str
 
     async def convert(self, ctx, arg: str) -> Callable[[Role], bool]:
+        # FIXME: annotation
         if not hasattr(Permissions2, arg):
             if not hasattr(Permissions2, arg.replace('server', 'guild')):
                 raise BadArgument(f'No such permission {arg}')
@@ -43,4 +52,5 @@ class PermissionName(Converter):
         return self.perm_name
 
     def get(self):
+        """Get a `discord.Permissions` object with none but this permission set to True."""
         return Permissions2(**{self.perm_name: True})

@@ -28,6 +28,11 @@ from ..autodoc.decorators import accepts
 
 @accepts('duration', predicative=f'such as {code("60s")}, {code("1h13m36s")}, or {code("3w6d")}')
 class Timedelta(Converter):
+    """Convert a duration string to a timedelta object.
+
+    Converter returns itself.
+    """
+
     value: timedelta
 
     async def convert(self, ctx, argument: Union[str, timedelta]):
@@ -39,6 +44,11 @@ class Timedelta(Converter):
 
 @accepts('date/time')
 class Datetime(Converter):
+    """Convert a date and time string to a datetime object.
+
+    Uses `dateparser.parse`. Returns itself.
+    """
+
     value: datetime
 
     async def convert(self, ctx, argument: Union[str, datetime]):

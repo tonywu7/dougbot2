@@ -38,6 +38,7 @@ def utctimestamp() -> float:
 
 
 def strpduration(s: str) -> timedelta:
+    # TODO: support negative duration?
     """Convert strings representing a duration to a `timedelta` object.
 
     Examples are `90s`, `1m30s`, `7d`, etc.

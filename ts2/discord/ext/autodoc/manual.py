@@ -167,6 +167,16 @@ class Manual:
         self.toc_rich = EmbedPagination(embeds, self.title, True)
 
     def lookup(self, query: str, hidden=False) -> Documentation:
+        """Look up a command by name and return its documentation
+
+        :param query: Query to look up
+        :type query: str
+        :param hidden: Whether to include hidden commands, defaults to False
+        :type hidden: bool, optional
+        :raises NoSuchCommand: If there are no match
+        (or if the matched command is hidden)
+        :rtype: Documentation
+        """
         doc = self.commands.get(query)
         if not doc:
             aliased = self.aliases.get(query)
@@ -195,9 +205,11 @@ class Manual:
         return doc
 
     def hidden_commands(self) -> dict[str, Documentation]:
+        """Get all registered hidden commands as a mapping."""
         return {k: v for k, v in self.commands.items() if v.hidden}
 
     async def send_toc(self, ctx: Context):
+        """Send a list of all commands to the author of this Context via DM."""
         front_embed = self.toc_rich[0][1]
         msg = await ctx.author.send(embed=front_embed)
         if not is_direct_message(ctx):
@@ -208,6 +220,10 @@ class Manual:
         start_responders(paginator, deleter)
 
     async def do_help(self, ctx: Context, query: Optional[str] = None):
+        """Reference callback of a help command.
+
+        Bots implementing their help command can call this method directly.
+        """
         if not query:
             return await self.send_toc(ctx)
         query = query.lower().removeprefix(ctx.prefix)
@@ -222,16 +238,19 @@ class Manual:
          .deleter().run())
 
     def is_hidden(self, cmd: Command):
+        """Check if this command is hidden."""
         return self.commands[cmd.qualified_name].invisible
 
 
 def set_manual_getter(getter: Callable[[Context], Manual]):
+    # TODO: Remove
     global get_manual
     get_manual = getter
 
 
 def init_bot(bot: Bot, title: str = 'Command list',
              color: Optional[int] = None) -> Manual:
+    """Helper method to initialize the docs for a bot instance."""
     manual = Manual.from_bot(bot)
     manual.title = title
     if color:

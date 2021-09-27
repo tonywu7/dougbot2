@@ -29,10 +29,23 @@ T = TypeVar('T')
 
 
 class CodeBlock(Converter):
+    """Converter that parses Discord code block markdowns.
+
+    It parses all of the remaining message (using StringView) until it finds
+    a valid (delimited) code block.
+
+    Subclasses must specify the list of language codes they look for, and must
+    override the `parse` method to process the found string.
+    """
+
     langs: tuple[str, ...]
     exc: tuple[type[Exception], ...]
 
     def parse(self, code: str):
+        """Process the extracted code (markdown stripped).
+
+        Subclass must override this method.
+        """
         raise NotImplementedError
 
     async def convert(self, ctx: Context, argument: str):
@@ -51,6 +64,8 @@ class CodeBlock(Converter):
 
 @accepts('JSON code block')
 class JSON(CodeBlock):
+    """Parse a JSON code block (language code `json`)."""
+
     langs = ('json',)
     exc = (json.JSONDecodeError,)
     result: dict
@@ -61,6 +76,8 @@ class JSON(CodeBlock):
 
 @accepts('TOML code block')
 class TOML(CodeBlock):
+    """Parse a TOML code block (language code `toml`)."""
+
     langs = ('toml',)
     exc = (toml.TomlDecodeError,)
     result: dict
@@ -79,6 +96,8 @@ class _Dictionary(Converter):
 
 @accepts('Jinja code block')
 class JinjaTemplate(CodeBlock):
+    """Parse a Jinja template code block (language code `jinja`)."""
+
     langs = ('jinja',)
     exc = (Exception,)
     result: str
@@ -91,6 +110,8 @@ Dictionary = Union[_Dictionary, TOML, JSON]
 
 
 def unpack_dict(d: Dictionary, default: T = None) -> Union[Mapping, T]:
+    """Return either the value if it is a Mapping, or the parsed result\
+    if it's one of the supported dict parsers (JSON/TOML)."""
     if isinstance(d, Mapping):
         return d
     if isinstance(d, (TOML, JSON)):

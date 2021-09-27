@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: Rewrite as per-instance config
+
 from __future__ import annotations
 
 import io
@@ -107,6 +109,10 @@ bypassed = {
 
 
 class LoggingEntry(TypedDict):
+    """A configurable entry for logging.
+
+    The channel and role attributes are to be set on the website.
+    """
     name: str
     channel: int
     role: Optional[int]
@@ -118,10 +124,12 @@ _log = logging.getLogger('discord.logging.exceptions')
 
 
 def get_name(key: str) -> str:
+    """Get the displayed title for the logging config with this key."""
     return logging_classes[key]
 
 
 def register_logger(key: str, name: str):
+    """Add a logger."""
     if key in logging_classes:
         raise ValueError(
             f'A logger for {key} named "{logging_classes[key]}"'
@@ -131,6 +139,18 @@ def register_logger(key: str, name: str):
 
 
 class ServerLogger:
+    """Per-guild logging dispatcher.
+
+    Emulates the logging.Logger class. Each logging config map a logging class
+    (c.f. `Logger` names) to a guild channel. The logger sends a message to
+    the corresponding channel when the `log` method is called with the matching
+    logging class.
+
+    Other components of the bot can then simply log the message (optionally with
+    embeds), and leave guild admins to decide whether (or if at all) they would
+    like to receive that message.
+    """
+
     def __init__(self, prefix: str, guild: Guild, config: LoggingConfig):
         self.prefix = prefix
         self.guild = guild
@@ -140,6 +160,24 @@ class ServerLogger:
     async def log(self, msg_class: str, level: int, msg: str, *args,
                   exc_info: Optional[BaseException] = None,
                   embed: Optional[Embed2] = None, embed_only=False, **kwargs):
+        # TODO: deprecate embed_only
+        """Log a message.
+
+        :param msg_class: Class of this log message; the logger looks up
+        the corresponding guild channel using this as a key
+        :type msg_class: str
+        :param level: The logging level to use; same semantics as the levels
+        from the builtin `logging` module
+        :type level: int
+        :param msg: The message to log
+        :type msg: str
+        :param exc_info: Associated exception, if any, defaults to None;
+        same semantics as the `exc_info` argument in the `logging` module:
+        if this is present, a traceback will be sent with the log message
+        :type exc_info: Optional[BaseException], optional
+        :param embed: The embed to send, defaults to None
+        :type embed: Optional[Embed2], optional
+        """
         logger = logging.getLogger(f'{self.prefix}.{msg_class}')
         logger.log(level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs)
         if embed_only:
@@ -147,6 +185,7 @@ class ServerLogger:
         await self.deliver(msg_class, msg, embed, exc_info)
 
     def get_dest_info(self, msg_class: str) -> tuple[TextChannel, str, Role | None]:
+        """Look up and return the guild channel and role for this message class."""
         try:
             config = self.config[msg_class]
         except AttributeError:
@@ -164,6 +203,7 @@ class ServerLogger:
     async def deliver(self, msg_class: str, msg: str,
                       embed: Optional[Embed2] = None,
                       exc_info: Optional[BaseException] = None):
+        """Send out the log message."""
         try:
             channel, name, role = self.get_dest_info(msg_class)
         except LookupError:
@@ -189,17 +229,27 @@ class ServerLogger:
 
 
 def unpack_exc(exc: BaseException) -> BaseException:
+    """Get the original exception.
+
+    Checks the `original` attribute (for discord.py), then the `__cause__` attribute;
+    returns the original exception if neither exists.
+    """
     return getattr(exc, 'original', None) or exc.__cause__ or exc
 
 
 def format_exception(exc: BaseException, title: Optional[str] = None,
                      color: Optional[Color] = Color.red()) -> Embed2:
+    """Format the embed for exception details."""
     return Embed2(title=title or type(exc).__name__,
                   description=escape_markdown(str(exc), as_needed=True),
                   color=color, timestamp=utcnow())
 
 
 def get_traceback(exc: BaseException) -> File:
+    """Extract the stacktrace from an exception to a discord.File.
+
+    All paths in `sys.path` will be removed from the stacktrace.
+    """
     if not isinstance(exc, BaseException):
         return
     tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
@@ -210,6 +260,7 @@ def get_traceback(exc: BaseException) -> File:
 
 
 async def log_command_error(ctx: Context, config: LoggingConfig, exc: errors.CommandError):
+    """Log an exception thrown during the processing of this Context."""
     if isinstance(exc, tuple(bypassed)):
         return
     for key, conf in exceptions.items():
@@ -240,6 +291,7 @@ async def log_command_error(ctx: Context, config: LoggingConfig, exc: errors.Com
 
 
 def censor_paths(tb: str):
+    """Remove all paths present in `sys.path` from the string."""
     for path in sys.path:
         tb = tb.replace(path, '')
     return tb

@@ -34,12 +34,14 @@ from ...utils.markdown import code, verbatim
 
 
 def parse_point_no_warn(s: str):
+    """Parse a geopy.Point with all warnings suppressed."""
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=UserWarning)
         return Point.from_string(s)
 
 
 def parse_point_strict_exc(s: str):
+    """Parse a geopy.Point, raising all warnings as exceptions."""
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings('error', category=UserWarning)
@@ -50,6 +52,12 @@ def parse_point_strict_exc(s: str):
 
 @accepts('latitude', predicative=f'such as {code(-41.5)}, {code("41.5N")}, or {code("N 39°")}')
 class Latitude(Converter, float):
+    """Convert a string to a float representing a latitude.
+
+    Accepts a regular floating-point number and the degree-minute-second notation.
+    Ensures the number is within a valid range (-90 to 90).
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -63,6 +71,12 @@ class Latitude(Converter, float):
 
 @accepts('longitude', predicative=f'such as {code(-110)}, {code("30E")}, or {code("E 162°")}')
 class Longitude(Converter, float):
+    """Convert a string to a float representing a latitude.
+
+    Accepts a regular floating-point number and the degree-minute-second notation.
+    Ensures the number is within a valid range (0 to 180).
+    """
+
     def __init__(self) -> None:
         pass
 
@@ -75,8 +89,11 @@ class Longitude(Converter, float):
 
 
 class ManagedAioHTTPAdapter(AioHTTPAdapter):
+    """Subclass of geopy.AioHTTPAdapter allowing sessions to be removed."""
+
     @property
     def session(self):
+        """The aiohttp.ClientSession associated with this adapter."""
         return super().session
 
     @session.setter
@@ -89,6 +106,7 @@ class ManagedAioHTTPAdapter(AioHTTPAdapter):
 
 
 def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
+    """Initialize a default geolocator using the Nominatim API."""
     locator = Nominatim(
         timeout=10, user_agent=settings.USER_AGENT,
         adapter_factory=ManagedAioHTTPAdapter,
@@ -98,6 +116,7 @@ def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
 
 
 def format_coarse_location(location: Location) -> str:
+    """Create a string representation of a geopy.Location that is at most city-level precise."""
     info: dict = location.raw.get('address', {})
     levels = [
         ('country', 'country_code', 'continent'),
@@ -113,5 +132,11 @@ def format_coarse_location(location: Location) -> str:
 @max_concurrency(1, BucketType.guild, wait=True)
 @cooldown(1, 5, BucketType.default)
 async def get_location(ctx, **kwargs) -> Location | list[Location]:
+    """Private Command object for making requests to the Nominatim API.
+
+    The command has a concurrency limit and a cooldown. This allows
+    users of the function to prevent excessive API calls on the
+    end user level by triggering the cooldown and concurrency.
+    """
     geolocator = make_geolocator(ctx.session)
     return await geolocator.geocode(**kwargs)

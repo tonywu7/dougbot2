@@ -21,10 +21,13 @@ from ...utils.functional import get_memo
 
 
 def is_direct_message(ctx: Context):
+    """Check if this Context is from a DM channel."""
     return isinstance(ctx.channel, DMChannel)
 
 
 async def dm_allowed_check(ctx: Context) -> bool:
+    """Command check to ensure that the invoked command runs in DMs only if\
+    it is marked so."""
     cmd: Command = ctx.command
     if not cmd:
         return True

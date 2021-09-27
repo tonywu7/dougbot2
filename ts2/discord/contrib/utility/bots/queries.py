@@ -43,6 +43,7 @@ class QueryCommands:
     @doc.description('Get the timestamp of a Discord snowflake (ID).')
     @doc.argument('snowflake', 'The snowflake to convert.')
     @can_embed
+    # TODO: remove user
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
             int, Member, Role, Message, TextChannel, User,

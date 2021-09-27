@@ -31,6 +31,14 @@ from . import unpack_varargs
 
 
 class Constant(Converter):
+    """Converter accepting an exact string.
+
+    Useful for arguments that act as flags. Usage:
+
+        async def command(ctx, delete: Constant[Literal['delete']])
+        # accept the exact text "delete"
+    """
+
     def __class_getitem__(cls, const: str):
         const = unpack_varargs(const, ['const'])[0]
         desc = QuantifiedNP(
@@ -55,6 +63,15 @@ class Constant(Converter):
 
 
 class Choice(Converter):
+    """Converter accepting one of several exact strings.
+
+    By default it is case-insensitive.
+
+    Usage:
+
+        async def command(ctx, types: Choice[Literal['member', 'role']])
+    """
+
     def __class_getitem__(cls, item: tuple[Iterable[str], str, bool]):
         choices, concise_name, case_sensitive = unpack_varargs(
             item, ('choices', 'concise_name', 'case_sensitive'),
@@ -99,11 +116,23 @@ class Choice(Converter):
 
 
 class CaseInsensitive(Converter):
+    # TODO: rename to lower case
+    """Convert the argument to lowercase."""
+
     async def convert(self, ctx, arg: str):
         return arg.lower()
 
 
 class Range(Converter):
+    # TODO: rename to BoundedNumber
+    """Accept a number only if it is within the specified bounds (both-inclusive).
+
+    Usage:
+
+        async def command(ctx, number: Range[Literal[24, 72]])
+        # accept a number >= 24 and <= 72
+    """
+
     def __class_getitem__(cls, item: tuple[int, int]):
         lower, upper = unpack_varargs(item, ('bounds',))
 
@@ -129,6 +158,13 @@ class Range(Converter):
 
 
 class RegExp(Converter):
+    r"""Converter accepting any string matching the provided regular expression.
+
+    Usage:
+
+        async def command(ctx, a_number: RegExp[Literal[r'[Aa]\d+']]
+    """
+
     def __class_getitem__(cls, item: tuple[str, str, str]) -> None:
         pattern, name, predicative = unpack_varargs(item, ('args',))
         pattern: re.Pattern = re.compile(pattern)
@@ -151,6 +187,8 @@ class RegExp(Converter):
 
 
 class InvalidChoices(BadArgument):
+    """Raised when the argument is not any of the items accepted by a Choice converter."""
+
     def __init__(self, choices: QuantifiedNP, found: str, *args):
         self.choices = choices
         self.received = found
@@ -159,6 +197,9 @@ class InvalidChoices(BadArgument):
 
 
 class InvalidRange(BadArgument):
+    # Rename to NumberOutOfBound
+    """Raised when the argument represents a number but is out of bound for a BoundedNumber converter."""
+
     def __init__(self, num_range: QuantifiedNP, found: str, *args):
         self.received = found
         message = f'Invalid value "{found}". Must be {num_range.a()}'
@@ -166,6 +207,8 @@ class InvalidRange(BadArgument):
 
 
 class RegExpMismatch(BadArgument):
+    """Raise when the argument does not match the required regular expression for a RegExp converter."""
+
     def __init__(self, expected: QuantifiedNP, arg: str, pattern: re.Pattern):
         self.expected = expected
         self.received = arg

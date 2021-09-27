@@ -40,6 +40,10 @@ def get_tzfinder() -> TimezoneFinder:
 
 
 def make_tz_names():
+    """Generate a mapping of common timezone abbreviations (including DSTs) to non-DST tz objects.
+
+    For example, both `'EST'` and `'EDT'` will map to the US/Eastern TzInfo.
+    """
     year = datetime.now().year
     time_1 = datetime(year, 1, 1)
     time_2 = datetime(year, 6, 1)
@@ -50,6 +54,7 @@ def make_tz_names():
 
 
 def get_tz_by_name(s: str) -> pytz.BaseTzInfo:
+    """Get TzInfo by a possible timezone abbreviation."""
     if not tznames:
         make_tz_names()
     try:
@@ -59,6 +64,7 @@ def get_tz_by_name(s: str) -> pytz.BaseTzInfo:
 
 
 def similar_tz_names(query: str) -> list[str]:
+    """Attempt to find timezone abbreviations similar to this string (using fuzzy match)."""
     if not tznames:
         make_tz_names()
     try:
@@ -72,6 +78,11 @@ def similar_tz_names(query: str) -> list[str]:
 
 
 def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:
+    """Return True if this TzInfo object has no DST info but the region it represents has DST.
+
+    Such TzInfo objects are considered "ambiguous" because it is impossible to localize
+    a datetime with them.
+    """
     return (not hasattr(tz, '_tzinfos')
             and getattr(tz, '_utcoffset') != timedelta(0))
 
@@ -80,6 +91,9 @@ def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:
     f'see {a("list of timezones", "https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")}'
 ))
 class Timezone(Converter, pytz.BaseTzInfo):
+    """Convert a string to a pytz TzInfo object from either a valid IANA timezone code\
+    or a commonly seen timezone abbreviations, such as "EST"."""
+
     def __init__(self) -> None:
         pass
 
