@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.utility',
     'ts2.discord.contrib.museum',
     'ts2.discord.contrib.ticker',
-    'ts2.discord.contrib.integration',
     'ts2.discord.contrib.debug',
     'ts2.web.contrib.trac',
     'graphene_django',
