@@ -25,11 +25,12 @@ from discord.abc import GuildChannel
 from discord.ext.commands import Context, errors
 from discord.utils import escape_markdown
 
+from ...utils.common import is_direct_message
 from ...utils.markdown import code, strong, tag_literal
 from . import exceptions
 from .documentation import readable_perm_name
 from .errorhandling import (append_matching_quotes_hint, append_quotation_hint,
-                            explains, prepend_argument_hint)
+                            explains, full_invoked_with, prepend_argument_hint)
 from .lang import (describe_concurrency, indicate_eol, indicate_extra_text,
                    pl_cat_attributive)
 
@@ -50,6 +51,21 @@ async def explains_required_reply(ctx, exc) -> tuple[str, int]:
 @explains(exceptions.NotAcceptable, 'Input not acceptable', priority=5)
 async def explains_not_acceptable(ctx, exc) -> tuple[str, int]:
     return str(exc), 60
+
+
+@explains(errors.CommandNotFound, 'Command not found', 100)
+async def on_command_not_found(ctx: Context, exc: errors.CommandNotFound):
+    """Reply with autocorrect suggestions when someone attempts to call a non-existing command."""
+    if is_direct_message(ctx):
+        return False
+    cmd = full_invoked_with(ctx)
+    if ctx.subcommand_passed:
+        cmd = f'{cmd} {ctx.subcommand_passed}'.strip()
+    try:
+        ctx.bot.manual.lookup(cmd)
+        return False
+    except Exception as e:
+        return str(e), 20
 
 
 @explains(errors.CommandOnCooldown, 'Command on cooldown', 0)

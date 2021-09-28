@@ -24,10 +24,11 @@ from typing import Generic, TypeVar, Union
 
 import discord
 import inflect
+from asgiref.sync import sync_to_async
 from discord.abc import ChannelType
 from django.apps import apps
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import CASCADE, SET_NULL
 from django.db.models.query import QuerySet
 from duckcord.color import Color2
@@ -38,10 +39,7 @@ from .utils.fields import ColorField, NumbersListField, PermissionField
 
 inflection = inflect.engine()
 
-T = TypeVar(
-    'T', discord.User, discord.Guild, discord.Member, discord.Role,
-    discord.TextChannel, discord.VoiceChannel, discord.CategoryChannel,
-)
+T = TypeVar('T')
 U = TypeVar('U', bound='Entity')
 
 snowflake_key = itemgetter('snowflake')
@@ -152,6 +150,13 @@ class Server(Entity, ModelTranslator[discord.Guild, 'Server']):
 
     readable: list[int] = NumbersListField(verbose_name='readable roles', default=list)
     writable: list[int] = NumbersListField(verbose_name='writable roles', default=list)
+
+    @sync_to_async
+    def async_set_prefix(self, prefix: str):
+        validate_prefix(prefix)
+        with transaction.atomic():
+            self.prefix = prefix
+            self.save()
 
     @property
     def extensions(self) -> dict[str, CommandAppConfig]:

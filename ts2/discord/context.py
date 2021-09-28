@@ -27,7 +27,6 @@ from discord import Forbidden, Guild, Member, Message, TextChannel, User
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, Group
 from discord.ext.commands.errors import CommandInvokeError
-from django.db import transaction
 
 from .command import CommandDelegate, GroupDelegate
 from .models import Server
@@ -60,9 +59,6 @@ class Circumstances(Context):
     def __init__(self, **attrs):
         from .bot import Robot
 
-        self.command_searched = {}
-        self.command_materialized = {}
-
         super().__init__(**attrs)
         self._server: Server
 
@@ -71,6 +67,8 @@ class Circumstances(Context):
         self.invoked_with: str
         self.invoked_parents: list[str]
         self.invoked_subcommand: Optional[Command]
+
+        self.subcommand_passed: Optional[str]
 
         self.author: Union[Member, Messageable]
         self.guild: Guild
@@ -86,21 +84,10 @@ class Circumstances(Context):
 
     @property
     def subcommand_not_completed(self):
-        # TODO: Deprecate
         cmd = self.command
         if isinstance(cmd, (CommandDelegate, GroupDelegate)):
             cmd = cmd.unwrap()
         return isinstance(cmd, Group) and not cmd.invoke_without_command
-
-    @property
-    def materialized_path(self) -> str:
-        # TODO: Deprecate
-        return ' '.join(self.command_materialized)
-
-    @property
-    def searched_path(self) -> str:
-        # TODO: Use full_invoked_with + subcommand_passed instead
-        return ' '.join(self.command_searched)
 
     @property
     def command(self) -> Optional[Command]:
@@ -109,8 +96,6 @@ class Circumstances(Context):
 
     @command.setter
     def command(self, cmd):
-        # TODO: Will deprecate
-        self._path_append(cmd)
         # Wrap native Command objects around a delegate mixin
         # in order to intercept attribute access for further customization.
         if isinstance(cmd, Group):
@@ -127,35 +112,12 @@ class Circumstances(Context):
 
     @invoked_subcommand.setter
     def invoked_subcommand(self, cmd: Optional[Command]):
-        # TODO: Will deprecate
-        self._path_append(cmd)
         if isinstance(cmd, Group):
             self._invoked_subcommand = GroupDelegate(cmd)
         elif isinstance(cmd, Command):
             self._invoked_subcommand = CommandDelegate(cmd)
         else:
             self._invoked_subcommand = cmd
-
-    @property
-    def subcommand_passed(self) -> str:
-        # TODO: Deprecate
-        return self._subcommand_passed
-
-    @subcommand_passed.setter
-    def subcommand_passed(self, cmd: str):
-        # TODO: Deprecate
-        self._path_append(cmd)
-        self._subcommand_passed = cmd
-
-    def _path_append(self, cmd: Optional[Union[str, Command]]):
-        # TODO: Deprecate
-        if isinstance(cmd, Command):
-            for alias in cmd.aliases:
-                self.command_searched.pop(alias, None)
-            self.command_searched[cmd.name] = cmd
-            self.command_materialized[cmd.name] = cmd
-        elif isinstance(cmd, str):
-            self.command_searched[cmd] = None
 
     @property
     def full_invoked_with(self) -> str:
@@ -230,15 +192,6 @@ class Circumstances(Context):
             return
         except Server.DoesNotExist:
             raise
-
-    @sync_to_async
-    def set_prefix(self, prefix: str):
-        # TODO: Move to bot.py
-        from .models import validate_prefix
-        validate_prefix(prefix)
-        with transaction.atomic():
-            self.server.prefix = prefix
-            self.server.save()
 
     def format_command(self, cmd: str):
         """Prefix the string with the currently used prefix.

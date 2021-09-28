@@ -51,20 +51,6 @@ from .utils.markdown import code, em, strong
 log_exception('Disabled module called', level=logging.INFO)(cog.ModuleDisabled)
 
 
-@explains(CommandNotFound, 'Command not found', 100)
-async def on_command_not_found(ctx: Circumstances, exc: CommandNotFound):
-    """Reply with autocorrect suggestions when someone attempts to call a non-existing command."""
-    if is_direct_message(ctx):
-        return False
-    # TODO: Will deprecate.
-    cmd = ctx.searched_path or ctx.full_invoked_with
-    try:
-        ctx.bot.manual.lookup(cmd)
-        return False
-    except Exception as e:
-        return str(e), 20
-
-
 @explains(cog.ModuleDisabled, 'Command disabled')
 async def on_disabled(ctx, exc: cog.ModuleDisabled):
     """Indicate disabled cog."""
@@ -73,7 +59,6 @@ async def on_disabled(ctx, exc: cog.ModuleDisabled):
 
 class RollbackCommand(Exception):
     """Exception to be raised to Django transaction manager when a command unsuccessfully ran."""
-
     pass
 
 
@@ -460,7 +445,7 @@ def add_base_commands(self: Robot):
     @doc.restriction(has_guild_permissions, manage_guild=True)
     async def set_prefix(ctx: Circumstances, prefix: str):
         try:
-            await ctx.set_prefix(prefix)
+            await ctx.server.async_set_prefix(prefix)
             await get_prefix(ctx)
         except ValueError as e:
             await ctx.send(f'{strong("Error:")} {e}')
