@@ -19,7 +19,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable, Coroutine
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Optional
@@ -147,23 +146,17 @@ class DiscordRateLimiter:
     def __setitem__(self, route: tuple[str, str], timestamp: float):
         self.rate_reset_time[route] = timestamp
 
-    @asynccontextmanager
     async def __call__(self, route: tuple[str, str]):
         """Sleep until this route's rate limit is reset if it is currently throttled.
 
         :param route: HTTP method and path of the API endpoint as a tuple.
         :type route: tuple[str, str]
         """
-        # TODO: Rewrite as normal function
         now = utctimestamp()
         timeout = self.rate_reset_time.get(route, 0) - now
-        try:
-            if timeout > 0:
-                await asyncio.sleep(timeout)
-            self.rate_reset_time[route] = now + 1
-            yield
-        finally:
-            pass
+        if timeout > 0:
+            await asyncio.sleep(timeout)
+        self.rate_reset_time[route] = now + 1
 
 
 class DiscordCache:
@@ -295,25 +288,24 @@ class DiscordFetch:
 
         while retry:
             await self._ratelimit.wait()
+            await self._throttle_route((method, url))
 
-            async with self._throttle_route((method, url)):
+            self.log.debug(f'{method} {url}')
+            async with self._session.request(method, url, **options) as res:
+                self.log.debug(f'Received {url}')
 
-                self.log.debug(f'{method} {url}')
-                async with self._session.request(method, url, **options) as res:
-                    self.log.debug(f'Received {url}')
-
-                    if res.status == 401:
-                        raise DiscordUnauthorized()
-                    if not await self._throttle((method, url), res):
-                        self.log.warning(f'Retrying {url}')
-                        retry -= 1
-                        continue
-                    try:
-                        data = await res.json()
-                        self._cache[method, url] = data
-                        return data
-                    except Exception:
-                        return None
+                if res.status == 401:
+                    raise DiscordUnauthorized()
+                if not await self._throttle((method, url), res):
+                    self.log.warning(f'Retrying {url}')
+                    retry -= 1
+                    continue
+                try:
+                    data = await res.json()
+                    self._cache[method, url] = data
+                    return data
+                except Exception:
+                    return None
 
     async def get(self, endpoint: str) -> Optional[dict]:
         """Make a GET request to a Discord API."""
