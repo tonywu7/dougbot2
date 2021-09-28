@@ -21,7 +21,7 @@ from string import hexdigits
 from typing import Optional, Union
 
 from discord import (Emoji, File, Member, Message, PartialEmoji, Role,
-                     StageChannel, TextChannel, User, VoiceChannel)
+                     StageChannel, TextChannel, VoiceChannel)
 from discord.ext.commands import command
 from PIL import Image, ImageColor
 
@@ -49,7 +49,7 @@ class QueryCommands:
     # TODO: remove user
     async def snowflake(
         self, ctx: Circumstances, snowflake: Union[
-            int, Member, Role, Message, TextChannel, User,
+            int, Member, Role, Message, TextChannel,
             VoiceChannel, StageChannel, Emoji, PartialEmoji,
         ],
     ):
