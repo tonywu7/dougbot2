@@ -34,11 +34,14 @@ from ts2.discord.utils.markdown import rgba2int
 HEX_DIGITS = set(hexdigits)
 
 
-def ishexdigit(s: str):
+def is_hex_digit(s: str):
+    """Check if this string is a valid hexadecimal number."""
     return all(c in HEX_DIGITS for c in s)
 
 
 class QueryCommands:
+    """Commands for getting details about some Discord data."""
+
     @command('snowflake', aliases=('mtime',))
     @doc.description('Get the timestamp of a Discord snowflake (ID).')
     @doc.argument('snowflake', 'The snowflake to convert.')
@@ -86,7 +89,7 @@ class QueryCommands:
     async def color(self, ctx: Circumstances, *, color: Union[Role, str]):
         if isinstance(color, Role):
             color = f'#{color.color.value:06x}'
-        if color[0] != '#' and ishexdigit(color):
+        if color[0] != '#' and is_hex_digit(color):
             color = f'#{color}'
         try:
             r, g, b, *a = ImageColor.getrgb(color)
@@ -103,13 +106,13 @@ class QueryCommands:
         hexcode_alpha = f'#{rgba2int(r, g, b, a):08x}'
         h = 360 * h
         a = a / 255
-        fmts = [
+        results = [
             strong(code(hexcode)),
             strong(code(hexcode_alpha)),
             f'rgba({r}, {g}, {b}, {a:.2f})',
             f'hsla({h:.1f}deg, {s:.1%}, {ll:.1%}, {a:.1f})',
         ]
-        res = Embed2(description='\n'.join(fmts), color=rgba2int(r, g, b))
+        res = Embed2(description='\n'.join(results), color=rgba2int(r, g, b))
         return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()
 
     @command('avatar', aliases=('pfp',))

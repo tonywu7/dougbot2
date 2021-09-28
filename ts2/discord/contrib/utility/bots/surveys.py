@@ -78,6 +78,21 @@ ChannelMap = dict[Optional[CategoryChannel], list[GuildChannel]]
 
 
 class ChannelFilter:
+    """Helper for filtering channels based on visibility and permissions.
+
+    Use it with the membership operator `in`:
+
+        channel in channel_filter
+
+    returns True if the channel should be included.
+
+    Specify a permission to filter by channels where that permission makes sense.
+    For example, with the `attach_files` permission, voice channels will be filtered out.
+
+    Specify a member to filter by channel visibility: if the member cannot see the channel
+    (`view_channel` permission denied), the channel will be filtered out.
+    """
+
     def __init__(self, perm: Optional[Permissions2], member: Optional[Member] = None):
         if perm is None:
             self.target = ()
@@ -99,6 +114,8 @@ class ChannelFilter:
 
 
 class PermFilter:
+    """Helper for filtering permission types based on channels."""
+
     def __init__(self, channel: Optional[GuildChannel]):
         if channel is None:
             self.target = Permissions2.all()
@@ -116,10 +133,12 @@ class PermFilter:
 
 
 def get_channel_map(guild: Guild) -> ChannelMap:
+    """Create a mapping of channel categories to channels for this guild."""
     return {k: v for k, v in guild.by_category()}
 
 
 def filter_channel_map(channel_map: ChannelMap, filter_: ChannelFilter) -> ChannelMap:
+    """Create a new channel map with the channel filter applied."""
     mapped = defaultdict(list)
     for category, channels in channel_map.items():
         if category not in filter_:
@@ -131,16 +150,22 @@ def filter_channel_map(channel_map: ChannelMap, filter_: ChannelFilter) -> Chann
 
 
 def category_name(c: Optional[CategoryChannel]) -> str:
+    """Format a category name.
+
+    If the argument is None (when there is no category), returns `(no category)`.
+    """
     if c:
         return c.name
     return '(no category)'
 
 
-def get_indicators(s: set[bool]) -> str:
+def _get_indicators(s: set[bool]) -> str:
     return ' '.join(traffic_light(v, strict=True) for v in s)
 
 
 class ServerQueryCommands:
+    """Commmands for inspecting server configuration: channels, roles, and permissions."""
+
     @command('channels')
     @doc.description('List channels in the server.')
     @doc.restriction(None, 'Will only list channels visible to you.')
@@ -473,12 +498,12 @@ class ServerQueryCommands:
             name = category_name(category)
             settings = results.get(category)
             if settings:
-                name = f'{get_indicators(settings)} {name}'
+                name = f'{_get_indicators(settings)} {name}'
             lines = []
             for ch in channels:
                 settings = results.get(ch)
                 if settings:
-                    lines.append(f'{get_indicators(settings)} {tag(ch)}')
+                    lines.append(f'{_get_indicators(settings)} {tag(ch)}')
             if not lines:
                 continue
             output[name] = '\n'.join(lines)
@@ -519,7 +544,7 @@ class ServerQueryCommands:
                 continue
             results[target] = settings
 
-        lines: list[str] = [f'{get_indicators(v)} {tag(k)}' for k, v in results.items()]
+        lines: list[str] = [f'{_get_indicators(v)} {tag(k)}' for k, v in results.items()]
         if lines:
             content = '\n'.join(lines)
         else:

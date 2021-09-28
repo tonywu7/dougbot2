@@ -33,6 +33,8 @@ from ..models import RoleTimezone
 
 
 class WebServiceCommands:
+    """Commands (mixin) for accessing the internet."""
+
     @command('oeis')
     @doc.description('Lookup a sequence from [OEIS](https://oeis.org/) '
                      'by its integers or by its A-number.')
@@ -42,13 +44,14 @@ class WebServiceCommands:
     @doc.invocation(('integers',), 'Find a sequence matching these numbers.')
     @doc.invocation(('a_number',), 'Find the exact sequence with this A-number.')
     @doc.invocation(('integers', 'a_number'), False)
-    @doc.example('1 1 2 3 5 8', 'Find the Fibonnacci numbers.')
+    @doc.example('1 1 2 3 5 8', 'Find the Fibonacci numbers.')
     @doc.example('A018226', 'Find the magic numbers.')
     @doc.cooldown(1, 10, BucketType.guild)
     @doc.concurrent(1, BucketType.guild)
     @can_embed
     async def oeis(self, ctx: Circumstances, integers: Greedy[int],
                    a_number: Optional[RegExp[Literal[r'[Aa]\d+', 'A-number', 'such as A0000045']]] = None):
+        """Get a result from OEIS."""
         if integers:
             if len(integers) == 1:
                 query = f'A{integers[0]}'
@@ -97,6 +100,7 @@ class WebServiceCommands:
         self, ctx: Circumstances, *,
         subject: Maybe[Union[Timezone, Member, Role], None],
     ):
+        """Check user local time."""
         timezone: Optional[pytz.BaseTzInfo] = None
         footer_fmt: str = 'Timezone: %(tz)s'
         TIMEZONE_NOT_SET = (

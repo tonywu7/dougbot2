@@ -25,6 +25,8 @@ from ts2.discord.utils.common import a
 
 
 class ContentGenerationCommands:
+    """Commands (mixin) for generating arbitrary/random responses."""
+
     @command('lipsum', aliases=('lorem',))
     @doc.description(
         f'{a("Lorem ipsum", "https://www.lipsum.com/")} dolor sit amet: '
@@ -34,6 +36,7 @@ class ContentGenerationCommands:
     @doc.invocation((), 'Generate a paragraph.')
     @doc.invocation(('language',), 'Generate a paragraph in one of the supported languages.')
     async def lipsum(self, ctx: Circumstances, language: Optional[FakerLocales] = 'la'):
+        """Create text using Faker's lorem provider."""
         fake = get_faker(language)
         sentences = fake.sentences(5)
         if language == 'la':

@@ -36,6 +36,7 @@ from ts2.discord.utils.datetime import localnow
 
 
 def serialize_message(message: Message):
+    """Export a discord.Message object as JSON."""
     author = message.author
     return {
         'id': message.id,
@@ -53,6 +54,7 @@ def serialize_message(message: Message):
 
 
 def get_allowed_mentions(info: dict) -> AllowedMentions:
+    """Create a discord.AllowedMentions object from a dict specifying all options."""
     options = {}
     options['everyone'] = bool(info.get('everyone', False))
     roles = info.get('roles', False)
@@ -78,6 +80,9 @@ def get_allowed_mentions(info: dict) -> AllowedMentions:
 
 
 class MessageCommands:
+    """Commands for creating/manipulating messages."""
+    # TODO: message edit command
+
     @command('stdout')
     @doc.description('Send a message to a channel.')
     @doc.argument('content', 'The text message to send.',
@@ -172,8 +177,8 @@ class MessageCommands:
         with io.StringIO() as stream:
             toml.dump(info, stream)
             stream.seek(0)
-            fname = f'message.{localnow().isoformat().replace(":", ".")}.toml'
-            file = File(stream, filename=fname)
+            filename = f'message.{localnow().isoformat().replace(":", ".")}.toml'
+            file = File(stream, filename=filename)
             await ctx.send(file=file)
 
     @command('redirect')
@@ -280,8 +285,8 @@ class MessageCommands:
         with io.StringIO() as stream:
             json.dump(info, stream, indent=' ')
             stream.seek(0)
-            fname = f'message.{localnow().isoformat().replace(":", ".")}.json'
-            file = File(stream, filename=fname)
+            filename = f'message.{localnow().isoformat().replace(":", ".")}.json'
+            file = File(stream, filename=filename)
             await ctx.send(file=file)
 
     @command('render')

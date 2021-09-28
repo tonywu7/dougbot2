@@ -49,6 +49,8 @@ TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
 
 
 def maybe_image(att: Attachment) -> bool:
+    # TODO: move to utils
+    # TODO: generalize
     contenttype: Optional[str] = att.content_type
     if not contenttype:
         contenttype, encoding = mimetypes.guess_type(att.url, False)
@@ -59,6 +61,8 @@ class Museum(
     Gear, name='Museum', order=11,
     description='Curation & archival',
 ):
+    """Commands for message retrieval/archival."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -73,6 +77,8 @@ class Museum(
         message: Optional[Message],
         *, reply: Optional[MessageReference],
     ):
+        # TODO: remove setting embed author and use footer instead
+        """Take a message and present it as an embed."""
         if not message:
             if reply and reply.resolved:
                 message = reply.resolved
@@ -124,6 +130,13 @@ class Museum(
         cancel: Optional[Constant[Literal['cancel']]],
         *, reply: Optional[MessageReference],
     ):
+        """Take a message and run the StoryCollector with it.
+
+        The first invocation by a user sets the beginning message,
+        the second invocation sets the end. Messages are always joined
+        in chronological order.
+        """
+
         if message is None and reply is None:
             raise NotAcceptable(
                 'You need to specify the message where the story'
@@ -205,6 +218,11 @@ class Museum(
 
 
 class StoryCollector:
+    """Generator for iterating over messages and joining the content together.
+
+    StoryCollector objects store all messages and is therefore expendable.
+    """
+
     def __init__(self, ctx: Circumstances):
         self.STOPWORDS = stopwords.words('english')
         self.ctx = ctx
@@ -214,7 +232,10 @@ class StoryCollector:
         self.story: str = ''
 
     @classmethod
-    async def iter_messages(cls, channel: TextChannel, begin_id: int, end_id: int) -> AsyncGenerator[Message, None, None]:
+    async def iter_messages(cls, channel: TextChannel, begin_id: int,
+                            end_id: int) -> AsyncGenerator[Message, None, None]:
+        """Iterate over the channel's message history, bounding the results precisely\
+        by the starting and ending message IDs."""
         if begin_id > end_id:
             swap = begin_id
             begin_id = end_id
@@ -237,6 +258,8 @@ class StoryCollector:
         await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run()
 
     async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=2048):
+        """Run the collector and deliver the result to the collector's Context."""
+
         async for msg in self.iter_messages(channel, begin_id, end_id):
             self.messages.append(msg)
             self.stream.append(msg.content)
@@ -262,15 +285,18 @@ class StoryCollector:
             return await self._warn(warn)
 
     def fix_punctuations(self, text: str) -> str:
+        """Remove extra spaces for punctuations such as commas and full stops."""
         return RE_EXTRA_SPACE.sub(r'\1\2\3', text)
 
     def gen_story(self) -> str:
+        """Join all buffered messages to a string."""
         story = '\n'.join([*self.stream])
         story = self.fix_punctuations(story)
         self.story = story
         return story
 
     def gen_stats(self) -> Embed2:
+        """Generate some interesting statistics for the story."""
         if not self.messages or not self.story:
             raise ValueError('Story is empty')
 
