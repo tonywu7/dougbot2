@@ -76,8 +76,12 @@ class Robot(Bot):
         options['allowed_mentions'] = self.DEFAULT_MENTIONS
         options['command_prefix'] = self.which_prefix
         options['help_command'] = None
-        # TODO: Remove unnecessary intents.
-        options.setdefault('intents', Intents.all())
+
+        intents = Intents.all()
+        intents.typing = False
+        intents.presences = False
+
+        options.setdefault('intents', intents)
         options.setdefault('case_insensitive', True)
         options.setdefault('strip_after_prefix', True)
         super().__init__(loop=loop, **options)
