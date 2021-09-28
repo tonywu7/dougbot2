@@ -74,6 +74,5 @@ class ReplyRequired(BadArgument):
     # instead of relying on converters and before invoke hooks.
     """Special error to indicate that the command must be run while replying to a message."""
 
-    def __call__(self):
-        # FIXME: __init__, not __call__
-        return super().__call__(message='You need to call this command while replying to a message.')
+    def __init__(self, message=None, *args):
+        super().__call__(message='You need to call this command while replying to a message.')

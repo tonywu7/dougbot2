@@ -97,30 +97,28 @@ def either_or(*terms: str, sep=', ') -> str:
     return f'either {sep.join(terms)}'
 
 
-def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> str:
-    # FIXME: rename to predicative
-    """Create an attributive phrase expressing multiple kinds of some category.
-
-    :Example:
-
-    .. code-block::
-
-        >>> pl_cat_attributive("fruit", ["apple", "orange", "banana"], ': ')
-        ... 'fruits: apple, orange, and banana'
-
-    """
-    return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
-
-
 def pl_cat_predicative(category: str, terms: list[str], sep=' ', conj='and') -> str:
-    # FIXME: rename to attributive
     """Create an predicative phrase expressing multiple kinds of some category.
 
     :Example:
 
     .. code-block::
 
-        >>> pl_cat_predicative("apple", ["red", "green", "blue"])
+        >>> pl_cat_predicative("fruit", ["apple", "orange", "banana"], ': ')
+        ... 'fruits: apple, orange, and banana'
+
+    """
+    return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
+
+
+def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> str:
+    """Create an attributive phrase expressing multiple kinds of some category.
+
+    :Example:
+
+    .. code-block::
+
+        >>> pl_cat_attributive("apple", ["red", "green", "blue"])
         ... 'red, green, and blue apples'
 
     """

@@ -31,15 +31,15 @@ from .documentation import readable_perm_name
 from .errorhandling import (append_matching_quotes_hint, append_quotation_hint,
                             explains, prepend_argument_hint)
 from .lang import (describe_concurrency, indicate_eol, indicate_extra_text,
-                   pl_cat_predicative)
+                   pl_cat_attributive)
 
 
 def _format_roles(roles: list[int]):
-    return pl_cat_predicative('role', [tag_literal('role', r) for r in roles], conj='or')
+    return pl_cat_attributive('role', [tag_literal('role', r) for r in roles], conj='or')
 
 
 def _format_permissions(perms: list[str]):
-    return pl_cat_predicative('permission', [strong(readable_perm_name(p)) for p in perms])
+    return pl_cat_attributive('permission', [strong(readable_perm_name(p)) for p in perms])
 
 
 @explains(exceptions.ReplyRequired, 'Message reference required', priority=5)

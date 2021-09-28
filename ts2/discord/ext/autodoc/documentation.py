@@ -37,7 +37,7 @@ from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, pre, strong, u
 from ...utils.pagination import EmbedPagination, chapterize_fields
 from .exceptions import BadDocumentation, MissingDescription
-from .lang import (QuantifiedNP, pl_cat_predicative, readable_perm_name,
+from .lang import (QuantifiedNP, pl_cat_attributive, readable_perm_name,
                    singularize, slugify)
 
 _Converter = Union[Converter, type[Converter]]
@@ -88,9 +88,9 @@ def _record_perm_check(place: str, **perms: bool) -> list[str]:
     allowed = [strong(readable_perm_name(s)) for s, v in allowed]
     msg = []
     if allowed:
-        msg.append(f'Requires {pl_cat_predicative("perm", allowed)} in {place}')
+        msg.append(f'Requires {pl_cat_attributive("perm", allowed)} in {place}')
     if denied:
-        msg.append(f'Denies anyone with {pl_cat_predicative("perm", denied)} in {place}')
+        msg.append(f'Denies anyone with {pl_cat_attributive("perm", denied)} in {place}')
     return msg
 
 

@@ -32,7 +32,7 @@ def cprofile(out: str, enabled: bool = True):
     :param out: The path to output the profile result
     :type out: str
     :param enabled: Whether to enable the profiler immediately,
-    defaults to True; if False, the profiler must be manually enabled
+    defaults to True; if False, the profiler must be manually enabled and disabled
     :type enabled: bool, optional
     :yield: A `cProfile.Profile` object
     """
@@ -42,10 +42,8 @@ def cprofile(out: str, enabled: bool = True):
     try:
         yield pr
     finally:
-        # FIXME: logical error
-        if not enabled:
-            pass
-        pr.disable()
+        if enabled:
+            pr.disable()
         pr.dump_stats(out)
 
 

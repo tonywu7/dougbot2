@@ -16,9 +16,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
-from discord import Role
 from discord.ext.commands import Converter
 from discord.ext.commands.errors import BadArgument
 from duckcord.permissions import Permissions2
@@ -38,8 +35,7 @@ class PermissionName(Converter):
 
     perm_name: str
 
-    async def convert(self, ctx, arg: str) -> Callable[[Role], bool]:
-        # FIXME: annotation
+    async def convert(self, ctx, arg: str):
         if not hasattr(Permissions2, arg):
             if not hasattr(Permissions2, arg.replace('server', 'guild')):
                 raise BadArgument(f'No such permission {arg}')
