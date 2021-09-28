@@ -23,8 +23,7 @@ from typing import Literal, Optional, Union
 
 import psutil
 from discord import Member, Role, TextChannel, User
-from discord.ext.commands import (BucketType, Converter, command, has_role,
-                                  is_owner)
+from discord.ext.commands import BucketType, Converter, command, is_owner
 
 from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
@@ -110,14 +109,6 @@ class Debug(
     async def _sleep(self, ctx: Circumstances, duration: Optional[float] = 10):
         async with ctx.typing():
             await asyncio.sleep(duration)
-
-    @command('isnotinthesudoersfile')
-    @doc.description('[Incident](https://xkcd.com/838/)')
-    @doc.restriction(has_role, item=0)
-    @doc.hidden
-    async def _sudo(self, ctx: Circumstances, *, args: str = None):
-        # TODO: remove
-        await ctx.send(f'{ctx.me} is in the sudoers file!')
 
     @command('444')
     @doc.description('Globally forbid an entity from interacting with the bot.')

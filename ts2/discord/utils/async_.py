@@ -78,14 +78,3 @@ class async_atomic:
     @sync_to_async
     def __aexit__(self, exc_type, exc, tb):
         transaction.atomic().__exit__(exc_type, exc, tb)
-
-
-class Promise:
-    # TODO: remove
-    @classmethod
-    async def resolve(cls, *args, **kwargs):
-        return args, kwargs
-
-    @classmethod
-    async def reject(cls, exc: Exception):
-        raise exc

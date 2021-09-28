@@ -20,14 +20,14 @@ from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from typing import Generic, Optional, TypeVar, Union
 
 import attr
-from discord import (Client, Embed, Member, Message, PartialEmoji,
+from discord import (Client, Member, Message, PartialEmoji,
                      RawReactionActionEvent)
 from discord.ext.commands import Context
 from duckcord.embeds import Embed2, EmbedField
 from more_itertools import peekable, split_before
 
 from .events import EmoteResponder
-from .markdown import strong, u
+from .markdown import strong
 
 RE_BLOCKQUOTE = re.compile(r'^> ')
 RE_PRE_BORDER = re.compile(r'^```.*$')
@@ -112,52 +112,6 @@ def trunc_for_field(text: str, size=960, placeholder=' ... (truncated)') -> str:
     if len(text) >= actual_size:
         return f'{text[:actual_size]}{placeholder}'
     return text
-
-
-def page_plaintext(sections: tuple[str, str], title=None, description=None, footer=None, divider='') -> str:
-    # TODO: remove
-    lines = []
-    if title:
-        lines.append(u(strong(title)))
-        if divider is not None:
-            lines.append(divider)
-    if description:
-        lines.append(description)
-        if divider is not None:
-            lines.append(divider)
-    for title, body in sections:
-        lines.append(strong(title))
-        lines.append(body)
-        if divider is not None:
-            lines.append(divider)
-    if footer:
-        lines.append(footer)
-    return '\n'.join(lines)
-
-
-def page_embed(sections: tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed:
-    # TODO: remove
-    embed = Embed(title=title, description=description)
-    for title, body in sections:
-        embed.add_field(name=title, value=body, inline=False)
-    if footer:
-        embed.set_footer(text=footer)
-    return embed
-
-
-def page_embed2(sections: tuple[str, str], title=Embed.Empty, description=Embed.Empty, footer=Embed.Empty) -> Embed2:
-    # TODO: remove
-    embed = Embed2(title=title, description=description).set_footer(text=footer)
-    for title, body in sections:
-        embed = embed.add_field(name=title, value=body, inline=False)
-    return embed
-
-
-def limit_results(results: list[str], limit: int) -> list[str]:
-    # TODO: remove
-    if len(results) <= limit:
-        return results
-    return results[:limit] + [f'({len(results) - limit} more)']
 
 
 def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[list[S]]:
@@ -326,12 +280,6 @@ class Pagination:
             return self[idx]
 
         return provider
-
-    async def reply(self, ctx: Context, ttl: int) -> tuple[Message, Paginator]:
-        # TODO: delete
-        text, embed = self[0]
-        msg = await ctx.reply(content=text, embed=embed)
-        return msg, self(ctx.bot, msg, ttl, ctx.author)
 
     def __call__(self, client: Client, message: Message, ttl: int, *users: Union[int, Member]) -> Paginator:
         """Make a Paginator from this Pagination to be used in message replies."""

@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager, suppress
 from datetime import timezone
@@ -32,7 +31,7 @@ from django.db import transaction
 
 from .command import CommandDelegate, GroupDelegate
 from .models import Server
-from .utils.common import Embed2, Responder, ResponseInit, is_direct_message
+from .utils.common import Embed2, ResponseInit, is_direct_message
 
 
 def on_error_reset_cooldown(f):
@@ -240,16 +239,6 @@ class Circumstances(Context):
         with transaction.atomic():
             self.server.prefix = prefix
             self.server.save()
-
-    async def run_responders(self, *responders: Responder, ignore_exc=True):
-        # TODO: Remove
-        results = await asyncio.gather(*responders, return_exceptions=True)
-        if ignore_exc:
-            return
-        for r in results:
-            if isinstance(r, Exception):
-                from .ext.logging import log_command_error
-                log_command_error(self, self.logconfig, r)
 
     def format_command(self, cmd: str):
         """Prefix the string with the currently used prefix.

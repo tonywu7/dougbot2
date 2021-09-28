@@ -93,10 +93,6 @@ class Responder:
         self.ttl = ttl
         self.end: float
 
-    def check(self, event: str, args) -> bool:
-        # TODO: delete
-        return all(t(args) for t in self.events[event])
-
     async def on_start(self):
         """Execute before the responder begins listening for events.
 

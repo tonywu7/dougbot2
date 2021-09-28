@@ -461,13 +461,6 @@ class Polling(
     _CACHE_VERSION = 5
     _CACHE_TTL = 604800
 
-    # TODO: remove
-    RE_BALLOT_FORMAT = re.compile((
-        r'^(?P<emote>\S+) \*\*(?P<response>.*)\*\* - '
-        r'<@(?P<user_id>\d+)> <t:(?P<timestamp>\d+).*>$'
-    ), re.M)
-    RE_OBFUSCATED = re.compile(r'\[\(anonymous\)\]\((\d+)\)')
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._sequential = asyncio.Lock()
@@ -1128,8 +1121,3 @@ class NotPoll(NotAcceptable):
         link = a(f'Message {code(msg.id)}', msg.jump_url)
         message = f'{link} is not a poll submission.'
         super().__init__(message, *args)
-
-
-# TODO: remove
-class Invalidate(Exception):
-    pass

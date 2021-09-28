@@ -38,8 +38,7 @@ from .markdown import (E, a, arrow, blockquote, code, em,  # noqa: F401
                        untagged, unwrap_codeblock, urlqueryset, verbatim)
 from .pagination import (EmbedPagination, ParagraphStream,  # noqa: F401
                          TextPagination, chapterize, chapterize_fields,
-                         chapterize_items, limit_results, page_embed2,
-                         page_plaintext, trunc_for_field)
+                         chapterize_items, trunc_for_field)
 from .response import ResponseInit  # noqa: F401
 
 JS_BIGINT = 2 ** 53

@@ -54,23 +54,6 @@ ARGS = re.compile(rf'((?P<num>{NUMBERS})|(?P<lit>{LITERALS})|(?P<identifier>{IDE
 KWARGS = re.compile(rf'^(?P<keyword>{IDENTIFIER})=(?P<value>.+)')
 
 
-def parse_token(token: str) -> tuple[str | None, template.Variable]:
-    # TODO: remove
-    kwarg = KWARGS.fullmatch(token)
-    if kwarg:
-        keyword = kwarg['keyword']
-        value = kwarg['value']
-    else:
-        arg = ARGS.fullmatch(token)
-        if arg:
-            keyword = None
-            value = arg[0]
-        else:
-            raise template.TemplateSyntaxError(f'Malformed token {repr(token)}')
-    value = template.Variable(value)
-    return keyword, value
-
-
 def _is_vararg(p: Parameter):
     return p.kind is Parameter.VAR_POSITIONAL
 

@@ -68,11 +68,6 @@ class ResponseInit:
             'mention_author',
         }
 
-    def timed(self, ttl: float):
-        # TODO: remove
-        """Delete the response after this many seconds."""
-        return attr.evolve(self, delete_after=ttl)
-
     def mentions(self, mentions: AllowedMentions | None):
         """Set the `allowed_mentions` parameter of the outgoing message."""
         if mentions is None:

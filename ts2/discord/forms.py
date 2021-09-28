@@ -19,7 +19,6 @@ from typing import Union
 from discord.ext.commands import Bot
 from django import forms
 from django.apps import apps
-from django.http import HttpRequest
 
 from .config import CommandAppConfig
 from .models import Server
@@ -98,7 +97,3 @@ class ServerModelSyncForm(forms.ModelForm):
 
         thread.run_coroutine(sync_models(thread.client))
         return self.instance
-
-    def user_tests(self, req: HttpRequest) -> bool:
-        # TODO: Remove
-        return req.user.is_superuser

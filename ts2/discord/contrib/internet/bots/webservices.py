@@ -73,7 +73,7 @@ class WebServiceCommands:
                 reason = str(e)
                 if not integers and not a_number:
                     reason = f'{reason} (Searched for a random A-number {query})'
-                return await ctx.response(ctx, content=reason).timed(20).run()
+                return await ctx.response(ctx, content=reason).autodelete(20).run()
             except aiohttp.ClientError:
                 await ctx.reply('Network error while searching on OEIS')
                 raise
