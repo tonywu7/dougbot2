@@ -14,14 +14,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional
+from collections import OrderedDict
+from typing import Literal, Optional
 
 from discord.ext.commands import command
+from faker import Faker
 
 from ts2.discord.context import Circumstances
-from ts2.discord.ext.common import doc
-from ts2.discord.ext.services.rand import FakerLocales, get_faker
+from ts2.discord.ext.common import Choice, doc
 from ts2.discord.utils.common import a
+
+fake: Faker = None
+
+LOCALES = OrderedDict([
+    ('en-US', 1.0),
+    ('zh-CN', 1.0),
+    ('fr-FR', 0.8),
+    ('ja-JP', 0.7),
+    ('pl-PL', 0.7),
+    ('la', 0.3),
+])
+
+FakerLocales = Choice[[*LOCALES.keys()], Literal['language code']]
+
+
+def get_faker(locale: str = 'en-US') -> Faker:
+    """Get the program's global Faker instance."""
+    global fake
+    if not fake:
+        fake = Faker(LOCALES)
+    return fake[locale]
 
 
 class ContentGenerationCommands:
