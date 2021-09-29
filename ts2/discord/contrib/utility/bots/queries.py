@@ -18,15 +18,16 @@ import colorsys
 import io
 from datetime import datetime, timezone
 from string import hexdigits
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
-from discord import (Emoji, File, Member, Message, PartialEmoji, Role,
+from discord import (Emoji, File, Guild, Member, Message, PartialEmoji, Role,
                      StageChannel, TextChannel, VoiceChannel)
 from discord.ext.commands import command
 from PIL import Image, ImageColor
 
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
+from ts2.discord.ext.common import Choice
 from ts2.discord.utils.common import (Embed2, a, can_embed, can_upload, code,
                                       strong, timestamp)
 from ts2.discord.utils.markdown import rgba2int
@@ -114,17 +115,27 @@ class QueryCommands:
         res = Embed2(description='\n'.join(results), color=rgba2int(r, g, b))
         return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()
 
-    @command('avatar', aliases=('pfp',))
-    @doc.description("Get a user's avatar (profile pic).")
-    @doc.argument('member', 'The user whose avatar to get.')
-    @doc.invocation((), 'Get your profile pic.')
-    @doc.invocation(('member',), "Get someone else's profile pic.")
+    @command('asset', aliases=('cdn',))
+    @doc.description('Get the CDN URL of a Discord asset (e.g. avatars, emotes)')
+    @doc.invocation(('target',), None)
     @can_embed
-    async def avatar(self, ctx: Circumstances, member: Optional[Member]):
-        if not member:
-            member = ctx.author
-        url = member.avatar_url_as()
-        res = (Embed2(title='Avatar').personalized(member)
-               .set_thumbnail(url=url)
-               .set_description(code(url)))
+    async def cdn(
+        self, ctx: Circumstances,
+        target: Union[Member, Guild, Emoji, PartialEmoji],
+        filetype: Optional[Choice[Literal['webp', 'png', 'jpg']]] = 'png',
+    ):
+        if isinstance(target, Member):
+            asset = target.avatar_url_as(static_format=filetype)
+            name = 'Profile picture'
+            description = target.mention
+        elif isinstance(target, Guild):
+            asset = target.icon_url_as(static_format=filetype)
+            name = 'Server icon'
+            description = target.name
+        elif isinstance(target, (Emoji, PartialEmoji)):
+            asset = target.url_as(static_format=filetype)
+            name = 'Emote'
+            description = f'{target} {code(target)}'
+        res = (Embed2(title=name).set_thumbnail(url=asset)
+               .set_description(f'{strong(description)}\n{a(asset, asset)}'))
         return await ctx.response(ctx, embed=res).deleter().run()
