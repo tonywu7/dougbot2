@@ -72,6 +72,7 @@ _type_descriptions: dict[_Annotation, QuantifiedNP] = {
     discord.Colour: QuantifiedNP('color', predicative='in hexadecimal or RGB format'),
     discord.Emoji: QuantifiedNP('emote', predicative='must be in servers the bot is in'),
     discord.PartialEmoji: QuantifiedNP('emote id'),
+    discord.Guild: QuantifiedNP('id', 'name', concise='server', attributive="server's"),
 
     _AnyChannel: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
     Optional[_AnyChannel]: QuantifiedNP('id', 'name', concise='channel', attributive="channel's"),
