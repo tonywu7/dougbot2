@@ -134,7 +134,7 @@ class WebServiceCommands:
                  .prefetch_related('role'))
             role_tz: Optional[RoleTimezone] = await async_first(q)
             timezone = role_tz and role_tz.timezone
-            footer_fmt = f'Offset: UTC%(offset)s (from server role {role_tz.role.name})'
+            footer_fmt = 'Offset: UTC%(offset)s (from server role)'
 
         if not timezone:
             if not target:
