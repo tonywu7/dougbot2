@@ -134,7 +134,7 @@ class WebServiceCommands:
                  .prefetch_related('role'))
             role_tz: Optional[RoleTimezone] = await async_first(q)
             timezone = role_tz and role_tz.timezone
-            footer_fmt = 'Timezone: %(tz)s (from server role)'
+            footer_fmt = f'Offset: UTC%(offset)s (from server role {role_tz.role.name})'
 
         if not timezone:
             if not target:
@@ -178,9 +178,17 @@ class WebServiceCommands:
         profile = await User.async_get(ctx.author)
         time = datetime.now(tz=timezone)
         formatted = profile.format_datetime(time)
+        offset = timezone.utcoffset(datetime.now()).total_seconds() / 3600
+        if offset.is_integer():
+            offset = f'{offset:+.0f}'
+        else:
+            offset = f'{offset:+.2f}'
         result = (
             Embed2(title='Local time', description=formatted)
-            .set_footer(text=footer_fmt % {'tz': timezone})
+            .set_footer(text=footer_fmt % {
+                'tz': timezone,
+                'offset': offset,
+            })
             .set_timestamp(None)
         )
         if person:
