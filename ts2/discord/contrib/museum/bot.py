@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import re
-import mimetypes
 import string
 from collections import Counter
 from collections.abc import AsyncGenerator
@@ -25,7 +24,7 @@ from typing import Literal, Optional
 
 import nltk
 from asgiref.sync import sync_to_async
-from discord import Message, MessageReference, Object, TextChannel, Attachment
+from discord import Message, MessageReference, Object, TextChannel
 from discord.ext.commands import BucketType, command
 from django.conf import settings
 from duckcord.embeds import Embed2
@@ -36,25 +35,16 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext.autodoc.exceptions import NotAcceptable
 from ts2.discord.ext.common import Constant, doc
-from ts2.discord.utils.checks import can_embed
-from ts2.discord.utils.markdown import a, strong, tag, tag_literal, timestamp
-from ts2.discord.utils.pagination import (EmbedPagination, ParagraphStream,
-                                          chapterize, trunc_for_field)
+from ts2.discord.utils.common import (EmbedPagination, ParagraphStream, a,
+                                      attachment_is_type, can_embed,
+                                      chapterize, strong, tag, tag_literal,
+                                      timestamp, trunc_for_field)
 
 from .models import StoryTask
 
 RE_EXTRA_SPACE = re.compile(r'(\w+(?:\*|_|\||~|`)?) ([\.,/;\':"!?)\]}])( ?)(?!\w)')
 
 TRANS_PUNCTUATIONS = str.maketrans({k: None for k in string.punctuation})
-
-
-def maybe_image(att: Attachment) -> bool:
-    # TODO: move to utils
-    # TODO: generalize
-    contenttype: Optional[str] = att.content_type
-    if not contenttype:
-        contenttype, encoding = mimetypes.guess_type(att.url, False)
-    return contenttype and contenttype.startswith('image/')
 
 
 class Museum(
@@ -91,7 +81,7 @@ class Museum(
         image = False
         attachments = []
         for att in message.attachments:
-            if not image and maybe_image(att):
+            if not image and attachment_is_type(att, 'image/*'):
                 res = res.set_image(url=att.url)
                 image = True
             attachments.append(a(att.filename, att.url))
