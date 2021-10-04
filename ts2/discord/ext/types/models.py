@@ -36,8 +36,9 @@ class PermissionName(Converter):
     perm_name: str
 
     async def convert(self, ctx, arg: str):
-        if not hasattr(Permissions2, arg):
-            if not hasattr(Permissions2, arg.replace('server', 'guild')):
+        arg = arg.lower()
+        if arg not in Permissions2.VALID_FLAGS:
+            if arg.replace('server', 'guild') not in Permissions2.VALID_FLAGS:
                 raise BadArgument(f'No such permission {arg}')
             else:
                 arg = arg.replace('server', 'guild')
