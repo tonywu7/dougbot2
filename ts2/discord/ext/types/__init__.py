@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# TODO: Move to utils
+
 from operator import itemgetter
 from typing import Literal, get_args, get_origin
 

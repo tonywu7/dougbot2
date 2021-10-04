@@ -812,6 +812,7 @@ class Polling(
         ' if there are any.'
     ))
     @doc.cooldown(1, 5, BucketType.member)
+    @on_error_reset_cooldown
     async def suggest_edit(
         self, ctx: Circumstances,
         suggestion: Message,
@@ -844,6 +845,7 @@ class Polling(
     @doc.use_syntax_whitelist
     @doc.invocation(('suggestion', 'comment'), None)
     @doc.cooldown(1, 60, BucketType.member)
+    @on_error_reset_cooldown
     async def comment(
         self, ctx: Circumstances,
         suggestion: Message, *, comment: str,
@@ -880,6 +882,7 @@ class Polling(
     @doc.argument('member', 'The member you would like to credit the suggestion to.')
     @doc.restriction(None, 'You can only change the attribution of a suggestion you submitted.')
     @doc.cooldown(1, 5, BucketType.member)
+    @on_error_reset_cooldown
     async def suggest_credit(
         self, ctx: Circumstances,
         suggestion: Message,
