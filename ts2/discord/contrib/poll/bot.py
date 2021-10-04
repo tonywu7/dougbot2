@@ -508,7 +508,7 @@ class Polling(
                  for description in [help_text, *channel_lists]]
         pagination = EmbedPagination(pages, 'Suggestion channels')
         return await (ctx.response(ctx, embed=pagination).deleter()
-                      .responder(pagination.with_context(ctx)).run())
+                      .responder(pagination.with_context(ctx)).run(thread=True))
 
     async def get_channel_or_404(self, ctx: Circumstances, channel: TextChannel):
         """Get the SuggestionChannel object associated with this guild channel.

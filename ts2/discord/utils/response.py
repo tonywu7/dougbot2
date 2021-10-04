@@ -145,7 +145,7 @@ class ResponseInit:
                 return
         return await self.context.send(*args, **kwargs)
 
-    async def run(self, message: Optional[Message] = None, thread: bool = True):
+    async def run(self, message: Optional[Message] = None, thread: bool = False):
         """Execute the response.
 
         Send out the message, run all callbacks, and begin listening for events.

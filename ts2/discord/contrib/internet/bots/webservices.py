@@ -199,4 +199,4 @@ class WebServiceCommands:
         if len(errors) == 3:
             error = (Embed2(description='\n'.join([str(e) for e in errors]))
                      .set_color(Color2.red()))
-            await ctx.response(ctx, embed=error, delete_after=30).run()
+            await ctx.response(ctx, embed=error).autodelete(30).run()

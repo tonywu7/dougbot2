@@ -163,7 +163,7 @@ class Museum(
         if created:
             reply = SETUP_MSG % reply_ctx
             embed = Embed2(title='New story', description=reply)
-            return await ctx.response(ctx, embed=embed).deleter().run()
+            return await ctx.response(ctx, embed=embed).deleter().run(thread=True)
 
         set_channel = tag_literal('channel', task.channel)
 
@@ -171,7 +171,7 @@ class Museum(
             reply = DELETE_MSG % reply_ctx
             await self.story_del_task(task)
             embed = Embed2(title='Reset story', description=reply)
-            return await ctx.response(ctx, embed=embed).deleter().run()
+            return await ctx.response(ctx, embed=embed).deleter().run(thread=True)
 
         if task.channel != channel_id:
             reply = ('The beginning and ending messages are not in the same channel:'
@@ -245,7 +245,7 @@ class StoryCollector:
 
     async def _warn(self, message: str):
         warn = Embed2(description=f'⚠️ {message}')
-        await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run()
+        await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run(thread=True)
 
     async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=2048):
         """Run the collector and deliver the result to the collector's Context."""
