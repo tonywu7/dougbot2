@@ -1,25 +1,22 @@
-from pathlib import Path
-
+from django.apps import apps
 from django.urls import include, path
 
-from ts2.utils.importutil import iter_module_tree
-
-from .apps import DiscordBotConfig
+from .config import CommandAppConfig
 
 app_name = 'ext'
 
 
 def collect_urls():
     """Find all URLs exposed by bot cogs."""
-    # TODO: rewrite
-    root = DiscordBotConfig.name
     urls = []
-    for extension, in iter_module_tree(str(Path(__file__).with_name('contrib')), 1):
+    for app in apps.get_app_configs():
+        if not isinstance(app, CommandAppConfig):
+            continue
         try:
-            included = include(f'{root}.contrib.{extension}.urls')
+            included = include(f'{app.module.__name__}.urls')
         except ModuleNotFoundError:
             continue
-        urls.append(path(f'{extension}/', included))
+        urls.append(path(f'{app.label}/', included))
     return urls
 
 
