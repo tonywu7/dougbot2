@@ -29,7 +29,7 @@ from ts2.discord.cog import Gear
 from ts2.discord.context import Circumstances
 from ts2.discord.ext import autodoc as doc
 from ts2.discord.ext.common import Constant
-from ts2.discord.utils.markdown import a, code, strong
+from ts2.discord.utils.common import a, code, strong
 
 
 class LoggingLevel(Converter):

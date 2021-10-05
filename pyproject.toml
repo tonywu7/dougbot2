@@ -55,8 +55,8 @@ Pint = "^0.17"
 APScheduler = "^3.7.0"
 duckdb = "^0.2.9"
 pandas = "^1.3.3"
-"duckcord.py" = {git = "https://git.dougdistrict.xyz/duckcord.py.git", rev = "master"}
 "discord.jinja" = {git = "https://git.dougdistrict.xyz/discord.jinja.git", rev = "master"}
+"duckcord.py" = {git = "https://git.dougdistrict.xyz/duckcord.py.git", rev = "master"}
 
 [tool.poetry.dev-dependencies]
 logging_tree = "^1.9"

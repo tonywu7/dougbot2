@@ -464,7 +464,7 @@ attrs = "*"
 type = "git"
 url = "https://git.dougdistrict.xyz/duckcord.py.git"
 reference = "master"
-resolved_reference = "fb69e77d9e3f43a15e8ea2bc251d4c8782277b67"
+resolved_reference = "b387e2eeeb7ecc84aefcc05bb70210034e97111c"
 
 [[package]]
 name = "duckdb"
