@@ -1,0 +1,38 @@
+[discord]
+
+client_id = ''
+client_secret = ''
+bot_token = ''
+
+prefix = 't;'
+allowed_guilds = []
+
+[about]
+
+branding_full = 'telescope2'
+branding_short = 'ts2'
+
+description = ''
+twitter = ''
+
+[style]
+
+[style.colors]
+
+    accent = '0xff980b'
+
+[style.emotes]
+
+    success = ':white_check_mark:'
+    failure = ':no_entry_sign:'
+    pending = ':hourglass:'
+    removal = ':wastebasket:'
+
+    forward = ':fast_forward:'
+    rewind = ':rewind:'
+    tail = ':track_next:'
+    head = ':track_previous:'
+
+    green = ':green_circle:'
+    red = ':no_entry:'
+    yellow = ':yellow_square:'
