@@ -16,13 +16,17 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from functools import wraps
+from pathlib import Path
 from typing import Optional
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
+from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.http import HttpRequest
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
@@ -87,6 +91,26 @@ class User(AbstractUser):
         self.expires_at = (utcnow() + timedelta(seconds=int(data['expires_in']))).timestamp()
         await sync_to_async(self.save)()
         return self.access_token
+
+
+class UserAccess(models.Model):
+    path: str = models.TextField()
+    user_id: int = models.IntegerField()
+
+
+def per_user_access(view_func):
+    @wraps(view_func)
+    def wrapped(request: HttpRequest, *args, **kwargs):
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        path = Path(request.path)
+        paths = [path, *path.parents]
+        allowed: set[int] = set(UserAccess.objects.filter(path__in=paths)
+                                .values_list('user_id', flat=True))
+        if request.user.pk in allowed:
+            return view_func(request, *args, **kwargs)
+        raise PermissionDenied
+    return wrapped
 
 
 def manage_permissions_required(f):
