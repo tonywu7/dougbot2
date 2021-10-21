@@ -6,6 +6,7 @@ admin_site = create_admin_site('telescope2 console', [
     'ts2.discord.admin',
     'ts2.discord.contrib.internet.admin',
     'ts2.web.admin',
+    'ts2.web.contrib.cupboard.admin',
 ])
 
 urlpatterns = [

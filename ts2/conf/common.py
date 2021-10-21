@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'ts2.discord.contrib.debug',
     'ts2.discord.contrib.measurement',
     'ts2.web.contrib.trac',
+    'ts2.web.contrib.cupboard',
     'graphene_django',
 ]
 
@@ -264,3 +265,5 @@ CSP_IMG_SRC = (
 )
 
 DISCORD_EAGER_CONNECT = False
+
+MEDIA_ROOT = INSTANCE_DIR / 'media'
