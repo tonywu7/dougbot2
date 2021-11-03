@@ -517,7 +517,7 @@ class Ticker(
                                               refresh, expire)
             await self.start_ticker(vc, ticker)
             result = self.get_result(vc, ticker)
-            return await ctx.response(ctx, embed=result).reply().deleter().run()
+            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
 
     @ticker.command('update', aliases=('set', 'edit'))
     @doc.description('Update settings for a currently running ticker.')
@@ -570,7 +570,7 @@ class Ticker(
         async with ctx.typing():
             vc = await self.restart_ticker(ctx.guild, ticker)
             result = self.get_result(vc, ticker)
-            return await ctx.response(ctx, embed=result).reply().deleter().run()
+            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
 
     @ticker.command('delete', aliases=('rm', 'del', 'remove'))
     @doc.description('Remove a hoisted message.')
@@ -595,4 +595,4 @@ class Ticker(
                 name = await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
                 deleted.append(f'{code(channel_id)} {name}')
             result = Embed2(title='Ticker deleted', description='\n'.join(deleted))
-            return await ctx.response(ctx, embed=result).reply().deleter().run()
+            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
