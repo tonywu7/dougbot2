@@ -25,9 +25,12 @@ from contextlib import suppress
 from functools import wraps
 from typing import Any, Optional, Union
 
-from discord import (Client, Emoji, Member, Message, PartialEmoji,
-                     RawReactionActionEvent, User)
+from discord import (
+    Client, Emoji, Member, Message, PartialEmoji, RawReactionActionEvent, User,
+)
 from discord.ext.commands import Context
+
+from dougbot2.defaults import get_defaults
 
 Decorator = Callable[[Callable], Callable]
 EventFilter = Callable[..., Coroutine[Any, Any, bool]]
@@ -225,7 +228,7 @@ class DeleteResponder(EmoteResponder):
     """Listen for a reaction to the trashcan emote and delete a message."""
 
     def __init__(self, ctx: Context, message: Message, ttl: int = 300) -> None:
-        super().__init__([ctx.author.id], ['🗑'], client=ctx.bot, message=message, ttl=ttl)
+        super().__init__([ctx.author.id], [get_defaults().styles.emotes.removal], client=ctx.bot, message=message, ttl=ttl)
 
     async def handle(self, event) -> True:
         await self.message.delete(delay=.1)

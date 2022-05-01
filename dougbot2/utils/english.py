@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Natural English utilities."""
+"""Natural language utilities for English."""
 
 from __future__ import annotations
 
@@ -24,13 +24,13 @@ from typing import Optional, TypedDict
 
 from discord import User
 from discord.ext.commands import BucketType, Context
-from inflect import (ARTICLE_SPECIAL_EU, ARTICLE_SPECIAL_ONCE,
-                     ARTICLE_SPECIAL_ONETIME, ARTICLE_SPECIAL_UBA,
-                     ARTICLE_SPECIAL_UKR, ARTICLE_SPECIAL_UNIT, CONSONANTS,
-                     SPECIAL_A, SPECIAL_ABBREV_A, SPECIAL_ABBREV_AN,
-                     SPECIAL_AN, SPECIAL_CAPITALS, VOWELS, A_explicit_a,
-                     A_explicit_an, A_ordinal_a, A_ordinal_an, A_y_cons,
-                     engine)
+from inflect import (
+    ARTICLE_SPECIAL_EU, ARTICLE_SPECIAL_ONCE, ARTICLE_SPECIAL_ONETIME,
+    ARTICLE_SPECIAL_UBA, ARTICLE_SPECIAL_UKR, ARTICLE_SPECIAL_UNIT, CONSONANTS,
+    SPECIAL_A, SPECIAL_ABBREV_A, SPECIAL_ABBREV_AN, SPECIAL_AN,
+    SPECIAL_CAPITALS, VOWELS, A_explicit_a, A_explicit_an, A_ordinal_a,
+    A_ordinal_an, A_y_cons, engine,
+)
 
 from .markdown import tag
 
@@ -45,6 +45,8 @@ A_abbrev = re.compile(
 
 
 class engine_(engine):
+    """Copyright (C) 2010 Paul Dyson; Copyright Jason R. Coombs"""
+
     def _indef_article(self, word: str, count: int) -> str:
         mycount = self.get_count(count)
 
@@ -94,6 +96,42 @@ class engine_(engine):
         # OTHERWISE, GUESS "a"
         return f'a {word}'
 
+    def postprocess(self, orig: str, inflected) -> str:
+        inflected = str(inflected)
+        if '|' in inflected:
+            word_options = inflected.split('|')
+            # When two parts of a noun need to be pluralized
+            if len(word_options[0].split(' ')) == len(word_options[1].split(' ')):
+                result = inflected.split('|')[self.classical_dict['all']].split(' ')
+            # When only the last part of the noun needs to be pluralized
+            else:
+                result = inflected.split(' ')
+                for index, word in enumerate(result):
+                    if '|' in word:
+                        result[index] = word.split('|')[self.classical_dict['all']]
+        else:
+            result = inflected.split(' ')
+
+        # Try to fix word wise capitalization
+        for index, word in enumerate(orig.split(' ')):
+            if word == 'I':
+                # Is this the only word for exceptions like this
+                # Where the original is fully capitalized
+                # without 'meaning' capitalization?
+                # Also this fails to handle a capitalizaion in context
+                continue
+            if word.capitalize() == word:
+                result[index] = result[index].capitalize()
+            if (
+                word == word.upper()
+                and result[index].upper().removeprefix(word) != 'S'
+                # Restore uppercase unless result is the plural
+                # of the original term in which case the -s
+                # should stay lowercase
+            ):
+                result[index] = result[index].upper()
+        return ' '.join(result)
+
 
 inflection = engine_()
 
@@ -140,6 +178,7 @@ def coord_conj(*terms: str, conj='and', oxford=True) -> str:
         ... 'apple, orange and banana'
 
     """
+    terms = list(set(terms))
     if not terms:
         return ''
     if len(terms) == 1:
@@ -194,9 +233,17 @@ def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> 
 class QuantifiedNP:
     """Quantified noun phrase."""
 
-    def __init__(self, *nouns, concise: str = None, attributive: str = '',
-                 predicative: str = '', conjunction: str = 'or',
-                 definite=False, uncountable=False):
+    def __init__(
+        self,
+        *nouns,
+        concise: str = None,
+        attributive: str = '',
+        predicative: str = '',
+        predicative_sep: str = ', ',
+        conjunction: str = 'or',
+        definite=False,
+        uncountable=False,
+    ):
         if not nouns:
             raise ValueError('One or more noun terms required')
 
@@ -205,6 +252,7 @@ class QuantifiedNP:
             'concise': concise,
             'attributive': attributive,
             'predicative': predicative,
+            'predicative_sep': predicative_sep,
             'conjunction': conjunction,
             'definite': definite,
             'uncountable': uncountable,
@@ -219,7 +267,7 @@ class QuantifiedNP:
 
         self.predicative = predicative.strip()
         if self.predicative:
-            self.predicative = f', {self.predicative}'
+            self.predicative = f'{predicative_sep}{self.predicative}'
         attributive = attributive.strip()
         if attributive:
             self.attr_singular = f'{attributive} '
@@ -288,12 +336,16 @@ class QuantifiedNP:
         kwargs['predicative'] = self._kwargs['predicative']
         kwargs['conjunction'] = self._kwargs['conjunction']
         item = QuantifiedNP(*self._kwargs['nouns'], **kwargs)
-        item.concise_plural = coord_conj(inflection.plural(self._kwargs['concise']),
-                                         inflection.plural(other._kwargs['concise']),
-                                         conj='or')
-        item.attr_plural = coord_conj(inflection.plural_adj(self._kwargs['attributive']),
-                                      inflection.plural_adj(other._kwargs['attributive']),
-                                      conj='or') + ' '
+        item.concise_plural = coord_conj(
+            inflection.plural(self._kwargs['concise']),
+            inflection.plural(other._kwargs['concise']),
+            conj='or',
+        )
+        item.attr_plural = coord_conj(
+            inflection.plural_adj(self._kwargs['attributive']),
+            inflection.plural_adj(other._kwargs['attributive']),
+            conj='or',
+        ) + ' '
         return item
 
     def __repr__(self):

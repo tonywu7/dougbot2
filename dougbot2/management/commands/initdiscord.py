@@ -21,8 +21,8 @@ from django.conf import settings
 from django.core.checks import Tags
 from django.core.management.base import BaseCommand
 
-from ts2.utils.logger import colored as _
-from ts2.utils.repl import Form, Question, missing
+from dougbot2.utils.logger import colored as _
+from dougbot2.utils.repl import Form, Question, missing
 
 log = logging.getLogger('manage.init')
 

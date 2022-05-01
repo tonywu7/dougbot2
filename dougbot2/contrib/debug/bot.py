@@ -19,21 +19,21 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from typing import Literal, Optional, Union
+from typing import Optional
 
 import psutil
-from discord import Member, Message, Role, TextChannel, User
-from discord.ext.commands import BucketType, command, is_owner
+from discord import Message
+from discord.ext.commands import BucketType, is_owner
 
-from dougbot2.cog import Gear
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
+from dougbot2.discord import Gear, command, group
 from dougbot2.exts import autodoc as doc
 from dougbot2.settings.versions import list_versions
-from dougbot2.utils.common import (Embed2, a, can_embed, code, em, strong,
-                                   utcnow, utctimestamp)
-from dougbot2.utils.converters import Constant
-from dougbot2.utils.dm import accepts_dms
-from dougbot2.utils.english import NP
+from dougbot2.utils.common import (
+    Embed2, can_embed, code, em, strong, utcnow, utctimestamp,
+)
+from dougbot2.utils.dm import accept_dms
+from dougbot2.utils.pagination import chapterize_items
 
 from .converters import LoggingLevel
 
@@ -50,9 +50,11 @@ class Debug(
     @command('about')
     @doc.description('Print info about the bot.')
     @can_embed
-    async def about_command(ctx: Circumstances, *, rest: str = None):
-        versions = ' '.join([code(f'{pkg}/{v}') for pkg, v
-                            in list_versions().items()])
+    async def about_command(self, ctx: Surroundings, *, rest: str = None):
+        versions = ' '.join([
+            code(f'{pkg}/{v}') for pkg, v
+            in list_versions().items()
+        ])
         info = await ctx.bot.application_info()
         embed = (
             Embed2(title=info.name, description=info.description)
@@ -60,18 +62,18 @@ class Debug(
             .set_thumbnail(url=info.icon_url)
             .personalized(ctx.me)
         )
-        return await ctx.send(embed=embed)
+        return await ctx.respond(embed=embed).run()
 
     @command('echo')
-    @accepts_dms
+    @accept_dms
     @doc.description('Send the command arguments back.')
     @doc.argument('text', 'Message to send back.')
     @doc.example('The quick brown fox', em('sends back "The quick brown fox"'))
-    async def echo(ctx: Circumstances, *, text: str = None):
+    async def echo(self, ctx: Surroundings, *, text: str = None):
         if not text:
-            await ctx.reply(ctx.message.content)
+            await ctx.respond(ctx.message.content).reply().run()
         else:
-            await ctx.reply(text)
+            await ctx.respond(text).reply().run()
 
     @command('stderr', aliases=('log',))
     @doc.description("Send a message into the bot's log file.")
@@ -79,7 +81,7 @@ class Debug(
     @doc.argument('text', 'The message to log.')
     @doc.restriction(is_owner)
     @doc.hidden
-    async def _log(self, ctx: Circumstances, level: Optional[LoggingLevel] = None, *, text: str = ''):
+    async def _log(self, ctx: Surroundings, level: Optional[LoggingLevel] = None, *, text: str = ''):
         if isinstance(level, str):
             text = f'{level} {text}'
             level = logging.INFO
@@ -89,22 +91,22 @@ class Debug(
             msg = ctx.message.content
         else:
             msg = text
-        await ctx.log.log(f'{self.app_label}.log', level, msg)
-        return await ctx.response(ctx).success().run()
+        await ctx.get_logger().log(level, msg)
+        await ctx.respond().success().run()
 
     @command('throw')
     @doc.description('Throw an exception inside the command handler.')
     @doc.restriction(is_owner)
     @doc.cooldown(1, 10, BucketType.user)
     @doc.hidden
-    async def _throw(self, ctx: Circumstances, *, args: str = None):
+    async def _throw(self, ctx: Surroundings, *, args: str = None):
         return {}[None]
 
     @command('overflow')
     @doc.description(f'Throw a {code("RecursionError")}.')
     @doc.restriction(is_owner)
     @doc.hidden
-    async def _overflow(self, ctx: Circumstances, *, args: str = None):
+    async def _overflow(self, ctx: Surroundings, *, args: str = None):
         return await self._overflow(ctx, args=args)
 
     @command('kill')
@@ -112,7 +114,7 @@ class Debug(
     @doc.argument('sig', f'Either {strong("SIGTERM")} or {strong("SIGKILL")}.')
     @doc.restriction(is_owner)
     @doc.hidden
-    async def _kill(self, ctx: Circumstances, *, sig: str = None):
+    async def _kill(self, ctx: Surroundings, *, sig: str = None):
         async with ctx.typing():
             if sig == 'SIGKILL':
                 return psutil.Process(os.getpid()).kill()
@@ -127,36 +129,13 @@ class Debug(
     @doc.description('Suspend the handler coroutine for some duration.')
     @doc.concurrent(2, BucketType.user, wait=False)
     @doc.hidden
-    async def _sleep(self, ctx: Circumstances, duration: Optional[float] = 10):
+    async def _sleep(self, ctx: Surroundings, duration: Optional[float] = 10):
         async with ctx.typing():
             await asyncio.sleep(duration)
 
-    @command('444')
-    @doc.description('Globally forbid an entity from interacting with the bot.')
-    @doc.discussion('Detail', (
-        f'All command invocations are ignored and all events (including {code("on_message")})'
-        " are silently dropped.\nThe name of this command comes from nginx's"
-        f' {a("HTTP 444", "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#nginx")}'
-        ' status code.'
-    ))
-    @doc.restriction(is_owner)
-    @doc.hidden
-    async def _blacklist(
-        self, ctx: Circumstances,
-        entity: Union[User, Member, Role, TextChannel],
-        free: Optional[Constant[Literal['free']]],
-    ):
-        if free:
-            await ctx.bot.gatekeeper.discard(entity)
-            return await ctx.response(ctx).success().run()
-        else:
-            await ctx.bot.gatekeeper.add(entity)
-            msg = f'All events from entity {code(entity)} will be dropped.'
-            return await ctx.send(msg)
-
     @command('ping')
     @doc.description('Test the network latency between the bot and Discord.')
-    async def ping(self, ctx: Circumstances):
+    async def ping(self, ctx: Surroundings):
         await ctx.send(f':PONG {utctimestamp()}')
 
     @Gear.listener('on_message')
@@ -181,15 +160,36 @@ class Debug(
         await msg.edit(content=f'Gateway (http send -> gateway receive time): {gateway_latency:.3f}ms')
         edit_latency = (utcnow() - edit_start).total_seconds() * 1000
 
-        await msg.edit(content=(f'Gateway: {code(f"{gateway_latency:.3f}ms")}'
-                                f'\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}'))
+        await msg.edit(content=(
+            f'Gateway: {code(f"{gateway_latency:.3f}ms")}'
+            f'\nHTTP API (Edit): {code(f"{edit_latency:.3f}ms")}'
+        ))
 
+    @group('debug', case_insensitive=True, invoke_without_command=False)
+    @doc.restriction(is_owner)
+    @doc.hidden
+    async def debug_cmd(self, ctx: Surroundings):
+        return
 
-def setup_docs(bot):
-    return {
-        LoggingLevel: NP('logging level name', concise='logging level'),
-    }
+    @debug_cmd.command('cmdlist')
+    @doc.hidden
+    async def debug_cmdlist(self, ctx: Surroundings):
+        manpage = ctx.bot.manpage
+        cmds = [f'{i}. {s}' for i, s in enumerate(sorted([
+            cmd for cmd, p in manpage.iter_commands()
+        ]), start=1)]
+        for chunk in chapterize_items(cmds, 1440):
+            await ctx.send('\n'.join(chunk))
 
+    @debug_cmd.command('docs')
+    @doc.hidden
+    async def debug_docs(self, ctx: Surroundings, start: Optional[int] = None, end: Optional[int] = None):
+        manpage = ctx.bot.manpage
 
-def setup(bot):
-    bot.add_cog(Debug())
+        pages = [manpage.to_embed(), *[p.to_embed() for cmd, p in manpage.iter_commands()]]
+        for page in pages[start:end]:
+            for i in range(len(page.content)):
+                body = page.get_embed(i)
+                await ctx.send(embed=body)
+
+        await ctx.send(ctx.styles.emotes.success)

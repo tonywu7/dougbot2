@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from decouple import Config, RepositoryEmpty, RepositoryIni
+from decouple import Config, RepositoryIni
 
 from dougbot2 import VERSION, __version__
 
-APP_NAME = 'telescope2'
+APP_NAME = 'dougbot2'
 
 VERSION = VERSION
 
@@ -13,13 +13,6 @@ INSTANCE_DIR = PROJECT_DIR.with_name('instance')
 RESOURCE_BUILD_DIR = PROJECT_DIR.with_name('build')
 
 secrets_conf = Config(RepositoryIni(INSTANCE_DIR / 'secrets.ini'))
-discord_conf = Config(RepositoryIni(INSTANCE_DIR / 'discord.ini'))
-
-try:
-    instance_conf = Config(RepositoryIni(INSTANCE_DIR / 'settings.ini'))
-except FileNotFoundError:
-    instance_conf = Config(RepositoryEmpty())
-
 SECRET_KEY = secrets_conf('SECRET_KEY')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -32,7 +25,7 @@ INSTALLED_APPS = [
     'cacheops',
     'polymorphic',
     'timezone_field',
-    'ts2.admin',
+    'dougbot2.admin',
     'django.contrib.admin.apps.SimpleAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,26 +34,29 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'manifest_loader',
     'django_extensions',
-    'ts2.web',
-    'ts2.web.dispatch.public',
-    'ts2.web.dispatch.gateway',
-    'ts2.web.dispatch.manage',
-    'ts2.discord',
-    'ts2.discord.exts.identity',
-    'ts2.discord.exts.acl',
-    'ts2.discord.contrib.internet',
-    'ts2.discord.contrib.poll',
-    'ts2.discord.contrib.utility',
-    'ts2.discord.contrib.museum',
-    'ts2.discord.contrib.ticker',
-    'ts2.discord.contrib.debug',
-    'ts2.discord.contrib.measurement',
-    'ts2.web.contrib.trac',
-    'ts2.web.contrib.cupboard',
-    'graphene_django',
+    'dougbot2',
+    'dougbot2.utils.apps',
+    'dougbot2.exts.autodoc',
+    'dougbot2.exts.errorfluff',
+    'dougbot2.exts.firewall',
+    'dougbot2.exts.papertrail',
+    'dougbot2.contrib.controls',
+    'dougbot2.contrib.debug',
+    'dougbot2.contrib.help',
+    'dougbot2.contrib.internet',
+    'dougbot2.contrib.museum',
+    'dougbot2.contrib.replyutils',
+    'dougbot2.contrib.poll',
+    'dougbot2.contrib.remarks',
+    'dougbot2.contrib.summon',
+    'dougbot2.contrib.surveillance',
+    'dougbot2.contrib.telemetry',
+    'dougbot2.contrib.ticker',
+    'dougbot2.contrib.timeanddate',
+    'dougbot2.contrib.utility',
 ]
 
-ROOT_URLCONF = 'ts2.urls'
+# ROOT_URLCONF = 'dougbot2.urls'
 
 TEMPLATES = [
     {
@@ -73,12 +69,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'ts2.web.contexts.application_info',
-                'ts2.web.contexts.site_info',
-                'ts2.web.contexts.user_info',
-                'ts2.web.contexts.discord_info',
-                'ts2.web.contexts.instance_constants',
-                'ts2.web.contexts.opengraph',
             ],
         },
     },
@@ -93,11 +83,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'ts2.discord.middleware.DiscordContextMiddleware',
 ]
 
 
-WSGI_APPLICATION = 'ts2.wsgi.application'
+# WSGI_APPLICATION = 'dougbot2.wsgi.application'
 
 
 # Database
@@ -109,12 +98,13 @@ DATABASES = {
         'NAME': INSTANCE_DIR / 'index.sqlite3',
     },
 }
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
-AUTH_USER_MODEL = 'web.User'
+# AUTH_USER_MODEL = 'web.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -144,38 +134,25 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-LOGIN_URL = 'web:login'
+# LOGIN_URL = 'web:login'
 
 STATIC_ROOT = PROJECT_DIR.with_name('dist')
 STATICFILES_DIRS = [
     RESOURCE_BUILD_DIR,
-    PROJECT_DIR / 'web' / 'static',
+    # PROJECT_DIR / 'web' / 'static',
 ]
 
 STATIC_URL = '/static/'
 
 LOGGING_CONFIG = None
 
-discord_secrets = [
-    'DISCORD_CLIENT_ID',
-    'DISCORD_CLIENT_SECRET',
-    'DISCORD_BOT_TOKEN',
-]
-
-for k in discord_secrets:
-    globals()[k] = discord_conf(k)
-
-ASGI_APPLICATION = 'ts2.asgi.application'
+# ASGI_APPLICATION = 'dougbot2.asgi.application'
 
 JWT_DEFAULT_EXP = 300
 
-USER_AGENT = f'Mozilla/5.0 (compatible; telescope2/{__version__}; +https://github.com/tonyzbf/telescope2)'
+USER_AGENT = f'Mozilla/5.0 (compatible; dougbot2/{__version__}; +https://github.com/tonyzbf/dougbot2)'
 
 APPEND_SLASH = True
-
-GRAPHENE = {
-    'ATOMIC_MUTATIONS': True,
-}
 
 
 def config_caches(redis_host):
@@ -210,9 +187,11 @@ def config_caches(redis_host):
         'auth.user': {'ops': 'get', 'timeout': 60 * 15},
         'auth.*': {'ops': ('fetch', 'get')},
         'auth.permission': {'ops': 'all'},
-        'discord.*': {'ops': {'fetch', 'get'}},
-        'acl.*': {'ops': {'fetch', 'get'}},
-        'profile.*': {'ops': {'fetch', 'get'}},
+        'dougbot2.*': {'ops': {'fetch', 'get'}},
+        'firewall.*': {'ops': {'fetch', 'get'}},
+        'poll.*': {'ops': {'fetch', 'get'}},
+        'ticker.*': {'ops': {'fetch', 'get'}},
+        'timeanddate.*': {'ops': {'fetch', 'get'}},
     }
 
     CACHE_MIDDLEWARE_ALIAS = 'default'
@@ -220,23 +199,6 @@ def config_caches(redis_host):
     return (CACHES, CACHEOPS_REDIS, CACHEOPS_DEFAULTS,
             CACHEOPS, CACHE_MIDDLEWARE_ALIAS)
 
-
-allowed_guilds: str = instance_conf('SERVER_WHITELIST', None)
-if allowed_guilds:
-    ALLOWED_GUILDS = {int(s.strip()) for s in allowed_guilds.split(' ')}
-else:
-    ALLOWED_GUILDS = set()
-
-INSTANCE_CONSTANTS = {
-    'BRANDING_FULL': 'telescope2',
-    'BRANDING_SHORT': 'ts2',
-    'SITE_COLOR': '0d6efd',
-    'SITE_DESCRIPTION': '',
-    'SITE_TWITTER': '',
-}
-
-for k, v in INSTANCE_CONSTANTS.items():
-    INSTANCE_CONSTANTS[k] = instance_conf(k, v)
 
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_STYLE_SRC = (
@@ -263,7 +225,5 @@ CSP_IMG_SRC = (
     "'self'", 'data:', 'https://cdn.discordapp.com',
     'https://upload.wikimedia.org',
 )
-
-DISCORD_EAGER_CONNECT = False
 
 MEDIA_ROOT = INSTANCE_DIR / 'media'

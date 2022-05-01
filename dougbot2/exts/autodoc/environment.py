@@ -22,28 +22,38 @@ from functools import cached_property, reduce, total_ordering
 from inspect import Parameter
 from itertools import chain
 from operator import or_
-from typing import (Callable, Literal, Optional, TypedDict, Union, get_args,
-                    get_origin)
+from typing import (
+    Callable, Literal, Optional, Protocol, TypedDict, Union, get_args,
+    get_origin, runtime_checkable,
+)
 
-from discord.ext.commands import Bot, Cog, Command, Context, Converter, Greedy
+from discord.ext.commands import Bot, Cog, Command, Context, Greedy
 from discord.utils import escape_markdown
 from more_itertools import split_at
 
+from ...blueprints import (
+    Documentation, Manpage, _ArgumentParsingAction, _Type, _TypePrinter,
+)
 from ...utils.datastructures import TypeDictionary
+from ...utils.duckcord.color import Color2
+from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.english import QuantifiedNP, singularize, slugify
-from ...utils.functional import get_memo
 from ...utils.markdown import a, blockquote, em, pre, strong
+from ...utils.memo import get_memo
+from ...utils.pagination import (
+    EmbedPagination, chapterize_fields, chapterize_items,
+)
 from .exceptions import BadDocumentation, MissingDescription, NoSuchCommand
-
-_Type = Union[type, Converter, type[Converter], Callable]
-_TypeHint = Union[str, QuantifiedNP]
-_TypePrinter = Union[_TypeHint, Callable[['Environment', _Type], Union[_Type, _TypeHint]]]
 
 CheckPredicate = Callable[[Context], bool]
 CheckWrapper = Callable[[Command], Command]
 CheckDecorator = Callable[..., CheckWrapper]
 
+TypeDict = TypeDictionary[_Type, _TypePrinter]
+
 _NOTHING = object()
+
+log = logging.getLogger('discord.exts.autodoc')
 
 
 class _EmbedField(TypedDict):
@@ -58,8 +68,72 @@ class _Embed(TypedDict):
     fields: list[_EmbedField]
 
 
+@runtime_checkable
+class _ArgumentType(Protocol):
+    key: str
+    slug: str
+    order: int
+
+    is_hidden: bool
+    is_unused: bool
+    is_optional: bool
+    is_greedy: bool
+
+    def describe(self) -> str:
+        ...
+
+    def as_node(self) -> str:
+        ...
+
+    def to_comparable(self) -> tuple:
+        ...
+
+    def __str__(self) -> str:
+        ...
+
+    def __repr__(self) -> str:
+        return self.slug
+
+    def __lt__(self, other: _ArgumentType):
+        if not isinstance(getattr(other, 'order', None), int):
+            return NotImplemented
+        return self.order < other.order
+
+    def __eq__(self, other: _ArgumentType):
+        if not isinstance(other, _ArgumentType):
+            return NotImplemented
+        return self.to_comparable() == other.to_comparable()
+
+    def __hash__(self):
+        return hash(self.to_comparable())
+
+
 @total_ordering
-class Argument:
+class _Argv0(_ArgumentType):
+    def __init__(self, name: str) -> None:
+        self.key = name
+        self.slug = name
+        self.order = -1
+        self.is_hidden = True
+        self.is_unused = False
+        self.is_optional = False
+        self.is_greedy = False
+
+    def describe(self) -> str:
+        return self.key
+
+    def as_node(self) -> str:
+        return self.key
+
+    def to_comparable(self) -> tuple:
+        return (self.order, self.key)
+
+    def __str__(self) -> str:
+        return self.key
+
+
+@total_ordering
+class Argument(_ArgumentType):
     """Represent an argument for a command.
 
     Argument objects keep track of the argument's name, expected types,
@@ -69,7 +143,7 @@ class Argument:
     it inspects a command's function signature.
     """
 
-    def __init__(self, env: Environment, param: Parameter) -> Argument:
+    def __init__(self, env: Manpage, param: Parameter) -> None:
         """Create an Argument description from an `inspect.Parameter` object."""
 
         annotation = param.annotation
@@ -78,11 +152,10 @@ class Argument:
 
         self.env = env
         self.key = param.name
+        self.is_greedy = isinstance(annotation, type(Greedy))
+        self.final = param.kind is Parameter.KEYWORD_ONLY
 
         self.accepts = self.infer_accepts(annotation)
-
-        self.greedy = isinstance(annotation, type(Greedy))
-        self.final = param.kind is Parameter.KEYWORD_ONLY
 
         if param.default is not Parameter.empty:
             self.default = param.default
@@ -91,7 +164,7 @@ class Argument:
         else:
             self.default = _NOTHING
 
-        if self.greedy:
+        if self.is_greedy:
             self.annotation = annotation.converter
         else:
             self.annotation = annotation
@@ -121,9 +194,7 @@ class Argument:
         The argument is expected to not be used if it doesn't have an
         annotation or if the annotation is `str`.
         """
-        return (self.final and self.is_optional
-                and not self.help
-                and not self.description)
+        return self.final and self.is_optional and not self.help and not self.description
 
     @property
     def is_optional(self) -> bool:
@@ -138,6 +209,10 @@ class Argument:
     @classmethod
     def _is_type_union(cls, annotation) -> bool:
         return get_origin(annotation) is Union  # type: ignore
+
+    @classmethod
+    def _is_greedy_type(cls, annotation) -> bool:
+        return isinstance(annotation, type(Greedy))
 
     @classmethod
     def _is_literal_type(cls, annotation) -> bool:
@@ -159,19 +234,19 @@ class Argument:
         if self.is_unused:
             return '(Not used)'
         elif self.final:
-            accepts = self.accepts.bare_pl()
-        elif self.greedy:
+            accepts = self.accepts.bare()
+        elif self.is_greedy:
             accepts = self.accepts.one_or_more()
         else:
             accepts = self.accepts.a()
         if self.is_optional:
             accepts = f'{accepts}; optional'
             if self.default:
-                accepts = f'{accepts}, default is {self.default}'
+                accepts = f'{accepts}, defaults to {self.default}'
         if self.help:
-            accepts = f'{self.help} Accept {accepts}'
+            accepts = f'{self.help} Should be {accepts}'
         else:
-            accepts = f'Accept {accepts}'
+            accepts = f'Should be {accepts}'
         return accepts
 
     def as_node(self) -> str:
@@ -188,8 +263,8 @@ class Argument:
         if self.is_unused:
             return ''
         if self.final:
-            return f'[{self.accepts.concise(2)} ...]'
-        if self.greedy:
+            return f'[{self.accepts.concise(1)} ...]'
+        if self.is_greedy:
             return f'[one or more {self.accepts.concise(2)}]'
         return f'[{self.accepts.concise(1)}]'
 
@@ -204,52 +279,57 @@ class Argument:
             return '[...]'
         if self.final:
             return f'[{self.slug} ...]'
-        if self.greedy:
+        if self.is_greedy:
             return f'[{self.slug} {self.slug} ...]'
         if self.is_optional:
             return f'[{self.slug}]'
         return f'‹{self.slug}›'
 
-    def __repr__(self):
-        return self.slug
-
-    def __lt__(self, other: Argument):
-        if not isinstance(other, Argument):
-            return NotImplemented
-        return self.order - other.order
-
-    def _to_comparable(self):
-        return (type(self), self.key, self.annotation, self.default,
-                self.greedy, self.final, self.order)
-
-    def __eq__(self, other):
-        if not isinstance(other, Argument):
-            return NotImplemented
-        return self._to_comparable() == other._to_comparable()
-
-    def __hash__(self):
-        return hash(self._to_comparable())
+    def to_comparable(self):
+        return (
+            self.order,
+            self.key,
+            self.default,
+            self.is_greedy,
+            self.final,
+            type(self),
+            self.annotation,
+        )
 
     def infer_accepts(self, annotation: _Type) -> QuantifiedNP:
         """Create a phrase in natural English describing the type of info this argument expects."""
         if self._is_type_union(annotation):
             return self.infer_union_type(annotation)
-        if printer := self.env.types.get(annotation):
+        if self._is_greedy_type(annotation):
+            return self.infer_accepts(annotation.converter)
+        if printer := self.env.find_printer(annotation):
             if callable(printer):
-                printer = printer(self.env, annotation)
+                printer = printer(annotation)
             if not isinstance(printer, QuantifiedNP):
                 return self.infer_accepts(printer)
             return printer
-        self.env.log.warning(f'No type description for {annotation}')
+        log.warning(f'No type description for {annotation}')
         return QuantifiedNP(annotation.__name__)
 
     def infer_union_type(self, annotation) -> QuantifiedNP:
         """Handle Union types while describing the argument's type."""
-        if printer := self.env.types.get(annotation):
+        if self._is_optional_type(annotation):
+            # Remove NoneType from optional types
+            args = dict.fromkeys(get_args(annotation))
+            args.pop(type(None), None)
+            declared = Union.__getitem__(tuple(args.keys()))  # Silence type checker
+        else:
+            declared = annotation
+        if printer := self.env.find_printer(declared):
             if callable(printer):
-                return printer(self.env, annotation)
+                res = printer(declared)
+                if not isinstance(res, QuantifiedNP):
+                    return self.infer_accepts(res)
+                return res
             return printer
-        constituents = self._get_constituents(annotation)
+        if not self._is_type_union(declared):
+            return self.infer_accepts(declared)
+        constituents = self._get_constituents(declared)
         if len(constituents) == 1:
             return self.infer_accepts(constituents[0])
         return reduce(or_, [self.infer_accepts(t) for t in constituents])
@@ -261,7 +341,7 @@ class CommandSignature:
     This object is used to format command synopsis and syntax help.
     """
 
-    def __init__(self, arguments: tuple[Argument, ...], description: str):
+    def __init__(self, arguments: tuple[_ArgumentType, ...], description: str = ''):
         self.arguments = tuple(sorted(arguments))
         self.description = description
 
@@ -309,7 +389,17 @@ class CommandSignature:
         return hash((type(self), self.arguments))
 
 
-class Documentation:
+def _default_arg_delimiter(idx: int, param: Parameter) -> _ArgumentParsingAction:
+    if idx == 0:
+        return 'skip'
+    if isinstance(param.annotation, type) and issubclass(param.annotation, Context):
+        return 'skip'
+    if param.kind is Parameter.KEYWORD_ONLY:
+        return 'break'
+    return 'proceed'
+
+
+class CommandDoc(Documentation):
     """Documentation objects contain all information necessary\
     to produce a detailed help page for a command.
 
@@ -323,7 +413,7 @@ class Documentation:
     See `autodoc.decorators` for more info.
     """
 
-    def __init__(self, env: Environment, cmd: Command):
+    def __init__(self, env: Manpage, cmd: Command):
         self.env = env
 
         self.name: str = cmd.name
@@ -338,14 +428,15 @@ class Documentation:
         self.examples: dict[tuple[str, ...], str] = {}
         self.discussions: dict[str, str] = {}
 
-        self.invocations: OrderedDict[frozenset[str], CommandSignature] = OrderedDict()
-        self.arguments: OrderedDict[str, Argument] = OrderedDict()
-        self.subcommands: dict[str, Documentation] = {}
+        self.arguments: OrderedDict[str, _ArgumentType]
+        self.infer_arguments(cmd.params)
+
+        self.invocations: OrderedDict[frozenset[str], CommandSignature]
+
+        self.subcommands: dict[str, CommandDoc] = {}
         self.restrictions: list[str] = []
 
         self.hidden: bool = False
-        self.standalone: bool = False
-        self.aliases: list[str] = []
         self.invalid_syntaxes: set[frozenset[str]] = set()
 
         self.sections: dict[str, str] = {}
@@ -353,7 +444,6 @@ class Documentation:
 
         self.export: _Embed = {}
 
-        self.infer_arguments(cmd.params)
         memo = get_memo(cmd, '__command_doc__', '_callback', default=[])
         for func in reversed(memo):
             func(self, cmd)
@@ -377,7 +467,7 @@ class Documentation:
         """
         return [f'{self.parent} {alias}' for alias in self.aliases]
 
-    def iter_call_styles(self, options: deque[Argument] = None, stack: list[Argument] = None):
+    def iter_call_styles(self, options: deque[_ArgumentType] = None, stack: list[_ArgumentType] = None):
         """Iterate over all possible call syntaxes for this command.
 
         Syntaxes are different if they take different sets of arguments.
@@ -409,7 +499,7 @@ class Documentation:
             arg = options.popleft()
             yield from self.iter_call_styles(options, stack)
             options.appendleft(arg)
-        elif options[0].is_optional or options[0].greedy:
+        elif options[0].is_optional or options[0].is_greedy:
             arg = options.popleft()
             yield from self.iter_call_styles(options, stack)
             stack.append(arg)
@@ -427,20 +517,24 @@ class Documentation:
         # If it is self/cls, ignore subsequent ones
         # that are annotated as Context
         arguments = OrderedDict()
-        for k, v in [*args.items()][1:]:
-            if (isinstance(v.annotation, type)
-                    and issubclass(v.annotation, Context)):
+        should_break = False
+        delimiter = self.env.get_arg_delimiter()
+        for i, (k, v) in enumerate(args.items()):
+            action = delimiter(i, v)
+            if action == 'skip':
                 continue
-            if v.kind is Parameter.VAR_KEYWORD:
-                continue
+            if action == 'break':
+                if should_break:
+                    # At most 1 keyword-only argument allowed
+                    # per command, the rest will not be handled
+                    #
+                    # Some commands may utilize extra keyword-only
+                    # argument for hidden options only usable
+                    # through direct calls
+                    break
+                should_break = True
             arguments[k] = Argument(self.env, v)
-        # arguments['__command__'] = Argument(
-        #     key='__command__', annotation=None,
-        #     accepts=None, greedy=False, final=False,
-        #     default=None, help='', description='',
-        #     node=self.call_sign, signature=self.call_sign,
-        #     order=-1,
-        # )
+        arguments['__argv0__'] = _Argv0(self.call_sign)
         self.arguments = arguments
 
     def build_signatures(self):
@@ -448,11 +542,17 @@ class Documentation:
         signatures = OrderedDict()
         for sig in self.iter_call_styles():
             signatures[sig.as_frozenset()] = sig
-        return signatures
+        self.invocations = signatures
+
+    def ensure_signatures(self):
+        """Build function signatures if it has not been done."""
+        if not hasattr(self, 'invocations'):
+            self.build_signatures()
 
     def build_synopsis(self):
         """Format the Synopsis section."""
         lines = []
+        self.ensure_signatures()
         for keys, sig in self.invocations.items():
             if keys not in self.invalid_syntaxes:
                 lines.append(sig.as_synopsis())
@@ -461,7 +561,8 @@ class Documentation:
         return tuple(lines)
 
     def format_examples(
-        self, examples: list[tuple[str, Optional[str]]],
+        self,
+        examples: list[tuple[str, Optional[str]]],
         transform=lambda s: strong(escape_markdown(s)),
     ) -> str:
         """Format the Examples section of the help page."""
@@ -471,17 +572,13 @@ class Documentation:
         for invocation, explanation in examples:
             if isinstance(invocation, tuple):
                 invocation = '\n'.join(invocation)
-            lines.append(transform(invocation))
+            block = transform(invocation)
             if explanation:
-                lines.append(blockquote(explanation))
-        return '\n'.join(lines)
+                block += f'\n{blockquote(explanation)}'
+            lines.append(block)
+        return '\x00'.join(lines)
 
-    def ensure_signatures(self):
-        """Build function signatures if it has not been done."""
-        if self.invocations is None:
-            self.invocations = self.build_signatures()
-
-    def add_subcommand(self, command: Command, doc: Documentation):
+    def add_subcommand(self, command: Command, doc: CommandDoc):
         """Add the documentation of this command's subcommand to the collection.
 
         Since there will only ever be one Documentation object for each Command
@@ -498,9 +595,9 @@ class Documentation:
         if desc:
             self.restrictions.append(desc)
         else:
-            if printer := self.env.types.get(deco, **kwargs):
+            if printer := self.env.find_printer(deco):
                 if callable(printer):
-                    desc = printer(self.env, deco, **kwargs)
+                    desc = printer(deco, **kwargs)
                 else:
                     desc = printer
                 self.restrictions.append(desc)
@@ -512,7 +609,6 @@ class Documentation:
         if self.frozen:
             return
         self.frozen = True
-        self.ensure_signatures()
         self.synopsis = self.build_synopsis()
 
         sections = self.sections
@@ -521,11 +617,21 @@ class Documentation:
         if self.aliases:
             sections['Shorthands'] = ', '.join(self.full_aliases)
 
-        invocations = {sig.as_node().strip(): sig.description
-                       for keys, sig in self.invocations.items()
-                       if keys not in self.invalid_syntaxes}
-        subcommands = {f'{k} ...': f'{v.description} (subcommand)'
-                       for k, v in self.subcommands.items()}
+        if self.examples:
+            examples = self.format_examples(
+                self.examples.items(),
+                lambda s: '\n' + strong(s),
+            )
+            sections['Examples'] = examples
+
+        invocations = {
+            sig.as_node().strip(): sig.description
+            for keys, sig in self.invocations.items()
+            if keys not in self.invalid_syntaxes
+        }
+        subcommands = {
+            f'{k} ...': f'{v.description} (subcommand)' for k, v in self.subcommands.items()
+        }
 
         sections['Syntax'] = self.format_examples(
             {**invocations, **subcommands}.items(),
@@ -534,17 +640,13 @@ class Documentation:
 
         if self.restrictions:
             sections['Restrictions'] = '\n'.join(self.restrictions)
-        if self.examples:
-            examples = self.format_examples(
-                self.examples.items(),
-                lambda s: '\n' + strong(s),
-            )
-            sections['Examples'] = examples
 
-        arguments = [f'{strong(arg.key)}: {arg.describe()}'
-                     for arg in self.arguments.values()
-                     if not arg.is_hidden and not arg.is_unused]
-        sections['Arguments'] = '\n'.join(arguments)
+        arguments = [
+            f'{strong(arg.key)}: {arg.describe()}'
+            for arg in self.arguments.values()
+            if not arg.is_hidden and not arg.is_unused
+        ]
+        sections['Arguments'] = '\x00'.join(arguments)
 
         for k, v in self.discussions.items():
             sections[k] = v
@@ -558,18 +660,28 @@ class Documentation:
         Currently, this logs a warning if the command does not have a description.
         """
         if not self.description:
-            self.env.log.warning(MissingDescription(self.call_sign))
+            log.warning(MissingDescription(self.call_sign))
 
     def generate_help(self) -> dict:
         """Format the help embed and return it as a dict."""
-        sections = [{'name': k, 'value': v, 'inline': False} for k, v
-                    in self.sections.items() if v]
+        sections = [{'name': k, 'value': v, 'inline': False} for k, v in self.sections.items() if v]
         title = f'Help: {self.call_sign}'
-        return {'title': title, 'description': self.description,
-                'fields': sections}
+        return {
+            'title': title,
+            'description': self.description,
+            'fields': sections,
+        }
+
+    def to_embed(self, maxlen: int = 500) -> EmbedPagination:
+        sections = [EmbedField(f['name'], f['value'], False) for f in self.export['fields'] if f['value']]
+        chapters = chapterize_fields(sections, maxlen, linebreak=lambda c: c == '\x00')
+        embeds = [Embed2(fields=[c.replace('\x00', '\n') for c in chapter]) for chapter in chapters]
+        title = f'Help: {self.call_sign}'
+        embeds = [e.set_description(self.description) for e in embeds]
+        return EmbedPagination(embeds, title, False)
 
 
-class Manual:
+class Manual(Manpage):
     """A collection of command help pages.
 
     A fully-instantiated discord.py Bot instance creates a Manual by
@@ -587,25 +699,27 @@ class Manual:
     it is responsible for creating an up-to-date Manual object.
     """
 
-    def __init__(self, env: Environment, bot: Bot):
-        self.env = env
-        self.commands: dict[str, Documentation] = {}
+    def __init__(self):
+        self._types: TypeDict = TypeDictionary()
+        self._commands: dict[str, CommandDoc] = {}
 
-        self.sections: dict[str, list[str]] = defaultdict(list)
-        self.descriptions: dict[str, str] = defaultdict(str)
-        self.aliases: dict[str, str] = {}
+        self._sections: dict[str, list[str]] = defaultdict(list)
+        self._descriptions: dict[str, str] = defaultdict(str)
+        self._aliases: dict[str, str] = {}
 
-        self.toc: dict[str, str] = {}
-        self.export: _Embed = {}
-        self.frozen: bool = False
+        self._toc: dict[str, str] = {}
+        self._export: _Embed = {}
+        self._frozen: bool = False
 
+        self._arg_delimiter = _default_arg_delimiter
+
+    def load_commands(self, bot: Bot) -> None:
         sections: dict[tuple[int, str], list[str]] = defaultdict(list)
         descriptions = {}
-        all_commands: dict[str, Command] = {cmd.qualified_name: cmd for cmd
-                                            in bot.walk_commands()}
+        all_commands: dict[str, Command] = {cmd.qualified_name: cmd for cmd in bot.walk_commands()}
 
         for call, cmd in all_commands.items():
-            self.commands[call] = Documentation(env, cmd)
+            self._commands[call] = CommandDoc(self, cmd)
             if cmd.cog and (sort_order := getattr(cmd.cog, 'sort_order', 0)):
                 cog: Cog = cmd.cog
                 section = (sort_order, cog.qualified_name)
@@ -617,19 +731,59 @@ class Manual:
             descriptions[section] = desc
 
         for call, cmd in all_commands.items():
-            parent = self.commands[cmd.qualified_name]
+            parent = self._commands[cmd.qualified_name]
             subcommands: list[Command] = getattr(cmd, 'commands', None) or []
             for subcmd in subcommands:
-                subdoc = self.commands[subcmd.qualified_name]
+                subdoc = self._commands[subcmd.qualified_name]
                 parent.add_subcommand(subcmd, subdoc)
 
         for (idx, k), calls in sorted(sections.items(), key=lambda t: t[0]):
-            self.sections[k] = calls
-            self.descriptions[k] = descriptions[idx, k]
+            self._sections[k] = calls
+            self._descriptions[k] = descriptions[idx, k]
 
-    def propagate_restrictions(self, tree: dict[str, Documentation],
-                               stack: list[list[str]],
-                               seen: set[str]):
+    def finalize(self):
+        """Generate all help pages and the table of content."""
+        if self._frozen:
+            return
+        self._frozen = True
+        self._propagate_restrictions(self._commands, [], set())
+        self._register_aliases()
+        for doc in self._commands.values():
+            doc.finalize()
+        for section, calls in self._sections.items():
+            lines = []
+            desc = self._descriptions[section]
+            if desc:
+                lines.append(em(desc))
+            for call in sorted(calls):
+                doc = self._commands[call]
+                if doc.invisible:
+                    continue
+                lines.append(f'{strong(call)}: {doc.description}')
+            content = '\n'.join(lines)
+            if content.strip():
+                self._toc[section] = blockquote(content)
+
+        fields = [{'name': k, 'value': v, 'inline': False} for k, v in self._toc.items()]
+        self._export = {'fields': fields}
+
+    def register_type(self, type_: _Type, printer: _TypePrinter) -> None:
+        self._types[type_] = printer
+
+    def find_printer(self, type_: _Type) -> Optional[_TypePrinter]:
+        return self._types.get(type_)
+
+    def get_arg_delimiter(self):
+        return self._arg_delimiter
+
+    def set_arg_delimiter(self, delimiter) -> None:
+        self._arg_delimiter = delimiter
+
+    def _propagate_restrictions(
+        self, tree: dict[str, CommandDoc],
+        stack: list[list[str]],
+        seen: set[str],
+    ):
         """Include restrictions from parent commands in subcommands' help page."""
         for call_sign, doc in tree.items():
             if call_sign in seen:
@@ -640,13 +794,13 @@ class Manual:
             restrictions = [f'(Parent) {r}' for r in doc.restrictions]
             doc.restrictions.extend(chain.from_iterable(stack))
             stack.append(restrictions)
-            self.propagate_restrictions(doc.subcommands, stack, seen)
+            self._propagate_restrictions(doc.subcommands, stack, seen)
             stack.pop()
 
-    def register_aliases(self):
+    def _register_aliases(self):
         """Create a mapping of all possible command names to support lookup by aliases."""
         aliases: dict[str, list[str]] = defaultdict(list)
-        for call_sign, doc in self.commands.items():
+        for call_sign, doc in self._commands.items():
             aliased_prefixes = [*aliases[doc.parent]]
             aliased_prefixes.append(doc.parent)
             for prefix in aliased_prefixes:
@@ -654,36 +808,9 @@ class Manual:
                     aliases[call_sign].append(f'{prefix} {alias}'.strip())
         for call_sign, aliases_ in aliases.items():
             for alias in aliases_:
-                self.aliases[alias] = call_sign
+                self._aliases[alias] = call_sign
 
-    def finalize(self):
-        """Generate all help pages and the table of content."""
-        if self.frozen:
-            return
-        self.frozen = True
-        self.propagate_restrictions(self.commands, [], set())
-        self.register_aliases()
-        for doc in self.commands.values():
-            doc.finalize()
-        for section, calls in self.sections.items():
-            lines = []
-            desc = self.descriptions[section]
-            if desc:
-                lines.append(em(desc))
-            for call in sorted(calls):
-                doc = self.commands[call]
-                if doc.invisible:
-                    continue
-                lines.append(f'{strong(call)}: {doc.description}')
-            content = '\n'.join(lines)
-            if content.strip():
-                self.toc[section] = blockquote(content)
-
-        fields = [{'name': k, 'value': v, 'inline': False}
-                  for k, v in self.toc.items()]
-        self.export = {'fields': fields}
-
-    def lookup(self, query: str, hidden=False) -> Documentation:
+    def find_command(self, query: str, include_hidden: bool = False) -> Documentation:
         """Look up a command by name and return its documentation.
 
         :param query: Query to look up
@@ -691,29 +818,31 @@ class Manual:
         :param hidden: Whether to include hidden commands, defaults to False
         :type hidden: bool, optional
         :raises NoSuchCommand: If there are no match
-        (or if the matched command is hidden)
+            (or if the matched command is hidden)
         :rtype: Documentation
         """
-        doc = self.commands.get(query)
+        doc = self._commands.get(query)
         if not doc:
-            aliased = self.aliases.get(query)
-            doc = self.commands.get(aliased)
-        if (not doc or not hidden and doc.invisible):
+            aliased = self._aliases.get(query)
+            doc = self._commands.get(aliased)
+        if not doc or not include_hidden and doc.invisible:
             try:
                 # TODO: replace with rapidfuzz
                 from fuzzywuzzy import process as fuzzy
                 from fuzzywuzzy.fuzz import UQRatio
-                matched = fuzzy.extractBests(query, self.commands.keys(),
-                                             scorer=UQRatio,
-                                             score_cutoff=65)
+
+                matched = fuzzy.extractBests(
+                    query, self._commands.keys(),
+                    scorer=UQRatio, score_cutoff=65,
+                )
             except ModuleNotFoundError:
                 matched = None
             else:
                 if matched:
-                    for cmd, weight in matched:
+                    for cmd, _weight in matched:
                         if cmd == query:
                             continue
-                        if not hidden and self.commands[cmd].invisible:
+                        if not include_hidden and self._commands[cmd].invisible:
                             continue
                         matched = cmd
                         break
@@ -722,29 +851,12 @@ class Manual:
             raise NoSuchCommand(query, matched)
         return doc
 
+    def iter_commands(self):
+        yield from sorted(self._commands.items(), key=lambda t: t[0])
 
-TypeDict = TypeDictionary[_Type, _TypePrinter]
-
-
-class Environment:
-    """Centralized object managing autodoc generation.
-
-    Documentation and Manual objects have access to the Environment,
-    and from which to type printers.
-    """
-
-    def __init__(self, types: Optional[TypeDict] = None):
-        self.log = logging.getLogger('discord.autodoc')
-        self.types: TypeDict = TypeDictionary(types)
-        self.manual: Manual
-
-    def merge(self, *envs: Environment):
-        """Include all definitions from these environments in the\
-        dictionary in this Environment."""
-        for env in envs:
-            self.types._dict.update(env.types._dict)
-
-    def init_bot(self, bot: Bot):
-        """Create a Manual for this Environment from an initialized bot."""
-        self.manual = Manual(self, bot)
-        self.manual.finalize()
+    def to_embed(self, maxlen: int = 500) -> EmbedPagination:
+        fields = [EmbedField(**f) for f in self._export['fields']]
+        chapters = chapterize_items(fields, maxlen)
+        embeds = [Embed2(fields=chapter, color=Color2.blue()) for chapter in chapters]
+        embeds = [e.set_footer(text=('Use "help [command]" here to see how to use a command')) for e in embeds]
+        return EmbedPagination(embeds, 'Help', True)

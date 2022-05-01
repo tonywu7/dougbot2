@@ -14,16 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dougbot2.cog import Gear
+from dougbot2.discord import Gear
 
-from .bots import ContentGenerationCommands, WebServiceCommands
+from .bots import ContentGenerationCommands, WebPortalCommands
 
 
 class Internet(
     ContentGenerationCommands,
-    WebServiceCommands,
+    WebPortalCommands,
     Gear, name='Internet', order=10,
     description='Not Google.',
 ):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    pass

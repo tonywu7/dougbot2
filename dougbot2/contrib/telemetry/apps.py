@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class MeasurementConfig(AppConfig):
+class TelemetryConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'dougbot2.contrib.measurement'
+    name = 'dougbot2.contrib.telemetry'
     default = True

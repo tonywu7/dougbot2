@@ -19,15 +19,15 @@ import threading
 
 from discord.ext.commands import command
 
-from dougbot2.cog import Gear
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
+from dougbot2.discord import Gear
 from dougbot2.exts import autodoc as doc
 from dougbot2.settings.versions import list_versions
 from dougbot2.utils.common import Embed2, EmbedField, code
 
 
-class Measurement(
-    Gear, name='Measurement', order=60,
+class Telemetry(
+    Gear, name='Telemetry', order=60,
     description='Metrics & inspection',
 ):
     def __init__(self, *args, **kwargs):
@@ -35,9 +35,8 @@ class Measurement(
 
     @command('runtime')
     @doc.description("Show the bot's runtime status.")
-    async def runtime(self, ctx: Circumstances):
-        versions = ' '.join([code(f'{pkg}/{v}') for pkg, v
-                             in list_versions().items()])
+    async def runtime(self, ctx: Surroundings):
+        versions = ' '.join([code(f'{pkg}/{v}') for pkg, v in list_versions().items()])
         num_servers = len(self.bot.guilds)
         num_channels = len([*self.bot.get_all_channels()])
         num_members = len([*self.bot.get_all_members()])
@@ -55,4 +54,4 @@ class Measurement(
             .set_timestamp()
             .personalized(ctx.guild.me)
         )
-        return await ctx.reply(embed=res)
+        await ctx.respond(embed=res).reply().run()

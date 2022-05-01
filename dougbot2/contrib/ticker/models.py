@@ -18,13 +18,12 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import arrow
-from discord import VoiceChannel
 from django.db import models
 
-from dougbot2.models import Entity
 
+class TickerChannel(models.Model):
+    channel_id: int = models.BigIntegerField()
 
-class TickerChannel(Entity[VoiceChannel]):
     content: str = models.TextField(blank=False)
     variables: dict = models.JSONField(blank=False, default=dict)
 

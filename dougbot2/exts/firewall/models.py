@@ -16,8 +16,10 @@
 
 from django.db import models
 
+from ...utils.fields import NumbersListField
 
-class Blacklisted:
+
+class Blacklisted(models.Model):
     """Represent a Discord entity that is barred from interacting with the bot."""
 
     class Meta:
@@ -25,3 +27,14 @@ class Blacklisted:
         verbose_name_plural = 'blacklisted entities'
 
     snowflake: int = models.BigIntegerField(verbose_name='id', primary_key=True, db_index=True)
+
+
+class AccessRule(models.Model):
+    command: str = models.TextField()
+    channel_id: int = models.BigIntegerField()
+    roles: list[int] = NumbersListField()
+    enabled: bool = models.BooleanField()
+    priority: int = models.IntegerField(default=0)
+
+    class Meta:
+        indexes = [models.Index(fields=('command', 'channel_id'))]

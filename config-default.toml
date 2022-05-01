@@ -1,38 +1,49 @@
-[discord]
+[auth]
 
+bot_token = ''
 client_id = ''
 client_secret = ''
-bot_token = ''
-
-prefix = 't;'
 allowed_guilds = []
+
+[default]
+
+prefix = 'd;'
+permission = 534689869558
+
+nltk_data = './instance/nltk_data'
+
+[default.mentions]
+everyone = false
+roles = false
+users = false
+replied_user = false
 
 [about]
 
-branding_full = 'telescope2'
-branding_short = 'ts2'
-
+branding = 'dougbot2'
 description = ''
 twitter = ''
 
-[style]
+[styles]
 
-[style.colors]
+[styles.colors]
 
-    accent = '0xff980b'
+accent = 0xff980b
 
-[style.emotes]
+[styles.emotes]
 
-    success = ':white_check_mark:'
-    failure = ':no_entry_sign:'
-    pending = ':hourglass:'
-    removal = ':wastebasket:'
+failure = ':prohibited:'
+pending = ':hourglass_not_done:'
+removal = ':wastebasket:'
 
-    forward = ':fast_forward:'
-    rewind = ':rewind:'
-    tail = ':track_next:'
-    head = ':track_previous:'
+success = ':check_mark_button:'
+warning = ':warning:'
 
-    green = ':green_circle:'
-    red = ':no_entry:'
-    yellow = ':yellow_square:'
+forward = ':fast-forward_button:'
+head = ':last_track_button:'
+rewind = ':fast_reverse_button:'
+tail = ':next_track_button:'
+
+green = ':green_circle:'
+red = ':no_entry:'
+yellow = ':yellow_square:'

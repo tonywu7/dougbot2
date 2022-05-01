@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 from collections.abc import MutableMapping
-from typing import Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union, get_args, get_origin
 
-JS_BIGINT = 2 ** 53
+MAX_SAFE_INTEGER = 2 ** 53
 
 _KT = TypeVar('_KT')
 _VT = TypeVar('_VT')
@@ -46,7 +46,7 @@ class BigIntDict(MutableMapping[_KT, _VT]):
             num_k = int(k)
         except ValueError:
             return k
-        if num_k < JS_BIGINT:
+        if num_k < MAX_SAFE_INTEGER:
             return k
         return num_k
 
@@ -77,7 +77,12 @@ class TypeDictionary(MutableMapping[_KT, _VT]):
     def __init__(self, mapping: Optional[dict[_KT, _VT]] = None):
         self._dict = {**mapping} if mapping else {}
 
+    def contains_exact(self, k: _KT) -> bool:
+        return k in self._dict
+
     def __getitem__(self, k: _KT) -> _VT:
+        if get_origin(k) is Union:
+            k = frozenset(get_args(k))
         mapping = self._dict
         try:
             return mapping[k]
@@ -93,7 +98,15 @@ class TypeDictionary(MutableMapping[_KT, _VT]):
         raise KeyError(k)
 
     def __setitem__(self, k: _KT, v: _VT):
-        self._dict[k] = v
+        if get_origin(k) is Union:
+            # Use the set of a union type's constituent types
+            # as the key for the union type
+            self._dict[frozenset(get_args(k))] = v
+        elif isinstance(k, tuple):
+            for item in k:
+                self._dict[item] = v
+        else:
+            self._dict[k] = v
 
     def __delitem__(self, k: _KT):
         del self._dict[k]

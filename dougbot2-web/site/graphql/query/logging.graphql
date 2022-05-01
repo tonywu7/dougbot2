@@ -1,8 +1,0 @@
-query LoggingConfig($serverId: ID!) {
-    logging(serverId: $serverId) {
-        key
-        name
-        channel
-        role
-    }
-}

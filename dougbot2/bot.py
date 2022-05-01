@@ -16,46 +16,52 @@
 
 import asyncio
 import logging
-from contextlib import suppress
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import aiohttp
 from asgiref.sync import sync_to_async
-from discord import (AllowedMentions, Forbidden, Game, Intents, Message,
-                     Permissions)
+from discord import Forbidden, Game, Guild, Intents, Message
 from discord.ext.commands import Bot, CommandInvokeError, CommandNotFound
 from django.conf import settings
 from django.core.cache import caches
-from duckcord.color import Color2
-from duckcord.embeds import Embed2
 
-from .apps import get_app
-from .context import Circumstances
-from .exts import autodoc, errorfluff, gatekeeper, lo
+from .blueprints import _MissionControl
+from .defaults import get_defaults
+from .discord import Circumstances
+from .exts.autodoc import Manual
+from .exts.errorfluff import Errorfluff
+from .exts.firewall import Firewall
+from .exts.papertrail import Papertrail
 from .models import Server
-from .utils.async_ import async_atomic
+from .utils.async_ import async_get_or_create
+from .utils.duckcord import Color2, Embed2
+from .utils.importutil import get_submodule_from_apps
 
 
-class RollbackCommand(Exception):
-    """Exception to be raised to Django transaction manager when a command unsuccessfully ran."""
-    pass
+async def _which_prefix(bot: Bot, msg: Message):
+    """Find and return the prefix found in this message, if any."""
+    if msg.guild is None:
+        return ''
+    guild_id = msg.guild.id
+
+    @sync_to_async
+    def get():
+        return Server.objects.get(pk=guild_id).prefix
+
+    try:
+        prefix = await get()
+        content: str = msg.content
+        if content.lower().startswith(prefix.lower()):
+            return content[: len(prefix)]
+        return '\x00'
+    except Server.DoesNotExist:
+        return '\x00'
 
 
-class Robot(Bot):
+class Robot(Bot, _MissionControl):
     """Subclass of `discord.ext.commands.Bot` with aiohttp and custom method overrides."""
 
-    DEFAULT_PREFIX = 't;'
-    DEFAULT_PERMS = Permissions(534689869558)
-    DEFAULT_MENTIONS = AllowedMentions(everyone=False, roles=False,
-                                       users=True, replied_user=False)
-
-    _CACHE_VERSION = 1
-
-    request: aiohttp.ClientSession
-    gatekeeper: gatekeeper.Gatekeeper
-    docs: autodoc.Environment
-    alerts: errorfluff.Environment
-    loggers: logger.Environment
+    _CACHE_VERSION = 2
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
         self._cache = caches['discord']
@@ -63,8 +69,8 @@ class Robot(Bot):
         self.log = logging.getLogger('discord.bot')
         self.options = options
 
-        options['allowed_mentions'] = self.DEFAULT_MENTIONS
-        options['command_prefix'] = self.which_prefix
+        options['allowed_mentions'] = get_defaults().default.mentions
+        options['command_prefix'] = _which_prefix
         options['help_command'] = None
 
         intents = Intents.all()
@@ -76,36 +82,35 @@ class Robot(Bot):
         options.setdefault('strip_after_prefix', True)
         super().__init__(loop=loop, **options)
 
-        self.load_apps()
+        self._deferred_init: list[Callable[[], None]] = []
 
-    @classmethod
-    async def get_server_prefix(cls, guild_id: int) -> str:
-        """Fetch this server's command prefix from the database."""
-        @sync_to_async
-        def get():
-            return Server.objects.get(pk=guild_id).prefix
-        return await get()
+        self._autodoc = Manual()
+        self._errorfluff = Errorfluff()
+        self._firewall = Firewall()
+        self._papertrail = Papertrail()
 
-    @classmethod
-    async def which_prefix(cls, bot: Bot, msg: Message):
-        """Find and return the prefix found in this message, if any."""
-        if msg.guild is None:
-            return ''
-        try:
-            prefix = await cls.get_server_prefix(msg.guild.id)
-            content: str = msg.content
-            if content.lower().startswith(prefix.lower()):
-                return content[:len(prefix)]
-            return '\x00'
-        except Server.DoesNotExist:
-            return '\x00'
+        self.add_cog(self._firewall)
 
-    def dispatch(self, event_name, *args, **kwargs):
+        self._load_apps()
+        self._run_deferred_initializers()
+
+    def _load_apps(self) -> None:
+        """Load all cogs from the bot's Django app config."""
+        for app, module in get_submodule_from_apps('loader'):
+            self.log.info(f'Loading app {app.name}')
+            self.load_extension(module.__name__)
+
+    def _run_deferred_initializers(self) -> None:
+        callbacks = self._deferred_init
+        while callbacks:
+            callbacks.pop()()
+
+    def dispatch(self, event_name: str, *args: Any, **kwargs: Any) -> None:
         """Override event dispatching.
 
         Pass the event through Gatekeeper before dispatching it.
         """
-        task = asyncio.create_task(self.gatekeeper.handle(event_name, *args, **kwargs))
+        task = asyncio.create_task(self._firewall.intercept(event_name, *args, **kwargs))
 
         def callback(task: asyncio.Task):
             try:
@@ -114,24 +119,20 @@ class Robot(Bot):
                 pass
             else:
                 if not should_dispatch:
+                    self.log.debug(f'Event {event_name} dropped: {args}, {kwargs}')
                     return
             return super(type(self), self).dispatch(event_name, *args, **kwargs)
 
         task.add_done_callback(callback)
 
-    async def get_context(self, message: Message, *args, **kwargs) -> Circumstances:
+    async def get_context(self, message: Message) -> Circumstances:
         """Override context creation.
 
         Use the custom `Circumstances` class, ensure server profile exists in
         database for this guild, and prevent hidden commands from running.
         """
         ctx: Circumstances = await super().get_context(message, cls=Circumstances)
-        try:
-            await ctx.init()
-        except Server.DoesNotExist:
-            if ctx.command:
-                await message.send('The bot is misconfigured in this server.')
-            ctx.command = None
+        await ctx.init()
         if ctx.command and ctx.command.hidden:
             ctx.command = None
         return ctx
@@ -146,12 +147,8 @@ class Robot(Bot):
         transaction for the current execution if it is deemed unsuccessful
         so that no change to data is made.
         """
-        with suppress(RollbackCommand):
-            async with async_atomic():
-                await super().invoke(ctx)
-                await self.on_command_returned(ctx)
-                if ctx.command_failed:
-                    raise RollbackCommand()
+        await super().invoke(ctx)
+        await self.on_command_returned(ctx)
 
     async def on_command_returned(self, ctx: Circumstances):
         """Run errands when command finishes running in invoke().
@@ -163,9 +160,9 @@ class Robot(Bot):
 
     async def _init_client_session(self):
         """Start an `aiohttp.ClientSession` and keep it alive with the bot."""
-        if hasattr(self, 'request'):
-            await self.request.close()
-        self.request = aiohttp.ClientSession(
+        if hasattr(self, '_request'):
+            await self._request.close()
+        self._request = aiohttp.ClientSession(
             loop=asyncio.get_running_loop(),
             headers={'User-Agent': settings.USER_AGENT},
         )
@@ -180,7 +177,7 @@ class Robot(Bot):
         return await super().before_identify_hook(shard_id, initial=initial)
 
     async def on_ready(self):
-        """Indicate bot ready."""
+        """Indicate when bot is ready."""
         self.log.info('Bot is ready')
         self.log.info(f'User {self.user}')
 
@@ -199,14 +196,14 @@ class Robot(Bot):
             ctx = await self.get_context(message)
             return await self.on_command_error(ctx, exc)
 
-    async def on_command_error(self, ctx: Circumstances, exc: Exception):
+    async def on_command_error(self, ctx: Circumstances, exc: Exception) -> None:
         """Override default command error handler.
 
         Reply with a friendly explanation on why the command failed,
         and log the error.
         """
-        # TODO: use event
-        if not (error := await self.alerts.get_error(ctx, type(exc))):
+        await self._papertrail.log_exception(ctx, exc)
+        if not (error := await self._errorfluff.get_error(ctx, exc)):
             return
         embed = Embed2(**error, color=Color2.red())
         autodelete = max([20, len(error) / 10])
@@ -216,9 +213,16 @@ class Robot(Bot):
             await ctx.send(content=str(embed), delete_after=autodelete)
         except Exception as exc:
             exc = CommandInvokeError(exc)
-            await logger.log_exception(self.loggers, ctx, exc)
-        finally:
-            await logger.log_exception(self.loggers, ctx, exc)
+            await self._papertrail.log_exception(ctx, exc)
+
+    async def _ensure_server(self, guild: Guild):
+        await async_get_or_create(Server, defaults={
+            'snowflake': guild.id,
+            'prefix': get_defaults().default.prefix,
+        }, snowflake=guild.id)
+
+    async def on_guild_available(self, guild: Guild):
+        await self._ensure_server(guild)
 
     def get_cache_key(self, **keys):
         """Format a prefixed string to be used as a redis cache key."""
@@ -244,9 +248,25 @@ class Robot(Bot):
         await self.change_presence(activity=Game('System Restart. Please hold.'))
         self.log.info('Exit indicator is set!')
 
-    def load_apps(self):
-        """Load all cogs from the bot's Django app config."""
-        app = get_app()
-        for label, ext in app.ext_map.items():
-            cog_cls = ext.target
-            self.add_cog(cog_cls(label, self))
+    def get_web_client(self) -> aiohttp.ClientSession:
+        if not hasattr(self, '_request'):
+            raise RuntimeError('Client session has not been created.')
+        return self._request
+
+    def get_option(self, key: str, default=None):
+        return self.options.get(key, default)
+
+    def defer_init(self, callback: Callable[[], None]) -> None:
+        self._deferred_init.append(callback)
+
+    @property
+    def manpage(self):
+        return self._autodoc
+
+    @property
+    def errorpage(self):
+        return self._errorfluff
+
+    @property
+    def console(self):
+        return self._papertrail

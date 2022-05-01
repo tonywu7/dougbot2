@@ -20,15 +20,19 @@ from datetime import datetime, timezone
 from string import hexdigits
 from typing import Literal, Optional, Union
 
-from discord import (Emoji, File, Guild, Member, Message, PartialEmoji, Role,
-                     StageChannel, TextChannel, VoiceChannel)
+from discord import (
+    Emoji, File, Guild, Member, Message, PartialEmoji, Role, StageChannel,
+    TextChannel, VoiceChannel,
+)
 from discord.ext.commands import command
 from PIL import Image, ImageColor
 
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
+from dougbot2.exceptions import NotAcceptable
 from dougbot2.exts import autodoc as doc
-from dougbot2.utils.common import (Embed2, a, can_embed, can_upload, code,
-                                   strong, timestamp)
+from dougbot2.utils.common import (
+    Embed2, a, can_embed, can_upload, code, strong, timestamp,
+)
 from dougbot2.utils.converters import Choice
 from dougbot2.utils.markdown import rgba2int
 
@@ -48,9 +52,18 @@ class QueryCommands:
     @doc.argument('snowflake', 'The snowflake to convert.')
     @can_embed
     async def snowflake(
-        self, ctx: Circumstances, snowflake: Union[
-            int, Member, Role, Message, TextChannel,
-            VoiceChannel, StageChannel, Emoji, PartialEmoji,
+        self,
+        ctx: Surroundings,
+        snowflake: Union[
+            int,
+            Member,
+            Role,
+            Message,
+            TextChannel,
+            VoiceChannel,
+            StageChannel,
+            Emoji,
+            PartialEmoji,
         ],
     ):
         if not isinstance(snowflake, int):
@@ -62,11 +75,13 @@ class QueryCommands:
         try:
             dt = datetime.fromtimestamp(epoch / 1000, tz=timezone.utc)
         except ValueError:
-            raise doc.NotAcceptable((
-                'Timestamp out of range.'
-                ' Make sure the argument provided is'
-                ' indeed a Discord snowflake.'
-            ))
+            raise NotAcceptable(
+                (
+                    'Timestamp out of range.'
+                    ' Make sure the argument provided is'
+                    ' indeed a Discord snowflake.'
+                )
+            )
         reps = [
             code(snowflake),
             code(epoch),
@@ -75,18 +90,23 @@ class QueryCommands:
             timestamp(dt, 'relative'),
         ]
         res = Embed2(title='Snowflake', description='\n'.join(reps))
-        return await ctx.response(ctx, embed=res).reply().run()
+        return await ctx.respond(embed=res).reply().run()
 
     @command('color')
     @doc.description('Preview a color.')
-    @doc.argument('color', (
-        a('CSS color accepted by PIL,',
-          'https://pillow.readthedocs.io/en/stable/reference/ImageColor.html#color-names')
-        + ' such as a hex code.'
-    ))
+    @doc.argument(
+        'color',
+        (
+            a(
+                'CSS color accepted by PIL,',
+                'https://pillow.readthedocs.io/en/stable/reference/ImageColor.html#color-names',
+            )
+            + ' such as a hex code, or a server role with color.'
+        ),
+    )
     @can_embed
     @can_upload
-    async def color(self, ctx: Circumstances, *, color: Union[Role, str]):
+    async def color(self, ctx: Surroundings, *, color: Union[Role, str]):
         if isinstance(color, Role):
             color = f'#{color.color.value:06x}'
         if color[0] != '#' and is_hex_digit(color):
@@ -113,14 +133,15 @@ class QueryCommands:
             f'hsla({h:.1f}deg, {s:.1%}, {ll:.1%}, {a:.1f})',
         ]
         res = Embed2(description='\n'.join(results), color=rgba2int(r, g, b))
-        return await ctx.response(ctx, embed=res, files=[f]).reply().deleter().run()
+        return await ctx.respond(embed=res, files=[f]).reply().deleter().run()
 
     @command('asset', aliases=('cdn',))
     @doc.description('Get the CDN URL of a Discord asset (e.g. avatars, emotes)')
     @doc.invocation(('target',), None)
     @can_embed
     async def cdn(
-        self, ctx: Circumstances,
+        self,
+        ctx: Surroundings,
         target: Union[Member, Guild, Emoji, PartialEmoji],
         filetype: Optional[Choice[Literal['webp', 'png', 'jpg']]] = 'png',
     ):
@@ -136,6 +157,9 @@ class QueryCommands:
             asset = target.url_as(static_format=filetype)
             name = 'Emote'
             description = f'{target} {code(target)}'
-        res = (Embed2(title=name).set_thumbnail(url=asset)
-               .set_description(f'{strong(description)}\n{a(asset, asset)}'))
-        return await ctx.response(ctx, embed=res).deleter().run()
+        res = (
+            Embed2(title=name)
+            .set_thumbnail(url=asset)
+            .set_description(f'{strong(description)}\n{a(asset, asset)}')
+        )
+        return await ctx.respond(embed=res).deleter().run()

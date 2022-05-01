@@ -1,2 +1,2 @@
 # flake8: noqa
-from .gatekeeper import Gatekeeper
+from .bot import Firewall

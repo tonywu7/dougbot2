@@ -2,7 +2,7 @@
 
 if [[ $1 == "web" ]];
 then
-    exec python3 -m daphne -b :: -p 8086 ts2.asgi:application;
+    exec python3 -m daphne -b :: -p 8086 dougbot2.asgi:application;
 elif [[ $1 == "bot" ]]
 then
     exec python3 manage.py runclient;

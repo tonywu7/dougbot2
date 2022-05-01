@@ -19,25 +19,30 @@ from datetime import datetime, timezone
 from typing import Literal, Optional, TypedDict, Union
 
 import pendulum
-from discord import (CategoryChannel, Forbidden, Guild, Member, StageChannel,
-                     TextChannel, VoiceChannel, VoiceState)
+from discord import (
+    CategoryChannel, Forbidden, Guild, Member, StageChannel, TextChannel,
+    VoiceChannel, VoiceState,
+)
 from discord.ext import tasks
-from discord.ext.commands import Greedy, group, has_guild_permissions
-from discord_jinja import CommandTemplate, get_environment
+from discord.ext.commands import Greedy, has_guild_permissions
 from jinja2 import TemplateSyntaxError
 
-from dougbot2 import server
-from dougbot2.cog import Gear
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
+from dougbot2.discord import Gear, topic
+from dougbot2.exceptions import NotAcceptable
 from dougbot2.exts import autodoc as doc
-from dougbot2.models import Channel
-from dougbot2.utils.async_ import (async_delete, async_get, async_list,
-                                   async_save)
-from dougbot2.utils.common import (Embed2, EmbedPagination, PermissionOverride,
-                                   can_embed, chapterize, code, tag,
-                                   tag_literal, timestamp, utcnow)
-from dougbot2.utils.converters import (Choice, Constant, Datetime, Dictionary,
-                                       JinjaTemplate, Timedelta, unpack_dict)
+from dougbot2.utils.async_ import (
+    async_delete, async_get, async_list, async_save,
+)
+from dougbot2.utils.common import (
+    Embed2, EmbedPagination, PermissionOverride, can_embed, chapterize, code,
+    tag, tag_literal, timestamp, utcnow,
+)
+from dougbot2.utils.converters import (
+    Choice, Constant, Datetime, Dictionary, JinjaTemplate, Timedelta,
+    unpack_dict,
+)
+from dougbot2.utils.discord_jinja import CommandTemplate, get_environment
 
 from .models import TickerChannel
 
@@ -47,16 +52,6 @@ VCs = Union[VoiceChannel, StageChannel]
 
 def _reason(s: str):
     return f'Channel hoisting: {s}'
-
-
-async def _sync_channel(vc: VoiceChannel) -> Channel:
-    c = Channel(
-        snowflake=vc.id, name=vc.name, type=vc.type.value,
-        guild_id=vc.guild.id, order=vc.position,
-        category_id=vc.category_id,
-    )
-    await async_save(c)
-    return c
 
 
 class TickerState:
@@ -69,8 +64,10 @@ class TickerState:
 
 
 async def _edit_vc_idempotent(
-    target: VoiceChannel, ref: TickerState,
-    reason: str, name: str = None,
+    target: VoiceChannel,
+    ref: TickerState,
+    reason: str,
+    name: str = None,
 ):
     for k in ('name', 'position', 'category', 'overwrites'):
         if getattr(target, k) != getattr(ref, k):
@@ -94,7 +91,9 @@ class ChannelPlacement(TypedDict):
 
 
 class Ticker(
-    Gear, name='Ticker', order=51,
+    Gear,
+    name='Ticker',
+    order=51,
     description='Manage \"news tickers\": display & hoist messages in the channel list',
 ):
     def __init__(self, *args, **kwargs):
@@ -150,8 +149,10 @@ class Ticker(
 
     @Gear.listener('on_voice_state_update')
     async def enforce_ticker_empty(
-        self, member: Member,
-        before: VoiceState, after: VoiceState,
+        self,
+        member: Member,
+        before: VoiceState,
+        after: VoiceState,
     ):
         channel: VoiceChannel = after.channel
         if not channel or channel.id not in self.states:
@@ -163,51 +164,64 @@ class Ticker(
             return await self.restart_ticker(member.guild, ticker)
 
     async def create_ticker_channel(
-        self, guild: Guild,
-        category: Optional[CategoryChannel], placement: ChannelPlacement,
-        content: CommandTemplate, variables: dict,
+        self,
+        guild: Guild,
+        category: Optional[CategoryChannel],
+        placement: ChannelPlacement,
+        content: CommandTemplate,
+        variables: dict,
     ) -> VoiceChannel:
-        if category:
-            if not category.permissions_for(guild.me).view_channel:
-                raise doc.NotAcceptable(
-                    'The bot does not have the "View Channel" permission'
-                    f' under category {category}.',
-                )
+        if category and not category.permissions_for(guild.me).view_channel:
+            raise NotAcceptable(
+                'The bot does not have the "View Channel" permission' f' under category {category}.',
+            )
         try:
             name = await content.render_timed(None, timeout=10, **variables)
         except Exception as e:
-            raise doc.NotAcceptable(f'Error rendering template: {e}')
+            raise NotAcceptable(f'Error rendering template: {e}')
         everyone_perms = PermissionOverride(
-            view_channel=True, manage_channels=False,
-            connect=False, speak=False, stream=False, move_members=False,
+            view_channel=True,
+            manage_channels=False,
+            connect=False,
+            speak=False,
+            stream=False,
+            move_members=False,
         )
         self_perms = PermissionOverride(
-            view_channel=True, manage_channels=True,
-            move_members=True, connect=True, speak=True, stream=True,
+            view_channel=True,
+            manage_channels=True,
+            move_members=True,
+            connect=True,
+            speak=True,
+            stream=True,
         )
-        override = {guild.default_role: everyone_perms,
-                    guild.self_role: self_perms}
-        kwargs = {'name': name, 'overwrites': override, 'category': category,
-                  'reason': _reason('initial creation')}
-        async with server.exclusive_sync():
-            vc = await guild.create_voice_channel(**kwargs)
-            await _sync_channel(vc)
+        override = {guild.default_role: everyone_perms, guild.self_role: self_perms}
+        kwargs = {'name': name, 'overwrites': override, 'category': category, 'reason': _reason('initial creation')}
+        vc = await guild.create_voice_channel(**kwargs)
         if placement:
             await vc.move(category=category, **placement)
         self.log.debug(f'Ticker channel created: {vc}')
         return vc
 
     async def create_ticker(
-        self, vc: VoiceChannel, placement: ChannelPlacement,
-        content: CommandTemplate, variables: dict,
-        refresh: float, expire: datetime,
+        self,
+        vc: VoiceChannel,
+        placement: ChannelPlacement,
+        content: CommandTemplate,
+        variables: dict,
+        refresh: float,
+        expire: datetime,
     ) -> TickerChannel:
         tmpl = content.source
         category_id = vc.category_id
         ticker = TickerChannel(
-            channel_id=vc.id, parent_id=category_id,
-            placement=placement, content=tmpl, variables=variables,
-            refresh=refresh, expire=expire,
+            channel_id=vc.id,
+            parent_id=category_id,
+            placement=placement,
+            content=tmpl,
+            variables=variables,
+            refresh=refresh,
+            expire=expire,
         )
         await async_save(ticker)
         self.log.debug(f'Ticker created: {vc.id}')
@@ -308,21 +322,20 @@ class Ticker(
         await self.stop_ticker(ticker.pk)
         return channel.name
 
-    async def get_ticker_or_404(self, ctx: Circumstances, channel: VoiceChannel):
+    async def get_ticker_or_404(self, ctx: Surroundings, channel: VoiceChannel):
         channels = [c.id for c in ctx.guild.channels]
         tickers = TickerChannel.objects.filter(channel_id__in=channels)
         try:
             ticker: TickerChannel = await async_get(tickers, channel_id=channel.id)
         except TickerChannel.DoesNotExist:
-            raise doc.NotAcceptable((f'{tag(channel)} is not a channel'
-                                     ' hoisted with this command.'))
+            raise NotAcceptable(f'{tag(channel)} is not a channel hoisted with this command.')
         else:
             return ticker
 
-    @group('ticker', case_insensitive=True, invoke_without_command=True)
+    @topic('ticker')
     @doc.description('List all VCs currently used for message hoisting.')
     @can_embed
-    async def ticker(self, ctx: Circumstances):
+    async def ticker(self, ctx: Surroundings):
         channels = [c.id for c in ctx.guild.channels]
         q = TickerChannel.objects.filter(channel_id__in=channels)
         tickers = await async_list(q)
@@ -338,30 +351,25 @@ class Ticker(
         if not ticker_list:
             ticker_list = '(none)'
         embed = Embed2().decorated(ctx.guild)
-        ticker_page = [embed.set_description(d) for d
-                       in chapterize(ticker_list, 480, lambda c: c == '\n')]
+        ticker_page = [embed.set_description(d) for d in chapterize(ticker_list, 480, lambda c: c == '\n')]
         pagination = EmbedPagination(ticker_page, 'News ticker channels')
-        return (
-            await ctx.response(ctx, embed=pagination)
-            .responder(lambda m: pagination(ctx.bot, m, 300, ctx.author))
-            .run()
-        )
+        await ctx.respond(embed=pagination).responder(lambda m: pagination(ctx.bot, m, 300, ctx.author)).run()
 
-    def get_variables(self, param: Optional[Dictionary] = None,
-                      default: Optional[dict] = None) -> Optional[dict]:
+    def get_variables(self, param: Optional[Dictionary] = None, default: Optional[dict] = None) -> Optional[dict]:
         return unpack_dict(param, default or {})
 
     def get_expire(
-        self, expire_at: Optional[Datetime],
-        expire_in: Optional[Timedelta], now: datetime,
+        self,
+        expire_at: Optional[Datetime],
+        expire_in: Optional[Timedelta],
+        now: datetime,
         default: Optional[datetime] = None,
     ) -> Optional[datetime]:
         if expire_at:
             expire = expire_at.value
             if not expire.tzinfo:
-                raise doc.NotAcceptable(
-                    'Supplied expire time must include timezone'
-                    ' info (or supply a duration instead).',
+                raise NotAcceptable(
+                    'Supplied expire time must include timezone' ' info (or supply a duration instead).',
                 )
             expire = expire.astimezone(timezone.utc)
         elif expire_in:
@@ -371,22 +379,22 @@ class Ticker(
             expire = None
 
         if expire and expire <= now:
-            raise doc.NotAcceptable('Expiration time cannot be in the past.')
+            raise NotAcceptable('Expiration time cannot be in the past.')
 
         return expire
 
-    def get_refresh(self, refresh: Optional[Timedelta],
-                    default: float = 0) -> float:
+    def get_refresh(self, refresh: Optional[Timedelta], default: float = 0) -> float:
         if refresh:
             refresh = refresh.value.total_seconds()
             if refresh < 300:
-                raise doc.NotAcceptable('Minimum refresh interval is 5 minutes.')
+                raise NotAcceptable('Minimum refresh interval is 5 minutes.')
         else:
             refresh = default
         return refresh
 
     def get_category(
-        self, category: Optional[Union[AnyChannel, Constant[Literal['top']]]],
+        self,
+        category: Optional[Union[AnyChannel, Constant[Literal['top']]]],
         default: Optional[CategoryChannel] = None,
     ) -> Optional[CategoryChannel]:
         if category is None:
@@ -397,12 +405,15 @@ class Ticker(
             category = category.category
         return category
 
-    def get_placement(self, position: Optional[Union[int, Choice[Literal['append', 'prepend']]]],
-                      default: Optional[ChannelPlacement] = None) -> Optional[ChannelPlacement]:
+    def get_placement(
+        self,
+        position: Optional[Union[int, Choice[Literal['append', 'prepend']]]],
+        default: Optional[ChannelPlacement] = None,
+    ) -> Optional[ChannelPlacement]:
         if position is None:
             return default
         placement: ChannelPlacement = {}
-        if position == 'prepend' or position == 0:
+        if position in ('prepend', 0):
             placement['beginning'] = True
         elif position == 'append':
             placement['end'] = True
@@ -414,8 +425,11 @@ class Ticker(
             placement['offset'] = position
         return placement
 
-    def get_template(self, content: Optional[Union[JinjaTemplate, str]],
-                     default: Optional[str] = None) -> CommandTemplate:
+    def get_template(
+        self,
+        content: Optional[Union[JinjaTemplate, str]],
+        default: Optional[str] = None,
+    ) -> CommandTemplate:
         if content is None:
             content = default
         if isinstance(content, JinjaTemplate):
@@ -423,7 +437,7 @@ class Ticker(
         try:
             template = get_environment().from_string(content)
         except TemplateSyntaxError as e:
-            raise doc.NotAcceptable(f'Invalid template: {e}')
+            raise NotAcceptable(f'Invalid template: {e}')
         return template
 
     def get_result(self, vc: VoiceChannel, ticker: TickerChannel) -> Embed2:
@@ -446,33 +460,42 @@ class Ticker(
 
     @ticker.command('create', aliases=('add', 'new'))
     @doc.description('Hoist a message in the channel list.')
-    @doc.argument('category', (
-        'A channel under the same category where the message will be added;'
-        ' specify "top" to place it above all categories (uncategorized).'
-    ), node='[channel]')
-    @doc.argument('position', (
-        'The position of the new ticker in its category, starting from 1'
-        ' (e.g. if set to 1 then the new VC will the first one).'
-    ))
-    @doc.argument('expire_at', (
-        'Time at which to auto delete the ticker.'
-    ))
-    @doc.argument('expire_in', (
-        'Duration after which to delete the ticker;'
-        ' ignored if expire_at is set.'
-    ))
-    @doc.argument('refresh', (
-        'Interval at which to update the text of the ticker;'
-        ' only useful when using a template with content that'
-        ' changes with time; specify 0 to never refresh;'
-        ' minimum is 5 minutes.'
-    ), node='[interval]')
+    @doc.argument(
+        'category',
+        (
+            'A channel under the same category where the message will be added;'
+            ' specify "top" to place it above all categories (uncategorized).'
+        ),
+        node='[channel]',
+    )
+    @doc.argument(
+        'position',
+        (
+            'The position of the new ticker in its category, starting from 1'
+            ' (e.g. if set to 1 then the new VC will the first one).'
+        ),
+    )
+    @doc.argument('expire_at', ('Time at which to auto delete the ticker.'))
+    @doc.argument('expire_in', ('Duration after which to delete the ticker; ignored if expire_at is set.'))
+    @doc.argument(
+        'refresh',
+        (
+            'Interval at which to update the text of the ticker;'
+            ' only useful when using a template with content that'
+            ' changes with time; specify 0 to never refresh;'
+            ' minimum is 5 minutes.'
+        ),
+        node='[interval]',
+    )
     @doc.argument('content', 'Text of the message.')
-    @doc.argument('variables', (
-        'Additional variables to be passed to the template;'
-        ' only useful if the content specified is a Jinja template;'
-        ' must be JSON-serializable.'
-    ))
+    @doc.argument(
+        'variables',
+        (
+            'Additional variables to be passed to the template;'
+            ' only useful if the content specified is a Jinja template;'
+            ' must be JSON-serializable.'
+        ),
+    )
     @doc.use_syntax_whitelist
     @doc.invocation(('category', 'position', 'content'), None)
     @doc.example(
@@ -483,8 +506,7 @@ class Ticker(
     )
     @doc.example(
         'top prepend 96 Street',
-        'Create a VC with the name "96 Street" and place it at'
-        ' the very top of the channel list.',
+        'Create a VC with the name "96 Street" and place it at the very top of the channel list.',
     )
     @doc.restriction(
         has_guild_permissions,
@@ -493,10 +515,12 @@ class Ticker(
     )
     @can_embed
     async def ticker_create(
-        self, ctx: Circumstances,
+        self,
+        ctx: Surroundings,
         category: Union[AnyChannel, Constant[Literal['top']]],
         position: Union[int, Choice[Literal['append', 'prepend']]],
-        *, content: Union[JinjaTemplate, str],
+        *,
+        content: Union[JinjaTemplate, str],
         expire_at: Optional[Datetime] = None,
         expire_in: Optional[Timedelta] = None,
         refresh: Optional[Timedelta] = None,
@@ -510,21 +534,16 @@ class Ticker(
         template = self.get_template(content)
 
         async with ctx.typing():
-            vc = await self.create_ticker_channel(ctx.guild, category,
-                                                  placement, template, variables)
-            ticker = await self.create_ticker(vc, placement, template, variables,
-                                              refresh, expire)
+            vc = await self.create_ticker_channel(ctx.guild, category, placement, template, variables)
+            ticker = await self.create_ticker(vc, placement, template, variables, refresh, expire)
             await self.start_ticker(vc, ticker)
             result = self.get_result(vc, ticker)
-            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
+            return await ctx.respond(embed=result).reply().deleter().run(thread=True)
 
     @ticker.command('update', aliases=('set', 'edit'))
     @doc.description('Update settings for a currently running ticker.')
-    @doc.argument('channel', (
-        'The ticker to update;'
-        ' must be a VC managed by this command.'
-    ))
-    @doc.argument('category', False)
+    @doc.argument('channel', ('The ticker to update; must be a VC managed by this command.'))
+    @doc.argument('category', False, node='[channel]')
     @doc.argument('position', False)
     @doc.argument('content', False)
     @doc.argument('expire_at', False)
@@ -534,7 +553,8 @@ class Ticker(
     @doc.use_syntax_whitelist
     @doc.invocation(('channel',), None)
     @doc.discussion(
-        'Argument types', (
+        'Argument types',
+        (
             'This command accepts the same set of arguments'
             ' as the ticker create command. To see what each argument does,'
             f' consult help for {code("ticker create")}.'
@@ -547,11 +567,13 @@ class Ticker(
     )
     @can_embed
     async def ticker_update(
-        self, ctx: Circumstances,
+        self,
+        ctx: Surroundings,
         channel: VoiceChannel,
         category: Optional[Union[AnyChannel, Constant[Literal['top']]]] = None,
         position: Optional[Union[int, Choice[Literal['append', 'prepend']]]] = None,
-        *, content: Optional[Union[JinjaTemplate, str]] = None,
+        *,
+        content: Optional[Union[JinjaTemplate, str]] = None,
         expire_at: Optional[Datetime] = None,
         expire_in: Optional[Timedelta] = None,
         refresh: Optional[Timedelta] = None,
@@ -569,7 +591,7 @@ class Ticker(
         async with ctx.typing():
             vc = await self.restart_ticker(ctx.guild, ticker)
             result = self.get_result(vc, ticker)
-            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
+            return await ctx.respond(embed=result).reply().deleter().run(thread=True)
 
     @ticker.command('delete', aliases=('rm', 'del', 'remove'))
     @doc.description('Remove a hoisted message.')
@@ -582,16 +604,16 @@ class Ticker(
         manage_roles=True,
     )
     @can_embed
-    async def ticker_remove(self, ctx: Circumstances, channels: Greedy[VoiceChannel]):
+    async def ticker_remove(self, ctx: Surroundings, channels: Greedy[VoiceChannel]):
         deleted: list[str] = []
         async with ctx.typing():
             for channel in channels:
                 try:
                     ticker = await self.get_ticker_or_404(ctx, channel)
-                except doc.NotAcceptable:
+                except NotAcceptable:
                     continue
                 channel_id = ticker.channel_id
                 name = await self.delete_ticker(ctx.guild, ticker, 'manual_removal')
                 deleted.append(f'{code(channel_id)} {name}')
             result = Embed2(title='Ticker deleted', description='\n'.join(deleted))
-            return await ctx.response(ctx, embed=result).reply().deleter().run(thread=True)
+            return await ctx.respond(embed=result).reply().deleter().run(thread=True)

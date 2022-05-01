@@ -20,8 +20,6 @@ from asgiref.sync import sync_to_async
 from discord import Message, Object, RawReactionActionEvent
 from django.db import IntegrityError
 
-from .models import Blacklisted
-
 
 class Gatekeeper:
     """Tool for screening incoming discord.py events against an entity blacklist.
@@ -31,12 +29,14 @@ class Gatekeeper:
     """
 
     def __init__(self):
+        from .models import Blacklisted
         self.log = logging.getLogger('discord.gatekeeper')
         self._query = Blacklisted.objects.values_list('snowflake', flat=True)
 
     @sync_to_async
     def add(self, obj: Object):
         """Add a Discord Object to the blacklist."""
+        from .models import Blacklisted
         try:
             blacklisted = Blacklisted(snowflake=obj.id)
             blacklisted.save()
@@ -46,6 +46,7 @@ class Gatekeeper:
     @sync_to_async
     def discard(self, obj: Object):
         """Remove a Discord Object from the blacklist."""
+        from .models import Blacklisted
         try:
             blacklisted = Blacklisted.objects.get(snowflake=obj.id)
             blacklisted.delete()

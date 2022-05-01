@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ts2.discord.cog import Gear
+from dougbot2.discord import Gear
 
 from .bots import MessageCommands, QueryCommands, ServerQueryCommands
 

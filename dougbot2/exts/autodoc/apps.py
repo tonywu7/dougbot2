@@ -14,28 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from contextlib import suppress
-
-from discord.ext.commands import Bot
 from django.apps import AppConfig
-
-from ...utils.importutil import get_submodule_from_apps
-from .defaults import default_env
-from .environment import Environment
 
 
 class AutodocConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ts2.discord.exts.autodoc'
+    name = 'dougbot2.exts.autodoc'
     default = True
-
-
-def setup(bot: Bot):
-    env = default_env()
-    envs = []
-    for app, module in get_submodule_from_apps('autodoc'):
-        with suppress(AttributeError):
-            envs.append(Environment(module.setup_docs(bot)))
-    env.merge(*envs)
-    env.init_bot(bot)
-    bot.doc_env = env

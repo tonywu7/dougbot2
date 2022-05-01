@@ -14,25 +14,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from asgiref.sync import sync_to_async
 from discord import Message
 
-from dougbot2.bot import Robot
-from dougbot2.cog import Gear
+from dougbot2.discord import Gear
+from dougbot2.models import Server
 from dougbot2.utils.dm import is_direct_message
 from dougbot2.utils.markdown import strong
 
 
 class Summon(
     Gear, name='Summon', order=200,
-    description='',
+    description='', hidden=True
 ):
+    @sync_to_async
+    def get_prefix(self, guild_id: int) -> str:
+        return Server.objects.get(snowflake=guild_id).prefix
+
     @Gear.listener('on_message')
     async def on_bare_mention(self, msg: Message):
         """Reply with the bot's prefix in this server if the bot is mentioned without anything else."""
-        bot: Robot = self.bot
+        bot = self.bot
         if is_direct_message(msg):
             return
         if msg.content == f'<@!{bot.user.id}>':
-            prefix = await bot.get_server_prefix(msg.guild.id)
+            prefix = await self.get_prefix(msg.guild.id)
             example = f'{prefix}echo'
             return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')

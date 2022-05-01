@@ -15,7 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from discord.ext.commands import BadArgument, Converter
-from duckcord.permissions import Permissions2
+
+from ..duckcord.permissions import Permissions2
 
 
 class PermissionName(Converter):

@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from contextlib import suppress
 from typing import Union
 
 from discord import DMChannel, GroupChannel, Message, TextChannel
@@ -43,8 +44,7 @@ def is_direct_message(ctx: Union[Message, Context, TextChannel]):
 
 def full_invoked_with(ctx: Context) -> str:
     """The fully-qualified sequence of command names that has been parsed."""
-    return ' '.join({**{k: True for k in ctx.invoked_parents},
-                     ctx.invoked_with: True}.keys())
+    return ' '.join({**{k: True for k in ctx.invoked_parents}, ctx.invoked_with: True}.keys())
 
 
 def indicate_eol(ctx: Context) -> str:
@@ -53,15 +53,36 @@ def indicate_eol(ctx: Context) -> str:
     return f'{s.buffer[:s.index + 1]} ←'
 
 
-def indicate_next_arg(ctx: Context, truncate: int = 0) -> str:
+def indicate_this_arg(ctx: Context, argname: str = '...', truncate: int = 128) -> str:
+    """Indicate the portion of a StringView that is currently being parsed."""
+    s: StringView = ctx.view
+    index = s.index
+    previous = s.previous
+    s.undo()
+    with suppress(Exception):
+        pending = s.get_quoted_word()
+    if not pending:
+        pending = s.buffer[index:]
+    if not pending:
+        pending = f'[{argname}]'
+    s.index = index
+    s.previous = previous
+    if truncate and len(pending) > truncate:
+        pending = f'{pending[:truncate]} ... (shortened)'
+    return f'{s.buffer[:previous]} → {pending} ←'
+
+
+def indicate_next_arg(ctx: Context, argname: str = '...', truncate: int = 128) -> str:
     """Indicate the portion of a StringView that has not been parsed."""
     s: StringView = ctx.view
     index = s.index
     previous = s.previous
-    try:
+    with suppress(Exception):
         pending = s.get_quoted_word()
-    except Exception:
+    if not pending:
         pending = s.buffer[index:]
+    if not pending:
+        pending = f'[{argname}]'
     s.index = index
     s.previous = previous
     if truncate and len(pending) > truncate:

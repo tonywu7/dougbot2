@@ -20,12 +20,14 @@ from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from typing import Generic, Optional, TypeVar, Union
 
 import attr
-from discord import (Client, Member, Message, PartialEmoji,
-                     RawReactionActionEvent)
+from discord import (
+    Client, Member, Message, PartialEmoji, RawReactionActionEvent,
+)
 from discord.ext.commands import Context
-from duckcord.embeds import Embed2, EmbedField
 from more_itertools import peekable, split_before
 
+from ..defaults import get_defaults
+from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
 from .markdown import strong
 
@@ -131,8 +133,11 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
     return split_before(items, splitter)
 
 
-def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
-                      linebreak=lambda c: c == '\n') -> Iterator[list[EmbedField]]:
+def chapterize_fields(
+    fields: Iterable[EmbedField],
+    pagesize: int = 720,
+    linebreak=lambda c: c == '\n',
+) -> Iterator[list[EmbedField]]:
     """Rearrange a list of embed fields and breaking fields longer than a certain size into\
     separate fields sharing the same name."""
     if sum(len(f) for f in fields) < pagesize:
@@ -148,8 +153,7 @@ def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
             yield page
             page = []
         if next_len > pagesize:
-            head, *tails = [*chapterize(next_field.value, pagesize,
-                                        pred=linebreak, maxsplit=1)]
+            head, *tails = [*chapterize(next_field.value, pagesize, pred=linebreak, maxsplit=1)]
             next(fields)
             page.append(attr.evolve(next_field, value=head))
             fields.prepend(*[attr.evolve(next_field, value=v) for v in tails])
@@ -160,8 +164,13 @@ def chapterize_fields(fields: Iterable[EmbedField], pagesize: int = 720,
 
 
 # From ddarknut. Blessed.
-def chapterize(text: str, maxlen: int, pred: Callable[[str], bool] = str.isspace,
-               *, hyphen='-', maxsplit=float('inf')) -> Iterable[str]:
+def chapterize(
+    text: str,
+    maxlen: int,
+    pred: Callable[[str], bool] = str.isspace,
+    *, hyphen='-',
+    maxsplit=float('inf'),
+) -> Iterable[str]:
     """Break long text into smaller parts of roughly the same size while\
     avoiding breaking inside words/lines."""
 
@@ -247,17 +256,17 @@ class Pagination:
 
     def __init__(self, content: Sequence[PageContent]) -> None:
         self.content = content
+        emotes = get_defaults().styles.emotes
         self.actions = {
-            '⏮': lambda idx: 0,
-            '⏪': lambda idx: idx - 1,
-            '⏩': lambda idx: idx + 1,
-            '⏭': lambda idx: len(content) - 1,
+            emotes.head: lambda idx: 0,
+            emotes.rewind: lambda idx: idx - 1,
+            emotes.forward: lambda idx: idx + 1,
+            emotes.tail: lambda idx: len(content) - 1,
         }
 
     def __getitem__(self, k: int) -> PageContent:
         text, embed = self.content[k]
-        return (self.text_transform(k, text),
-                self.embed_transform(k, embed))
+        return (self.text_transform(k, text), self.embed_transform(k, embed))
 
     def get_text(self, k: int) -> str:
         """Get the text at page `k` (zero-indexed), applying text transforms."""
@@ -350,3 +359,18 @@ class EmbedPagination(Pagination):
         def from_message(m: Message):
             return self(ctx.bot, m, ttl, ctx.author)
         return from_message
+
+    @classmethod
+    def from_lines(
+        cls, lines: list[str],
+        title: Optional[str] = None,
+        *, newline: str = '\n',
+        size: int = 720,
+        init: Callable[[Embed2], Embed2] = lambda x: x,
+    ):
+        if not lines:
+            lines = ['(none)']
+        return cls([
+            init(Embed2(description=newline.join(lines)))
+            for lines in chapterize_items(lines, size)
+        ], title)

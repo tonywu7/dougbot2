@@ -25,7 +25,7 @@ from dougbot2.utils.fields import NumbersListField, RecordField
 RE_UNICODE_VARIATIONS = re.compile('[\ufe00-\ufe0f]')
 
 
-class SuggestionChannel(Entity[TextChannel]):
+class SuggestionChannel(Entity):
     title: str = models.TextField(default='Suggestion')
     description: str = models.TextField(blank=True)
 
@@ -48,5 +48,7 @@ class SuggestionChannel(Entity[TextChannel]):
     @property
     def all_emotes(self) -> dict[str, str]:
         emotes = {self.upvote: '', self.downvote: '', **self.reactions}
-        return {RE_UNICODE_VARIATIONS.sub('', k): v
-                for k, v in emotes.items() if k}
+        return {
+            RE_UNICODE_VARIATIONS.sub('', k): v
+            for k, v in emotes.items() if k
+        }

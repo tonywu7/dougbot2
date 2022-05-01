@@ -1,4 +1,4 @@
 from .generators import ContentGenerationCommands
-from .webservices import WebServiceCommands
+from .webportals import WebPortalCommands
 
-__all__ = ['ContentGenerationCommands', 'WebServiceCommands']
+__all__ = ['ContentGenerationCommands', 'WebPortalCommands']

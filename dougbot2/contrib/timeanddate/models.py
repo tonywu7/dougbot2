@@ -22,7 +22,7 @@ from timezone_field import TimeZoneField
 from dougbot2.models import Entity
 
 
-class DateTimeSettings(Entity[User]):
+class DateTimeSettings(Entity):
     timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
     formatting: str = models.TextField('datetime format', blank=True, default='D MMM YYYY h:mm:ss A')
 
@@ -31,9 +31,9 @@ class DateTimeSettings(Entity[User]):
         return cls(snowflake=obj.id)
 
 
-class RoleTimezone(Entity[Role]):
+class RoleTimezone(Entity):
     timezone: pytz.BaseTzInfo = TimeZoneField('timezone', blank=True, choices_display='WITH_GMT_OFFSET')
 
     @classmethod
-    def from_discord(cls, obj: User):
+    def from_discord(cls, obj: Role):
         return cls(snowflake=obj.id)

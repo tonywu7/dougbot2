@@ -52,7 +52,7 @@ def async_save(item: M, *args, **kwargs) -> M:
 
 
 @sync_to_async
-def async_delete(item: M):
+def async_delete(item: Union[M, QuerySet[M]]):
     return item.delete()
 
 

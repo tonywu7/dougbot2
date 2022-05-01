@@ -15,16 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Optional, Union
 
 import pytz
 from dateparser import parse as parse_date
 from discord.ext.commands import BadArgument, Converter
 from discord.utils import escape_markdown
 
-from dougbot2.utils.datetime import get_tz_by_name, is_ambiguous_static_tz
-
-from ..datetime import strpduration
+from ..datetime import get_tz_by_name, is_ambiguous_static_tz, strpduration
 from ..markdown import code
 
 
@@ -70,16 +68,22 @@ class Timezone(Converter):
 
     value: pytz.BaseTzInfo
 
-    async def convert(self, ctx, argument: str) -> pytz.BaseTzInfo:
+    @classmethod
+    def get_timezone_from_name(cls, name: str) -> Optional[pytz.BaseTzInfo]:
         try:
-            tz = pytz.timezone(argument)
+            tz = pytz.timezone(name)
             if not is_ambiguous_static_tz(tz):
-                self.value = tz
-                return self
+                return tz
         except pytz.UnknownTimeZoneError:
             pass
         try:
-            self.value = get_tz_by_name(argument)
-            return self
+            return get_tz_by_name(name)
         except KeyError:
+            return None
+
+    async def convert(self, ctx, argument: str):
+        tz = self.get_timezone_from_name(argument)
+        if tz is None:
             raise BadArgument(f'Unknown timezone {code(escape_markdown(argument))}')
+        self.value = tz
+        return self

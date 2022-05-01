@@ -20,19 +20,22 @@ from typing import Optional, Union
 
 import simplejson as json
 import toml
-from discord import (AllowedMentions, Emoji, File, Message, MessageReference,
-                     Object, PartialEmoji, TextChannel)
+from discord import (
+    AllowedMentions, Emoji, File, Message, Object, PartialEmoji, TextChannel,
+)
 from discord.ext.commands import Greedy, command, has_guild_permissions
-from discord_jinja import get_environment
 from more_itertools import always_iterable, first
 
-from ts2.discord.context import Circumstances
-from ts2.discord.exts import autodoc as doc
-from ts2.discord.exts.logger import get_exception_embed, get_traceback
-from ts2.discord.utils.common import (Embed2, a, can_upload, code, strong,
-                                      trunc_for_field)
-from ts2.discord.utils.converters import Dictionary, JinjaTemplate
-from ts2.discord.utils.datetime import localnow
+from dougbot2.blueprints import Surroundings
+from dougbot2.contrib.replyutils import accept_reply
+from dougbot2.exceptions import NotAcceptable
+from dougbot2.exts import autodoc as doc
+from dougbot2.utils.common import (
+    Embed2, a, can_upload, code, strong, trunc_for_field,
+)
+from dougbot2.utils.converters import Dictionary, JinjaTemplate
+from dougbot2.utils.datetime import localnow
+from dougbot2.utils.discord_jinja import get_environment
 
 
 def serialize_message(message: Message):
@@ -107,7 +110,7 @@ class MessageCommands:
         mention_everyone=True,
     )
     async def stdout(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         content: Optional[str] = None,
         embed: Optional[dict] = None,
         channel: Optional[TextChannel] = None,
@@ -143,25 +146,21 @@ class MessageCommands:
             raise doc.NotAcceptable(f'Failed to send message: {e}')
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
-        await ctx.response(ctx, embed=reply).reply().run()
+        await ctx.respond(embed=reply).reply().run()
 
     @command('stdin')
     @doc.description('Serialize a message to be used in the stdout command.')
-    @doc.argument('message', 'The message to serialize')
-    @doc.accepts_reply('Use the replied-to message.')
+    @doc.argument('message', 'The message to serialize.')
     @doc.use_syntax_whitelist
     @doc.invocation(('message',), None)
-    @doc.invocation(('reply',), None)
+    @accept_reply('message')
     @can_upload
     async def stdin(
-        self, ctx: Circumstances,
-        message: Optional[Message], *,
-        reply: Optional[MessageReference] = None,
+        self, ctx: Surroundings,
+        message: Optional[Message],
     ):
-        if not message and reply:
-            message = reply.resolved
         if not message:
-            raise doc.NotAcceptable('No message specified.')
+            raise NotAcceptable('No message specified.')
         info = {'content': message.content}
         embed = first(message.embeds, None)
         if embed:
@@ -179,7 +178,7 @@ class MessageCommands:
             stream.seek(0)
             filename = f'message.{localnow().isoformat().replace(":", ".")}.toml'
             file = File(stream, filename=filename)
-            await ctx.send(file=file)
+            await ctx.respond(files=[file]).run()
 
     @command('redirect')
     @doc.description('Copy the specified message to another channel.')
@@ -187,7 +186,6 @@ class MessageCommands:
     @doc.argument('message', 'The message to copy.')
     @doc.argument('mentions', ('The members/roles this message'
                                ' is allowed to notify.'))
-    @doc.accepts_reply('Copy the replied-to message.')
     @doc.use_syntax_whitelist
     @doc.invocation(('channel', 'message'), None)
     @doc.restriction(
@@ -198,16 +196,14 @@ class MessageCommands:
         embed_links=True,
         mention_everyone=True,
     )
+    @accept_reply('message')
     async def redirect(
-        self, ctx: Circumstances, channel: TextChannel,
+        self, ctx: Surroundings, channel: TextChannel,
         message: Optional[Message], *,
-        reply: Optional[MessageReference] = None,
         mentions: Optional[dict] = None,
     ):
-        if not message and reply:
-            message = reply.resolved
         if not message:
-            raise doc.NotAcceptable('No message specified.')
+            raise NotAcceptable('No message specified.')
         content = message.content
         embed = first(message.embeds, None)
         files = [await att.to_file(spoiler=att.is_spoiler())
@@ -220,31 +216,27 @@ class MessageCommands:
                                  allowed_mentions=allowed_mentions)
         url = a('Message created:', msg.jump_url)
         reply = Embed2(description=f'{url} {code(msg.id)}')
-        await ctx.response(ctx, embed=reply).reply().run()
+        await ctx.respond(embed=reply).reply().run()
 
     @command('react')
     @doc.description('Add reactions to a message.')
     @doc.argument('message', 'The message to react to.')
     @doc.argument('emotes', 'The emotes to use. The bot must be able to use them.')
-    @doc.accepts_reply('React to the replied-to message.')
     @doc.use_syntax_whitelist
     @doc.invocation(('message', 'emotes'), None)
-    @doc.invocation(('reply', 'emotes'), None)
     @doc.restriction(
         has_guild_permissions,
         manage_messages=True,
         send_messages=True,
     )
+    @accept_reply('message')
     async def react(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         message: Optional[Message],
         emotes: Greedy[Union[str, Emoji, PartialEmoji]],
-        *, reply: Optional[MessageReference] = None,
     ):
-        if not message and reply:
-            message = reply.resolved
         if not message:
-            return
+            raise NotAcceptable('A message must be specified.')
         failed: list[PartialEmoji] = []
         for emote in emotes:
             try:
@@ -254,27 +246,22 @@ class MessageCommands:
         if failed:
             failed_list = '\n'.join(code(e) for e in failed)
             failed_list = trunc_for_field(failed_list, 1920)
-            res = Embed2(description=(f'{strong("Failed to add the following emotes")}'
-                                      f'\n{failed_list}'))
-            return await ctx.response(ctx, embed=res).reply(True).run()
+            res = Embed2(description=f'{strong("Failed to add the following emotes")}\n{failed_list}')
+            return await ctx.respond(embed=res).reply(True).run()
 
     @command('ofstream')
     @doc.description('Send the message content back as a text file.')
-    @doc.argument('text', 'Text message to send back.')
     @doc.argument('message', 'Another message whose content will be included.')
-    @doc.accepts_reply('Include the replied-to message in the file.')
     @doc.use_syntax_whitelist
-    @doc.invocation(('message', 'text'), None)
+    @doc.invocation(('message',), None)
     @doc.hidden
     @can_upload
+    @accept_reply('message')
     async def ofstream(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         message: Optional[Message],
-        *, text: str = None,
-        reply: Optional[MessageReference] = None,
+        *, extras: str = None,
     ):
-        if not message and reply:
-            message = reply.resolved
         info = []
         if ctx.raw_input or ctx.message.embeds or ctx.message.attachments:
             info.append(serialize_message(ctx.message))
@@ -287,7 +274,7 @@ class MessageCommands:
             stream.seek(0)
             filename = f'message.{localnow().isoformat().replace(":", ".")}.json'
             file = File(stream, filename=filename)
-            await ctx.send(file=file)
+            await ctx.respond(files=[file]).run()
 
     @command('render')
     @doc.description('Render a Jinja template.')
@@ -297,7 +284,7 @@ class MessageCommands:
     @doc.invocation(('template', 'variables'), None)
     @doc.hidden
     async def render(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         template: JinjaTemplate,
         variables: Optional[Dictionary],
     ):
@@ -312,6 +299,6 @@ class MessageCommands:
             txt = await tmpl.render_timed(ctx, **variables)
             return await ctx.send(txt)
         except Exception as e:
-            embed = get_exception_embed(e)
-            tb = get_traceback(e)
+            embed = ctx.bot.console.pprint_exception(e)
+            tb = ctx.bot.console.dump_traceback(e)
             return await ctx.send(embed=embed, file=tb)

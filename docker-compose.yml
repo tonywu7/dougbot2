@@ -19,7 +19,7 @@ services:
     backup:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+            - DJANGO_SETTINGS_MODULE=dougbot2.conf.deployment
         init: true
         command:
             - ./bin/manage
@@ -35,7 +35,7 @@ services:
         image: telescope2
         build: .
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.server
+            - DJANGO_SETTINGS_MODULE=dougbot2.conf.server
         init: true
         command:
             - ./bin/manage
@@ -56,7 +56,7 @@ services:
     bot:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+            - DJANGO_SETTINGS_MODULE=dougbot2.conf.deployment
         init: true
         command:
             - ./bin/manage
@@ -72,7 +72,7 @@ services:
     init:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+            - DJANGO_SETTINGS_MODULE=dougbot2.conf.deployment
         init: true
         command:
             - ./bin/init
@@ -86,7 +86,7 @@ services:
     migrate:
         image: telescope2
         environment:
-            - DJANGO_SETTINGS_MODULE=ts2.conf.deployment
+            - DJANGO_SETTINGS_MODULE=dougbot2.conf.deployment
         init: true
         command:
             - ./bin/migrate

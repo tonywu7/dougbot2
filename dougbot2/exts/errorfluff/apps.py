@@ -19,5 +19,5 @@ from django.apps import AppConfig
 
 class ErrorfluffConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ts2.discord.exts.errorfluff'
+    name = 'dougbot2.exts.errorfluff'
     default = True

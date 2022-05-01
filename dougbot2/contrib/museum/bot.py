@@ -24,22 +24,23 @@ from typing import Literal, Optional
 
 import nltk
 from asgiref.sync import sync_to_async
-from discord import Message, MessageReference, Object, TextChannel
+from discord import Message, Object, TextChannel
 from discord.ext.commands import BucketType, command
 from django.conf import settings
-from duckcord.embeds import Embed2
 from nltk.corpus import stopwords
 from pendulum import DateTime, instance
 
-from dougbot2.cog import Gear
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
+from dougbot2.contrib.replyutils import accept_reply
+from dougbot2.discord import Gear
 from dougbot2.exceptions import NotAcceptable
 from dougbot2.exts import autodoc as doc
-from dougbot2.utils.common import (EmbedPagination, ParagraphStream, a,
-                                   attachment_is_type, can_embed, chapterize,
-                                   strong, tag, tag_literal, timestamp,
-                                   trunc_for_field)
+from dougbot2.utils.common import (
+    EmbedPagination, ParagraphStream, a, attachment_is_type, can_embed,
+    chapterize, strong, tag, tag_literal, timestamp, trunc_for_field,
+)
 from dougbot2.utils.converters import Constant
+from dougbot2.utils.duckcord import Embed2
 
 from .models import StoryTask
 
@@ -60,22 +61,18 @@ class Museum(
     @command('quote')
     @doc.description('Quote another message.')
     @doc.argument('message', 'The message to quote.')
-    @doc.accepts_reply('Quote the replied-to message.')
     @doc.invocation(('message',), None)
+    @accept_reply('message')
     @can_embed
-    async def quote(
-        self, ctx: Circumstances,
-        message: Optional[Message],
-        *, reply: Optional[MessageReference],
-    ):
-        # TODO: remove setting embed author and use footer instead
+    async def quote(self, ctx: Surroundings, message: Optional[Message]):
         """Take a message and present it as an embed."""
         if not message:
-            if reply and reply.resolved:
-                message = reply.resolved
-        if not message:
-            raise doc.NotAcceptable('You need to specify the message to quote.')
-        header = f'{a(strong("Message"), message.jump_url)} in {tag(message.channel)}\n'
+            raise NotAcceptable('You need to specify the message to quote.')
+        header = (
+            f'{a(strong("Message"), message.jump_url)}'
+            f' from {message.author.mention}'
+            f' in {tag(message.channel)}:\n'
+        )
         content = message.content or message.system_content or '(no text content)'
         body = trunc_for_field(f'{header}{content}', 1960)
         res = Embed2(description=body)
@@ -88,38 +85,38 @@ class Museum(
             attachments.append(a(att.filename, att.url))
         if attachments:
             res = res.add_field(name='Attachments', value=' / '.join(attachments))
-        res = (res.personalized(message.author)
-               .set_footer(text='Original message sent:')
-               .set_timestamp(message.created_at))
-        embeds = [res, *[(Embed2.from_dict(e.to_dict())
-                          .set_author(name=str(message.author), url=message.jump_url)
-                          .set_footer(text=f'From message {message.id}, sent:')
-                          .set_timestamp(message.created_at))
-                         for e in message.embeds]]
+        res = (
+            res.personalized(message.author)
+            .set_footer(text='Original message sent:')
+            .set_timestamp(message.created_at)
+        )
+        embeds = [res, *[(
+            Embed2.from_dict(e.to_dict())
+            .set_footer(
+                text=f'From message {message.id} by {str(message.author)}, sent:',
+                icon_url=message.author.avatar_url,
+            )
+            .set_timestamp(message.created_at)
+        ) for e in message.embeds]]
         if message.embeds and not message.content and not message.attachments:
             embeds = embeds[1:]
         pages = EmbedPagination(embeds, None, False)
-        return (await ctx.response(ctx, embed=pages)
-                .responder(pages.with_context(ctx)).deleter().run())
+        await ctx.respond(embed=pages).responder(pages.with_context(ctx)).deleter().run()
 
     @command('story')
     @doc.description('Join multiple messages into a story.')
-    @doc.accepts_reply('Use the replied-to message as the beginning of the story.')
     @doc.use_syntax_whitelist
     @doc.invocation(('message',), (
         'Mark the message (passed as a URL or ID) as the beginning of the story.'
     ))
-    @doc.invocation(('reply',), (
-        'Mark the replied-to message as the beginning of the story.'
-    ))
     @doc.invocation(('message', 'cancel'), 'Remove a previously set marker.')
     @doc.concurrent(1, BucketType.channel)
+    @accept_reply('message')
     @can_embed
     async def story(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         message: Optional[Message],
         cancel: Optional[Constant[Literal['cancel']]],
-        *, reply: Optional[MessageReference],
     ):
         """Take a message and run the StoryCollector with it.
 
@@ -128,7 +125,7 @@ class Museum(
         in chronological order.
         """
 
-        if message is None and reply is None:
+        if message is None:
             raise NotAcceptable(
                 'You need to specify the message where the story'
                 ' will begin by either passing its URL or message ID'
@@ -136,19 +133,18 @@ class Museum(
                 ' have access to that message.',
             )
 
-        if reply:
-            message: Message = reply.resolved
-            if not message:
-                message = ctx.channel.fetch_message(reply.message_id)
         elif message.channel != ctx.channel:
-            raise NotAcceptable(f'Message {message.id} is not from this channel. '
-                                f'It is from {tag(message.channel)}')
+            raise NotAcceptable(
+                f'Message {message.id} is not from this channel. '
+                f'It is from {tag(message.channel)}',
+            )
 
-        SETUP_MSG = ('Story requested by %(author)s'
-                     '\nSetting the %(side)s of the story'
-                     ' to %(msg_url)s in %(channel)s')
-        DELETE_MSG = ('Story marker %(msg_url)s in %(channel)s'
-                      ' removed (set by %(author)s)')
+        SETUP_MSG = (
+            'Story requested by %(author)s'
+            '\nSetting the %(side)s of the story'
+            ' to %(msg_url)s in %(channel)s'
+        )
+        DELETE_MSG = 'Story marker %(msg_url)s in %(channel)s removed (set by %(author)s)'
 
         msg_url = a('this message', href=message.jump_url)
         msg_id = message.id
@@ -158,13 +154,15 @@ class Museum(
         task, created = await self.story_fetch_task(ctx.author.id, msg_id, channel_id)
         task: StoryTask
 
-        reply_ctx = {'author': tag(ctx.author), 'side': 'beginning',
-                     'msg_url': msg_url, 'channel': channel}
+        reply_ctx = {
+            'author': tag(ctx.author), 'side': 'beginning',
+            'msg_url': msg_url, 'channel': channel,
+        }
 
         if created:
             reply = SETUP_MSG % reply_ctx
             embed = Embed2(title='New story', description=reply)
-            return await ctx.response(ctx, embed=embed).deleter().run(thread=True)
+            return await ctx.respond(embed=embed).deleter().run(thread=True)
 
         set_channel = tag_literal('channel', task.channel)
 
@@ -172,12 +170,14 @@ class Museum(
             reply = DELETE_MSG % reply_ctx
             await self.story_del_task(task)
             embed = Embed2(title='Reset story', description=reply)
-            return await ctx.response(ctx, embed=embed).deleter().run(thread=True)
+            return await ctx.respond(embed=embed).deleter().run(thread=True)
 
         if task.channel != channel_id:
-            reply = ('The beginning and ending messages are not in the same channel:'
-                     f'\nThe beginning is set in {set_channel}'
-                     f'\nbut the end is set in {channel}.')
+            reply = (
+                'The beginning and ending messages are not in the same channel:'
+                f'\nThe beginning is set in {set_channel}'
+                f'\nbut the end is set in {channel}.'
+            )
             raise NotAcceptable(reply)
 
         target_channel = ctx.guild.get_channel(task.channel)
@@ -214,7 +214,7 @@ class StoryCollector:
     StoryCollector objects store all messages and is therefore expendable.
     """
 
-    def __init__(self, ctx: Circumstances):
+    def __init__(self, ctx: Surroundings):
         self.STOPWORDS = stopwords.words('english')
         self.ctx = ctx
         self.stream = ParagraphStream()
@@ -223,8 +223,11 @@ class StoryCollector:
         self.story: str = ''
 
     @classmethod
-    async def iter_messages(cls, channel: TextChannel, begin_id: int,
-                            end_id: int) -> AsyncGenerator[Message, None, None]:
+    async def iter_messages(
+        cls, channel: TextChannel,
+        begin_id: int,
+        end_id: int,
+    ) -> AsyncGenerator[Message, None, None]:
         """Iterate over the channel's message history, bounding the results precisely\
         by the starting and ending message IDs."""
         if begin_id > end_id:
@@ -245,8 +248,8 @@ class StoryCollector:
             current = Object(current_id)
 
     async def _warn(self, message: str):
-        warn = Embed2(description=f'⚠️ {message}')
-        await self.ctx.response(self.ctx, embed=warn).reply(notify=True).deleter().run(thread=True)
+        warn = Embed2(description=f':warning: {message}')
+        await self.ctx.respond(embed=warn).reply(notify=True).deleter().run(thread=True)
 
     async def __call__(self, channel: TextChannel, begin_id: int, end_id: int, maxlen=2048):
         """Run the collector and deliver the result to the collector's Context."""
@@ -266,13 +269,18 @@ class StoryCollector:
             return await self._warn('Gathered no text from all messages!')
 
         for chapter in chapterize(self.gen_story(), 1920):
-            await (self.ctx.response(self.ctx, content=chapter)
-                   .mentions(None).reply(True).suppress().run())
-        await self.ctx.response(self.ctx, embed=self.gen_stats()).reply(notify=True).run()
+            (
+                await self.ctx.respond(content=chapter)
+                .mentions(None).reply(True)
+                .suppress().run()
+            )
+        await self.ctx.respond(embed=self.gen_stats()).reply(notify=True).run()
 
         if self.overflow:
-            warn = (f'Length limit ({maxlen} characters) reached.\n'
-                    f'Stopped at {a("this message", msg.jump_url)}')
+            warn = (
+                f'Length limit ({maxlen} characters) reached.\n'
+                f'Stopped at {a("this message", msg.jump_url)}'
+            )
             return await self._warn(warn)
 
     def fix_punctuations(self, text: str) -> str:
@@ -307,9 +315,11 @@ class StoryCollector:
         end_msg = self.messages[-1]
         dt_start: DateTime = instance(start_msg.created_at).in_timezone(settings.TIME_ZONE)
         dt_end: DateTime = instance(end_msg.created_at).in_timezone(settings.TIME_ZONE)
-        description = (f'Story in {tag(self.ctx.channel)} '
-                       f'from {a(timestamp(dt_start, "long"), start_msg.jump_url)} '
-                       f'to {a(timestamp(dt_end, "long"), end_msg.jump_url)}')
+        description = (
+            f'Story in {tag(self.ctx.channel)} '
+            f'from {a(timestamp(dt_start, "long"), start_msg.jump_url)} '
+            f'to {a(timestamp(dt_end, "long"), end_msg.jump_url)}'
+        )
 
         stat = (
             Embed2(title='📊 Statistics', description=description)

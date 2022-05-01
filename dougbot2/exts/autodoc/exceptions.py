@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands import UserInputError
 from discord.utils import escape_markdown
 
 from ...utils.markdown import strong
@@ -44,7 +44,7 @@ class MissingExamples(BadDocumentation):
         self.message = f'{call_sign}: No command example provided'
 
 
-class NoSuchCommand(ValueError):
+class NoSuchCommand(UserInputError):
     """Exception raised by a Manual object when it fails to look up a command."""
 
     def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
@@ -58,23 +58,37 @@ class NoSuchCommand(ValueError):
         return self.message
 
 
-class ReplyRequired(BadArgument):
-    # TODO: discord.py 2.0: incorporate reply into standard parameter parsing
-    # instead of relying on converters and before invoke hooks.
-    """Special error to indicate that the command must be run while replying to a message."""
+class NoSuchSignature(IndexError):
+    def __init__(
+        self,
+        name: str,
+        arguments: tuple[str, ...],
+        candidates: list[tuple[str, ...]],
+        origin: str,
+    ) -> None:
+        candidates = ', '.join([self._make_signature(name, args) for args in candidates])
+        super().__init__(
+            f'In {origin}:\nCommand signature'
+            f" {self._make_signature(name, arguments)} doesn't exist."
+            f' Candidates are {candidates}.',
+        )
 
-    def __init__(self, message=None, *args):
-        super().__call__(message='You need to call this command while replying to a message.')
+    def _make_signature(self, name: str, arguments: tuple[str, ...]):
+        name = name.replace(' ', '.')
+        signature = ''.join([f'{arg}:' for arg in arguments])
+        return f'{name}({signature})'
 
 
-async def _on_reply_required(ctx, exc: ReplyRequired):
-    return str(exc)
-
-
-def setup_alerts(bot):
-    return {
-        ReplyRequired: {
-            'handler': _on_reply_required,
-            'alerts': ['Reply required', 'Please reply to a message'],
-        },
-    }
+class NoSuchArgument(IndexError):
+    def __init__(
+        self,
+        name: str,
+        argument: str,
+        candidates: list[str],
+        origin: str,
+    ):
+        super().__init__(
+            f'In {origin}:\n'
+            f"Command {name.replace(' ', '.')} has no argument {argument}."
+            f' Candidates are {candidates}.'
+        )

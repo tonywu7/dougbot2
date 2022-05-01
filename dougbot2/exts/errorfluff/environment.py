@@ -17,45 +17,48 @@
 from __future__ import annotations
 
 import random
-from typing import Callable, Coroutine, Optional
+from typing import Optional
 
 from discord.ext.commands import Context
+from more_itertools import always_iterable
 
+from ...blueprints import (
+    ErrorPage, _ExceptionHandler, _ExceptionResult, _ExceptionType,
+)
 from ...utils.datastructures import TypeDictionary
 
-ExceptionHandler = Callable[
-    [Context, Exception],
-    Coroutine[None, None, Optional[str]],
-]
-
-ErrorDict = TypeDictionary[type[Exception], Optional[ExceptionHandler]]
-ReplyDict = TypeDictionary[type[Exception], set[str]]
+Blurbs = TypeDictionary[type[Exception], Optional[_ExceptionHandler]]
+Fluff = TypeDictionary[type[Exception], set[str]]
 
 
-class Environment:
+class Errorfluff(ErrorPage):
     """Centralized object managing error messages."""
 
-    def __init__(self, errors: ErrorDict, replies: ReplyDict):
-        self.errors: ErrorDict = errors or TypeDictionary()
-        self.replies: ReplyDict = replies or TypeDictionary()
+    def __init__(self):
+        self.blurbs: Blurbs = TypeDictionary()
+        self.fluff: Fluff = TypeDictionary()
 
-    def merge(self, *envs: Environment):
-        """Include error handlers and error replies from other environments."""
-        for env in envs:
-            self.errors._dict.update(env.errors._dict)
-            for exc, replies in env.replies._dict.items():
-                try:
-                    self.replies._dict[exc].update(replies)
-                except KeyError:
-                    self.replies[exc] = replies
+    def set_error_blurb(self, exc: _ExceptionType, blurb: _ExceptionHandler) -> None:
+        self.blurbs[exc] = blurb
 
-    async def get_error(self, ctx: Context, exc: Exception) -> Optional[dict]:
+    def add_error_fluff(self, exc: _ExceptionType, *fluff: str) -> None:
+        for type_ in always_iterable(exc):
+            if not self.fluff.contains_exact(type_):
+                self.fluff[type_] = set(fluff)
+            else:
+                self.fluff[type_].update(fluff)
+
+    async def get_error(self, ctx: Context, exc: Exception) -> Optional[_ExceptionResult]:
         """Process the exception and return a dict convertible to an embed."""
-        printer = self.errors.get(type(exc))
+        printer = self.blurbs.get(type(exc))
         if not printer:
             return
         error = await printer(ctx, exc)
         if not error:
             return
-        reply = random.choice([*self.replies[type(exc)]])
+        reply = random.choice([*self.fluff[type(exc)]])
         return {'title': reply, 'description': error}
+
+    @classmethod
+    async def exception_to_str(cls, ctx: Context, exc: Exception) -> str:
+        return str(exc)

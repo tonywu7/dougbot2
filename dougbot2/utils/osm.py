@@ -26,6 +26,8 @@ from geopy import Location, Point
 from geopy.adapters import AioHTTPAdapter
 from geopy.geocoders import Nominatim
 
+from ..blueprints import Surroundings
+
 
 def parse_point_no_warning(s: str):
     """Parse a geopy.Point with all warnings suppressed."""
@@ -87,12 +89,12 @@ def format_coarse_location(location: Location) -> str:
 @command(hidden=True)
 @max_concurrency(1, BucketType.guild, wait=True)
 @cooldown(1, 5, BucketType.default)
-async def get_location(ctx, **kwargs) -> Location | list[Location]:
+async def get_location(ctx: Surroundings, **kwargs) -> Location | list[Location]:
     """Private Command object for making requests to the Nominatim API.
 
     The command has a concurrency limit and a cooldown. This allows
     users of the function to prevent excessive API calls on the
     end user level by triggering the cooldown and concurrency.
     """
-    geolocator = make_geolocator(ctx.session)
+    geolocator = make_geolocator(ctx.bot.get_web_client())
     return await geolocator.geocode(**kwargs)

@@ -14,20 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import inspect
 from collections.abc import Callable
 from typing import Any, Literal, Optional, Union
 
 import discord
-from discord import MessageReference
 from discord.ext import commands
-from discord.ext.commands import Cog, Command, Context
+from discord.ext.commands import Command
 from more_itertools import always_iterable
 
-from ...utils.english import (BUCKET_DESCRIPTIONS, QuantifiedNP,
-                              describe_concurrency, pluralize)
-from ...utils.functional import memoize
-from .environment import CheckDecorator, CheckWrapper, Documentation
-from .exceptions import ReplyRequired
+from dougbot2.exts.autodoc.exceptions import NoSuchArgument, NoSuchSignature
+
+from ...utils.english import (
+    BUCKET_DESCRIPTIONS, QuantifiedNP, describe_concurrency, pluralize,
+)
+from ...utils.memo import memoize
+from .environment import CheckDecorator, CheckWrapper, CommandDoc
 
 
 def example(invocation: Union[str, tuple[str, ...]], explanation: str):
@@ -38,7 +40,7 @@ def example(invocation: Union[str, tuple[str, ...]], explanation: str):
     :param explanation: What this example does when invoked.
     :type explanation: str
     """
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         key = tuple(f'{doc.call_sign} {inv}' for inv in always_iterable(invocation))
         doc.examples[key] = explanation
 
@@ -49,7 +51,7 @@ def example(invocation: Union[str, tuple[str, ...]], explanation: str):
 
 def description(desc: str):
     """Set the description of this command."""
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.description = desc
 
     def deco(obj):
@@ -59,7 +61,7 @@ def description(desc: str):
 
 def discussion(title: str, body: str):
     """Append an additional section to this command's documentation."""
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.discussions[title] = body
 
     def deco(obj):
@@ -67,8 +69,13 @@ def discussion(title: str, body: str):
     return deco
 
 
-def argument(arg: str, help: Union[str, Literal[False]] = '', *, node: str = '',
-             signature: str = '', term: Optional[Union[str, QuantifiedNP]] = None):
+def argument(
+    arg: str,
+    help: Union[str, Literal[False]] = '', *,
+    node: str = '',
+    signature: str = '',
+    term: Optional[Union[str, QuantifiedNP]] = None,
+):
     """Describe an argument of this command.
 
     :param arg: The name of the argument as specified on the signature.
@@ -85,8 +92,15 @@ def argument(arg: str, help: Union[str, Literal[False]] = '', *, node: str = '',
         defaults to None
     :type term: Optional[Union[str, QuantifiedNP]], optional
     """
-    def wrapper(doc: Documentation, f: Command):
-        argument = doc.arguments[arg]
+
+    caller = inspect.stack()[1]
+    origin = f'{caller.filename}:{caller.lineno}'
+
+    def wrapper(doc: CommandDoc, f: Command):
+        try:
+            argument = doc.arguments[arg]
+        except KeyError:
+            raise NoSuchArgument(doc.call_sign, arg, doc.arguments, origin)
         if help is False:
             argument.hidden = True
         else:
@@ -120,15 +134,21 @@ def invocation(signature: tuple[str, ...], desc: Union[str, None, Literal[False]
     """
     signature: frozenset[str] = frozenset(signature)
 
-    def wrapper(doc: Documentation, f: Command):
+    caller = inspect.stack()[1]
+    origin = f'{caller.filename}:{caller.lineno}'
+
+    def wrapper(doc: CommandDoc, f: Command):
         doc.ensure_signatures()
         if desc or desc is None:
-            doc.invocations[signature].description = desc
+            try:
+                doc.invocations[signature].description = desc
+            except KeyError as e:
+                raise NoSuchSignature(doc.call_sign, signature, doc.invocations, origin) from e
             doc.invocations.move_to_end(signature, last=True)
             doc.invalid_syntaxes.discard(signature)
         else:
             if signature not in doc.invocations:
-                raise KeyError(signature)
+                raise NoSuchSignature(doc.call_sign, signature, doc.invocations, origin)
             doc.invalid_syntaxes.add(signature)
 
     def deco(obj):
@@ -143,7 +163,7 @@ def use_syntax_whitelist(f):
     there are a large amount of invocation styles but only some of them can
     be used.
     """
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.ensure_signatures()
         doc.invalid_syntaxes |= doc.invocations.keys()
     return memoize(f, '__command_doc__', wrapper)
@@ -163,7 +183,7 @@ def restriction(deco_func: Union[CheckDecorator, None], description: Optional[st
     :param description: Description of this check, defaults to None
     :type description: Optional[str], optional
     """
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.add_restriction(deco_func, description, **kwargs)
 
     def deco(f):
@@ -175,7 +195,7 @@ def restriction(deco_func: Union[CheckDecorator, None], description: Optional[st
 
 def hidden(f):
     """Mark this command as hidden in the command table of contents."""
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.hidden = True
     return memoize(f, '__command_doc__', wrapper)
 
@@ -183,7 +203,7 @@ def hidden(f):
 def cooldown(maxcalls: int, duration: float, bucket: Union[commands.BucketType, Callable[[discord.Message], Any]]):
     """Document a cooldown for this command and apply the cooldown."""
 
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
         cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "command call")} '
                     f'every {duration} {pluralize(duration, "second")}')
@@ -202,39 +222,10 @@ def cooldown(maxcalls: int, duration: float, bucket: Union[commands.BucketType, 
 def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
     """Document a max concurrency rule for this command and apply the rule."""
 
-    def wrapper(doc: Documentation, f: Command):
+    def wrapper(doc: CommandDoc, f: Command):
         doc.restrictions.append(describe_concurrency(number, bucket).capitalize())
 
     def deco(f):
         commands.max_concurrency(number, bucket, wait=wait)(f)
         return memoize(f, '__command_doc__', wrapper)
-    return deco
-
-
-def accepts_reply(desc: str = 'Reply to a message', required=False):
-    """Mark this command as accepting a reply.
-
-    This will add a `before_invoke` callback to the command to retrieve
-    the reply and place it in a keyword argument named `reply`.
-    """
-    async def inject_reply(self_or_ctx: Union[Cog, Context], *args):
-        if not isinstance(self_or_ctx, Context):
-            ctx = args[0]
-        else:
-            ctx = self_or_ctx
-        reply: MessageReference = ctx.message.reference
-        if reply is None and required:
-            raise ReplyRequired()
-        ctx.kwargs['reply'] = reply
-
-    def wrapper(doc: Documentation, f: Command):
-        f.before_invoke(inject_reply)
-        arg = doc.arguments['reply']
-        arg.description = desc
-        arg.signature = '(with reply)'
-        arg.node = '┌ (while replying to a message)\n'
-        arg.order = -2
-
-    def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
     return deco

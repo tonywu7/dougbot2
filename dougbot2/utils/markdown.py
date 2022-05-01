@@ -150,8 +150,8 @@ def traffic_light(val: bool | None, strict=False):
         return '⛔'
 
 
-def arrow(d: Literal['N', 'E', 'S', 'W']) -> str:
-    """Make an arrow of pointing towards a direction."""
+def pointer(d: Literal['N', 'E', 'S', 'W']) -> str:
+    """Make an arrow pointing towards a direction."""
     return {
         'N': '↑',
         'E': '→',

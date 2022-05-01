@@ -25,28 +25,33 @@ from typing import Literal, Optional, Union
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 import attr
+import emoji
 import inflect
 import simplejson as json
-from discord import (AllowedMentions, Emoji, File, Guild, HTTPException,
-                     Member, Message, PartialEmoji, PartialMessage,
-                     RawBulkMessageDeleteEvent, RawMessageDeleteEvent,
-                     RawReactionActionEvent, Role, TextChannel)
-from discord.ext.commands import (BotMissingPermissions, BucketType,
-                                  EmojiConverter, EmojiNotFound,
-                                  MissingAnyRole, group)
+from discord import (
+    AllowedMentions, Emoji, File, Guild, HTTPException, Member, Message,
+    PartialEmoji, PartialMessage, RawBulkMessageDeleteEvent,
+    RawMessageDeleteEvent, RawReactionActionEvent, Role, TextChannel,
+)
+from discord.ext.commands import (
+    BotMissingPermissions, BucketType, EmojiConverter, EmojiNotFound,
+    MissingAnyRole,
+)
 from django.core.cache import caches
 from django.utils.datastructures import MultiValueDict
 from more_itertools import chunked, first, map_reduce, split_before
 
-from dougbot2.cog import Gear
-from dougbot2.context import Circumstances, on_error_reset_cooldown
+from dougbot2.blueprints import Surroundings
+from dougbot2.discord import Gear, topic
 from dougbot2.exceptions import NotAcceptable
 from dougbot2.exts import autodoc as doc
 from dougbot2.utils.async_ import async_get, async_list
-from dougbot2.utils.common import (E, Embed2, EmbedField, EmbedPagination, a,
-                                   assumed_utc, blockquote, can_embed,
-                                   chapterize, code, iter_urls, pre, strong,
-                                   tag, tag_literal, timestamp, utcnow)
+from dougbot2.utils.command import on_error_reset_cooldown
+from dougbot2.utils.common import (
+    E, Embed2, EmbedField, EmbedPagination, a, assumed_utc, blockquote,
+    can_embed, chapterize, code, iter_urls, pre, strong, tag, tag_literal,
+    timestamp, utcnow,
+)
 from dougbot2.utils.converters import Constant
 
 from .models import SuggestionChannel
@@ -129,14 +134,11 @@ class Poll:
 
         :param content: Main body of the prompt
         :type content: str
-        :param choices: Available choices, must be an emote-to-string
-        mapping
+        :param choices: Available choices, must be an emote-to-string mapping
         :type choices: dict[EmoteType, Optional[str]]
-        :param author: Author of this poll, can be any text,
-        defaults to 'unknown'
+        :param author: Author of this poll, can be any text, defaults to 'unknown'
         :type author: str, optional
-        :param title: Title of this poll, to be used as the embed title,
-        defaults to 'Poll'
+        :param title: Title of this poll, to be used as the embed title, defaults to 'Poll'
         :type title: str, optional
         """
         self.title = title
@@ -466,7 +468,7 @@ class Polling(
         self._sequential = asyncio.Lock()
         self._cache = caches['discord']
         self._invalid: set[int] = set()
-        self.log = logging.getLogger('discord.poll')
+        self.log = logging.getLogger('discord.contrib.polling')
 
     async def list_suggest_channels(self, guild: Guild) -> str:
         """Print all suggestion channels for this guild."""
@@ -482,7 +484,7 @@ class Polling(
             lines.append(f'\n{tag(channels[c.snowflake])} {c.description}')
         return '\n'.join(lines).strip()
 
-    async def send_channel_list(self, ctx: Circumstances):
+    async def send_channel_list(self, ctx: Surroundings):
         """Generate a help page for the suggestion command, including list of suggestion channels."""
         channel_list = await self.list_suggest_channels(ctx.guild)
         if not channel_list:
@@ -501,16 +503,16 @@ class Polling(
             f'{pre("suggest edit (paste link here) (updated suggestion)")}'
         )
         channel_lists = chapterize(channel_list, 1280, lambda c: c == '\n')
-        channel_lists = [f'{strong("Channels")}\n{channels}'
-                         for channels in channel_lists]
+        channel_lists = [f'{strong("Channels")}\n{channels}' for channels in channel_lists]
         base = Embed2().decorated(ctx.guild)
-        pages = [base.set_description(description=description)
-                 for description in [help_text, *channel_lists]]
+        pages = [base.set_description(description=description) for description in [help_text, *channel_lists]]
         pagination = EmbedPagination(pages, 'Suggestion channels')
-        return await (ctx.response(ctx, embed=pagination).deleter()
-                      .responder(pagination.with_context(ctx)).run(thread=True))
+        (
+            await ctx.respond(embed=pagination).deleter()
+            .responder(pagination.with_context(ctx)).run(thread=True)
+        )
 
-    async def get_channel_or_404(self, ctx: Circumstances, channel: TextChannel):
+    async def get_channel_or_404(self, ctx: Surroundings, channel: TextChannel):
         """Get the SuggestionChannel object associated with this guild channel.
 
         If the channel is not a suggestion channel, raise a NotAcceptable exception
@@ -530,7 +532,7 @@ class Polling(
 
         This is used for caching Poll objects.
         """
-        return f'{__name__}:{self.app_label}:suggestion:{msg_id}'
+        return f'{__name__}:{self.label}:suggestion:{msg_id}'
 
     def cache_submission(self, msg_id: int, poll: Poll):
         """Cache a Poll object in memory (using Django cache).
@@ -594,8 +596,10 @@ class Polling(
             self.cache_submission(msg_id, poll)
         return poll
 
-    async def update_submission(self, poll: Poll, origin: PartialMessage,
-                                *, linked: Optional[str] = None):
+    async def update_submission(
+        self, poll: Poll, origin: PartialMessage,
+        *, linked: Optional[str] = None,
+    ):
         """Edit the message containing an updated poll.
 
         Also edits the linked message (which contains any links and/or attachments
@@ -620,8 +624,7 @@ class Polling(
         if linked:
             linked_msg = channel.get_partial_message(poll.linked_msg)
             with suppress(HTTPException):
-                await linked_msg.edit(allowed_mentions=AllowedMentions.none(),
-                                      content=linked)
+                await linked_msg.edit(allowed_mentions=AllowedMentions.none(), content=linked)
 
     def get_suggestion_text(self, target: SuggestionChannel, content: str):
         """Ensure that suggestion content is not empty if the suggestion channel requires it."""
@@ -642,9 +645,10 @@ class Polling(
         """
         min_links = target.requires_links
         if min_links and len(links) < min_links:
-            err = (f'Submissions to {tag_literal("channel", target.snowflake)}'
-                   f' must include at least {min_links}'
-                   f' {inflection.plural_noun("link", min_links)}.')
+            err = (
+                f'Submissions to {tag_literal("channel", target.snowflake)}'
+                f' must include at least {min_links} {inflection.plural_noun("link", min_links)}.'
+            )
             raise NotAcceptable(err)
         return links
 
@@ -655,9 +659,10 @@ class Polling(
         """
         min_uploads = target.requires_uploads
         if min_uploads and len(msg.attachments) < min_uploads:
-            err = (f'Submissions to {tag(msg.channel)} require'
-                   f' uploading at least {min_uploads}'
-                   f' {inflection.plural_noun("file", min_uploads)}.')
+            err = (
+                f'Submissions to {tag(msg.channel)} require uploading at least {min_uploads}'
+                f' {inflection.plural_noun("file", min_uploads)}.'
+            )
             raise NotAcceptable(err)
         return await asyncio.gather(*[att.to_file() for att in msg.attachments])
 
@@ -686,8 +691,7 @@ class Polling(
         """
         perms = channel.permissions_for(channel.guild.me)
         missing = []
-        for required in ('send_messages', 'attach_files',
-                         'embed_links', 'add_reactions'):
+        for required in ('send_messages', 'attach_files', 'embed_links', 'add_reactions'):
             if not getattr(perms, required):
                 missing.append(required)
         if missing:
@@ -708,15 +712,14 @@ class Polling(
             with suppress(Exception):
                 await msg.clear_reaction(emote)
 
-    async def respond(self, ctx: Circumstances, content: str):
+    async def respond(self, ctx: Surroundings, content: str):
         """Respond to command calls for commands in this cog.
 
         This uses the reply function and sets a 20-second autodelete.
         """
-        return (await ctx.response(ctx, content=content)
-                .reply().autodelete(20).run())
+        await ctx.respond(content).reply().autodelete(20).run()
 
-    @group('suggest', case_insensitive=True, invoke_without_command=True)
+    @topic('suggest')
     @doc.description('Make a suggestion.')
     @doc.argument('category', 'The suggestion channel to use.',
                   node='[suggest channel]', signature='[channel]')
@@ -728,7 +731,7 @@ class Polling(
     @can_embed
     @on_error_reset_cooldown
     async def suggest(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         category: Optional[Union[TextChannel, str]],
         *, suggestion: str = '',
     ):
@@ -779,7 +782,8 @@ class Polling(
         'The message containing your submission'
         ' (copy the permalink included in the message).'
     ))
-    async def suggest_delete(self, ctx: Circumstances, suggestion: Message):
+    @doc.hidden
+    async def suggest_delete(self, ctx: Surroundings, suggestion: Message):
         """Allow suggestion authors to remove their own suggestions.
 
         Otherwise it is not possible to delete the bot's message unless they have
@@ -809,12 +813,13 @@ class Polling(
         'Replace the suggestion content;'
         ' note that it is not possible'
         ' to change the uploaded files'
-        ' if there are any.'
+        ' (if there is any).'
     ))
     @doc.cooldown(1, 5, BucketType.member)
+    @doc.hidden
     @on_error_reset_cooldown
     async def suggest_edit(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         suggestion: Message,
         *, content: str = '',
     ):
@@ -845,9 +850,10 @@ class Polling(
     @doc.use_syntax_whitelist
     @doc.invocation(('suggestion', 'comment'), None)
     @doc.cooldown(1, 60, BucketType.member)
+    @doc.hidden
     @on_error_reset_cooldown
     async def comment(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         suggestion: Message, *, comment: str,
     ):
         """Add a comment to a suggestion."""
@@ -882,9 +888,10 @@ class Polling(
     @doc.argument('member', 'The member you would like to credit the suggestion to.')
     @doc.restriction(None, 'You can only change the attribution of a suggestion you submitted.')
     @doc.cooldown(1, 5, BucketType.member)
+    @doc.hidden
     @on_error_reset_cooldown
     async def suggest_credit(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         suggestion: Message,
         member: Member,
     ):
@@ -915,7 +922,7 @@ class Polling(
     @doc.cooldown(1, 5, BucketType.member)
     @doc.hidden
     async def suggest_forum(
-        self, ctx: Circumstances,
+        self, ctx: Surroundings,
         suggestion: Message, enabled: bool = True,
     ):
         """Open up a suggestion as a forum.
@@ -936,7 +943,7 @@ class Polling(
     @doc.argument('suggestion', 'The message containing the submission.')
     @doc.hidden
     async def suggest_obfuscate(
-        self, ctx: Circumstances, suggestion: Message,
+        self, ctx: Surroundings, suggestion: Message,
     ):
         """Hide all usernames in the votes and comments section."""
         poll = await self.fetch_submission(suggestion)
@@ -946,13 +953,13 @@ class Polling(
         await self.add_reactions(poll, suggestion)
         await ctx.response(ctx).success().run()
 
-    @group('poll', case_insensitive=True, invoke_without_command=True)
+    @topic('poll')
     @doc.description('Make a poll.')
     @doc.argument('content', 'Question and options for the poll.', node='[poll]')
     @doc.invocation((), 'Get help on how to format your question.')
     @doc.invocation(('content',), 'Make a poll.')
     @can_embed
-    async def poll(self, ctx: Circumstances, *, content: str = ''):
+    async def poll(self, ctx: Surroundings, *, content: str = ''):
         """Create a poll in the current channel (independent of the suggestion system)."""
         # TODO: better errors
         HELP_TEXT = dedent("""\
@@ -973,7 +980,7 @@ class Polling(
         """)
         if not content:
             res = Embed2(title='How-to use the poll command', description=HELP_TEXT)
-            return await ctx.response(ctx, embed=res).autodelete(90).deleter().run()
+            return await ctx.respond(embed=res).autodelete(90).deleter().run()
 
         items: list[str] = []
         for lines in split_before(content.splitlines(), lambda s: s[:1] == '-'):
@@ -992,9 +999,12 @@ class Polling(
             raise NotAcceptable('You can specify at most 10 options.')
 
         converter = EmojiConverter()
-        emotes = ('1\ufe0f\u20e3 2\ufe0f\u20e3 3\ufe0f\u20e3 4\ufe0f\u20e3 5\ufe0f\u20e3'
-                  ' 6\ufe0f\u20e3 7\ufe0f\u20e3 8\ufe0f\u20e3 9\ufe0f\u20e3 🔟'
-                  .split(' '))
+        emotes = list(map(
+            emoji.emojize,
+            ':keycap_1: :keycap_2: :keycap_3: :keycap_4: :keycap_5:'
+            ' :keycap_6: :keycap_7: :keycap_8: :keycap_9: :keycap_10:'
+            .split(' '),
+        ))
         lines: dict[str, str] = {}
         for bullet, option in zip(emotes, choices):
             option = option.removeprefix('-').strip()
@@ -1021,21 +1031,22 @@ class Polling(
         except ValueError as e:
             raise NotAcceptable(f'Your poll is too long: {e}')
         await self.add_reactions(poll, msg)
-        await ctx.response(ctx).deleter().run(msg)
+        await ctx.respond().deleter().run(msg)
 
     @poll.command('tally', aliases=('count',))
     @doc.description('Count the votes on a poll.')
     @doc.argument('poll', 'The message containing the poll.')
     @doc.argument('anonymize', "Whether to omit vote casters' username from the result.")
+    @doc.hidden
     @can_embed
     async def suggest_tally(
-        self, ctx: Circumstances, poll: Message,
+        self, ctx: Surroundings, poll: Message,
         anonymize: Optional[Constant[Literal['anonymize']]] = False,
     ):
         """Count the votes on a submission and create a report."""
         submission = await self.fetch_submission(poll)
         res = submission.tally(poll, bool(anonymize))
-        return await ctx.response(ctx, embed=res).deleter().run()
+        return await ctx.respond(embed=res).deleter().run()
 
     @Gear.listener('on_raw_reaction_add')
     async def on_reaction(self, ev: RawReactionActionEvent):
@@ -1047,11 +1058,11 @@ class Polling(
         if ev.message_id in self._invalid:
             return
 
-        channel: TextChannel = self.bot.get_channel(ev.snowflake)
+        channel: TextChannel = self.bot.get_channel(ev.channel_id)
         if not channel:
             return
         try:
-            target = await async_get(SuggestionChannel, snowflake=ev.snowflake)
+            target = await async_get(SuggestionChannel, snowflake=ev.channel_id)
         except SuggestionChannel.DoesNotExist:
             return
 
@@ -1100,7 +1111,7 @@ class Polling(
     @Gear.listener('on_raw_message_delete')
     async def on_delete(self, ev: RawMessageDeleteEvent):
         """Clean up the linked message in case the message deleted here is a submission."""
-        channel: TextChannel = self.bot.get_channel(ev.snowflake)
+        channel: TextChannel = self.bot.get_channel(ev.channel_id)
         if not channel:
             return
         await self.delete_linked_msg(ev.message_id, channel)
@@ -1108,7 +1119,7 @@ class Polling(
     @Gear.listener('on_raw_bulk_message_delete')
     async def on_bulk_delete(self, ev: RawBulkMessageDeleteEvent):
         """Clean up the linked messages in case the messages deleted here are submissions."""
-        channel: TextChannel = self.bot.get_channel(ev.snowflake)
+        channel: TextChannel = self.bot.get_channel(ev.channel_id)
         if not channel:
             return
         await asyncio.gather(*[

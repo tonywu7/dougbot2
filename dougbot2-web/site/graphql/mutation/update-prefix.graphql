@@ -1,7 +1,0 @@
-mutation UpdatePrefix($serverId: ID!, $prefix: String!) {
-    updatePrefix(serverId: $serverId, prefix: $prefix) {
-        server {
-            prefix
-        }
-    }
-}

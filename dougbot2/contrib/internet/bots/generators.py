@@ -20,7 +20,7 @@ from typing import Literal, Optional
 from discord.ext.commands import command
 from faker import Faker
 
-from dougbot2.context import Circumstances
+from dougbot2.blueprints import Surroundings
 from dougbot2.exts import autodoc as doc
 from dougbot2.utils.common import a
 from dougbot2.utils.converters import Choice
@@ -58,10 +58,10 @@ class ContentGenerationCommands:
     @doc.argument('language', 'The language in which the text should be generated.')
     @doc.invocation((), 'Generate a paragraph.')
     @doc.invocation(('language',), 'Generate a paragraph in one of the supported languages.')
-    async def lipsum(self, ctx: Circumstances, language: Optional[FakerLocales] = 'la'):
+    async def lipsum(self, ctx: Surroundings, language: Optional[FakerLocales] = 'la'):
         """Create text using Faker's lorem provider."""
         fake = get_faker(language)
         sentences = fake.sentences(5)
         if language == 'la':
             sentences = ['Lorem ipsum dolor sit amet, consectetur adipiscing elit.', *sentences]
-        return await ctx.response(ctx, content=' '.join(sentences)).deleter().run()
+        await ctx.respond(' '.join(sentences)).deleter().run()

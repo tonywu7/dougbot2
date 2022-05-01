@@ -17,7 +17,7 @@
 from discord import DMChannel
 from discord.ext.commands import Command, Context, NoPrivateMessage
 
-from ..utils.functional import dict_memoize, get_memo
+from ..utils.memo import dict_memoize, get_memo
 
 
 def is_direct_message(ctx: Context):
@@ -25,7 +25,7 @@ def is_direct_message(ctx: Context):
     return isinstance(ctx.channel, DMChannel)
 
 
-def accepts_dms(f):
+def accept_dms(f):
     """Mark this command as functional in direct messages."""
     dict_memoize(f, '__command_info__', 'direct_message', True)
     return f

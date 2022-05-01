@@ -17,18 +17,38 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable, Coroutine
+from contextlib import suppress
+from dataclasses import dataclass
+from textwrap import shorten
 from typing import Any, Optional
 
 import attr
-from discord import (AllowedMentions, Emoji, File, Forbidden, Message,
-                     MessageReference, PartialEmoji)
+from discord import (
+    AllowedMentions, DMChannel, Emoji, File, Forbidden, Message,
+    MessageReference, PartialEmoji, TextChannel, User,
+)
 from discord.ext.commands import Context
-from duckcord.embeds import Embed2
 
-from .events import (DeleteResponder, Responder, run_responders,
-                     start_responders)
+from ..defaults import get_defaults
+from .duckcord.embeds import Embed2
+from .events import DeleteResponder, Responder, run_responders, start_responders
 from .markdown import tag
+
+logger = logging.getLogger('discord.utils.response')
+
+
+@dataclass
+class Fulfillment:
+    message: Optional[Message]
+    did_send_embed: bool
+    did_send_attachments: bool
+    did_add_reactions: bool
+
+    @classmethod
+    def none(cls):
+        return cls(None, False, False, False)
 
 
 @attr.s
@@ -130,22 +150,64 @@ class ResponseInit:
 
     def success(self):
         """React to the command invocation with a green checkmark indicating success."""
-        return attr.evolve(self, indicators=[*self.indicators, '✅'])
+        return attr.evolve(self, indicators=[*self.indicators, get_defaults().styles.emotes.success])
 
     def failure(self):
         """React to the command invocation with a red cross indicating failure/error."""
-        return attr.evolve(self, indicators=[*self.indicators, '❌'])
+        return attr.evolve(self, indicators=[*self.indicators, get_defaults().styles.emotes.failure])
 
-    async def send(self, *args, **kwargs) -> Optional[Message]:
-        """Deliver the response."""
+    @property
+    def is_empty(self) -> bool:
+        """Whether no text, embed, nor file has been set for the response.
+
+        Attempting to send a message at this state will fail.
+        """
+        return not self.content and not self.embed and not self.files
+
+    async def _send_indicators(self) -> bool:
+        res = await asyncio.gather(*[
+            self.context.message.add_reaction(r)
+            for r in self.indicators
+        ], return_exceptions=True)
+        return not any(isinstance(r, Exception) for r in res)
+
+    async def _deliver(self) -> Fulfillment:
+        """Deliver the response, with sensible permission tests."""
+        target: TextChannel | DMChannel
         if self.direct_message:
-            try:
-                return await self.context.author.send(*args, **kwargs)
-            except Forbidden:
-                return
-        return await self.context.send(*args, **kwargs)
+            author: User = self.context.author
+            if not (target := author.dm_channel):
+                target = await author.create_dm()
+        else:
+            target = self.context.channel
 
-    async def run(self, message: Optional[Message] = None, thread: bool = False):
+        me: User = self.context.me
+        perms = target.permissions_for(me)
+        fulfilled = Fulfillment.none()
+        if not perms.send_messages:
+            return fulfilled
+
+        params = attr.evolve(self)
+        if params.embed is not None:
+            fulfilled.did_send_embed = perms.embed_links
+            if not perms.embed_links:
+                params.content = '\n'.join([params.content or '', str(params.embed)])
+                params.embed = None
+        if params.files:
+            fulfilled.did_send_attachments = perms.attach_files
+            if not perms.attach_files:
+                params.files = []
+
+        kwargs = attr.asdict(params, recurse=False, filter=self._attrs_filter)
+        try:
+            msg = await target.send(**kwargs)
+            fulfilled.message = msg
+            return fulfilled
+        except Forbidden as e:
+            logger.warning(f'Error while delivering response: {e}\n{self}')
+            return Fulfillment.none()
+
+    async def run(self, message: Optional[Message] = None, thread: bool = False) -> Fulfillment:
         """Execute the response.
 
         Send out the message, run all callbacks, and begin listening for events.
@@ -156,37 +218,40 @@ class ResponseInit:
         :param message: The message to react/listen, defaults to None
         :type message: Optional[Message], optional
         :param thread: If True, run responders in a separate thread,
-        otherwise run them in the current event loop,
-        defaults to True
+            otherwise run them in the current event loop,
+            defaults to True
         :type thread: bool, optional
-        :return: The message that was sent
-        :rtype: Message
+        :return: The message that was sent and whether
+            all embed, files, and reactions are sent successfully.
+        :rtype: `Fulfillment`
         """
-        await asyncio.gather(*[
-            self.context.message.add_reaction(r)
-            for r in self.indicators
-        ], return_exceptions=True)
-        if not message:
+        did_set_indicators = bool(self.indicators) and await self._send_indicators()
+        fulfilled = Fulfillment.none()
+        fulfilled.message = message
+        if not fulfilled.message:
             if self.is_empty:
-                return
-            args = attr.asdict(self, recurse=False, filter=self._attrs_filter)
-            message = await self.send(**args)
-        if not message:
-            return
+                fulfilled.did_add_reactions = did_set_indicators
+                return fulfilled
+            fulfilled = await self._deliver()
+        if not fulfilled.message:
+            return fulfilled
         for cb in self.callbacks:
-            await cb(message)
+            with suppress(Exception):
+                await cb(fulfilled.message)
         if self.responders:
-            tasks = [r(message) for r in self.responders]
+            tasks = [r(fulfilled.message) for r in self.responders]
             if thread:
                 start_responders(*tasks)
             else:
                 await run_responders(*tasks)
-        return message
+        return fulfilled
 
-    @property
-    def is_empty(self):
-        """Whether no text, embed, nor file has been set for the response.
-
-        Attempting to send a message at this state will fail.
-        """
-        return not self.content and not self.embed and not self.files
+    def __str__(self) -> str:
+        target = self.context.author if self.direct_message else self.context.channel
+        return (
+            f'Response:\n target = {target}'
+            f'\n content = {shorten(repr(self.content), 128)}'
+            f'\n embed = {shorten(repr(self.embed), 128)}'
+            f'\n files = {self.files}'
+            f'\n indicators = {self.indicators}'
+        )

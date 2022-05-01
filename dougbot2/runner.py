@@ -23,7 +23,8 @@ from typing import Any, Generic, Optional, TypeVar
 from discord import Client
 from discord.errors import LoginFailure
 from discord.ext.commands import Bot
-from django.conf import settings
+
+from .defaults import get_defaults
 
 T = TypeVar('T', bound=Client)  # type: ignore
 U = TypeVar('U', bound=Bot)
@@ -98,7 +99,7 @@ class BotRunner(threading.Thread, Generic[T]):
             with self.connect:
                 self.connect.notify_all()
 
-        login = client.login(settings.DISCORD_BOT_TOKEN)
+        login = client.login(get_defaults().auth.bot_token)
         login = asyncio.run_coroutine_threadsafe(login, loop)
         login.add_done_callback(on_logged_in)
 

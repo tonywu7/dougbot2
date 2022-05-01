@@ -48,7 +48,7 @@ COPY ./ /application/
 SHELL [ "/bin/bash", "-c" ]
 
 # Setup project
-ENV DJANGO_SETTINGS_MODULE=ts2.conf.production \
+ENV DJANGO_SETTINGS_MODULE=dougbot2.conf.production \
     NLTK_DATA=/application/instance/nltk_data
 
 RUN ./bin/setup
