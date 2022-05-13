@@ -26,7 +26,10 @@ from more_itertools import always_iterable
 from dougbot2.exts.autodoc.exceptions import NoSuchArgument, NoSuchSignature
 
 from ...utils.english import (
-    BUCKET_DESCRIPTIONS, QuantifiedNP, describe_concurrency, pluralize,
+    BUCKET_DESCRIPTIONS,
+    QuantifiedNP,
+    describe_concurrency,
+    pluralize,
 )
 from ...utils.memo import memoize
 from .environment import CheckDecorator, CheckWrapper, CommandDoc
@@ -40,40 +43,47 @@ def example(invocation: Union[str, tuple[str, ...]], explanation: str):
     :param explanation: What this example does when invoked.
     :type explanation: str
     """
+
     def wrapper(doc: CommandDoc, f: Command):
-        key = tuple(f'{doc.call_sign} {inv}' for inv in always_iterable(invocation))
+        key = tuple(f"{doc.call_sign} {inv}" for inv in always_iterable(invocation))
         doc.examples[key] = explanation
 
     def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
+        return memoize(obj, "__command_doc__", wrapper)
+
     return deco
 
 
 def description(desc: str):
     """Set the description of this command."""
+
     def wrapper(doc: CommandDoc, f: Command):
         doc.description = desc
 
     def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
+        return memoize(obj, "__command_doc__", wrapper)
+
     return deco
 
 
 def discussion(title: str, body: str):
     """Append an additional section to this command's documentation."""
+
     def wrapper(doc: CommandDoc, f: Command):
         doc.discussions[title] = body
 
     def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
+        return memoize(obj, "__command_doc__", wrapper)
+
     return deco
 
 
 def argument(
     arg: str,
-    help: Union[str, Literal[False]] = '', *,
-    node: str = '',
-    signature: str = '',
+    help: Union[str, Literal[False]] = "",
+    *,
+    node: str = "",
+    signature: str = "",
     term: Optional[Union[str, QuantifiedNP]] = None,
 ):
     """Describe an argument of this command.
@@ -94,7 +104,7 @@ def argument(
     """
 
     caller = inspect.stack()[1]
-    origin = f'{caller.filename}:{caller.lineno}'
+    origin = f"{caller.filename}:{caller.lineno}"
 
     def wrapper(doc: CommandDoc, f: Command):
         try:
@@ -113,7 +123,8 @@ def argument(
             argument.accepts = QuantifiedNP(term)
 
     def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
+        return memoize(obj, "__command_doc__", wrapper)
+
     return deco
 
 
@@ -135,7 +146,7 @@ def invocation(signature: tuple[str, ...], desc: Union[str, None, Literal[False]
     signature: frozenset[str] = frozenset(signature)
 
     caller = inspect.stack()[1]
-    origin = f'{caller.filename}:{caller.lineno}'
+    origin = f"{caller.filename}:{caller.lineno}"
 
     def wrapper(doc: CommandDoc, f: Command):
         doc.ensure_signatures()
@@ -143,7 +154,9 @@ def invocation(signature: tuple[str, ...], desc: Union[str, None, Literal[False]
             try:
                 doc.invocations[signature].description = desc
             except KeyError as e:
-                raise NoSuchSignature(doc.call_sign, signature, doc.invocations, origin) from e
+                raise NoSuchSignature(
+                    doc.call_sign, signature, doc.invocations, origin
+                ) from e
             doc.invocations.move_to_end(signature, last=True)
             doc.invalid_syntaxes.discard(signature)
         else:
@@ -152,7 +165,8 @@ def invocation(signature: tuple[str, ...], desc: Union[str, None, Literal[False]
             doc.invalid_syntaxes.add(signature)
 
     def deco(obj):
-        return memoize(obj, '__command_doc__', wrapper)
+        return memoize(obj, "__command_doc__", wrapper)
+
     return deco
 
 
@@ -163,13 +177,20 @@ def use_syntax_whitelist(f):
     there are a large amount of invocation styles but only some of them can
     be used.
     """
+
     def wrapper(doc: CommandDoc, f: Command):
         doc.ensure_signatures()
         doc.invalid_syntaxes |= doc.invocations.keys()
-    return memoize(f, '__command_doc__', wrapper)
+
+    return memoize(f, "__command_doc__", wrapper)
 
 
-def restriction(deco_func: Union[CheckDecorator, None], description: Optional[str] = None, /, **kwargs) -> CheckWrapper:
+def restriction(
+    deco_func: Union[CheckDecorator, None],
+    description: Optional[str] = None,
+    /,
+    **kwargs,
+) -> CheckWrapper:
     """Document a check for the command.
 
     If a function is passed, the function will be called with the supplied
@@ -183,39 +204,50 @@ def restriction(deco_func: Union[CheckDecorator, None], description: Optional[st
     :param description: Description of this check, defaults to None
     :type description: Optional[str], optional
     """
+
     def wrapper(doc: CommandDoc, f: Command):
         doc.add_restriction(deco_func, description, **kwargs)
 
     def deco(f):
         if callable(deco_func):
             deco_func(**kwargs)(f)
-        return memoize(f, '__command_doc__', wrapper)
+        return memoize(f, "__command_doc__", wrapper)
+
     return deco
 
 
 def hidden(f):
     """Mark this command as hidden in the command table of contents."""
+
     def wrapper(doc: CommandDoc, f: Command):
         doc.hidden = True
-    return memoize(f, '__command_doc__', wrapper)
+
+    return memoize(f, "__command_doc__", wrapper)
 
 
-def cooldown(maxcalls: int, duration: float, bucket: Union[commands.BucketType, Callable[[discord.Message], Any]]):
+def cooldown(
+    maxcalls: int,
+    duration: float,
+    bucket: Union[commands.BucketType, Callable[[discord.Message], Any]],
+):
     """Document a cooldown for this command and apply the cooldown."""
 
     def wrapper(doc: CommandDoc, f: Command):
         bucket_type = BUCKET_DESCRIPTIONS.get(bucket)
-        cooldown = (f'Rate limited: {maxcalls} {pluralize(maxcalls, "command call")} '
-                    f'every {duration} {pluralize(duration, "second")}')
+        cooldown = (
+            f'Rate limited: {maxcalls} {pluralize(maxcalls, "command call")} '
+            f'every {duration} {pluralize(duration, "second")}'
+        )
         if bucket_type is None:
-            info = f'{cooldown}; dynamic.'
+            info = f"{cooldown}; dynamic."
         else:
-            info = f'{cooldown} {bucket_type}'
+            info = f"{cooldown} {bucket_type}"
         doc.restrictions.append(info)
 
     def deco(f):
         commands.cooldown(maxcalls, duration, bucket)(f)
-        return memoize(f, '__command_doc__', wrapper)
+        return memoize(f, "__command_doc__", wrapper)
+
     return deco
 
 
@@ -227,5 +259,6 @@ def concurrent(number: int, bucket: commands.BucketType, *, wait=False):
 
     def deco(f):
         commands.max_concurrency(number, bucket, wait=wait)(f)
-        return memoize(f, '__command_doc__', wrapper)
+        return memoize(f, "__command_doc__", wrapper)
+
     return deco

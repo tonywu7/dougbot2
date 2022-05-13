@@ -21,6 +21,7 @@ from discord.ext.commands import Context
 
 def on_error_reset_cooldown(f):
     """Wrap a command callback such that command cooldowns are reset if the command raises."""
+
     @wraps(f)
     async def wrapper(*args, **kwargs):
         try:
@@ -32,4 +33,5 @@ def on_error_reset_cooldown(f):
                 ctx = args[1]
             ctx.command.reset_cooldown(ctx)
             raise
+
     return wrapper

@@ -81,8 +81,7 @@ class Permissions2(Permissions):
     def _set_flag(self, o, toggle: bool):
         name = type(self).__name__
         raise NotImplementedError(
-            f'{name} objects are immutable,'
-            f' use {name}.evolve() instead.',
+            f"{name} objects are immutable," f" use {name}.evolve() instead.",
         )
 
     def __index__(self):
@@ -203,8 +202,7 @@ class Permissions2(Permissions):
         if not isinstance(other, Permissions):
             return NotImplemented
         # Evaluating NotImplemented as bool is deprecated since 3.9
-        return (self.value != other.value
-                and (self.value & other.value) == self.value)
+        return self.value != other.value and (self.value & other.value) == self.value
 
     def __gt__(self, other):
         """Return :data:`True` if this :class:`Permissions2` is a *strict
@@ -214,8 +212,7 @@ class Permissions2(Permissions):
         """
         if not isinstance(other, Permissions):
             return NotImplemented
-        return (self.value != other.value
-                and (self.value | other.value) == self.value)
+        return self.value != other.value and (self.value | other.value) == self.value
 
     issubset = is_subset = __le__
     issuperset = is_superset = __ge__
@@ -228,7 +225,7 @@ class Permissions2(Permissions):
         flag_value = cls.VALID_FLAGS.get(flag_name)
         if flag_value is None:
             if strict:
-                raise TypeError(f'{flag_name} is not a valid permission name.')
+                raise TypeError(f"{flag_name} is not a valid permission name.")
             return value
         if is_set:
             return value | flag_value
@@ -331,16 +328,17 @@ class Permissions2(Permissions):
 
     def difference(self, *others: Permissions2) -> Permissions2:
         all_ = self.all().value
-        return type(self)(reduce(and_, [all_ & ~p.value for p in others],
-                                 self.value))
+        return type(self)(reduce(and_, [all_ & ~p.value for p in others], self.value))
 
     def symmetric_difference(self, other: Permissions2) -> Permissions2:
         v = self ^ other
         if v is NotImplemented:
-            raise TypeError((
-                'symmetric_difference unsupported'
-                f' between {type(self)} and {type(other)}'
-            ))
+            raise TypeError(
+                (
+                    "symmetric_difference unsupported"
+                    f" between {type(self)} and {type(other)}"
+                )
+            )
         return v
 
     def downgrade(self) -> Permissions:
@@ -398,7 +396,7 @@ class PermissionOverride(PermissionOverwrite):
         :class:`discord.PermissionOverwrite` object, use :meth:`downgrade`.
     """
 
-    __slots__ = ('_allowed', '_denied')
+    __slots__ = ("_allowed", "_denied")
 
     VALID_NAMES: set[str]
     PURE_FLAGS: set[str]
@@ -406,7 +404,7 @@ class PermissionOverride(PermissionOverwrite):
     class _Delegate(Permissions2):
         """Compat object for flag attribute getters."""
 
-        __slots__ = ('parent',)
+        __slots__ = ("parent",)
 
         def __init__(self, parent: PermissionOverride):
             self.parent = parent
@@ -425,28 +423,33 @@ class PermissionOverride(PermissionOverwrite):
 
         def __eq__(self, other: dict[str, bool] | PermissionOverride._Delegate):
             if isinstance(other, type(self)):
-                return (self.parent._allowed == other.parent._allowed
-                        and self.parent._denied == other.parent._denied)
+                return (
+                    self.parent._allowed == other.parent._allowed
+                    and self.parent._denied == other.parent._denied
+                )
             elif isinstance(other, dict):
                 # Support comparing with the original
                 # PermissionOverwrite objects
                 other_allowed, other_denied = self.parent._dict_to_bits(other)
-                return (self.parent._allowed == other_allowed
-                        and self.parent._denied == other_denied)
+                return (
+                    self.parent._allowed == other_allowed
+                    and self.parent._denied == other_denied
+                )
             else:
                 return NotImplemented
 
     _values: _Delegate
 
     @classmethod
-    def _dict_to_bits(cls, flags: dict[str, bool],
-                      strict: bool = True) -> tuple[int, int]:
+    def _dict_to_bits(
+        cls, flags: dict[str, bool], strict: bool = True
+    ) -> tuple[int, int]:
         _allowed: int = 0
         _denied: int = 0
         for k, v in flags.items():
             if k not in cls.VALID_NAMES:
                 if strict:
-                    raise TypeError(f'{k} is not a valid permission name.')
+                    raise TypeError(f"{k} is not a valid permission name.")
                 else:
                     continue
             if v is None:
@@ -460,8 +463,10 @@ class PermissionOverride(PermissionOverwrite):
         return _allowed, _denied
 
     def __repr__(self):
-        return '<%s allow=%s deny=%s>' % (
-            type(self).__name__, self._allowed, self._denied,
+        return "<%s allow=%s deny=%s>" % (
+            type(self).__name__,
+            self._allowed,
+            self._denied,
         )
 
     def __new__(cls, **kwargs):
@@ -490,8 +495,7 @@ class PermissionOverride(PermissionOverwrite):
     def _set(self, key, value):
         name = type(self).__name__
         raise NotImplementedError(
-            f'{name} objects are immutable,'
-            f' use {name}.evolve() instead.',
+            f"{name} objects are immutable," f" use {name}.evolve() instead.",
         )
 
     @property
@@ -643,7 +647,8 @@ class PermissionOverride(PermissionOverwrite):
 
 
 def get_total_perms(
-    *roles: Role, channel: Optional[GuildChannel] = None,
+    *roles: Role,
+    channel: Optional[GuildChannel] = None,
     member: Optional[Member] = None,
 ) -> Permissions2:
     """Calculate the total permissions for a set of roles, optionally in a\
@@ -668,8 +673,9 @@ def get_total_perms(
     guild: Guild = channel.guild
     everyone = guild.default_role
     roles.discard(everyone)
-    overrides = {r: PermissionOverride.upgrade(o)
-                 for r, o in channel.overwrites.items()}
+    overrides = {
+        r: PermissionOverride.upgrade(o) for r, o in channel.overwrites.items()
+    }
     here = overrides.get(everyone, PermissionOverride())
     applied = [overrides.get(r, PermissionOverride()) for r in roles]
     override: PermissionOverride = reduce(or_, applied, PermissionOverride())

@@ -14,26 +14,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timezone
-from typing import Optional
-
-import arrow
 from django.db import models
 
 
-class TickerChannel(models.Model):
+class RoleStatistics(models.Model):
     channel_id: int = models.BigIntegerField()
+    message_id: int = models.BigIntegerField()
 
-    content: str = models.TextField(blank=False)
-    variables: dict = models.JSONField(blank=False, default=dict)
+    title: str = models.TextField()
+    description: str = models.TextField()
 
-    created: datetime = models.DateTimeField(default=arrow.utcnow)
-    refresh: float = models.FloatField()
-    expire: Optional[datetime] = models.DateTimeField(null=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["channel_id", "message_id"], name="msg_id"),
+        ]
 
-    parent_id: Optional[int] = models.BigIntegerField()
-    placement: dict = models.JSONField(blank=False, default=dict)
 
-    @property
-    def expired(self) -> bool:
-        return self.expire and datetime.now(timezone.utc) >= self.expire
+class RoleCounter(models.Model):
+    menu: RoleStatistics = models.ForeignKey(
+        RoleStatistics, on_delete=models.CASCADE, related_name="roles"
+    )
+
+    guild_id: int = models.BigIntegerField()
+
+    role_id: int = models.BigIntegerField()
+    emote: str = models.CharField(max_length=256)
+    description: str = models.TextField()
+
+    class Meta:
+        indexes = [models.Index(fields=["role_id"]), models.Index(fields=["guild_id"])]

@@ -23,20 +23,22 @@ class NotAcceptable(UserInputError):
     This is raised in command callbacks for input errors that can't be determined
     during parsing or conversion.
     """
+
     def __init__(self, message, *args):
         super().__init__(message=message, *args)
 
 
 class ServiceUnavailable(CommandError):
-    def __init__(self, message='', *args):
+    def __init__(self, message="", *args):
         super().__init__(message=message, *args)
 
 
 class RollbackCommand(Exception):
     """Exception to be raised to Django transaction manager when a command finished with errors."""
+
     pass
 
 
 class DirectMessageForbidden(CommandError):
-    def __init__(self, target: str = 'you'):
+    def __init__(self, target: str = "you"):
         super().__init__(message=f"Couldn't send DMs to {target}.")

@@ -24,7 +24,7 @@ from discord.ext.commands.view import StringView
 
 from ...utils.markdown import find_codeblock
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CodeBlock(Converter):
@@ -49,14 +49,14 @@ class CodeBlock(Converter):
 
     async def convert(self, ctx: Context, argument: str):
         view: StringView = ctx.view
-        buffer = view.buffer[view.previous:]
+        buffer = view.buffer[view.previous :]
         code, length = find_codeblock(buffer, self.langs)
         if not code:
-            raise ValueError(f'Not a valid {self.langs[0]} code block.')
+            raise ValueError(f"Not a valid {self.langs[0]} code block.")
         try:
             self.result = self.parse(code)
         except self.exc as e:
-            raise ValueError(f'Not a valid {self.langs[0]} code block: {e}')
+            raise ValueError(f"Not a valid {self.langs[0]} code block: {e}")
         view.index = view.previous + length
         return self
 
@@ -64,7 +64,7 @@ class CodeBlock(Converter):
 class JSON(CodeBlock):
     """Parse a JSON code block (language code `json`)."""
 
-    langs = ('json',)
+    langs = ("json",)
     exc = (json.JSONDecodeError,)
     result: dict
 
@@ -75,7 +75,7 @@ class JSON(CodeBlock):
 class TOML(CodeBlock):
     """Parse a TOML code block (language code `toml`)."""
 
-    langs = ('toml',)
+    langs = ("toml",)
     exc = (toml.TomlDecodeError,)
     result: dict
 
@@ -87,13 +87,13 @@ class _Dictionary(Converter):
     async def convert(self, ctx, argument):
         if isinstance(argument, dict):
             return argument
-        raise ValueError('Not a dictionary.')
+        raise ValueError("Not a dictionary.")
 
 
 class JinjaTemplate(CodeBlock):
     """Parse a Jinja template code block (language code `jinja`)."""
 
-    langs = ('jinja',)
+    langs = ("jinja",)
     exc = (Exception,)
     result: str
 

@@ -24,52 +24,77 @@ from django.core.management.base import BaseCommand
 from dougbot2.utils.logger import colored as _
 from dougbot2.utils.repl import Form, Question, missing
 
-log = logging.getLogger('manage.init')
+log = logging.getLogger("manage.init")
 
 
 class Command(BaseCommand):
-    help = ('Initialize database and app settings.')
+    help = "Initialize database and app settings."
 
     requires_system_checks = [Tags.models, Tags.database]
     requires_migrations_checks = True
 
     def add_arguments(self, parser) -> None:
         parser.add_argument(
-            '--discord-client-id', action='store', dest='client_id',
-            help='Client ID of your Discord app.', default=missing,
+            "--discord-client-id",
+            action="store",
+            dest="client_id",
+            help="Client ID of your Discord app.",
+            default=missing,
         )
         parser.add_argument(
-            '--discord-client-secret', action='store', dest='secret',
-            help='Client secret of your Discord app.', default=missing,
+            "--discord-client-secret",
+            action="store",
+            dest="secret",
+            help="Client secret of your Discord app.",
+            default=missing,
         )
         parser.add_argument(
-            '--discord-bot-token', action='store', dest='token',
-            help='Login token for the bot.', default=missing,
+            "--discord-bot-token",
+            action="store",
+            dest="token",
+            help="Login token for the bot.",
+            default=missing,
         )
 
-    def handle(self, *args, client_id=missing, secret=missing, token=missing, **options):
+    def handle(
+        self, *args, client_id=missing, secret=missing, token=missing, **options
+    ):
         logging.disable(logging.ERROR)
 
-        form = Form([
-            Question('client_id', 'Discord app client ID', True, value=client_id),
-            Question('secret', 'Discord app client secret', True, value=secret, conceal=True),
-            Question('token', 'Discord bot login token', True, value=token, conceal=True),
-        ])
-        form.cmdloop(intro=('Initializing app credentials.\n'
-                            'Please enter/confirm the following values.\n'
-                            'Use ^C to go to a previous question.'))
+        form = Form(
+            [
+                Question("client_id", "Discord app client ID", True, value=client_id),
+                Question(
+                    "secret",
+                    "Discord app client secret",
+                    True,
+                    value=secret,
+                    conceal=True,
+                ),
+                Question(
+                    "token", "Discord bot login token", True, value=token, conceal=True
+                ),
+            ]
+        )
+        form.cmdloop(
+            intro=(
+                "Initializing app credentials.\n"
+                "Please enter/confirm the following values.\n"
+                "Use ^C to go to a previous question."
+            )
+        )
 
         if not form.filled:
-            log.warning('Aborted!')
+            log.warning("Aborted!")
             return
 
-        template = (Path(__file__).with_name('templates') / 'discord.ini').resolve(True)
-        with open(template, 'r') as f:
+        template = (Path(__file__).with_name("templates") / "discord.ini").resolve(True)
+        with open(template, "r") as f:
             tmpl = f.read() % form.formdata_filled
 
         instance_dir: Path = settings.INSTANCE_DIR
-        target = instance_dir / 'discord.ini'
-        with open(target, 'w+') as f:
+        target = instance_dir / "discord.ini"
+        with open(target, "w+") as f:
             f.write(tmpl)
 
-        print(_(f'Exported credentials to {target.resolve()}', 'green'))
+        print(_(f"Exported credentials to {target.resolve()}", "green"))

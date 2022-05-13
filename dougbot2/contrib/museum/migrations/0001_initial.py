@@ -7,16 +7,15 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='StoryTask',
+            name="StoryTask",
             fields=[
-                ('user', models.IntegerField(primary_key=True, serialize=False)),
-                ('message', models.IntegerField()),
-                ('channel', models.IntegerField()),
+                ("user", models.IntegerField(primary_key=True, serialize=False)),
+                ("message", models.IntegerField()),
+                ("channel", models.IntegerField()),
             ],
         ),
     ]

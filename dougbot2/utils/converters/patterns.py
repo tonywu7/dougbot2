@@ -37,7 +37,7 @@ class Constant(Converter):
     const: str
 
     def __class_getitem__(cls, const: str):
-        const = unpack_varargs(const, ['const'])[0]
+        const = unpack_varargs(const, ["const"])[0]
 
         @classmethod
         async def convert(cls, ctx, arg: str | bool):
@@ -47,7 +47,7 @@ class Constant(Converter):
                 raise BadArgument(f'The exact string "{const}" expected.')
             return arg
 
-        __dict__ = {'convert': convert, 'const': const}
+        __dict__ = {"convert": convert, "const": const}
         t = type(cls.__name__, (cls,), __dict__)
         return t
 
@@ -68,11 +68,13 @@ class Choice(Converter):
 
     def __class_getitem__(cls, item: tuple[Iterable[str], str, bool]):
         choices, name, case_sensitive = unpack_varargs(
-            item, ('choices', 'name', 'case_sensitive'),
-            case_sensitive=False, name=None,
+            item,
+            ("choices", "name", "case_sensitive"),
+            case_sensitive=False,
+            name=None,
         )
         if name is None:
-            name = '/'.join(choices)
+            name = "/".join(choices)
         if isinstance(name, tuple):
             name = name[0]
 
@@ -93,10 +95,10 @@ class Choice(Converter):
             raise InvalidChoices(t, arg)
 
         __dict__ = {
-            'convert': convert,
-            'choices': choices,
-            'name': name,
-            'case_sensitive': case_sensitive,
+            "convert": convert,
+            "choices": choices,
+            "name": name,
+            "case_sensitive": case_sensitive,
         }
         t = type(cls.__name__, (cls,), __dict__)
         return t
@@ -122,7 +124,7 @@ class BoundedNumber(Converter):
     upper: float
 
     def __class_getitem__(cls, item: tuple[int, int]):
-        lower, upper = unpack_varargs(item, ('bounds',))
+        lower, upper = unpack_varargs(item, ("bounds",))
 
         @classmethod
         async def convert(cls, ctx, arg: str):
@@ -134,7 +136,7 @@ class BoundedNumber(Converter):
                 raise NumberOutOfBound(t, arg)
             return num
 
-        __dict__ = {'convert': convert, 'lower': lower, 'upper': upper}
+        __dict__ = {"convert": convert, "lower": lower, "upper": upper}
         t = type(cls.__name__, (cls,), __dict__)
         return t
 
@@ -152,9 +154,9 @@ class RegExp(Converter):
     description: str
 
     def __class_getitem__(cls, item: tuple[str, str, str]) -> None:
-        pattern, name, description = unpack_varargs(item, ('args',))
+        pattern, name, description = unpack_varargs(item, ("args",))
         pattern: re.Pattern = re.compile(pattern)
-        name = name or 'pattern'
+        name = name or "pattern"
 
         @classmethod
         async def convert(cls, ctx, arg: str):
@@ -164,10 +166,10 @@ class RegExp(Converter):
             return matched
 
         __dict__ = {
-            'convert': convert,
-            'pattern': pattern,
-            'name': name,
-            'description': description,
+            "convert": convert,
+            "pattern": pattern,
+            "name": name,
+            "description": description,
         }
         t = type(cls.__name__, (cls,), __dict__)
         return t
@@ -188,8 +190,10 @@ class NumberOutOfBound(BadArgument):
 
     def __init__(self, num_range: BoundedNumber, found: str, *args):
         self.received = found
-        message = (f'Invalid value "{found}". Must be a number'
-                   f' between {num_range.lower} and {num_range.upper} (inclusive).')
+        message = (
+            f'Invalid value "{found}". Must be a number'
+            f" between {num_range.lower} and {num_range.upper} (inclusive)."
+        )
         super().__init__(message=message, *args)
 
 
@@ -199,5 +203,5 @@ class RegExpMismatch(BadArgument):
     def __init__(self, expected: RegExp, arg: str):
         self.expected = expected
         self.received = arg
-        message = f'Argument should be {expected.name}: {expected.description}'
+        message = f"Argument should be {expected.name}: {expected.description}"
         super().__init__(message=message)

@@ -23,10 +23,12 @@ class Blacklisted(models.Model):
     """Represent a Discord entity that is barred from interacting with the bot."""
 
     class Meta:
-        verbose_name = 'blacklisted entity'
-        verbose_name_plural = 'blacklisted entities'
+        verbose_name = "blacklisted entity"
+        verbose_name_plural = "blacklisted entities"
 
-    snowflake: int = models.BigIntegerField(verbose_name='id', primary_key=True, db_index=True)
+    snowflake: int = models.BigIntegerField(
+        verbose_name="id", primary_key=True, db_index=True
+    )
 
 
 class AccessRule(models.Model):
@@ -37,4 +39,4 @@ class AccessRule(models.Model):
     priority: int = models.IntegerField(default=0)
 
     class Meta:
-        indexes = [models.Index(fields=('command', 'channel_id'))]
+        indexes = [models.Index(fields=("command", "channel_id"))]

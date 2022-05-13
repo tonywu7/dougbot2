@@ -19,9 +19,7 @@ from inspect import ismethod
 
 from discord.ext.commands import Command, Context, Group, command, group
 
-from ..utils.parsers.structural import (
-    StructuralArgumentParser, StructuralParsingError,
-)
+from ..utils.parsers.structural import StructuralArgumentParser, StructuralParsingError
 
 
 class DelegateMixin:
@@ -29,14 +27,14 @@ class DelegateMixin:
 
     def __new__(cls, this):  # noqa: D102
         obj = object.__new__(cls)
-        obj.__dict__['this'] = this
+        obj.__dict__["this"] = this
         return obj
 
     def __init__(self, *args, **attrs):
         return
 
     def _getattr(self, name: str):
-        this = object.__getattribute__(self, 'this')
+        this = object.__getattribute__(self, "this")
         item = getattr(this, name)
         if not ismethod(item):
             return item
@@ -48,7 +46,7 @@ class DelegateMixin:
 
     def unwrap(self):
         """Access the underlying object."""
-        this = object.__getattribute__(self, 'this')
+        this = object.__getattribute__(self, "this")
         while True:
             if isinstance(this, DelegateMixin):
                 this = this.unwrap()
@@ -60,13 +58,13 @@ class DelegateMixin:
         try:
             return object.__getattribute__(self, name)
         except AttributeError:
-            return object.__getattribute__(self, '_getattr')(name)
+            return object.__getattribute__(self, "_getattr")(name)
 
     def __setattr__(self, name: str, value):
-        return setattr(object.__getattribute__(self, 'this'), name, value)
+        return setattr(object.__getattribute__(self, "this"), name, value)
 
     def __delattr__(self, name: str):
-        return delattr(object.__getattribute__(self, 'this'), name)
+        return delattr(object.__getattribute__(self, "this"), name)
 
 
 class CommonCommandDelegate(DelegateMixin):
@@ -80,7 +78,7 @@ class CommonCommandDelegate(DelegateMixin):
         try:
             return await self._parse_structured(ctx)
         except StructuralParsingError:
-            return await self._getattr('_parse_arguments')(ctx)
+            return await self._getattr("_parse_arguments")(ctx)
 
     async def _parse_structured(self, ctx: Context):
         await StructuralArgumentParser(ctx)()
@@ -91,6 +89,7 @@ class CommandDelegate(CommonCommandDelegate, Command):
 
     Substitute the original class in command creation.
     """
+
     pass
 
 
@@ -99,6 +98,7 @@ class GroupDelegate(CommonCommandDelegate, Group):
 
     Substitute the original class in command group creation.
     """
+
     pass
 
 

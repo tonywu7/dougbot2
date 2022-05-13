@@ -24,24 +24,30 @@ from dougbot2.utils.common import accept_dms, can_embed
 
 
 class Help(
-    Gear, name='Help desk', order=0,
-    description='See help & documentations for the bot',
+    Gear,
+    name="Help desk",
+    order=0,
+    description="See help & documentations for the bot",
 ):
-    @command('help', aliases=('commands',))
+    @command("help", aliases=("commands",))
     @accept_dms
-    @doc.description('Get help about commands.')
-    @doc.argument('query', 'A command name, such as "echo" or "prefix set".')
-    @doc.invocation((), 'See all commands.')
-    @doc.invocation(('query',), 'See help for a command.')
+    @doc.description("Get help about commands.")
+    @doc.argument("query", 'A command name, such as "echo" or "prefix set".')
+    @doc.invocation((), "See all commands.")
+    @doc.invocation(("query",), "See help for a command.")
     @can_embed
-    async def help_command(self, ctx: Surroundings, *, query: str = '') -> None:
+    async def help_command(self, ctx: Surroundings, *, query: str = "") -> None:
         manpage = ctx.bot.manpage
         if not query:
             pagination = manpage.to_embed()
         else:
             include_hidden = await ctx.bot.is_owner(ctx.author)
             pagination = manpage.find_command(query, include_hidden).to_embed()
-        res = ctx.respond(embed=pagination).deleter().responder(pagination.with_context(ctx))
+        res = (
+            ctx.respond(embed=pagination)
+            .deleter()
+            .responder(pagination.with_context(ctx))
+        )
         if not query:
             res = res.dm().success()
         delivery = await res.run()

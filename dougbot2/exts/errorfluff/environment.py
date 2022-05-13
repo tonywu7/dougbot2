@@ -22,9 +22,7 @@ from typing import Optional
 from discord.ext.commands import Context
 from more_itertools import always_iterable
 
-from ...blueprints import (
-    ErrorPage, _ExceptionHandler, _ExceptionResult, _ExceptionType,
-)
+from ...blueprints import ErrorPage, _ExceptionHandler, _ExceptionResult, _ExceptionType
 from ...utils.datastructures import TypeDictionary
 
 Blurbs = TypeDictionary[type[Exception], Optional[_ExceptionHandler]]
@@ -48,7 +46,9 @@ class Errorfluff(ErrorPage):
             else:
                 self.fluff[type_].update(fluff)
 
-    async def get_error(self, ctx: Context, exc: Exception) -> Optional[_ExceptionResult]:
+    async def get_error(
+        self, ctx: Context, exc: Exception
+    ) -> Optional[_ExceptionResult]:
         """Process the exception and return a dict convertible to an embed."""
         printer = self.blurbs.get(type(exc))
         if not printer:
@@ -57,7 +57,7 @@ class Errorfluff(ErrorPage):
         if not error:
             return
         reply = random.choice([*self.fluff[type(exc)]])
-        return {'title': reply, 'description': error}
+        return {"title": reply, "description": error}
 
     @classmethod
     async def exception_to_str(cls, ctx: Context, exc: Exception) -> str:

@@ -43,19 +43,34 @@ class TemplateQuestionMixin:
     """Mixin providing convenient methods for creating yes/no and multiple-choice questions."""
 
     @classmethod
-    def yes_no(cls, key: str, prompt='Confirm?', required=True, default='yes', strict=False):
+    def yes_no(
+        cls, key: str, prompt="Confirm?", required=True, default="yes", strict=False
+    ):
         """Create a question that can be answered with yes or no."""
-        return Question(key, f'{prompt} (yes or no)', required, default, cls._truth_converter(strict))
+        return Question(
+            key,
+            f"{prompt} (yes or no)",
+            required,
+            default,
+            cls._truth_converter(strict),
+        )
 
     @classmethod
     def _format_choices(cls, numbered_choices: dict[str, int]):
         choices = [f'  {_(v, color="blue")}. {k}' for k, v in numbered_choices.items()]
-        choices = '\n'.join(choices)
+        choices = "\n".join(choices)
         return choices
 
     @classmethod
-    def multiple_choice(cls, key: str, choices: list[str] | dict[int, str], required=True,
-                        prefix='Choose one of the following', postfix: str = None, default=missing):
+    def multiple_choice(
+        cls,
+        key: str,
+        choices: list[str] | dict[int, str],
+        required=True,
+        prefix="Choose one of the following",
+        postfix: str = None,
+        default=missing,
+    ):
         """Create a multiple-choice question."""
         if isinstance(choices, Mapping):
             numbered_choices = {v: int(k) for k, v in choices.items()}
@@ -63,10 +78,15 @@ class TemplateQuestionMixin:
             numbered_choices = {c: i for i, c in enumerate(choices, start=1)}
         postfix = postfix or key
         if postfix:
-            postfix = f'\n{postfix}'
-        prompt = f'{prefix}\n{cls._format_choices(numbered_choices)}{postfix}'
-        return Question(key=key, prompt=prompt, required=required,
-                        value=default, converter=cls._choice_converter(numbered_choices))
+            postfix = f"\n{postfix}"
+        prompt = f"{prefix}\n{cls._format_choices(numbered_choices)}{postfix}"
+        return Question(
+            key=key,
+            prompt=prompt,
+            required=required,
+            value=default,
+            converter=cls._choice_converter(numbered_choices),
+        )
 
     @classmethod
     def _choice_converter(cls, choices: dict[str, int]) -> Callable[[str], int]:
@@ -77,24 +97,26 @@ class TemplateQuestionMixin:
                 pass
             if isinstance(t, int):
                 if t not in set(choices.values()):
-                    raise ValueError('Invalid option.')
+                    raise ValueError("Invalid option.")
                 return t
             if t not in choices:
-                raise ValueError('Invalid option.')
+                raise ValueError("Invalid option.")
             return choices[t]
+
         return converter
 
     @classmethod
     def _truth_converter(cls, strict=False) -> Callable[[str], bool]:
         def converter(t: str) -> bool:
             if strict:
-                if t == 'yes':
+                if t == "yes":
                     return True
-                if t == 'no':
+                if t == "no":
                     return False
                 raise ValueError('Must be "yes" or "no".')
             else:
-                return t[0].lower() == 'y'
+                return t[0].lower() == "y"
+
         return converter
 
 
@@ -148,10 +170,10 @@ class Form(TemplateQuestionMixin, Cmd):
                 self._backward()
 
     def _format_prompt(self):
-        prompt = _(self.current.prompt, attrs=['bold'])
+        prompt = _(self.current.prompt, attrs=["bold"])
         if self.current.value is not missing and not self.current.conceal:
-            return f'{prompt} [{self.current.value}] '
-        return f'{prompt}: '
+            return f"{prompt} [{self.current.value}] "
+        return f"{prompt}: "
 
     def _forward(self) -> Optional[int]:
         try:
@@ -176,7 +198,7 @@ class Form(TemplateQuestionMixin, Cmd):
 
     def emptyline(self):
         if self.current.required and self.current.value is missing:
-            print('Please enter a value.')
+            print("Please enter a value.")
         else:
             return self.default(self.current.value)
 
@@ -184,13 +206,13 @@ class Form(TemplateQuestionMixin, Cmd):
         try:
             value = self.current.converter(line)
         except Exception as e:
-            print(f'Error: {e}')
+            print(f"Error: {e}")
         else:
             self._form[self.current.key] = self.current.value = value
             return True
 
     def do_help(self, arg):
-        return self.default('help')
+        return self.default("help")
 
     def cmdloop(self, intro=None):
         while True:
@@ -203,4 +225,4 @@ class Form(TemplateQuestionMixin, Cmd):
                     return
 
     def __repr__(self):
-        return f'{type(self).__name__} {id(self)}'
+        return f"{type(self).__name__} {id(self)}"

@@ -24,7 +24,7 @@ from dougbot2.utils.markdown import code
 from dougbot2.utils.memo import memoized_decorator
 
 
-@memoized_decorator('__reply_utils__')
+@memoized_decorator("__reply_utils__")
 def accept_reply(arg: str, required: bool = False):
     """Mark this command as accepting a reply.
 
@@ -45,9 +45,9 @@ def accept_reply(arg: str, required: bool = False):
         msg: Optional[Message] = reply and (reply.resolved or reply.cached_message)
         if msg is None and required:
             raise NotAcceptable(
-                f'A message (link or ID) is required for argument {code(arg)}.'
-                ' Alternatively, use this command while replying to the message'
-                f' to be used for argument {code(arg)}.',
+                f"A message (link or ID) is required for argument {code(arg)}."
+                " Alternatively, use this command while replying to the message"
+                f" to be used for argument {code(arg)}.",
             )
         setter(ctx, msg)
 
@@ -75,7 +75,9 @@ def accept_reply(arg: str, required: bool = False):
                 ctx.args[idx] = msg
 
         else:
-            raise TypeError(f'Cannot inject message reply into a parameter that is {param.kind}.')
+            raise TypeError(
+                f"Cannot inject message reply into a parameter that is {param.kind}."
+            )
 
         f.before_invoke(inject_reply)
 

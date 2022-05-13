@@ -32,10 +32,10 @@ class Latitude(Converter):
 
     async def convert(self, ctx, argument: str) -> float:
         try:
-            point = parse_point_no_warning(f'{argument} 0')
+            point = parse_point_no_warning(f"{argument} 0")
             return point.latitude
         except ValueError:
-            raise BadArgument(f'Failed to parse {verbatim(argument)} as a latitude')
+            raise BadArgument(f"Failed to parse {verbatim(argument)} as a latitude")
 
 
 class Longitude(Converter):
@@ -50,7 +50,7 @@ class Longitude(Converter):
 
     async def convert(self, ctx, argument: str) -> float:
         try:
-            point = parse_point_no_warning(f'0 {argument}')
+            point = parse_point_no_warning(f"0 {argument}")
             return point.longitude
         except ValueError:
-            raise BadArgument(f'Failed to parse {verbatim(argument)} as a longitude')
+            raise BadArgument(f"Failed to parse {verbatim(argument)} as a longitude")

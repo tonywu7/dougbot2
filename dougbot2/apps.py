@@ -25,33 +25,39 @@ from .defaults import get_defaults
 
 
 class DiscordBotConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'dougbot2'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "dougbot2"
     default = True
 
     def sqlite_pragma(self, *, sender, connection: BaseDatabaseWrapper, **kwargs):
         """Enable foreign keys and WAL-mode."""
-        if connection.vendor == 'sqlite':
+        if connection.vendor == "sqlite":
             with connection.cursor() as cursor:
-                cursor.execute('PRAGMA foreign_keys=ON;')
-                cursor.execute('PRAGMA journal_mode=WAL;')
+                cursor.execute("PRAGMA foreign_keys=ON;")
+                cursor.execute("PRAGMA journal_mode=WAL;")
 
     def ready(self) -> None:
         """Find installed cogs and start Discord listener."""
         connection_created.connect(self.sqlite_pragma)
         if not credentials_supplied():
-            logging.getLogger('discord.config').warning('Discord credentials are missing. Will not connect to Discord.')
+            logging.getLogger("discord.config").warning(
+                "Discord credentials are missing. Will not connect to Discord."
+            )
 
 
-@register('discord')
-def check_discord_credentials(app_configs: list[AppConfig], **kwargs) -> list[CheckMessage]:
+@register("discord")
+def check_discord_credentials(
+    app_configs: list[AppConfig], **kwargs
+) -> list[CheckMessage]:
     """Check if Discord client id, secret, or bot token is missing."""
     if not credentials_supplied():
-        return [Error(
-            'Discord credentials are missing.',
-            hint='Run the init command to supply them.',
-            id='discord.E010',
-        )]
+        return [
+            Error(
+                "Discord credentials are missing.",
+                hint="Run the init command to supply them.",
+                id="discord.E010",
+            )
+        ]
     return []
 
 

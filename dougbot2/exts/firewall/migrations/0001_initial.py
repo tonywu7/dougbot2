@@ -7,18 +7,25 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Blacklisted',
+            name="Blacklisted",
             fields=[
-                ('snowflake', models.BigIntegerField(db_index=True, primary_key=True, serialize=False, verbose_name='id')),
+                (
+                    "snowflake",
+                    models.BigIntegerField(
+                        db_index=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="id",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'blacklisted entity',
-                'verbose_name_plural': 'blacklisted entities',
+                "verbose_name": "blacklisted entity",
+                "verbose_name_plural": "blacklisted entities",
             },
         ),
     ]

@@ -88,7 +88,9 @@ class RecordField(models.JSONField):
             return None
         return {str(k): str(v) for k, v in struct.items()}
 
-    def get_prep_value(self, value: Optional[Union[dict[str, str], list[tuple[str, str]]]]):
+    def get_prep_value(
+        self, value: Optional[Union[dict[str, str], list[tuple[str, str]]]]
+    ):
         if isinstance(value, Mapping):
             value = value.items()
         elif not isinstance(value, Iterable):

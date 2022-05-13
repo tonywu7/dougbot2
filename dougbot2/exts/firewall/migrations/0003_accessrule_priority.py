@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('firewall', '0002_auto_20220204_2214'),
+        ("firewall", "0002_auto_20220204_2214"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='accessrule',
-            name='priority',
+            model_name="accessrule",
+            name="priority",
             field=models.IntegerField(default=0),
         ),
     ]

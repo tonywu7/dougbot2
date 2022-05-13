@@ -54,7 +54,9 @@ class Datetime(Converter):
             return argument
         dt = parse_date(argument)
         if not dt:
-            raise BadArgument(f'Cannot parse {code(escape_markdown(argument))} as a date/time.')
+            raise BadArgument(
+                f"Cannot parse {code(escape_markdown(argument))} as a date/time."
+            )
         self.value = dt
         return self
 
@@ -84,6 +86,6 @@ class Timezone(Converter):
     async def convert(self, ctx, argument: str):
         tz = self.get_timezone_from_name(argument)
         if tz is None:
-            raise BadArgument(f'Unknown timezone {code(escape_markdown(argument))}')
+            raise BadArgument(f"Unknown timezone {code(escape_markdown(argument))}")
         self.value = tz
         return self

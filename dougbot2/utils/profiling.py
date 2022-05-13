@@ -22,7 +22,7 @@ from functools import wraps
 
 from .importutil import objpath
 
-log = logging.getLogger('util.datetime')
+log = logging.getLogger("util.datetime")
 
 
 @contextmanager
@@ -57,7 +57,8 @@ def abenchmark(func):
         try:
             return await func(*args, **kwargs)
         finally:
-            log.debug(f'Execution time {name} {(time.time() - start) * 1000:.3f}ms')
+            log.debug(f"Execution time {name} {(time.time() - start) * 1000:.3f}ms")
+
     return wrapped
 
 
@@ -71,7 +72,8 @@ def benchmark(func):
         try:
             return func(*args, **kwargs)
         finally:
-            log.debug(f'Execution time {name} {(time.time() - start) * 1000:.3f}ms')
+            log.debug(f"Execution time {name} {(time.time() - start) * 1000:.3f}ms")
+
     return wrapped
 
 
@@ -82,4 +84,4 @@ def benchmark_block(name):
     try:
         yield
     finally:
-        log.debug(f'Execution time {name} {(time.time() - start) * 1000:.3f}ms')
+        log.debug(f"Execution time {name} {(time.time() - start) * 1000:.3f}ms")

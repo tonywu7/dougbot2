@@ -65,8 +65,9 @@ class CommandTemplate(Template):
         set_context(ctx)
         return await super().render_async(**variables)
 
-    async def render_timed(self, ctx: Optional[Context], timeout: float = 10.0,
-                           **variables) -> str:
+    async def render_timed(
+        self, ctx: Optional[Context], timeout: float = 10.0, **variables
+    ) -> str:
         renderer = self.render(ctx, **variables)
         result = await asyncio.wait_for(renderer, timeout=timeout)
         return result
@@ -76,7 +77,8 @@ class CommandTemplate(Template):
 
 class CommandEnvironment(SandboxedEnvironment):
     def from_string(
-        self, source: Union[str, CommandTemplate],
+        self,
+        source: Union[str, CommandTemplate],
         globals: Optional[Mapping[str, Any]] = None,
         template_class: Optional[type[CommandTemplate]] = CommandTemplate,
     ) -> CommandTemplate:
@@ -86,8 +88,8 @@ class CommandEnvironment(SandboxedEnvironment):
         return tmpl
 
 
-T_E = TypeVar('T_E', bound=CommandEnvironment)
-T_C = TypeVar('T_C', bound=CommandContext)
+T_E = TypeVar("T_E", bound=CommandEnvironment)
+T_C = TypeVar("T_C", bound=CommandContext)
 
 
 def make_environment(
@@ -95,12 +97,12 @@ def make_environment(
     ctx_cls: Type[T_C] = CommandContext,
     **options,
 ) -> T_E:
-    options.setdefault('loader', None)
-    options.setdefault('bytecode_cache', None)
-    options.setdefault('autoescape', select_autoescape())
-    options.setdefault('undefined', StrictUndefined)
-    options.setdefault('extensions', ['jinja2.ext.do'])
-    options['enable_async'] = True
+    options.setdefault("loader", None)
+    options.setdefault("bytecode_cache", None)
+    options.setdefault("autoescape", select_autoescape())
+    options.setdefault("undefined", StrictUndefined)
+    options.setdefault("extensions", ["jinja2.ext.do"])
+    options["enable_async"] = True
     env = env_cls(**options)
     env.context_class = ctx_cls
     register_filters(env)

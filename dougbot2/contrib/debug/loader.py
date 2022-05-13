@@ -6,5 +6,7 @@ from .converters import LoggingLevel
 
 
 def setup(bot: MissionControl):
-    bot.manpage.register_type(LoggingLevel, NP('logging level name', concise='logging level'))
+    bot.manpage.register_type(
+        LoggingLevel, NP("logging level name", concise="logging level")
+    )
     bot.add_cog(Debug(bot))

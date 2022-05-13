@@ -46,7 +46,7 @@ class AttributeMapping(Mapping):
             record = getattr(cls, attr, None)
             if isinstance(record, NamespaceRecord):
                 exposed_attrs.append(record)
-        if not hasattr(cls, '_namespace'):
+        if not hasattr(cls, "_namespace"):
             namespace = set()
         else:
             namespace = set(cls._namespace)

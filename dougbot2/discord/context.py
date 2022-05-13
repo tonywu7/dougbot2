@@ -41,12 +41,17 @@ class Circumstances(Context, _Surroundings):
 
     async def init(self):
         from ..models import Server
+
         if not self.guild:
             return
-        self._server = await async_get_or_create(Server, defaults={
-            'snowflake': self.guild.id,
-            'prefix': get_defaults().default.prefix,
-        }, snowflake=self.guild.id)
+        self._server = await async_get_or_create(
+            Server,
+            defaults={
+                "snowflake": self.guild.id,
+                "prefix": get_defaults().default.prefix,
+            },
+            snowflake=self.guild.id,
+        )
 
     @property
     def subcommand_not_completed(self):
@@ -88,18 +93,20 @@ class Circumstances(Context, _Surroundings):
     @property
     def full_invoked_with(self) -> str:
         """The fully-qualified sequence of command names that has been parsed."""
-        return ' '.join({
-            **{k: True for k in self.invoked_parents},
-            self.invoked_with: True,
-        }.keys())
+        return " ".join(
+            {
+                **{k: True for k in self.invoked_parents},
+                self.invoked_with: True,
+            }.keys()
+        )
 
     @property
     def raw_input(self) -> str:
         """The rest of the message content after all parsed commands."""
         msg: str = self.view.buffer
-        return (msg.removeprefix(self.prefix)
-                .strip()[len(self.full_invoked_with):]
-                .strip())
+        return (
+            msg.removeprefix(self.prefix).strip()[len(self.full_invoked_with) :].strip()
+        )
 
     @property
     def is_direct_message(self):
@@ -107,7 +114,8 @@ class Circumstances(Context, _Surroundings):
         return is_direct_message(self.channel)
 
     def respond(
-        self, content: Optional[str] = None,
+        self,
+        content: Optional[str] = None,
         embed: Optional[Embed2] = None,
         files: Optional[list[File]] = None,
         nonce: Optional[int] = None,
@@ -115,8 +123,8 @@ class Circumstances(Context, _Surroundings):
         return ResponseInit(self, content, embed, files, nonce)
 
     def get_logger(self):
-        cmd = self.full_invoked_with.replace(' ', '.')
-        return self.bot.console.get_logger(f'discord.cmd.{cmd}', self.guild)
+        cmd = self.full_invoked_with.replace(" ", ".")
+        return self.bot.console.get_logger(f"discord.cmd.{cmd}", self.guild)
 
     async def call(self, cmd: Command, *args, **kwargs):
         """Invoke an arbitrary command but with concurrency and cooldowns triggered."""

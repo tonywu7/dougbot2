@@ -27,9 +27,9 @@ from discord.ext.commands.errors import MissingRequiredArgument
 from ...utils.parsers.structural import get_live_converter
 from .utils import unpack_varargs
 
-T = TypeVar('T')
-U = TypeVar('U')
-R = TypeVar('R')
+T = TypeVar("T")
+U = TypeVar("U")
+R = TypeVar("R")
 
 
 class Maybe(Converter, Generic[T, U]):
@@ -52,14 +52,17 @@ class Maybe(Converter, Generic[T, U]):
     (including `Union`, `Optional`, and `Greedy`).
     """
 
-    name = '<param>'
+    name = "<param>"
     _converter: type
 
-    def __init__(self, position: int = 0,
-                 result: T = Parameter.empty,
-                 default: U = Parameter.empty,
-                 argument: Optional[str] = None,
-                 errors: list[Exception] = None):
+    def __init__(
+        self,
+        position: int = 0,
+        result: T = Parameter.empty,
+        default: U = Parameter.empty,
+        argument: Optional[str] = None,
+        errors: list[Exception] = None,
+    ):
         self.position = position
         self.result = result
         self.default = default
@@ -129,10 +132,13 @@ class Maybe(Converter, Generic[T, U]):
                 else:
                     kwargs_[k] = v
             return await f(*args_, **kwargs_)
+
         return wrapped
 
     def __class_getitem__(cls, item):
-        annotation, default = unpack_varargs(item, ('annotation', 'default'), default=None)
+        annotation, default = unpack_varargs(
+            item, ("annotation", "default"), default=None
+        )
         convertf = get_live_converter(annotation, default)
 
         @classmethod
@@ -144,7 +150,7 @@ class Maybe(Converter, Generic[T, U]):
                 ctx.view.undo()
             return cls(pos, result, argument=arg, errors=errors)
 
-        __dict__ = {'convert': convert, 'default': default, '_converter': annotation}
+        __dict__ = {"convert": convert, "default": default, "_converter": annotation}
         return Union[type(cls.__name__, (Maybe,), __dict__), None]
 
     @classmethod
@@ -153,10 +159,14 @@ class Maybe(Converter, Generic[T, U]):
 
         This is semantically similar to Django form's `cleaned_data` attribute.
         """
-        return defaultdict(lambda: None, {
-            k: v.value if isinstance(v, cls) else v for k, v in items.items()
-            if not isinstance(v, cls) or v.value is not None
-        })
+        return defaultdict(
+            lambda: None,
+            {
+                k: v.value if isinstance(v, cls) else v
+                for k, v in items.items()
+                if not isinstance(v, cls) or v.value is not None
+            },
+        )
 
     @classmethod
     def astuple(cls, *items: Maybe[R]) -> tuple[R, ...]:
@@ -176,7 +186,9 @@ class Maybe(Converter, Generic[T, U]):
         return errors
 
     @classmethod
-    def unpack(cls, **items: Maybe[R]) -> tuple[dict[str, R], dict[str, list[Exception]]]:
+    def unpack(
+        cls, **items: Maybe[R]
+    ) -> tuple[dict[str, R], dict[str, list[Exception]]]:
         """Unwrap all `Maybe` instances and return the results and exceptions as mappings."""
         return cls.asdict(**items), cls.errordict(**items)
 
@@ -199,11 +211,13 @@ class Maybe(Converter, Generic[T, U]):
                 if args:
                     args.pop()
                 args.append(arg)
-        return ' '.join(args)
+        return " ".join(args)
 
     def __repr__(self):
-        return (f'<Maybe: arg={repr(self.argument)}'
-                f' result={self.result}'
-                f' error={bool(self.errors)}>')
+        return (
+            f"<Maybe: arg={repr(self.argument)}"
+            f" result={self.result}"
+            f" error={bool(self.errors)}>"
+        )
 
     __str__ = __repr__

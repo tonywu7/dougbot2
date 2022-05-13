@@ -31,19 +31,19 @@ class Snowflake(Protocol):
     id: int
 
 
-T = TypeVar('T', bound=Snowflake)
-U = TypeVar('U', bound='Entity')
+T = TypeVar("T", bound=Snowflake)
+U = TypeVar("U", bound="Entity")
 
 
-FORBIDDEN_PREFIXES = re.compile(r'^[*_|~`>]+$')
+FORBIDDEN_PREFIXES = re.compile(r"^[*_|~`>]+$")
 
 
 class NamingMixin:
     """Mixin providing a __str__ and __repr__ for models that have IDs."""
 
-    def discriminator(self, sep='#') -> str:
+    def discriminator(self, sep="#") -> str:
         """Print the type of this class and its primary key together as a string."""
-        return f'{type(self).__name__}{sep}{self.pk}'
+        return f"{type(self).__name__}{sep}{self.pk}"
 
     def __str__(self):
         try:
@@ -52,7 +52,7 @@ class NamingMixin:
             return self.discriminator()
 
     def __repr__(self) -> str:
-        return f'<{self.discriminator()} at {hex(id(self))}>'
+        return f"<{self.discriminator()} at {hex(id(self))}>"
 
 
 class Entity(NamingMixin, models.Model):
@@ -61,7 +61,9 @@ class Entity(NamingMixin, models.Model):
     class Meta:
         abstract = True
 
-    snowflake: int = models.BigIntegerField(verbose_name='id', primary_key=True, db_index=True)
+    snowflake: int = models.BigIntegerField(
+        verbose_name="id", primary_key=True, db_index=True
+    )
 
     @classmethod
     def from_discord(cls: type[U], obj: T, **kwargs) -> U:
@@ -94,11 +96,11 @@ def validate_prefix(prefix: str):
 
     if FORBIDDEN_PREFIXES.match(prefix):
         raise ValidationError(
-            '* _ | ~ ` > are markdown characters. '
-            '%(prefix)s as a prefix will cause messages with markdowns '
-            'to trigger bot commands.',
-            params={'prefix': prefix},
-            code='forbidden_chars',
+            "* _ | ~ ` > are markdown characters. "
+            "%(prefix)s as a prefix will cause messages with markdowns "
+            "to trigger bot commands.",
+            params={"prefix": prefix},
+            code="forbidden_chars",
         )
 
 
@@ -108,7 +110,9 @@ class Server(Entity):
     Contains most per-guild bot configurations.
     """
 
-    prefix: str = models.CharField(max_length=16, default='d.', validators=[validate_prefix])
+    prefix: str = models.CharField(
+        max_length=16, default="d.", validators=[validate_prefix]
+    )
 
     @sync_to_async
     def set_prefix(self, prefix: str):

@@ -30,14 +30,16 @@ from ...runner import BotRunner
 
 
 class Command(BaseCommand):
-    help = 'Run the Discord bot'
+    help = "Run the Discord bot"
 
     requires_system_checks = []
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--noreload', action='store_false', dest='use_reloader',
-            help='Tells Django to not use the auto-reloader.',
+            "--noreload",
+            action="store_false",
+            dest="use_reloader",
+            help="Tells Django to not use the auto-reloader.",
         )
 
     def handle(self, *args, **options):
@@ -54,25 +56,28 @@ class Command(BaseCommand):
         # to be raised in the child process, raise it now.
         autoreload.raise_last_exception()
 
-        quit_command = 'CTRL-BREAK' if sys.platform == 'win32' else 'CONTROL-C'
+        quit_command = "CTRL-BREAK" if sys.platform == "win32" else "CONTROL-C"
 
-        self.stdout.write('Performing system checks...\n\n')
+        self.stdout.write("Performing system checks...\n\n")
         self.check(display_num_errors=True)
         # Need to check migrations here, so can't use the
         # requires_migrations_check attribute.
         self.check_migrations()
 
-        now = datetime.now().strftime('%B %d, %Y - %X')
+        now = datetime.now().strftime("%B %d, %Y - %X")
         self.stdout.write(now)
-        self.stdout.write((
-            'Django version %(version)s, using settings %(settings)r\n'
-            'Starting Discord bot client\n'
-            'Quit the client with %(quit_command)s.'
-        ) % {
-            'version': self.get_version(),
-            'settings': settings.SETTINGS_MODULE,
-            'quit_command': quit_command,
-        })
+        self.stdout.write(
+            (
+                "Django version %(version)s, using settings %(settings)r\n"
+                "Starting Discord bot client\n"
+                "Quit the client with %(quit_command)s."
+            )
+            % {
+                "version": self.get_version(),
+                "settings": settings.SETTINGS_MODULE,
+                "quit_command": quit_command,
+            }
+        )
 
         should_exit = False
 
@@ -87,7 +92,7 @@ class Command(BaseCommand):
             with suppress(RuntimeError):
                 client.loop.add_signal_handler(signal.SIGINT, on_exit_set_presence)
                 client.loop.add_signal_handler(signal.SIGTERM, on_exit_set_presence)
-                client.log.info('Installed handler for SIGTERM and SIGINT')
+                client.log.info("Installed handler for SIGTERM and SIGINT")
 
         try:
             runner = BotRunner(Robot, {}, daemon=True)
@@ -98,5 +103,5 @@ class Command(BaseCommand):
             while not should_exit:
                 time.sleep(5)
         except KeyboardInterrupt:
-            print('Exiting ...')
+            print("Exiting ...")
             return

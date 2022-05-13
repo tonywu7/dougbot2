@@ -29,7 +29,7 @@ from jinja2 import StrictUndefined
 from .models import Member, Message
 from .namespace import AttributeMapping, NamespaceRecord
 
-ctx: ContextVar[Context] = ContextVar('ctx')
+ctx: ContextVar[Context] = ContextVar("ctx")
 
 
 class BaseContext:
@@ -80,7 +80,7 @@ class TemplateContext(
     def ctx(self) -> Context:
         current_ctx = ctx.get(None)
         if current_ctx is None:
-            return StrictUndefined('No running command')
+            return StrictUndefined("No running command")
         return current_ctx
 
 

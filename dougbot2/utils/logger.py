@@ -30,6 +30,7 @@ from typing import Union
 
 try:
     import termcolor
+
     _ = colored = termcolor.colored
 
 except ImportError:
@@ -37,6 +38,7 @@ except ImportError:
 
     def colored(t, *args, **kwargs):
         return t
+
 
 # try:
 #     import platform
@@ -71,7 +73,7 @@ class _LogContainer:
 
 
 class _ColoredFormatter(logging.Formatter):
-    def __init__(self, fmt=None, datefmt=None, style='%', *, color='white'):
+    def __init__(self, fmt=None, datefmt=None, style="%", *, color="white"):
         super().__init__(fmt, datefmt, style)
         self.termcolor_args = lambda self, record: ()
         if isinstance(color, str):
@@ -94,23 +96,26 @@ class _TruncatedFormatter(_ColoredFormatter):
     def format(self, record):
         msg = super().format(record)
         if len(msg) > self.length:
-            msg = msg[:self.length - 3] + '...'
+            msg = msg[: self.length - 3] + "..."
         color_args = self.termcolor_args(self, record)
         return _(msg, *color_args)
 
 
 class _CascadingFormatter(logging.Formatter):
     def __init__(
-        self, sections: str,
+        self,
+        sections: str,
         stylesheet: dict[str, Union[str, logging.Formatter]],
-        style='%', stacktrace=None, datefmt=None,
+        style="%",
+        stacktrace=None,
+        datefmt=None,
     ):
         self.stylesheet = {}
         for section, fmt in stylesheet.items():
             formatter = logging.Formatter(fmt) if isinstance(fmt, str) else fmt
             if section != stacktrace:
-                formatter.formatException = lambda info: ''
-                formatter.formatStack = lambda info: ''
+                formatter.formatException = lambda info: ""
+                formatter.formatStack = lambda info: ""
             self.stylesheet[section] = formatter
         super().__init__(sections, datefmt, style)
 
@@ -129,111 +134,116 @@ class _CascadingFormatter(logging.Formatter):
                 continue
             f_kwargs = {}
             f_kwargs.update(fmt)
-            factory = f_kwargs.pop('()', logging.Formatter)
+            factory = f_kwargs.pop("()", logging.Formatter)
             stylesheet_[k] = factory(**f_kwargs)
         return cls(sections, stylesheet_, **kwargs)
 
 
 LOG_LEVEL_PREFIX_COLORS = {
-    'DEBUG': ('magenta', None, ['bold']),
-    'INFO': ('white', None, ['bold']),
-    'WARNING': ('yellow', None, ['bold']),
-    'ERROR': ('red', None, ['bold']),
-    'CRITICAL': ('grey', 'on_red', ['bold']),
+    "DEBUG": ("magenta", None, ["bold"]),
+    "INFO": ("white", None, ["bold"]),
+    "WARNING": ("yellow", None, ["bold"]),
+    "ERROR": ("red", None, ["bold"]),
+    "CRITICAL": ("grey", "on_red", ["bold"]),
 }
 LOG_LEVEL_PREFIX_COLORS_DEBUG = {
     **LOG_LEVEL_PREFIX_COLORS,
-    'INFO': ('blue', None, ['bold']),
+    "INFO": ("blue", None, ["bold"]),
 }
 
 
 def _color_stacktrace(self, record: logging.LogRecord):
-    return ('red',) if record.exc_info else ('white',)
+    return ("red",) if record.exc_info else ("white",)
 
 
-def _conditional_color(field, rules, default=('white',)):
+def _conditional_color(field, rules, default=("white",)):
     def fn(self, record):
         return rules.get(getattr(record, field), default)
+
     return fn
 
 
-FMT_PREFIX = '%(asctime)s %(levelname)8s'
-FMT_LOGGER = '[%(processName)s:%(name)s]'
-FMT_SOURCE = '(%(module)s.%(funcName)s:%(lineno)d)'
+FMT_PREFIX = "%(asctime)s %(levelname)8s"
+FMT_LOGGER = "[%(processName)s:%(name)s]"
+FMT_SOURCE = "(%(module)s.%(funcName)s:%(lineno)d)"
 
 formatter_styles = {
-    'normal': {
-        'format': f'{FMT_PREFIX} {FMT_LOGGER} %(message)s',
+    "normal": {
+        "format": f"{FMT_PREFIX} {FMT_LOGGER} %(message)s",
     },
-    'colored': {
-        '()': _CascadingFormatter.from_config,
-        'sections': '%(prefix)s %(name)s %(message)s',
-        'stylesheet': {
-            'prefix': {
-                '()': _ColoredFormatter,
-                'fmt': FMT_PREFIX,
-                'color': _conditional_color('levelname', LOG_LEVEL_PREFIX_COLORS),
+    "colored": {
+        "()": _CascadingFormatter.from_config,
+        "sections": "%(prefix)s %(name)s %(message)s",
+        "stylesheet": {
+            "prefix": {
+                "()": _ColoredFormatter,
+                "fmt": FMT_PREFIX,
+                "color": _conditional_color("levelname", LOG_LEVEL_PREFIX_COLORS),
             },
-            'name': {
-                '()': _ColoredFormatter,
-                'fmt': FMT_LOGGER,
-                'color': 'blue',
+            "name": {
+                "()": _ColoredFormatter,
+                "fmt": FMT_LOGGER,
+                "color": "blue",
             },
-            'message': {
-                '()': _ColoredFormatter,
-                'fmt': '%(message)s',
-                'color': _color_stacktrace,
+            "message": {
+                "()": _ColoredFormatter,
+                "fmt": "%(message)s",
+                "color": _color_stacktrace,
             },
         },
-        'stacktrace': 'message',
+        "stacktrace": "message",
     },
-    'colored-truncated': {
-        '()': _CascadingFormatter.from_config,
-        'sections': '%(prefix)s %(name)s %(message)s',
-        'stylesheet': {
-            'prefix': {
-                '()': _TruncatedFormatter,
-                'fmt': FMT_PREFIX,
-                'color': _conditional_color('levelname', LOG_LEVEL_PREFIX_COLORS),
+    "colored-truncated": {
+        "()": _CascadingFormatter.from_config,
+        "sections": "%(prefix)s %(name)s %(message)s",
+        "stylesheet": {
+            "prefix": {
+                "()": _TruncatedFormatter,
+                "fmt": FMT_PREFIX,
+                "color": _conditional_color("levelname", LOG_LEVEL_PREFIX_COLORS),
             },
-            'name': {
-                '()': _TruncatedFormatter,
-                'fmt': FMT_LOGGER,
-                'color': 'blue',
+            "name": {
+                "()": _TruncatedFormatter,
+                "fmt": FMT_LOGGER,
+                "color": "blue",
             },
-            'message': {
-                '()': _TruncatedFormatter,
-                'fmt': '%(message)s',
-                'color': _color_stacktrace,
+            "message": {
+                "()": _TruncatedFormatter,
+                "fmt": "%(message)s",
+                "color": _color_stacktrace,
             },
         },
-        'stacktrace': 'message',
+        "stacktrace": "message",
     },
 }
 
 logging_config_template = {
-    'disable_existing_loggers': False,
-    'version': 1,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'stream': sys.stderr,
+    "disable_existing_loggers": False,
+    "version": 1,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": sys.stderr,
         },
     },
-    'loggers': {
-        'main': {
-            'level': logging.NOTSET,
+    "loggers": {
+        "main": {
+            "level": logging.NOTSET,
         },
     },
-    'root': {
-        'handlers': ['console'],
+    "root": {
+        "handlers": ["console"],
     },
 }
 
 
 def make_logging_config(
-    app_name, *overrides, level=logging.DEBUG,
-    style='colored', logfile=None, **kwargs,
+    app_name,
+    *overrides,
+    level=logging.DEBUG,
+    style="colored",
+    logfile=None,
+    **kwargs,
 ):
     if style in formatter_styles:
         formatter = formatter_styles[style]
@@ -241,77 +251,80 @@ def make_logging_config(
         formatter = style
 
     app_logging_config = {
-        'formatters': {
-            'default_fmt': formatter,
+        "formatters": {
+            "default_fmt": formatter,
         },
-        'handlers': {
-            'console': {
-                'formatter': 'default_fmt',
-                'level': logging.NOTSET,
-            },
-        },
-        'loggers': {
-            f'{app_name}': {
-                'level': logging.NOTSET,
-            },
-            'asyncio': {
-                'level': logging.INFO,
-            },
-            'django.utils': {
-                'level': logging.INFO,
-            },
-            'discord.client': {
-                'level': logging.INFO,
-            },
-            'discord.fetch': {
-                'level': logging.INFO,
-            },
-            'discord.gateway': {
-                'level': logging.INFO,
-            },
-            'discord.http': {
-                'level': logging.INFO,
-            },
-            'django.db.backends': {
-                'level': logging.INFO,
-            },
-            'django.channels.server': {
-                'level': logging.INFO,
-            },
-            'django.request': {
-                'level': logging.INFO,
-            },
-            'daphne.http_protocol': {
-                'level': logging.INFO,
-            },
-            'django.template': {
-                'level': logging.INFO,
-            },
-            'numba.core.ssa': {
-                'level': logging.INFO,
+        "handlers": {
+            "console": {
+                "formatter": "default_fmt",
+                "level": logging.NOTSET,
             },
         },
-        'root': {
-            'level': level,
+        "loggers": {
+            f"{app_name}": {
+                "level": logging.NOTSET,
+            },
+            "asyncio": {
+                "level": logging.INFO,
+            },
+            "django.utils": {
+                "level": logging.INFO,
+            },
+            "discord.client": {
+                "level": logging.INFO,
+            },
+            "discord.fetch": {
+                "level": logging.INFO,
+            },
+            "discord.gateway": {
+                "level": logging.INFO,
+            },
+            "discord.http": {
+                "level": logging.INFO,
+            },
+            "django.db.backends": {
+                "level": logging.INFO,
+            },
+            "django.channels.server": {
+                "level": logging.INFO,
+            },
+            "django.request": {
+                "level": logging.INFO,
+            },
+            "daphne.http_protocol": {
+                "level": logging.INFO,
+            },
+            "django.template": {
+                "level": logging.INFO,
+            },
+            "numba.core.ssa": {
+                "level": logging.INFO,
+            },
+        },
+        "root": {
+            "level": level,
         },
     }
 
     file_handler_config = {}
     if logfile:
         file_handler_config = {
-            'formatters': {
-                'no_color': (formatter_styles[style]['normal']
-                             if style in formatter_styles else style),
+            "formatters": {
+                "no_color": (
+                    formatter_styles[style]["normal"]
+                    if style in formatter_styles
+                    else style
+                ),
             },
-            'handlers': {
-                'file': {
-                    'class': 'logging.FileHandler',
-                    'filename': logfile,
-                    'formatter': 'no_color',
+            "handlers": {
+                "file": {
+                    "class": "logging.FileHandler",
+                    "filename": logfile,
+                    "formatter": "no_color",
                 },
             },
-            'root': {
-                'handlers': ['file'],
+            "root": {
+                "handlers": ["file"],
             },
         }
 
@@ -328,18 +341,18 @@ class _LoggingParticipant:
     def __init__(self, *args, _logger=None, **kwargs):
         if _logger:
             self.log: logging.Logger = _logger
-        elif isinstance(getattr(self, '_logger_name', None), str):
+        elif isinstance(getattr(self, "_logger_name", None), str):
             self.log: logging.Logger = logging.getLogger(self._logger_name)
             self.log.disabled = True
         else:
-            raise NotImplementedError('_logger_name is not defined')
+            raise NotImplementedError("_logger_name is not defined")
 
 
 def set_datefmt(logger, fmt):
     for h in logger.handlers:
         f = h.formatter
         if isinstance(f, _CascadingFormatter):
-            f.stylesheet['prefix'].datefmt = fmt
+            f.stylesheet["prefix"].datefmt = fmt
 
 
 def config_logging(config):
@@ -358,15 +371,15 @@ def config_logging(config):
 def get_formatter(name):
     config = {**formatter_styles[name]}
     try:
-        initializer = config.pop('()')
+        initializer = config.pop("()")
         return initializer(**config)
     except KeyError:
-        return logging.Formatter(config['format'])
+        return logging.Formatter(config["format"])
 
 
 @contextmanager
 def log_to_string(logger_name, *filters):
-    fmt = get_formatter('normal')
+    fmt = get_formatter("normal")
     logger = logging.getLogger(logger_name)
 
     with io.StringIO() as stream:
@@ -382,7 +395,7 @@ def log_to_string(logger_name, *filters):
             logger.removeHandler(handler)
 
 
-log = logging.getLogger('scrapy_discord.utils')
+log = logging.getLogger("scrapy_discord.utils")
 
 
 class RobustQueueListener(QueueListener):
@@ -390,7 +403,7 @@ class RobustQueueListener(QueueListener):
         try:
             super()._monitor()
         except EOFError:
-            log.warning('Log listener has prematurely stopped.')
+            log.warning("Log listener has prematurely stopped.")
 
 
 class QueueListenerWrapper:
@@ -402,7 +415,9 @@ class QueueListenerWrapper:
         if self.queue:
             return self.queue
         self.queue = Queue()
-        self.listener = RobustQueueListener(self.queue, *logging.getLogger().handlers, respect_handler_level=True)
+        self.listener = RobustQueueListener(
+            self.queue, *logging.getLogger().handlers, respect_handler_level=True
+        )
         self.listener.start()
         return self.queue
 

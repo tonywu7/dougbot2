@@ -23,8 +23,15 @@ from inspect import Parameter
 from itertools import chain
 from operator import or_
 from typing import (
-    Callable, Literal, Optional, Protocol, TypedDict, Union, get_args,
-    get_origin, runtime_checkable,
+    Callable,
+    Literal,
+    Optional,
+    Protocol,
+    TypedDict,
+    Union,
+    get_args,
+    get_origin,
+    runtime_checkable,
 )
 
 from discord.ext.commands import Bot, Cog, Command, Context, Greedy
@@ -32,7 +39,11 @@ from discord.utils import escape_markdown
 from more_itertools import split_at
 
 from ...blueprints import (
-    Documentation, Manpage, _ArgumentParsingAction, _Type, _TypePrinter,
+    Documentation,
+    Manpage,
+    _ArgumentParsingAction,
+    _Type,
+    _TypePrinter,
 )
 from ...utils.datastructures import TypeDictionary
 from ...utils.duckcord.color import Color2
@@ -40,9 +51,7 @@ from ...utils.duckcord.embeds import Embed2, EmbedField
 from ...utils.english import QuantifiedNP, singularize, slugify
 from ...utils.markdown import a, blockquote, em, pre, strong
 from ...utils.memo import get_memo
-from ...utils.pagination import (
-    EmbedPagination, chapterize_fields, chapterize_items,
-)
+from ...utils.pagination import EmbedPagination, chapterize_fields, chapterize_items
 from .exceptions import BadDocumentation, MissingDescription, NoSuchCommand
 
 CheckPredicate = Callable[[Context], bool]
@@ -53,7 +62,7 @@ TypeDict = TypeDictionary[_Type, _TypePrinter]
 
 _NOTHING = object()
 
-log = logging.getLogger('discord.exts.autodoc')
+log = logging.getLogger("discord.exts.autodoc")
 
 
 class _EmbedField(TypedDict):
@@ -95,7 +104,7 @@ class _ArgumentType(Protocol):
         return self.slug
 
     def __lt__(self, other: _ArgumentType):
-        if not isinstance(getattr(other, 'order', None), int):
+        if not isinstance(getattr(other, "order", None), int):
             return NotImplemented
         return self.order < other.order
 
@@ -148,7 +157,7 @@ class Argument(_ArgumentType):
 
         annotation = param.annotation
         if annotation is Parameter.empty:
-            raise BadDocumentation(f'Parameter {param.name} is not annotated')
+            raise BadDocumentation(f"Parameter {param.name} is not annotated")
 
         self.env = env
         self.key = param.name
@@ -169,10 +178,10 @@ class Argument(_ArgumentType):
         else:
             self.annotation = annotation
 
-        self.help: str = ''
-        self.description: str = ''
-        self.node: str = ''
-        self.signature: str = ''
+        self.help: str = ""
+        self.description: str = ""
+        self.node: str = ""
+        self.signature: str = ""
 
         self.order: int = 0
         self.hidden: bool = False
@@ -183,7 +192,7 @@ class Argument(_ArgumentType):
 
         Hidden arguments are not shown in the help page.
         """
-        return self.hidden or self.key[0] == '_'
+        return self.hidden or self.key[0] == "_"
 
     @property
     def is_unused(self) -> bool:
@@ -194,7 +203,9 @@ class Argument(_ArgumentType):
         The argument is expected to not be used if it doesn't have an
         annotation or if the annotation is `str`.
         """
-        return self.final and self.is_optional and not self.help and not self.description
+        return (
+            self.final and self.is_optional and not self.help and not self.description
+        )
 
     @property
     def is_optional(self) -> bool:
@@ -224,7 +235,9 @@ class Argument(_ArgumentType):
 
     @classmethod
     def _get_constituents(cls, annotation) -> list[_Type]:
-        constituents = filter(lambda t: t is not type(None), get_args(annotation))  # noqa: E721
+        constituents = filter(
+            lambda t: t is not type(None), get_args(annotation)  # noqa: E721
+        )
         return [*split_at(constituents, cls._is_literal_type)][0]
 
     def describe(self) -> str:
@@ -232,7 +245,7 @@ class Argument(_ArgumentType):
         if self.description:
             return self.description
         if self.is_unused:
-            return '(Not used)'
+            return "(Not used)"
         elif self.final:
             accepts = self.accepts.bare()
         elif self.is_greedy:
@@ -240,13 +253,13 @@ class Argument(_ArgumentType):
         else:
             accepts = self.accepts.a()
         if self.is_optional:
-            accepts = f'{accepts}; optional'
+            accepts = f"{accepts}; optional"
             if self.default:
-                accepts = f'{accepts}, defaults to {self.default}'
+                accepts = f"{accepts}, defaults to {self.default}"
         if self.help:
-            accepts = f'{self.help} Should be {accepts}'
+            accepts = f"{self.help} Should be {accepts}"
         else:
-            accepts = f'Should be {accepts}'
+            accepts = f"Should be {accepts}"
         return accepts
 
     def as_node(self) -> str:
@@ -261,12 +274,12 @@ class Argument(_ArgumentType):
         if self.node:
             return self.node
         if self.is_unused:
-            return ''
+            return ""
         if self.final:
-            return f'[{self.accepts.concise(1)} ...]'
+            return f"[{self.accepts.concise(1)} ...]"
         if self.is_greedy:
-            return f'[one or more {self.accepts.concise(2)}]'
-        return f'[{self.accepts.concise(1)}]'
+            return f"[one or more {self.accepts.concise(2)}]"
+        return f"[{self.accepts.concise(1)}]"
 
     def __str__(self):
         """Print the argument's name in manpage style.
@@ -276,14 +289,14 @@ class Argument(_ArgumentType):
         if self.signature:
             return self.signature
         if self.is_unused:
-            return '[...]'
+            return "[...]"
         if self.final:
-            return f'[{self.slug} ...]'
+            return f"[{self.slug} ...]"
         if self.is_greedy:
-            return f'[{self.slug} {self.slug} ...]'
+            return f"[{self.slug} {self.slug} ...]"
         if self.is_optional:
-            return f'[{self.slug}]'
-        return f'‹{self.slug}›'
+            return f"[{self.slug}]"
+        return f"‹{self.slug}›"
 
     def to_comparable(self):
         return (
@@ -308,7 +321,7 @@ class Argument(_ArgumentType):
             if not isinstance(printer, QuantifiedNP):
                 return self.infer_accepts(printer)
             return printer
-        log.warning(f'No type description for {annotation}')
+        log.warning(f"No type description for {annotation}")
         return QuantifiedNP(annotation.__name__)
 
     def infer_union_type(self, annotation) -> QuantifiedNP:
@@ -341,7 +354,7 @@ class CommandSignature:
     This object is used to format command synopsis and syntax help.
     """
 
-    def __init__(self, arguments: tuple[_ArgumentType, ...], description: str = ''):
+    def __init__(self, arguments: tuple[_ArgumentType, ...], description: str = ""):
         self.arguments = tuple(sorted(arguments))
         self.description = description
 
@@ -357,7 +370,7 @@ class CommandSignature:
             `message ‹channel› [content]`
 
         """
-        return ' '.join(filter(None, (str(arg) for arg in self.arguments)))
+        return " ".join(filter(None, (str(arg) for arg in self.arguments)))
 
     def as_node(self) -> str:
         """Print the signature indicating the types of each argument.
@@ -371,7 +384,7 @@ class CommandSignature:
             `message [text channel] [text content ...]`
 
         """
-        return ' '.join(filter(None, (arg.as_node() for arg in self.arguments)))
+        return " ".join(filter(None, (arg.as_node() for arg in self.arguments)))
 
     def as_frozenset(self) -> tuple[str, ...]:
         """Return the names of these arguments as a frozenset (thus ignoring the order).
@@ -391,12 +404,12 @@ class CommandSignature:
 
 def _default_arg_delimiter(idx: int, param: Parameter) -> _ArgumentParsingAction:
     if idx == 0:
-        return 'skip'
+        return "skip"
     if isinstance(param.annotation, type) and issubclass(param.annotation, Context):
-        return 'skip'
+        return "skip"
     if param.kind is Parameter.KEYWORD_ONLY:
-        return 'break'
-    return 'proceed'
+        return "break"
+    return "proceed"
 
 
 class CommandDoc(Documentation):
@@ -420,11 +433,11 @@ class CommandDoc(Documentation):
         self.parent: str = cmd.full_parent_name
         self.call_sign: str = cmd.qualified_name
 
-        self.standalone: bool = getattr(cmd, 'invoke_without_command', True)
+        self.standalone: bool = getattr(cmd, "invoke_without_command", True)
         self.aliases: list[str] = cmd.aliases
 
-        self.description: str = '(no description)'
-        self.synopsis: tuple[str, ...] = ('(no synopsis)',)
+        self.description: str = "(no description)"
+        self.synopsis: tuple[str, ...] = ("(no synopsis)",)
         self.examples: dict[tuple[str, ...], str] = {}
         self.discussions: dict[str, str] = {}
 
@@ -444,7 +457,7 @@ class CommandDoc(Documentation):
 
         self.export: _Embed = {}
 
-        memo = get_memo(cmd, '__command_doc__', '_callback', default=[])
+        memo = get_memo(cmd, "__command_doc__", "_callback", default=[])
         for func in reversed(memo):
             func(self, cmd)
 
@@ -465,9 +478,11 @@ class CommandDoc(Documentation):
         This is used to provide search results for a command if people look it up
         by its alias.
         """
-        return [f'{self.parent} {alias}' for alias in self.aliases]
+        return [f"{self.parent} {alias}" for alias in self.aliases]
 
-    def iter_call_styles(self, options: deque[_ArgumentType] = None, stack: list[_ArgumentType] = None):
+    def iter_call_styles(
+        self, options: deque[_ArgumentType] = None, stack: list[_ArgumentType] = None
+    ):
         """Iterate over all possible call syntaxes for this command.
 
         Syntaxes are different if they take different sets of arguments.
@@ -521,9 +536,9 @@ class CommandDoc(Documentation):
         delimiter = self.env.get_arg_delimiter()
         for i, (k, v) in enumerate(args.items()):
             action = delimiter(i, v)
-            if action == 'skip':
+            if action == "skip":
                 continue
-            if action == 'break':
+            if action == "break":
                 if should_break:
                     # At most 1 keyword-only argument allowed
                     # per command, the rest will not be handled
@@ -534,7 +549,7 @@ class CommandDoc(Documentation):
                     break
                 should_break = True
             arguments[k] = Argument(self.env, v)
-        arguments['__argv0__'] = _Argv0(self.call_sign)
+        arguments["__argv0__"] = _Argv0(self.call_sign)
         self.arguments = arguments
 
     def build_signatures(self):
@@ -546,7 +561,7 @@ class CommandDoc(Documentation):
 
     def ensure_signatures(self):
         """Build function signatures if it has not been done."""
-        if not hasattr(self, 'invocations'):
+        if not hasattr(self, "invocations"):
             self.build_signatures()
 
     def build_synopsis(self):
@@ -557,7 +572,7 @@ class CommandDoc(Documentation):
             if keys not in self.invalid_syntaxes:
                 lines.append(sig.as_synopsis())
         for subc in self.subcommands:
-            lines.append(f'{subc} [...]')
+            lines.append(f"{subc} [...]")
         return tuple(lines)
 
     def format_examples(
@@ -567,16 +582,16 @@ class CommandDoc(Documentation):
     ) -> str:
         """Format the Examples section of the help page."""
         if not examples:
-            return '(none)'
+            return "(none)"
         lines = []
         for invocation, explanation in examples:
             if isinstance(invocation, tuple):
-                invocation = '\n'.join(invocation)
+                invocation = "\n".join(invocation)
             block = transform(invocation)
             if explanation:
-                block += f'\n{blockquote(explanation)}'
+                block += f"\n{blockquote(explanation)}"
             lines.append(block)
-        return '\x00'.join(lines)
+        return "\x00".join(lines)
 
     def add_subcommand(self, command: Command, doc: CommandDoc):
         """Add the documentation of this command's subcommand to the collection.
@@ -612,17 +627,17 @@ class CommandDoc(Documentation):
         self.synopsis = self.build_synopsis()
 
         sections = self.sections
-        sections['Synopsis'] = pre('\n'.join(self.synopsis))
+        sections["Synopsis"] = pre("\n".join(self.synopsis))
 
         if self.aliases:
-            sections['Shorthands'] = ', '.join(self.full_aliases)
+            sections["Shorthands"] = ", ".join(self.full_aliases)
 
         if self.examples:
             examples = self.format_examples(
                 self.examples.items(),
-                lambda s: '\n' + strong(s),
+                lambda s: "\n" + strong(s),
             )
-            sections['Examples'] = examples
+            sections["Examples"] = examples
 
         invocations = {
             sig.as_node().strip(): sig.description
@@ -630,23 +645,24 @@ class CommandDoc(Documentation):
             if keys not in self.invalid_syntaxes
         }
         subcommands = {
-            f'{k} ...': f'{v.description} (subcommand)' for k, v in self.subcommands.items()
+            f"{k} ...": f"{v.description} (subcommand)"
+            for k, v in self.subcommands.items()
         }
 
-        sections['Syntax'] = self.format_examples(
+        sections["Syntax"] = self.format_examples(
             {**invocations, **subcommands}.items(),
-            transform=lambda s: a(strong(s), 'https://.'),
+            transform=lambda s: a(strong(s), "https://."),
         )
 
         if self.restrictions:
-            sections['Restrictions'] = '\n'.join(self.restrictions)
+            sections["Restrictions"] = "\n".join(self.restrictions)
 
         arguments = [
-            f'{strong(arg.key)}: {arg.describe()}'
+            f"{strong(arg.key)}: {arg.describe()}"
             for arg in self.arguments.values()
             if not arg.is_hidden and not arg.is_unused
         ]
-        sections['Arguments'] = '\x00'.join(arguments)
+        sections["Arguments"] = "\x00".join(arguments)
 
         for k, v in self.discussions.items():
             sections[k] = v
@@ -664,19 +680,30 @@ class CommandDoc(Documentation):
 
     def generate_help(self) -> dict:
         """Format the help embed and return it as a dict."""
-        sections = [{'name': k, 'value': v, 'inline': False} for k, v in self.sections.items() if v]
-        title = f'Help: {self.call_sign}'
+        sections = [
+            {"name": k, "value": v, "inline": False}
+            for k, v in self.sections.items()
+            if v
+        ]
+        title = f"Help: {self.call_sign}"
         return {
-            'title': title,
-            'description': self.description,
-            'fields': sections,
+            "title": title,
+            "description": self.description,
+            "fields": sections,
         }
 
     def to_embed(self, maxlen: int = 500) -> EmbedPagination:
-        sections = [EmbedField(f['name'], f['value'], False) for f in self.export['fields'] if f['value']]
-        chapters = chapterize_fields(sections, maxlen, linebreak=lambda c: c == '\x00')
-        embeds = [Embed2(fields=[c.replace('\x00', '\n') for c in chapter]) for chapter in chapters]
-        title = f'Help: {self.call_sign}'
+        sections = [
+            EmbedField(f["name"], f["value"], False)
+            for f in self.export["fields"]
+            if f["value"]
+        ]
+        chapters = chapterize_fields(sections, maxlen, linebreak=lambda c: c == "\x00")
+        embeds = [
+            Embed2(fields=[c.replace("\x00", "\n") for c in chapter])
+            for chapter in chapters
+        ]
+        title = f"Help: {self.call_sign}"
         embeds = [e.set_description(self.description) for e in embeds]
         return EmbedPagination(embeds, title, False)
 
@@ -716,23 +743,25 @@ class Manual(Manpage):
     def load_commands(self, bot: Bot) -> None:
         sections: dict[tuple[int, str], list[str]] = defaultdict(list)
         descriptions = {}
-        all_commands: dict[str, Command] = {cmd.qualified_name: cmd for cmd in bot.walk_commands()}
+        all_commands: dict[str, Command] = {
+            cmd.qualified_name: cmd for cmd in bot.walk_commands()
+        }
 
         for call, cmd in all_commands.items():
             self._commands[call] = CommandDoc(self, cmd)
-            if cmd.cog and (sort_order := getattr(cmd.cog, 'sort_order', 0)):
+            if cmd.cog and (sort_order := getattr(cmd.cog, "sort_order", 0)):
                 cog: Cog = cmd.cog
                 section = (sort_order, cog.qualified_name)
                 desc = cog.description
             else:
-                section = (99, 'Miscellaneous')
-                desc = ''
+                section = (99, "Miscellaneous")
+                desc = ""
             sections[section].append(call)
             descriptions[section] = desc
 
         for call, cmd in all_commands.items():
             parent = self._commands[cmd.qualified_name]
-            subcommands: list[Command] = getattr(cmd, 'commands', None) or []
+            subcommands: list[Command] = getattr(cmd, "commands", None) or []
             for subcmd in subcommands:
                 subdoc = self._commands[subcmd.qualified_name]
                 parent.add_subcommand(subcmd, subdoc)
@@ -759,13 +788,15 @@ class Manual(Manpage):
                 doc = self._commands[call]
                 if doc.invisible:
                     continue
-                lines.append(f'{strong(call)}: {doc.description}')
-            content = '\n'.join(lines)
+                lines.append(f"{strong(call)}: {doc.description}")
+            content = "\n".join(lines)
             if content.strip():
                 self._toc[section] = blockquote(content)
 
-        fields = [{'name': k, 'value': v, 'inline': False} for k, v in self._toc.items()]
-        self._export = {'fields': fields}
+        fields = [
+            {"name": k, "value": v, "inline": False} for k, v in self._toc.items()
+        ]
+        self._export = {"fields": fields}
 
     def register_type(self, type_: _Type, printer: _TypePrinter) -> None:
         self._types[type_] = printer
@@ -780,7 +811,8 @@ class Manual(Manpage):
         self._arg_delimiter = delimiter
 
     def _propagate_restrictions(
-        self, tree: dict[str, CommandDoc],
+        self,
+        tree: dict[str, CommandDoc],
         stack: list[list[str]],
         seen: set[str],
     ):
@@ -791,7 +823,7 @@ class Manual(Manpage):
             if doc.standalone:
                 continue
             seen.add(call_sign)
-            restrictions = [f'(Parent) {r}' for r in doc.restrictions]
+            restrictions = [f"(Parent) {r}" for r in doc.restrictions]
             doc.restrictions.extend(chain.from_iterable(stack))
             stack.append(restrictions)
             self._propagate_restrictions(doc.subcommands, stack, seen)
@@ -805,7 +837,7 @@ class Manual(Manpage):
             aliased_prefixes.append(doc.parent)
             for prefix in aliased_prefixes:
                 for alias in [doc.name, *doc.aliases]:
-                    aliases[call_sign].append(f'{prefix} {alias}'.strip())
+                    aliases[call_sign].append(f"{prefix} {alias}".strip())
         for call_sign, aliases_ in aliases.items():
             for alias in aliases_:
                 self._aliases[alias] = call_sign
@@ -828,12 +860,11 @@ class Manual(Manpage):
         if not doc or not include_hidden and doc.invisible:
             try:
                 # TODO: replace with rapidfuzz
-                from fuzzywuzzy import process as fuzzy
-                from fuzzywuzzy.fuzz import UQRatio
+                from rapidfuzz import process as fuzzy
+                from rapidfuzz.fuzz import QRatio
 
-                matched = fuzzy.extractBests(
-                    query, self._commands.keys(),
-                    scorer=UQRatio, score_cutoff=65,
+                matched = fuzzy.extract(
+                    query, self._commands.keys(), scorer=QRatio, score_cutoff=65
                 )
             except ModuleNotFoundError:
                 matched = None
@@ -855,8 +886,11 @@ class Manual(Manpage):
         yield from sorted(self._commands.items(), key=lambda t: t[0])
 
     def to_embed(self, maxlen: int = 500) -> EmbedPagination:
-        fields = [EmbedField(**f) for f in self._export['fields']]
+        fields = [EmbedField(**f) for f in self._export["fields"]]
         chapters = chapterize_items(fields, maxlen)
         embeds = [Embed2(fields=chapter, color=Color2.blue()) for chapter in chapters]
-        embeds = [e.set_footer(text=('Use "help [command]" here to see how to use a command')) for e in embeds]
-        return EmbedPagination(embeds, 'Help', True)
+        embeds = [
+            e.set_footer(text=('Use "help [command]" here to see how to use a command'))
+            for e in embeds
+        ]
+        return EmbedPagination(embeds, "Help", True)

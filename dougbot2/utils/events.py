@@ -26,7 +26,13 @@ from functools import wraps
 from typing import Any, Optional, Union
 
 from discord import (
-    Client, Emoji, Member, Message, PartialEmoji, RawReactionActionEvent, User,
+    Client,
+    Emoji,
+    Member,
+    Message,
+    PartialEmoji,
+    RawReactionActionEvent,
+    User,
 )
 from discord.ext.commands import Context
 
@@ -44,12 +50,15 @@ def event_filter(ev_filter: EventFilter) -> Decorator:
     The callable accepts the same arguments that will be passed to the
     event handler.
     """
+
     def wrapper(f: Callable[..., Coroutine]):
         @wraps(f)
         async def wrapped(*args, **kwargs):
             if await ev_filter(*args, **kwargs):
                 return await f(*args, **kwargs)
+
         return wrapped
+
     return wrapper
 
 
@@ -60,37 +69,44 @@ def emote_no_bots(event: RawReactionActionEvent):
 
 def emote_added(event: RawReactionActionEvent):
     """Allow a reaction event if the event adds a reaction."""
-    return event.event_type == 'REACTION_ADD'
+    return event.event_type == "REACTION_ADD"
 
 
 def reaction_from(*ids: int):
     """Allow a reaction event if the event comes from one of the specified users."""
+
     def check(event: RawReactionActionEvent, ids=frozenset(ids)):
         return event.user_id in ids
+
     return check
 
 
 def reaction_on(*ids: int):
     """Allow a reaction event if the event originates from one of the messages."""
+
     def check(event: RawReactionActionEvent, ids=frozenset(ids)):
         return event.message_id in ids
+
     return check
 
 
 def emote_matches(*emotes: str | int):
     """Allow a reaction event if the emote used is one of the specified emotes."""
+
     def check_emote(event: RawReactionActionEvent):
         id_ = event.emoji.id or event.emoji.name
         return id_ in emotes
+
     return check_emote
 
 
 class Responder:
     """Wait for discord.py events and run a coroutine if there is a match."""
 
-    def __init__(self, events: dict[str, Callable[..., bool]],
-                 client: Client, ttl: float) -> None:
-        self.log = logging.getLogger('discord.responder')
+    def __init__(
+        self, events: dict[str, Callable[..., bool]], client: Client, ttl: float
+    ) -> None:
+        self.log = logging.getLogger("discord.responder")
         self.events = events
         self.client = client
         self.ttl = ttl
@@ -118,7 +134,7 @@ class Responder:
         try:
             return await self.on_start()
         except Exception as e:
-            self.log.debug(f'{type(e).__name__} while starting paginator: {e}\n')
+            self.log.debug(f"{type(e).__name__} while starting paginator: {e}\n")
             return False
 
     async def cleanup(self):
@@ -140,11 +156,15 @@ class Responder:
             if ts > self.end:
                 break
             timeout = self.end - ts
-            listeners = {self.client.wait_for(k, check=t, timeout=timeout)
-                         for k, t in self.events.items()}
+            listeners = {
+                self.client.wait_for(k, check=t, timeout=timeout)
+                for k, t in self.events.items()
+            }
             futures = {asyncio.ensure_future(coro) for coro in listeners}
             try:
-                done, pending = await asyncio.wait(futures, return_when=asyncio.FIRST_COMPLETED)
+                done, pending = await asyncio.wait(
+                    futures, return_when=asyncio.FIRST_COMPLETED
+                )
                 first = done.pop()
                 args = first.result()
             except asyncio.TimeoutError:
@@ -158,7 +178,7 @@ class Responder:
             try:
                 stop = await self.handle(args)
             except Exception as e:
-                self.log.debug(f'{type(e).__name__} while handling reactions: {e}\n')
+                self.log.debug(f"{type(e).__name__} while handling reactions: {e}\n")
             else:
                 if stop:
                     break
@@ -186,8 +206,12 @@ class EmoteResponder(Responder):
     """
 
     def __init__(
-        self, users: Iterable[int | Member], emotes: list[Emoji | PartialEmoji | str],
-        message: Message, *args, **kwargs,
+        self,
+        users: Iterable[int | Member],
+        emotes: list[Emoji | PartialEmoji | str],
+        message: Message,
+        *args,
+        **kwargs,
     ) -> None:
         self.message = message
         self.emotes: dict[int | str, str | Emoji | PartialEmoji] = {}
@@ -199,16 +223,19 @@ class EmoteResponder(Responder):
                 self.emotes[e.id] = e
 
         def test(evt: RawReactionActionEvent):
-            return all(t(evt) for t in (
-                emote_no_bots,
-                emote_matches(*self.emotes.keys()),
-                reaction_from(*users),
-                reaction_on(self.message.id),
-            ))
+            return all(
+                t(evt)
+                for t in (
+                    emote_no_bots,
+                    emote_matches(*self.emotes.keys()),
+                    reaction_from(*users),
+                    reaction_on(self.message.id),
+                )
+            )
 
         events = {
-            'raw_reaction_add': test,
-            'raw_reaction_remove': test,
+            "raw_reaction_add": test,
+            "raw_reaction_remove": test,
         }
         super().__init__(events, *args, **kwargs)
 
@@ -228,10 +255,16 @@ class DeleteResponder(EmoteResponder):
     """Listen for a reaction to the trashcan emote and delete a message."""
 
     def __init__(self, ctx: Context, message: Message, ttl: int = 300) -> None:
-        super().__init__([ctx.author.id], [get_defaults().styles.emotes.removal], client=ctx.bot, message=message, ttl=ttl)
+        super().__init__(
+            [ctx.author.id],
+            [get_defaults().styles.emotes.removal],
+            client=ctx.bot,
+            message=message,
+            ttl=ttl,
+        )
 
     async def handle(self, event) -> True:
-        await self.message.delete(delay=.1)
+        await self.message.delete(delay=0.1)
         return True
 
 

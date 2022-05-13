@@ -19,8 +19,19 @@ from __future__ import annotations
 from datetime import datetime
 from inspect import Parameter
 from typing import (
-    Any, AsyncContextManager, Awaitable, Callable, Iterable, Literal, Optional,
-    Protocol, Tuple, Type, TypedDict, TypeVar, Union,
+    Any,
+    AsyncContextManager,
+    Awaitable,
+    Callable,
+    Iterable,
+    Literal,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    TypeVar,
+    TypedDict,
+    Union,
 )
 
 from aiohttp import ClientSession
@@ -35,7 +46,7 @@ from .utils.duckcord import Embed2
 from .utils.english import QuantifiedNP
 from .utils.response import ResponseInit
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Console(Protocol):
@@ -159,7 +170,7 @@ class _ExceptionResult(TypedDict):
 _Type = Union[type, Converter, type[Converter], Callable]
 _TypeHint = Union[str, QuantifiedNP]
 
-_ArgumentParsingAction = Literal['skip', 'proceed', 'break']
+_ArgumentParsingAction = Literal["skip", "proceed", "break"]
 _ArgumentDelimiter = Callable[[int, Parameter], _ArgumentParsingAction]
 
 
@@ -201,7 +212,9 @@ _TypePrinter = Union[_TypeHint, Callable[[_Type], Union[_Type, _TypeHint]]]
 
 
 class ErrorPage(Protocol):
-    def get_error(self, ctx: Surroundings, exc: Exception) -> Awaitable[Optional[_ExceptionResult]]:
+    def get_error(
+        self, ctx: Surroundings, exc: Exception
+    ) -> Awaitable[Optional[_ExceptionResult]]:
         ...
 
     def set_error_blurb(self, exc: _ExceptionType, blurb: _ExceptionHandler) -> None:
@@ -235,14 +248,16 @@ class LoggingAmenities(Protocol):
     def dump_traceback(self, exc: BaseException) -> File:
         ...
 
-    def pprint_exception(self, exc: Exception, color: Optional[Color] = None, title: Optional[str] = None) -> Embed2:
+    def pprint_exception(
+        self, exc: Exception, color: Optional[Color] = None, title: Optional[str] = None
+    ) -> Embed2:
         ...
 
     def log_exception(self, ctx: Surroundings, exc: Exception) -> Awaitable[None]:
         ...
 
 
-BotOption = Literal['set_presence']
+BotOption = Literal["set_presence"]
 
 
 class _MissionControl(Protocol):
@@ -270,6 +285,7 @@ class _MissionControl(Protocol):
 
 
 # Would be cool if we had intersection types
+
 
 class Surroundings(_Surroundings, Context):
     pass

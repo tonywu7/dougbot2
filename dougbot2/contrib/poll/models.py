@@ -22,15 +22,15 @@ from django.db import models
 from dougbot2.models import Entity
 from dougbot2.utils.fields import NumbersListField, RecordField
 
-RE_UNICODE_VARIATIONS = re.compile('[\ufe00-\ufe0f]')
+RE_UNICODE_VARIATIONS = re.compile("[\ufe00-\ufe0f]")
 
 
 class SuggestionChannel(Entity):
-    title: str = models.TextField(default='Suggestion')
+    title: str = models.TextField(default="Suggestion")
     description: str = models.TextField(blank=True)
 
-    upvote: str = models.CharField(max_length=512, blank=True, default='🔼')
-    downvote: str = models.CharField(max_length=512, blank=True, default='🔽')
+    upvote: str = models.CharField(max_length=512, blank=True, default="🔼")
+    downvote: str = models.CharField(max_length=512, blank=True, default="🔽")
 
     requires_text: bool = models.BooleanField(default=True)
     requires_uploads: int = models.IntegerField(default=0)
@@ -47,8 +47,5 @@ class SuggestionChannel(Entity):
 
     @property
     def all_emotes(self) -> dict[str, str]:
-        emotes = {self.upvote: '', self.downvote: '', **self.reactions}
-        return {
-            RE_UNICODE_VARIATIONS.sub('', k): v
-            for k, v in emotes.items() if k
-        }
+        emotes = {self.upvote: "", self.downvote: "", **self.reactions}
+        return {RE_UNICODE_VARIATIONS.sub("", k): v for k, v in emotes.items() if k}

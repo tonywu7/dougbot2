@@ -25,11 +25,25 @@ from typing import Optional, TypedDict
 from discord import User
 from discord.ext.commands import BucketType, Context
 from inflect import (
-    ARTICLE_SPECIAL_EU, ARTICLE_SPECIAL_ONCE, ARTICLE_SPECIAL_ONETIME,
-    ARTICLE_SPECIAL_UBA, ARTICLE_SPECIAL_UKR, ARTICLE_SPECIAL_UNIT, CONSONANTS,
-    SPECIAL_A, SPECIAL_ABBREV_A, SPECIAL_ABBREV_AN, SPECIAL_AN,
-    SPECIAL_CAPITALS, VOWELS, A_explicit_a, A_explicit_an, A_ordinal_a,
-    A_ordinal_an, A_y_cons, engine,
+    ARTICLE_SPECIAL_EU,
+    ARTICLE_SPECIAL_ONCE,
+    ARTICLE_SPECIAL_ONETIME,
+    ARTICLE_SPECIAL_UBA,
+    ARTICLE_SPECIAL_UKR,
+    ARTICLE_SPECIAL_UNIT,
+    CONSONANTS,
+    SPECIAL_A,
+    SPECIAL_ABBREV_A,
+    SPECIAL_ABBREV_AN,
+    SPECIAL_AN,
+    SPECIAL_CAPITALS,
+    VOWELS,
+    A_explicit_a,
+    A_explicit_an,
+    A_ordinal_a,
+    A_ordinal_an,
+    A_y_cons,
+    engine,
 )
 
 from .markdown import tag
@@ -51,70 +65,70 @@ class engine_(engine):
         mycount = self.get_count(count)
 
         if mycount != 1:
-            return f'{count} {word}'
+            return f"{count} {word}"
 
         # HANDLE USER-DEFINED VARIANTS
 
         value = self.ud_match(word, self.A_a_user_defined)
         if value is not None:
-            return f'{value} {word}'
+            return f"{value} {word}"
 
         for regexen, article in (
             # HANDLE ORDINAL FORMS
-            (A_ordinal_a, 'a'),
-            (A_ordinal_an, 'an'),
+            (A_ordinal_a, "a"),
+            (A_ordinal_an, "an"),
             # HANDLE SPECIAL CASES
-            (A_explicit_an, 'an'),
-            (SPECIAL_AN, 'an'),
-            (SPECIAL_A, 'a'),
+            (A_explicit_an, "an"),
+            (SPECIAL_AN, "an"),
+            (SPECIAL_A, "a"),
             # HANDLE ABBREVIATIONS
-            (A_abbrev, 'an'),
-            (SPECIAL_ABBREV_AN, 'an'),
-            (SPECIAL_ABBREV_A, 'a'),
+            (A_abbrev, "an"),
+            (SPECIAL_ABBREV_AN, "an"),
+            (SPECIAL_ABBREV_A, "a"),
             # HANDLE CONSONANTS
-            (CONSONANTS, 'a'),
+            (CONSONANTS, "a"),
             # HANDLE SPECIAL VOWEL-FORMS
-            (ARTICLE_SPECIAL_EU, 'a'),
-            (ARTICLE_SPECIAL_ONCE, 'a'),
-            (ARTICLE_SPECIAL_ONETIME, 'a'),
-            (ARTICLE_SPECIAL_UNIT, 'a'),
-            (ARTICLE_SPECIAL_UBA, 'a'),
-            (ARTICLE_SPECIAL_UKR, 'a'),
-            (A_explicit_a, 'a'),
+            (ARTICLE_SPECIAL_EU, "a"),
+            (ARTICLE_SPECIAL_ONCE, "a"),
+            (ARTICLE_SPECIAL_ONETIME, "a"),
+            (ARTICLE_SPECIAL_UNIT, "a"),
+            (ARTICLE_SPECIAL_UBA, "a"),
+            (ARTICLE_SPECIAL_UKR, "a"),
+            (A_explicit_a, "a"),
             # HANDLE SPECIAL CAPITALS
-            (SPECIAL_CAPITALS, 'a'),
+            (SPECIAL_CAPITALS, "a"),
             # HANDLE VOWELS
-            (VOWELS, 'an'),
+            (VOWELS, "an"),
             # HANDLE y...
             # (BEFORE CERTAIN CONSONANTS IMPLIES (UNNATURALIZED) "i.." SOUND)
-            (A_y_cons, 'an'),
+            (A_y_cons, "an"),
         ):
             mo = regexen.search(word)
             if mo:
-                return f'{article} {word}'
+                return f"{article} {word}"
 
         # OTHERWISE, GUESS "a"
-        return f'a {word}'
+        return f"a {word}"
 
     def postprocess(self, orig: str, inflected) -> str:
         inflected = str(inflected)
-        if '|' in inflected:
-            word_options = inflected.split('|')
+        if "|" in inflected:
+            word_options = inflected.split("|")
             # When two parts of a noun need to be pluralized
-            if len(word_options[0].split(' ')) == len(word_options[1].split(' ')):
-                result = inflected.split('|')[self.classical_dict['all']].split(' ')
+            if len(word_options[0].split(" ")) == len(word_options[1].split(" ")):
+                result = inflected.split("|")[self.classical_dict["all"]].split(" ")
             # When only the last part of the noun needs to be pluralized
             else:
-                result = inflected.split(' ')
+                result = inflected.split(" ")
                 for index, word in enumerate(result):
-                    if '|' in word:
-                        result[index] = word.split('|')[self.classical_dict['all']]
+                    if "|" in word:
+                        result[index] = word.split("|")[self.classical_dict["all"]]
         else:
-            result = inflected.split(' ')
+            result = inflected.split(" ")
 
         # Try to fix word wise capitalization
-        for index, word in enumerate(orig.split(' ')):
-            if word == 'I':
+        for index, word in enumerate(orig.split(" ")):
+            if word == "I":
                 # Is this the only word for exceptions like this
                 # Where the original is fully capitalized
                 # without 'meaning' capitalization?
@@ -124,25 +138,25 @@ class engine_(engine):
                 result[index] = result[index].capitalize()
             if (
                 word == word.upper()
-                and result[index].upper().removeprefix(word) != 'S'
+                and result[index].upper().removeprefix(word) != "S"
                 # Restore uppercase unless result is the plural
                 # of the original term in which case the -s
                 # should stay lowercase
             ):
                 result[index] = result[index].upper()
-        return ' '.join(result)
+        return " ".join(result)
 
 
 inflection = engine_()
 
 BUCKET_DESCRIPTIONS = {
-    BucketType.default: 'globally',
-    BucketType.user: 'per user',
-    BucketType.member: 'per user',
-    BucketType.guild: 'per server',
-    BucketType.channel: 'per channel',
-    BucketType.category: 'per channel category',
-    BucketType.role: 'per role',
+    BucketType.default: "globally",
+    BucketType.user: "per user",
+    BucketType.member: "per user",
+    BucketType.guild: "per server",
+    BucketType.channel: "per channel",
+    BucketType.category: "per channel category",
+    BucketType.role: "per role",
 }
 
 
@@ -162,10 +176,10 @@ def singularize(term: str) -> str:
 def plural_clause(count: int, term: str, verb: str) -> str:
     """Return a plural number version of this noun phrase."""
     term = pluralize(count, term)
-    return f'{term} {inflection.plural_verb(verb, count)}'
+    return f"{term} {inflection.plural_verb(verb, count)}"
 
 
-def coord_conj(*terms: str, conj='and', oxford=True) -> str:
+def coord_conj(*terms: str, conj="and", oxford=True) -> str:
     """Join multiple terms together as a coordinating conjunction.
 
     :Example:
@@ -180,29 +194,29 @@ def coord_conj(*terms: str, conj='and', oxford=True) -> str:
     """
     terms = list(set(terms))
     if not terms:
-        return ''
+        return ""
     if len(terms) == 1:
         return terms[0]
     if len(terms) == 2:
-        return f'{terms[0]} {conj} {terms[1]}'
+        return f"{terms[0]} {conj} {terms[1]}"
     if oxford:
-        oxford = ','
+        oxford = ","
     return f'{", ".join(terms[:-1])}{oxford} {conj} {terms[-1]}'
 
 
-def either_or(*terms: str, sep=', ') -> str:
+def either_or(*terms: str, sep=", ") -> str:
     """Phrase multiple terms into the expression "either ..., or ..., or ..."."""
     if not terms:
-        return ''
+        return ""
     if len(terms) == 1:
         return terms[0]
     if len(terms) == 2:
-        return f'either {terms[0]} or {terms[1]}'
-    sep = f'{sep}or '
-    return f'either {sep.join(terms)}'
+        return f"either {terms[0]} or {terms[1]}"
+    sep = f"{sep}or "
+    return f"either {sep.join(terms)}"
 
 
-def pl_cat_predicative(category: str, terms: list[str], sep=' ', conj='and') -> str:
+def pl_cat_predicative(category: str, terms: list[str], sep=" ", conj="and") -> str:
     """Create an predicative phrase expressing multiple kinds of some category.
 
     :Example:
@@ -213,10 +227,10 @@ def pl_cat_predicative(category: str, terms: list[str], sep=' ', conj='and') -> 
         ... 'fruits: apple, orange, and banana'
 
     """
-    return f'{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}'
+    return f"{pluralize(len(terms), category)}{sep}{coord_conj(*terms, conj=conj)}"
 
 
-def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> str:
+def pl_cat_attributive(category: str, terms: list[str], sep=" ", conj="and") -> str:
     """Create an attributive phrase expressing multiple kinds of some category.
 
     :Example:
@@ -227,7 +241,7 @@ def pl_cat_attributive(category: str, terms: list[str], sep=' ', conj='and') -> 
         ... 'red, green, and blue apples'
 
     """
-    return f'{coord_conj(*terms, conj=conj)}{sep}{pluralize(len(terms), category)}'
+    return f"{coord_conj(*terms, conj=conj)}{sep}{pluralize(len(terms), category)}"
 
 
 class QuantifiedNP:
@@ -237,25 +251,25 @@ class QuantifiedNP:
         self,
         *nouns,
         concise: str = None,
-        attributive: str = '',
-        predicative: str = '',
-        predicative_sep: str = ', ',
-        conjunction: str = 'or',
+        attributive: str = "",
+        predicative: str = "",
+        predicative_sep: str = ", ",
+        conjunction: str = "or",
         definite=False,
         uncountable=False,
     ):
         if not nouns:
-            raise ValueError('One or more noun terms required')
+            raise ValueError("One or more noun terms required")
 
         self._kwargs = {
-            'nouns': nouns,
-            'concise': concise,
-            'attributive': attributive,
-            'predicative': predicative,
-            'predicative_sep': predicative_sep,
-            'conjunction': conjunction,
-            'definite': definite,
-            'uncountable': uncountable,
+            "nouns": nouns,
+            "concise": concise,
+            "attributive": attributive,
+            "predicative": predicative,
+            "predicative_sep": predicative_sep,
+            "conjunction": conjunction,
+            "definite": definite,
+            "uncountable": uncountable,
         }
         self.uncountable = uncountable
         self.definite = definite
@@ -267,19 +281,23 @@ class QuantifiedNP:
 
         self.predicative = predicative.strip()
         if self.predicative:
-            self.predicative = f'{predicative_sep}{self.predicative}'
+            self.predicative = f"{predicative_sep}{self.predicative}"
         attributive = attributive.strip()
         if attributive:
-            self.attr_singular = f'{attributive} '
-            self.attr_plural = f'{inflection.plural_adj(attributive)} '
+            self.attr_singular = f"{attributive} "
+            self.attr_plural = f"{inflection.plural_adj(attributive)} "
         else:
-            self.attr_singular = ''
-            self.attr_plural = ''
-        self.nouns_singular = coord_conj(*[inflection.singular_noun(n) or n for n in nouns], conj=conjunction)
-        self.nouns_plural = coord_conj(*[inflection.plural(n) for n in nouns], conj=conjunction)
+            self.attr_singular = ""
+            self.attr_plural = ""
+        self.nouns_singular = coord_conj(
+            *[inflection.singular_noun(n) or n for n in nouns], conj=conjunction
+        )
+        self.nouns_plural = coord_conj(
+            *[inflection.plural(n) for n in nouns], conj=conjunction
+        )
 
     def _formatted(self, prefix: str, attr: str, noun: str, pred: str):
-        return f'{prefix}{attr}{noun}{pred}'
+        return f"{prefix}{attr}{noun}{pred}"
 
     def concise(self, num: int):
         if num > 1:
@@ -287,69 +305,81 @@ class QuantifiedNP:
         return self.concise_singular
 
     def a(self):
-        term = f'{self.attr_singular}{self.nouns_singular}'
+        term = f"{self.attr_singular}{self.nouns_singular}"
         if self.definite and self.uncountable:
-            art = ''
+            art = ""
         elif self.definite:
-            art = 'the '
+            art = "the "
         elif self.uncountable:
             return self.some()
         else:
-            art = inflection.a(self.attr_singular or self.nouns_singular).split(' ')[0] + ' '
-        return f'{art} {term}{self.predicative}'
+            art = (
+                inflection.a(self.attr_singular or self.nouns_singular).split(" ")[0]
+                + " "
+            )
+        return f"{art} {term}{self.predicative}"
 
     def one_of(self):
-        return f'one of {self.attr_singular}{self.nouns_singular}{self.predicative}'
+        return f"one of {self.attr_singular}{self.nouns_singular}{self.predicative}"
 
     def no(self):
-        return f'no {self.attr_singular}{self.nouns_singular}{self.predicative}'
+        return f"no {self.attr_singular}{self.nouns_singular}{self.predicative}"
 
     def zero_or_more(self):
         if self.uncountable:
             return self.some()
-        return f'zero or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
+        return f"zero or more {self.attr_plural}{self.nouns_plural}{self.predicative}"
 
     def one_or_more(self):
         if self.uncountable:
             return self.some()
-        return f'one or more {self.attr_plural}{self.nouns_plural}{self.predicative}'
+        return f"one or more {self.attr_plural}{self.nouns_plural}{self.predicative}"
 
     def some(self):
-        return f'some {self.attr_singular}{self.nouns_singular}{self.predicative}'
+        return f"some {self.attr_singular}{self.nouns_singular}{self.predicative}"
 
     def bare(self):
-        return f'{self.attr_singular}{self.nouns_singular}'
+        return f"{self.attr_singular}{self.nouns_singular}"
 
     def bare_pl(self):
-        return f'{self.attr_plural}{self.nouns_plural}'
+        return f"{self.attr_plural}{self.nouns_plural}"
 
     def __or__(self, other: QuantifiedNP) -> QuantifiedNP:
         if not isinstance(other, QuantifiedNP):
             return NotImplemented
-        if (not self.nouns_singular == other.nouns_singular
-                or not self.predicative == other.predicative
-                or any((self.definite, other.definite))):
+        if (
+            not self.nouns_singular == other.nouns_singular
+            or not self.predicative == other.predicative
+            or any((self.definite, other.definite))
+        ):
             return QuantifiedNPS(self, other)
         kwargs = {}
-        kwargs['concise'] = coord_conj(self._kwargs['concise'], other._kwargs['concise'], conj='or')
-        kwargs['attributive'] = coord_conj(self._kwargs['attributive'], other._kwargs['attributive'], conj='or')
-        kwargs['predicative'] = self._kwargs['predicative']
-        kwargs['conjunction'] = self._kwargs['conjunction']
-        item = QuantifiedNP(*self._kwargs['nouns'], **kwargs)
-        item.concise_plural = coord_conj(
-            inflection.plural(self._kwargs['concise']),
-            inflection.plural(other._kwargs['concise']),
-            conj='or',
+        kwargs["concise"] = coord_conj(
+            self._kwargs["concise"], other._kwargs["concise"], conj="or"
         )
-        item.attr_plural = coord_conj(
-            inflection.plural_adj(self._kwargs['attributive']),
-            inflection.plural_adj(other._kwargs['attributive']),
-            conj='or',
-        ) + ' '
+        kwargs["attributive"] = coord_conj(
+            self._kwargs["attributive"], other._kwargs["attributive"], conj="or"
+        )
+        kwargs["predicative"] = self._kwargs["predicative"]
+        kwargs["conjunction"] = self._kwargs["conjunction"]
+        item = QuantifiedNP(*self._kwargs["nouns"], **kwargs)
+        item.concise_plural = coord_conj(
+            inflection.plural(self._kwargs["concise"]),
+            inflection.plural(other._kwargs["concise"]),
+            conj="or",
+        )
+        item.attr_plural = (
+            coord_conj(
+                inflection.plural_adj(self._kwargs["attributive"]),
+                inflection.plural_adj(other._kwargs["attributive"]),
+                conj="or",
+            )
+            + " "
+        )
         return item
 
     def __repr__(self):
-        return f'<Quantified noun phrase: {self.nouns_singular}>'
+        return f"<Quantified noun phrase: {self.nouns_singular}>"
 
     def __str__(self):
         return self.bare()
@@ -370,30 +400,30 @@ class QuantifiedNPS(QuantifiedNP):
         return inflection.a(self.bare())
 
     def one(self):
-        return f'one {self.bare()}'
+        return f"one {self.bare()}"
 
     def one_of(self):
-        return f'one of {self.bare()}'
+        return f"one of {self.bare()}"
 
     def no(self):
-        return f'no {self.bare()}'
+        return f"no {self.bare()}"
 
-    def zero_or_more(self, conj='or'):
+    def zero_or_more(self, conj="or"):
         terms = [p.concise(2) for p in self.phrases]
-        return f'zero or more {coord_conj(*terms, conj=conj)}'
+        return f"zero or more {coord_conj(*terms, conj=conj)}"
 
-    def one_or_more(self, conj='or'):
+    def one_or_more(self, conj="or"):
         terms = [p.concise(2) for p in self.phrases]
-        return f'one or more {coord_conj(*terms, conj=conj)}'
+        return f"one or more {coord_conj(*terms, conj=conj)}"
 
-    def some(self, conj='or'):
+    def some(self, conj="or"):
         terms = [p.concise(1) for p in self.phrases]
-        return f'some {coord_conj(*terms, conj=conj)}'
+        return f"some {coord_conj(*terms, conj=conj)}"
 
-    def bare(self, conj='or'):
+    def bare(self, conj="or"):
         return coord_conj(*[p.concise(1) for p in self.phrases], conj=conj)
 
-    def bare_pl(self, conj='or'):
+    def bare_pl(self, conj="or"):
         return coord_conj(*[p.concise(2) for p in self.phrases], conj=conj)
 
     def __iter__(self):
@@ -417,7 +447,7 @@ class QuantifiedNPS(QuantifiedNP):
         return QuantifiedNPS(*phrases)
 
 
-def slugify(name: str, sep='-', *, limit=0) -> str:
+def slugify(name: str, sep="-", *, limit=0) -> str:
     """Convert arbitrary text to a URL-safe, kebab-case string (a slug in publishing).
 
     :Example:
@@ -428,7 +458,7 @@ def slugify(name: str, sep='-', *, limit=0) -> str:
         ... 'at-the-times-stories-about-mr-obama-generally-get-one-of-two-names'
 
     """
-    t = re.sub(r'[\W_]+', sep, str(name).strip(sep).lower()).strip(sep)
+    t = re.sub(r"[\W_]+", sep, str(name).strip(sep).lower()).strip(sep)
     if limit > 0:
         t = sep.join(t.split(sep)[:limit])
     return t
@@ -436,6 +466,7 @@ def slugify(name: str, sep='-', *, limit=0) -> str:
 
 class PartOfSpeech(TypedDict):
     """Pronoun variations based on cases and part-of-speech info."""
+
     PRP_NOM: str  # Nominative
     PRP_ACC: str  # Accusative
     DET_POSS: str  # Possessive determiner
@@ -444,24 +475,29 @@ class PartOfSpeech(TypedDict):
 
 
 _3RD_PERSON_PLURAL: PartOfSpeech = {
-    'PRP_NOM': 'they',
-    'PRP_ACC': 'them',
-    'DET_POSS': 'their',
-    'PRP_POSS': 'theirs',
-    'PRP_REFL': 'themselves',
+    "PRP_NOM": "they",
+    "PRP_ACC": "them",
+    "DET_POSS": "their",
+    "PRP_POSS": "theirs",
+    "PRP_REFL": "themselves",
 }
 
 _2ND_PERSON_SINGULAR: PartOfSpeech = {
-    'PRP_NOM': 'you',
-    'PRP_ACC': 'you',
-    'DET_POSS': 'your',
-    'PRP_POSS': 'yours',
-    'PRP_REFL': 'yourself',
+    "PRP_NOM": "you",
+    "PRP_ACC": "you",
+    "DET_POSS": "your",
+    "PRP_POSS": "yours",
+    "PRP_REFL": "yourself",
 }
 
 
-def address(msg: str, person: User, ctx: Optional[Context] = None,
-            sentence=True, **infinitives: str) -> str:
+def address(
+    msg: str,
+    person: User,
+    ctx: Optional[Context] = None,
+    sentence=True,
+    **infinitives: str,
+) -> str:
     """Formularize a sentence in 2nd person or 3rd person based on the User being addressed\
     and optionally the Context object.
 
@@ -475,11 +511,13 @@ def address(msg: str, person: User, ctx: Optional[Context] = None,
         entity = tag(person)
     else:
         pos = _2ND_PERSON_SINGULAR
-        entity = 'you'
+        entity = "you"
     verbs = {k: inflection.plural_verb(v, 2) for k, v in infinitives.items()}
-    phrases = {f'{k}_vp': f'{entity} {inflection.plural_verb(v, int(third_person))}'
-               for k, v in infinitives.items()}
-    tokens = {**pos, **verbs, **phrases, 'entity': entity}
+    phrases = {
+        f"{k}_vp": f"{entity} {inflection.plural_verb(v, int(third_person))}"
+        for k, v in infinitives.items()
+    }
+    tokens = {**pos, **verbs, **phrases, "entity": entity}
     msg = msg % tokens
     if sentence:
         msg = msg[0].upper() + msg[1:]
@@ -489,8 +527,10 @@ def address(msg: str, person: User, ctx: Optional[Context] = None,
 def describe_concurrency(number: int, bucket: BucketType):
     """Describe a concurrency setting in a human-friendly way."""
     bucket_type = BUCKET_DESCRIPTIONS[bucket]
-    info = (f'concurrency: maximum {number} {pluralize(number, "call")} '
-            f'running at the same time {bucket_type}')
+    info = (
+        f'concurrency: maximum {number} {pluralize(number, "call")} '
+        f"running at the same time {bucket_type}"
+    )
     return info
 
 
@@ -499,12 +539,12 @@ def readable_perm_name(p: str) -> str:
     """Modify a discord.py Permissions attribute so that it uses terms\
     on the Discord UI that are more familiar to people."""
     return (
-        p.replace('_', ' ')
-        .replace('guild', 'server')
-        .replace('create instant invite', 'create invite')
-        .replace('emoji', 'emote')
+        p.replace("_", " ")
+        .replace("guild", "server")
+        .replace("create instant invite", "create invite")
+        .replace("emoji", "emote")
         .title()
-        .replace('Tts', 'TTS')
+        .replace("Tts", "TTS")
     )
 
 

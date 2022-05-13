@@ -20,8 +20,7 @@ from typing import Optional, Union, get_args, get_origin
 
 import simplejson as json
 import toml
-from discord.ext.commands import (Command, CommandError, Context,
-                                  MissingRequiredArgument)
+from discord.ext.commands import Command, CommandError, Context, MissingRequiredArgument
 from discord.ext.commands.converter import _Greedy
 from discord.ext.commands.view import StringView
 
@@ -50,14 +49,13 @@ def get_live_converter(annotation, default):
     if annotation is Parameter.empty:
         raise StructuralParsingError()
 
-    _placeholder = Parameter('_', Parameter.POSITIONAL_OR_KEYWORD)
+    _placeholder = Parameter("_", Parameter.POSITIONAL_OR_KEYWORD)
 
     if _is_greedy(annotation):
 
         elem_conv = get_live_converter(annotation.converter, default)
 
-        async def convert(ctx: Context, args: list,
-                          errorlist: Optional[list] = None):
+        async def convert(ctx: Context, args: list, errorlist: Optional[list] = None):
             results = []
             for item in args:
                 try:
@@ -104,16 +102,16 @@ class StructuredView(StringView):
     def __init__(self, items: list):
         self.items = [str(i) for i in items]
         self.idx = 0
-        self.buffer = ' '.join(self.items)
+        self.buffer = " ".join(self.items)
         self.end = len(self.buffer)
 
     @property
     def index(self) -> int:
-        return len(' '.join(self.items[:self.idx + 1]))
+        return len(" ".join(self.items[: self.idx + 1]))
 
     @property
     def previous(self) -> int:
-        return len(' '.join(self.items[:self.idx]))
+        return len(" ".join(self.items[: self.idx]))
 
     @property
     def current(self):
@@ -133,7 +131,7 @@ class StructuredView(StringView):
         return False
 
     def read_rest(self):
-        return ' '.join(self.items[self.idx:])
+        return " ".join(self.items[self.idx :])
 
     def read(self, n):
         return self.current[:n]
@@ -183,8 +181,7 @@ class StructuralArgumentParser:
         self.args: dict = {}
         self.errors = defaultdict(list)
         for k, v in [*ctx.command.params.items()][1:]:
-            if (isinstance(v.annotation, type)
-                    and issubclass(v.annotation, Context)):
+            if isinstance(v.annotation, type) and issubclass(v.annotation, Context):
                 continue
             self.params[k] = v
 
@@ -192,22 +189,22 @@ class StructuralArgumentParser:
         """Retrieve everything after the prefix and command from the message."""
 
         ctx = self.ctx
-        full_invoked_with = ' '.join({
-            **{k: True for k in ctx.invoked_parents},
-            ctx.invoked_with: True,
-        }.keys())
+        full_invoked_with = " ".join(
+            {
+                **{k: True for k in ctx.invoked_parents},
+                ctx.invoked_with: True,
+            }.keys()
+        )
         msg: str = ctx.view.buffer
-        return (msg.removeprefix(ctx.prefix)
-                .strip()[len(full_invoked_with):]
-                .strip())
+        return msg.removeprefix(ctx.prefix).strip()[len(full_invoked_with) :].strip()
 
     def loads(self) -> Optional[dict]:
         """Try to find and load a JSON/TOML string."""
         text = self.get_raw_input()
         data: Optional[dict] = None
         for lang, loader, exceptions in [
-            ('toml', toml.loads, (toml.TomlDecodeError,)),
-            ('json', json.loads, (json.JSONDecodeError,)),
+            ("toml", toml.loads, (toml.TomlDecodeError,)),
+            ("json", json.loads, (json.JSONDecodeError,)),
         ]:
             if data is not None:
                 break
@@ -286,4 +283,5 @@ class StructuralArgumentParser:
 
 class StructuralParsingError(Exception):
     """Exception for when the message does not contain a valid TOML/JSON string."""
+
     pass

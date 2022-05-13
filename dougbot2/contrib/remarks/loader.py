@@ -27,26 +27,26 @@ def setup(bot: MissionControl):
 
     err.add_error_fluff(
         exceptions.NotAcceptable,
-        'HTTP 400 Bad Request',
+        "HTTP 400 Bad Request",
         "That ain't it chief.",
-        'Nope.',
+        "Nope.",
         "Can't do that.",
     )
     err.add_error_fluff(
         exceptions.ServiceUnavailable,
-        'HTTP 503 Service Unavailable',
+        "HTTP 503 Service Unavailable",
     )
     err.add_error_fluff(
         errors.CommandOnCooldown,
-        'HTTP 503 Service Unavailable',
-        'Slow down please.',
-        'Calm down satan.',
-        'Not so fast.',
+        "HTTP 503 Service Unavailable",
+        "Slow down please.",
+        "Calm down satan.",
+        "Not so fast.",
     )
     err.add_error_fluff(
         errors.MaxConcurrencyReached,
-        'HTTP 503 Service Unavailable',
-        'The line is busy.',
+        "HTTP 503 Service Unavailable",
+        "The line is busy.",
     )
     err.add_error_fluff(
         (
@@ -56,31 +56,31 @@ def setup(bot: MissionControl):
             errors.MissingRole,
             errors.MissingPermissions,
         ),
-        'HTTP 403 Forbidden',
-        'You Shall Not Pass.',
+        "HTTP 403 Forbidden",
+        "You Shall Not Pass.",
         "Sorry, you can't do that in here.",
-        'Nope.',
-        'Nah.',
-        'Not a chance.',
+        "Nope.",
+        "Nah.",
+        "Not a chance.",
         "Don't even think about it.",
     )
     err.add_error_fluff(
         (errors.BotMissingAnyRole, errors.MissingRole),
-        'Where my roles at?',
+        "Where my roles at?",
         "Nope, can't do that",
-        'No command execution without required roles',
+        "No command execution without required roles",
     )
     err.add_error_fluff(
         (errors.BotMissingPermissions, Forbidden),
-        'Where my perms at?',
+        "Where my perms at?",
         "Nope, can't do that",
-        'No command execution without required perms',
+        "No command execution without required perms",
     )
     err.add_error_fluff(
         errors.MissingRequiredArgument,
-        'Not quite there.',
-        'Not quite.',
-        'Almost there...',
+        "Not quite there.",
+        "Not quite.",
+        "Almost there...",
     )
     err.add_error_fluff(errors.TooManyArguments, "Woah that's a lot.")
     err.add_error_fluff(
@@ -92,9 +92,9 @@ def setup(bot: MissionControl):
             errors.BadUnionArgument,
             NotFound,
         ),
-        'HTTP 400 Bad Request',
+        "HTTP 400 Bad Request",
         "That ain't it chief.",
-        'What?',
+        "What?",
     )
     err.add_error_fluff(
         (
@@ -108,20 +108,20 @@ def setup(bot: MissionControl):
             errors.CommandNotFound,
             NoSuchCommand,
         ),
-        'HTTP 404 Not Found',
-        'Must be my imagination ...',
+        "HTTP 404 Not Found",
+        "Must be my imagination ...",
         "Must've been the wind ...",
         "What's that?",
-        'You lost?',
+        "You lost?",
         "Don't know what you are talking about.",
     )
-    err.add_error_fluff(errors.ChannelNotReadable, 'Let me in!')
-    err.add_error_fluff(errors.NSFWChannelRequired, 'Yikes.')
+    err.add_error_fluff(errors.ChannelNotReadable, "Let me in!")
+    err.add_error_fluff(errors.NSFWChannelRequired, "Yikes.")
     err.add_error_fluff(
         Exception,
-        'Oh no!',
-        'Oopsie!',
-        'Aw, snap!',
+        "Oh no!",
+        "Oopsie!",
+        "Aw, snap!",
     )
 
-    err.add_error_fluff(exceptions.DirectMessageForbidden, 'Wow, rude.')
+    err.add_error_fluff(exceptions.DirectMessageForbidden, "Wow, rude.")

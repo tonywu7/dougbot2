@@ -7,18 +7,25 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='LoggingChannel',
+            name="LoggingChannel",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('key', models.CharField(max_length=256)),
-                ('guild_id', models.BigIntegerField()),
-                ('channel_id', models.BigIntegerField()),
-                ('role_id', models.BigIntegerField(null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("key", models.CharField(max_length=256)),
+                ("guild_id", models.BigIntegerField()),
+                ("channel_id", models.BigIntegerField()),
+                ("role_id", models.BigIntegerField(null=True)),
             ],
         ),
     ]

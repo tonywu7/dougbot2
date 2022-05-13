@@ -9,7 +9,8 @@ def setup(bot: MissionControl):
 
     def deferred():
         for cmd in bot.walk_commands():
-            memo = get_memo(cmd, '__reply_utils__', '_callback', default=[])
+            memo = get_memo(cmd, "__reply_utils__", "_callback", default=[])
             for func in reversed(memo):
                 func(cmd)
+
     bot.defer_init(deferred)

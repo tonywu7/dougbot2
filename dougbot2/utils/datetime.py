@@ -21,7 +21,7 @@ import pytz
 from django.utils.timezone import get_current_timezone
 from timezonefinder import TimezoneFinder
 
-RE_DURATION = re.compile(r'(?P<num>[0-9]+)\s*?(?P<unit>(y|mo|w|d|h|m|s?))')
+RE_DURATION = re.compile(r"(?P<num>[0-9]+)\s*?(?P<unit>(y|mo|w|d|h|m|s?))")
 
 
 def localnow() -> datetime:
@@ -54,17 +54,17 @@ def strpduration(s: str) -> timedelta:
     """
     seconds = 0
     unit = {
-        'y': 31536000,
-        'mo': 2592000,
-        'w': 604800,
-        'd': 86400,
-        'h': 3600,
-        'm': 60,
-        's': 1,
-        '': 1,
+        "y": 31536000,
+        "mo": 2592000,
+        "w": 604800,
+        "d": 86400,
+        "h": 3600,
+        "m": 60,
+        "s": 1,
+        "": 1,
     }
     for seg in RE_DURATION.finditer(s):
-        seconds += int(seg['num']) * unit[seg['unit']]
+        seconds += int(seg["num"]) * unit[seg["unit"]]
     return timedelta(seconds=seconds)
 
 
@@ -114,12 +114,12 @@ def fuzzy_tz_names(query: str) -> list[str]:
     if not tznames:
         make_tz_names()
     try:
-        from fuzzywuzzy import process as fuzzy
-        from fuzzywuzzy.fuzz import UQRatio
+        from rapidfuzz import process as fuzzy
+        from rapidfuzz.fuzz import QRatio
     except ModuleNotFoundError:
         return []
     else:
-        matched = fuzzy.extractBests(query, tznames.keys(), scorer=UQRatio, score_cutoff=65)
+        matched = fuzzy.extract(query, tznames.keys(), scorer=QRatio, score_cutoff=65)
     return [match_ for match_, score in matched]
 
 
@@ -129,5 +129,4 @@ def is_ambiguous_static_tz(tz: pytz.BaseTzInfo) -> bool:
     Such TzInfo objects are considered "ambiguous" because it is impossible to localize
     a datetime with them.
     """
-    return (not hasattr(tz, '_tzinfos')
-            and getattr(tz, '_utcoffset') != timedelta(0))
+    return not hasattr(tz, "_tzinfos") and getattr(tz, "_utcoffset") != timedelta(0)

@@ -41,7 +41,7 @@ from .utils.importutil import get_submodule_from_apps
 async def _which_prefix(bot: Bot, msg: Message):
     """Find and return the prefix found in this message, if any."""
     if msg.guild is None:
-        return ''
+        return ""
     guild_id = msg.guild.id
 
     @sync_to_async
@@ -53,9 +53,9 @@ async def _which_prefix(bot: Bot, msg: Message):
         content: str = msg.content
         if content.lower().startswith(prefix.lower()):
             return content[: len(prefix)]
-        return '\x00'
+        return "\x00"
     except Server.DoesNotExist:
-        return '\x00'
+        return "\x00"
 
 
 class Robot(Bot, _MissionControl):
@@ -64,22 +64,22 @@ class Robot(Bot, _MissionControl):
     _CACHE_VERSION = 2
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop = None, **options):
-        self._cache = caches['discord']
+        self._cache = caches["discord"]
 
-        self.log = logging.getLogger('discord.bot')
+        self.log = logging.getLogger("discord.bot")
         self.options = options
 
-        options['allowed_mentions'] = get_defaults().default.mentions
-        options['command_prefix'] = _which_prefix
-        options['help_command'] = None
+        options["allowed_mentions"] = get_defaults().default.mentions
+        options["command_prefix"] = _which_prefix
+        options["help_command"] = None
 
         intents = Intents.all()
         intents.typing = False
         intents.presences = False
 
-        options.setdefault('intents', intents)
-        options.setdefault('case_insensitive', True)
-        options.setdefault('strip_after_prefix', True)
+        options.setdefault("intents", intents)
+        options.setdefault("case_insensitive", True)
+        options.setdefault("strip_after_prefix", True)
         super().__init__(loop=loop, **options)
 
         self._deferred_init: list[Callable[[], None]] = []
@@ -96,8 +96,8 @@ class Robot(Bot, _MissionControl):
 
     def _load_apps(self) -> None:
         """Load all cogs from the bot's Django app config."""
-        for app, module in get_submodule_from_apps('loader'):
-            self.log.info(f'Loading app {app.name}')
+        for app, module in get_submodule_from_apps("loader"):
+            self.log.info(f"Loading app {app.name}")
             self.load_extension(module.__name__)
 
     def _run_deferred_initializers(self) -> None:
@@ -110,7 +110,9 @@ class Robot(Bot, _MissionControl):
 
         Pass the event through Gatekeeper before dispatching it.
         """
-        task = asyncio.create_task(self._firewall.intercept(event_name, *args, **kwargs))
+        task = asyncio.create_task(
+            self._firewall.intercept(event_name, *args, **kwargs)
+        )
 
         def callback(task: asyncio.Task):
             try:
@@ -119,7 +121,7 @@ class Robot(Bot, _MissionControl):
                 pass
             else:
                 if not should_dispatch:
-                    self.log.debug(f'Event {event_name} dropped: {args}, {kwargs}')
+                    self.log.debug(f"Event {event_name} dropped: {args}, {kwargs}")
                     return
             return super(type(self), self).dispatch(event_name, *args, **kwargs)
 
@@ -160,13 +162,13 @@ class Robot(Bot, _MissionControl):
 
     async def _init_client_session(self):
         """Start an `aiohttp.ClientSession` and keep it alive with the bot."""
-        if hasattr(self, '_request'):
+        if hasattr(self, "_request"):
             await self._request.close()
         self._request = aiohttp.ClientSession(
             loop=asyncio.get_running_loop(),
-            headers={'User-Agent': settings.USER_AGENT},
+            headers={"User-Agent": settings.USER_AGENT},
         )
-        self.log.info('Started an aiohttp.ClientSession')
+        self.log.info("Started an aiohttp.ClientSession")
 
     async def before_identify_hook(self, shard_id, *, initial=False):
         """Override event before IDENTIFY.
@@ -178,8 +180,8 @@ class Robot(Bot, _MissionControl):
 
     async def on_ready(self):
         """Indicate when bot is ready."""
-        self.log.info('Bot is ready')
-        self.log.info(f'User {self.user}')
+        self.log.info("Bot is ready")
+        self.log.info(f"User {self.user}")
 
     async def on_message(self, message: Message):
         """Override default message handler.
@@ -216,18 +218,22 @@ class Robot(Bot, _MissionControl):
             await self._papertrail.log_exception(ctx, exc)
 
     async def _ensure_server(self, guild: Guild):
-        await async_get_or_create(Server, defaults={
-            'snowflake': guild.id,
-            'prefix': get_defaults().default.prefix,
-        }, snowflake=guild.id)
+        await async_get_or_create(
+            Server,
+            defaults={
+                "snowflake": guild.id,
+                "prefix": get_defaults().default.prefix,
+            },
+            snowflake=guild.id,
+        )
 
     async def on_guild_available(self, guild: Guild):
         await self._ensure_server(guild)
 
     def get_cache_key(self, **keys):
         """Format a prefixed string to be used as a redis cache key."""
-        args = [f'{k}={v}' for k, v in keys.items()]
-        return ':'.join([__name__, 'cache', *args])
+        args = [f"{k}={v}" for k, v in keys.items()]
+        return ":".join([__name__, "cache", *args])
 
     def get_cache(self, default=None, /, **keys):
         """Retrieve a value from the redis cache."""
@@ -245,12 +251,12 @@ class Robot(Bot, _MissionControl):
 
     async def set_exit_status(self):
         """Set the bot's presence to indicate that the bot is about to shutdown."""
-        await self.change_presence(activity=Game('System Restart. Please hold.'))
-        self.log.info('Exit indicator is set!')
+        await self.change_presence(activity=Game("System Restart. Please hold."))
+        self.log.info("Exit indicator is set!")
 
     def get_web_client(self) -> aiohttp.ClientSession:
-        if not hasattr(self, '_request'):
-            raise RuntimeError('Client session has not been created.')
+        if not hasattr(self, "_request"):
+            raise RuntimeError("Client session has not been created.")
         return self._request
 
     def get_option(self, key: str, default=None):

@@ -20,10 +20,13 @@ from .bots import MessageCommands, QueryCommands, ServerQueryCommands
 
 
 class Utilities(
-    ServerQueryCommands, MessageCommands,
+    ServerQueryCommands,
+    MessageCommands,
     QueryCommands,
-    Gear, name='Utilities', order=50,
-    description='',
+    Gear,
+    name="Utilities",
+    order=50,
+    description="",
 ):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -27,7 +27,7 @@ def is_direct_message(ctx: Context):
 
 def accept_dms(f):
     """Mark this command as functional in direct messages."""
-    dict_memoize(f, '__command_info__', 'direct_message', True)
+    dict_memoize(f, "__command_info__", "direct_message", True)
     return f
 
 
@@ -37,7 +37,7 @@ async def dm_allowed_check(ctx: Context) -> bool:
     cmd: Command = ctx.command
     if not cmd:
         return True
-    memo = get_memo(cmd, '__command_info__', '_callback', default={})
-    if not is_direct_message(ctx) or memo.get('direct_message'):
+    memo = get_memo(cmd, "__command_info__", "_callback", default={})
+    if not is_direct_message(ctx) or memo.get("direct_message"):
         return True
     raise NoPrivateMessage()

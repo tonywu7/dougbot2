@@ -19,9 +19,9 @@ from typing import Any, Callable, TypeVar
 
 _MISS = object()
 
-T = TypeVar('T')
-U = TypeVar('U')
-E = TypeVar('E', bound=Callable)
+T = TypeVar("T")
+U = TypeVar("U")
+E = TypeVar("E", bound=Callable)
 
 
 def memoize(obj: object, k: str, *args, factory=list, setter=list.append):
@@ -66,5 +66,7 @@ def memoized_decorator(key: str):
                 return memoize(obj, key, memo)
 
             return decorator
+
         return decorator_func
+
     return wrapper

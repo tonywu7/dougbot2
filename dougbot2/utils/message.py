@@ -43,4 +43,4 @@ def is_direct_message(ctx: Union[Message, Context, TextChannel]):
     The context may be a Context, Message, or TextChannel object.
     """
     cls = (DMChannel, GroupChannel)
-    return isinstance(ctx, cls) or isinstance(getattr(ctx, 'channel', None), cls)
+    return isinstance(ctx, cls) or isinstance(getattr(ctx, "channel", None), cls)

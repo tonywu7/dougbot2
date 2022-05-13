@@ -37,11 +37,11 @@ from ...utils.markdown import tag, unmarked, untagged
 from ...utils.pagination import trunc_for_field
 
 COLORS = {
-    logging.DEBUG: Color(0x6610f2),
-    logging.INFO: Color(0x0d6efd),
-    logging.WARNING: Color(0xffc107),
-    logging.ERROR: Color(0xdc3545),
-    logging.CRITICAL: Color(0xd63384),
+    logging.DEBUG: Color(0x6610F2),
+    logging.INFO: Color(0x0D6EFD),
+    logging.WARNING: Color(0xFFC107),
+    logging.ERROR: Color(0xDC3545),
+    logging.CRITICAL: Color(0xD63384),
 }
 
 
@@ -60,7 +60,9 @@ class LoggerSpec:
 class Papertrail(LoggingAmenities):
     def __init__(self):
         self._loggers: dict[str, LoggerSpec] = {}
-        self._errors: TypeDictionary[type[Exception], Union[str, bool]] = TypeDictionary()
+        self._errors: TypeDictionary[
+            type[Exception], Union[str, bool]
+        ] = TypeDictionary()
 
     def register_logger(
         self,
@@ -93,7 +95,9 @@ class Papertrail(LoggingAmenities):
     def dump_traceback(self, exc: BaseException) -> File:
         return _get_traceback(exc)
 
-    def pprint_exception(self, exc: Exception, color: Color = Color(0), title: Optional[str] = None) -> Embed2:
+    def pprint_exception(
+        self, exc: Exception, color: Color = Color(0), title: Optional[str] = None
+    ) -> Embed2:
         return _get_exception_embed(exc, color, title)
 
     async def log_exception(self, ctx: Context, exc: Exception) -> None:
@@ -107,14 +111,16 @@ class Papertrail(LoggingAmenities):
             exc_info = None
         embed = (
             _get_exception_embed(exc, spec.color, spec.title)
-            .add_field(name='Author', value=tag(ctx.author))
-            .add_field(name='Channel', value=tag(ctx.channel))
-            .add_field(name='Message', value=trunc_for_field(ctx.message.content), inline=False)
+            .add_field(name="Author", value=tag(ctx.author))
+            .add_field(name="Channel", value=tag(ctx.channel))
+            .add_field(
+                name="Message", value=trunc_for_field(ctx.message.content), inline=False
+            )
             .set_url(ctx.message.jump_url)
         )
         msg = (
-            f'Error while processing trigger {ctx.invoked_with}: '
-            f'{type(exc).__name__}: {exc}'
+            f"Error while processing trigger {ctx.invoked_with}: "
+            f"{type(exc).__name__}: {exc}"
         )
         logger = self.get_logger(logger_name)
         await logger.log(ctx.guild, spec.level, msg, exc_info=exc_info, embed=embed)
@@ -135,12 +141,17 @@ class ServerLogger:
 
     def __init__(self, spec: LoggerSpec):
         self.spec = spec
-        self.logger = logging.getLogger(f'discord.logging.{spec.name}')
+        self.logger = logging.getLogger(f"discord.logging.{spec.name}")
 
     async def log(
-        self, guild: Optional[Guild], level: int, msg: str, *args,
+        self,
+        guild: Optional[Guild],
+        level: int,
+        msg: str,
+        *args,
         exc_info: Optional[BaseException] = None,
-        embed: Optional[Embed2] = None, **kwargs,
+        embed: Optional[Embed2] = None,
+        **kwargs,
     ):
         """Log a message.
 
@@ -159,30 +170,40 @@ class ServerLogger:
         :param embed: The embed to send, defaults to None
         :type embed: Optional[Embed2], optional
         """
-        self.logger.log(level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs)
+        self.logger.log(
+            level, unmarked(untagged(msg)), *args, exc_info=exc_info, **kwargs
+        )
         if guild is None:
             return
         try:
             channel, role = await self.get_dest_info(guild)
         except LookupError:
             return
-        msg = f'**{escape_markdown(self.spec.title)}**\n{msg}'
+        msg = f"**{escape_markdown(self.spec.title)}**\n{msg}"
         mentions = AllowedMentions.none()
         if role:
-            msg = f'{tag(role)}\n{msg}'
+            msg = f"{tag(role)}\n{msg}"
             if len(role.members) <= 25:
                 mentions = AllowedMentions(roles=[role])
 
         try:
-            await channel.send(content=msg, allowed_mentions=mentions, embed=embed, file=_get_traceback(exc_info))
+            await channel.send(
+                content=msg,
+                allowed_mentions=mentions,
+                embed=embed,
+                file=_get_traceback(exc_info),
+            )
         except Exception as e:
-            self.logger.error(f'Error while delivering logs: {e}', exc_info=e)
+            self.logger.error(f"Error while delivering logs: {e}", exc_info=e)
 
     async def get_dest_info(self, guild: Guild) -> tuple[TextChannel, Optional[Role]]:
         """Look up and return the guild channel and role for this message class."""
         from .models import LoggingChannel
+
         try:
-            target: LoggingChannel = await async_get(LoggingChannel, key=self.spec.name, guild_id=guild.id)
+            target: LoggingChannel = await async_get(
+                LoggingChannel, key=self.spec.name, guild_id=guild.id
+            )
         except LoggingChannel.DoesNotExist:
             raise LookupError
         channel: TextChannel = guild.get_channel(target.channel_id)
@@ -216,7 +237,7 @@ def _unpack_exc(exc: BaseException) -> BaseException:
     Checks the `original` attribute (for discord.py), then the `__cause__` attribute;
     returns the original exception if neither exists.
     """
-    return getattr(exc, 'original', None) or exc.__cause__ or exc
+    return getattr(exc, "original", None) or exc.__cause__ or exc
 
 
 def _get_traceback(exc: BaseException) -> File:
@@ -227,7 +248,7 @@ def _get_traceback(exc: BaseException) -> File:
     if not isinstance(exc, BaseException):
         return
     tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
-    tb_body = _censor_paths(''.join(tb))
+    tb_body = _censor_paths("".join(tb))
     tb_file = io.BytesIO(tb_body.encode())
     filename = f'stacktrace.{localnow().isoformat().replace(":", ".")}.py'
     return File(tb_file, filename=filename)
@@ -236,7 +257,7 @@ def _get_traceback(exc: BaseException) -> File:
 def _censor_paths(tb: str):
     """Remove all paths present in `sys.path` from the string."""
     for path in sys.path:
-        tb = tb.replace(path, '')
+        tb = tb.replace(path, "")
     return tb
 
 

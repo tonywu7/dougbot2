@@ -21,16 +21,17 @@ from typing import Callable, Generator, Optional, TypeVar
 
 from django.apps import apps
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def objpath(obj):
     """Return the module path and type name of an object as a fully-qualified name."""
-    return f'{obj.__module__}.{obj.__qualname__}'
+    return f"{obj.__module__}.{obj.__qualname__}"
 
 
 def getattr_submodules(
-    root: ModuleType, name: str,
+    root: ModuleType,
+    name: str,
     validator: Callable[[Optional[T]], bool],
 ) -> Generator[tuple[str, T], None, None]:
     """Look for objects with the specified in all submodules of a package.
@@ -47,7 +48,7 @@ def getattr_submodules(
     accessed item.
     :rtype: Generator[tuple[str, T], None, None]
     """
-    for module in walk_packages(root.__path__, f'{root.name}.'):
+    for module in walk_packages(root.__path__, f"{root.name}."):
         imported = import_module(module.name)
         item = getattr(imported, name, None)
         if validator(item):
@@ -77,6 +78,6 @@ def get_submodule_from_apps(name: str):
     """
     for app in apps.get_app_configs():
         try:
-            yield (app, import_module(f'{app.module.__name__}.{name}'))
+            yield (app, import_module(f"{app.module.__name__}.{name}"))
         except ModuleNotFoundError:
             continue

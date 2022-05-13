@@ -23,10 +23,10 @@
 from collections.abc import MutableMapping
 from typing import Optional, TypeVar, Union, get_args, get_origin
 
-MAX_SAFE_INTEGER = 2 ** 53
+MAX_SAFE_INTEGER = 2**53
 
-_KT = TypeVar('_KT')
-_VT = TypeVar('_VT')
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
 
 
 class BigIntDict(MutableMapping[_KT, _VT]):

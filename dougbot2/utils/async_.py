@@ -20,7 +20,7 @@ from asgiref.sync import sync_to_async
 from django.db import transaction
 from django.db.models import Model, QuerySet
 
-M = TypeVar('M', bound=Model)
+M = TypeVar("M", bound=Model)
 
 
 @sync_to_async
@@ -68,8 +68,7 @@ class async_atomic:
     """
 
     def __init__(self, savepoint=True, durable=False):
-        self.kwargs = {'savepoint': savepoint,
-                       'durable': durable}
+        self.kwargs = {"savepoint": savepoint, "durable": durable}
 
     @sync_to_async
     def __aenter__(self):

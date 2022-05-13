@@ -31,4 +31,4 @@ class BaseTemplate(models.Model):
 
     def __str__(self) -> str:
         meta = self._meta
-        return f'{meta.app_label}/{meta.model_name}/{self.id}.html'
+        return f"{meta.app_label}/{meta.model_name}/{self.id}.html"

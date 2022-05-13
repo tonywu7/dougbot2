@@ -30,13 +30,19 @@ from asgiref.sync import sync_to_async
 from django.apps import apps
 from django.core.cache import caches
 from django.core.exceptions import ObjectDoesNotExist
-from jinja2 import (BaseLoader, Environment, MemcachedBytecodeCache, Template,
-                    TemplateNotFound, select_autoescape)
+from jinja2 import (
+    BaseLoader,
+    Environment,
+    MemcachedBytecodeCache,
+    Template,
+    TemplateNotFound,
+    select_autoescape,
+)
 
-from .models import BaseTemplate
 from ..env import CommandEnvironment
+from .models import BaseTemplate
 
-T = TypeVar('T', bound=BaseTemplate)
+T = TypeVar("T", bound=BaseTemplate)
 
 
 class ModelLoader(BaseLoader):
@@ -45,10 +51,12 @@ class ModelLoader(BaseLoader):
         app_label = path.parts[0]
         model_name = path.parts[1]
         model: type[T] = apps.get_model(app_label, model_name)
-        return model.objects.get(id=path.with_suffix('').name)
+        return model.objects.get(id=path.with_suffix("").name)
 
     def get_source(
-        self, environment: Environment, template: str,
+        self,
+        environment: Environment,
+        template: str,
     ) -> tuple[str, Optional[str], Optional[Callable[[], bool]]]:
         try:
             tmpl = self.get_instance(template)
@@ -60,8 +68,10 @@ class ModelLoader(BaseLoader):
 class DjangoEnvironment(CommandEnvironment):
     @sync_to_async
     def get_template_async(
-        self, name: str | Template,
-        parent=None, globals=None,
+        self,
+        name: str | Template,
+        parent=None,
+        globals=None,
     ) -> Template:
         return self.get_template(name, parent, globals)
 
@@ -69,7 +79,7 @@ class DjangoEnvironment(CommandEnvironment):
 def make_environment():
     return DjangoEnvironment(
         loader=ModelLoader(),
-        bytecode_cache=MemcachedBytecodeCache(caches['jinja2']),
+        bytecode_cache=MemcachedBytecodeCache(caches["jinja2"]),
         autoescape=select_autoescape(),
         enable_async=True,
     )

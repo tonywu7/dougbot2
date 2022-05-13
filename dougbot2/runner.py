@@ -26,15 +26,16 @@ from discord.ext.commands import Bot
 
 from .defaults import get_defaults
 
-T = TypeVar('T', bound=Client)  # type: ignore
-U = TypeVar('U', bound=Bot)
+T = TypeVar("T", bound=Client)  # type: ignore
+U = TypeVar("U", bound=Bot)
 
 
 class BotRunner(threading.Thread, Generic[T]):
     """threading.Thread dedicated to running a discord.py client."""
 
-    def __init__(self, client_cls: type[T], client_opts: dict,
-                 listen=True, *args, **kwargs) -> None:
+    def __init__(
+        self, client_cls: type[T], client_opts: dict, listen=True, *args, **kwargs
+    ) -> None:
         """Initialize the thread.
 
         :param client_cls: The discord.py client class to use.
@@ -45,7 +46,7 @@ class BotRunner(threading.Thread, Generic[T]):
         :type listen: bool, optional
         """
         super().__init__(*args, **kwargs)
-        self.log = logging.getLogger('discord.runner')
+        self.log = logging.getLogger("discord.runner")
 
         self._client_cls = client_cls
         self._client_options = client_opts
@@ -112,7 +113,7 @@ class BotRunner(threading.Thread, Generic[T]):
 
     def initialized(self) -> bool:
         """Whether a client has been created for this thread."""
-        return hasattr(self, 'client')
+        return hasattr(self, "client")
 
     def logged_in(self) -> bool:
         """Whether the client has successfully authenticated with Discord."""
@@ -126,13 +127,13 @@ class BotRunner(threading.Thread, Generic[T]):
         try:
             return self.run_client()
         except LoginFailure as exc:
-            self.log.error('The bot failed to connect to Discord.')
+            self.log.error("The bot failed to connect to Discord.")
             self.log.critical(exc)
             if exc.__cause__:
                 self.log.critical(exc.__cause__)
 
     def join(self, timeout: Optional[float] = None) -> None:
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             self.loop.run_until_complete(self.client.close())
             self.loop.close()
         return super().join(timeout=timeout)

@@ -20,9 +20,7 @@ from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from typing import Generic, Optional, TypeVar, Union
 
 import attr
-from discord import (
-    Client, Member, Message, PartialEmoji, RawReactionActionEvent,
-)
+from discord import Client, Member, Message, PartialEmoji, RawReactionActionEvent
 from discord.ext.commands import Context
 from more_itertools import peekable, split_before
 
@@ -31,10 +29,10 @@ from .duckcord.embeds import Embed2, EmbedField
 from .events import EmoteResponder
 from .markdown import strong
 
-RE_BLOCKQUOTE = re.compile(r'^> ')
-RE_PRE_BORDER = re.compile(r'^```.*$')
+RE_BLOCKQUOTE = re.compile(r"^> ")
+RE_PRE_BORDER = re.compile(r"^```.*$")
 
-S = TypeVar('S', bound=Sized)
+S = TypeVar("S", bound=Sized)
 
 PageContent = tuple[Union[str, None], Union[Embed2, None]]
 PageProvider = Callable[[PartialEmoji], PageContent]
@@ -47,7 +45,12 @@ class ParagraphStream:
         PRESERVE = 0
         INLINE = 2
 
-    def __init__(self, separator: str = ' ', pre: BLOCK = BLOCK.PRESERVE, blockquote: BLOCK = BLOCK.PRESERVE):
+    def __init__(
+        self,
+        separator: str = " ",
+        pre: BLOCK = BLOCK.PRESERVE,
+        blockquote: BLOCK = BLOCK.PRESERVE,
+    ):
         self.lines: list[str] = []
         self.sep = separator
         self.pre = pre
@@ -55,7 +58,7 @@ class ParagraphStream:
 
     def append(self, text: str):
         """Add text to the end of string."""
-        self.lines.extend(filter(None, text.split('\n')))
+        self.lines.extend(filter(None, text.split("\n")))
 
     def __len__(self) -> int:
         return sum(len(s) for s in self.lines)
@@ -65,18 +68,22 @@ class ParagraphStream:
         line_iter = iter(self.lines)
 
         if self.blockquote is self.BLOCK.PRESERVE:
+
             def blockquote(line: str):
                 nonlocal buffer
                 if buffer:
                     yield self.sep.join(buffer)
                     buffer = []
                 yield line
+
         else:
+
             def blockquote(line: str):
-                buffer.append(RE_BLOCKQUOTE.sub('', line))
+                buffer.append(RE_BLOCKQUOTE.sub("", line))
                 return []
 
         if self.pre is self.BLOCK.PRESERVE:
+
             def pre(line: str):
                 nonlocal buffer
                 if buffer:
@@ -87,7 +94,9 @@ class ParagraphStream:
                     yield line
                     if RE_PRE_BORDER.match(line):
                         return
+
         else:
+
             def pre(line: str):
                 return []
 
@@ -108,11 +117,11 @@ class ParagraphStream:
             yield self.sep.join(buffer)
 
 
-def trunc_for_field(text: str, size=960, placeholder=' ... (truncated)') -> str:
+def trunc_for_field(text: str, size=960, placeholder=" ... (truncated)") -> str:
     """Limit the length of a string if it exceeds a size limit."""
     actual_size = size - len(placeholder)
     if len(text) >= actual_size:
-        return f'{text[:actual_size]}{placeholder}'
+        return f"{text[:actual_size]}{placeholder}"
     return text
 
 
@@ -136,7 +145,7 @@ def chapterize_items(items: Iterable[Generic[S]], break_at: int) -> Iterable[lis
 def chapterize_fields(
     fields: Iterable[EmbedField],
     pagesize: int = 720,
-    linebreak=lambda c: c == '\n',
+    linebreak=lambda c: c == "\n",
 ) -> Iterator[list[EmbedField]]:
     """Rearrange a list of embed fields and breaking fields longer than a certain size into\
     separate fields sharing the same name."""
@@ -153,7 +162,9 @@ def chapterize_fields(
             yield page
             page = []
         if next_len > pagesize:
-            head, *tails = [*chapterize(next_field.value, pagesize, pred=linebreak, maxsplit=1)]
+            head, *tails = [
+                *chapterize(next_field.value, pagesize, pred=linebreak, maxsplit=1)
+            ]
             next(fields)
             page.append(attr.evolve(next_field, value=head))
             fields.prepend(*[attr.evolve(next_field, value=v) for v in tails])
@@ -168,14 +179,15 @@ def chapterize(
     text: str,
     maxlen: int,
     pred: Callable[[str], bool] = str.isspace,
-    *, hyphen='-',
-    maxsplit=float('inf'),
+    *,
+    hyphen="-",
+    maxsplit=float("inf"),
 ) -> Iterable[str]:
     """Break long text into smaller parts of roughly the same size while\
     avoiding breaking inside words/lines."""
 
     if len(hyphen) > maxlen:
-        raise ValueError('Hyphenation cannot be longer than length limit.')
+        raise ValueError("Hyphenation cannot be longer than length limit.")
     if not text or maxsplit < 1:
         yield text
         return
@@ -200,14 +212,14 @@ def chapterize(
             splits += 1
 
 
-def format_page_number(idx: int, total: int, sep: str = '/'):
+def format_page_number(idx: int, total: int, sep: str = "/"):
     """Indicate an item's position, such as `1/6` for the first item\
     in a total of six items."""
     if idx < 0:
         idx = total + idx
     if idx < 0 or idx >= total:
         raise ValueError
-    return f'{idx + 1}{sep}{total}'
+    return f"{idx + 1}{sep}{total}"
 
 
 class Paginator(EmoteResponder):
@@ -290,11 +302,19 @@ class Pagination:
 
         return provider
 
-    def __call__(self, client: Client, message: Message, ttl: int, *users: Union[int, Member]) -> Paginator:
+    def __call__(
+        self, client: Client, message: Message, ttl: int, *users: Union[int, Member]
+    ) -> Paginator:
         """Make a Paginator from this Pagination to be used in message replies."""
         if len(self.content) > 1:
-            return Paginator(self.index_setter(), client=client, message=message,
-                             ttl=ttl, users=users, emotes=self.actions.keys())
+            return Paginator(
+                self.index_setter(),
+                client=client,
+                message=message,
+                ttl=ttl,
+                users=users,
+                emotes=self.actions.keys(),
+            )
         return NullPaginator()
 
     def text_transform(self, idx: int, body: str) -> str:
@@ -325,13 +345,15 @@ class TextPagination(Pagination):
         """Add a title and a page number to each page."""
         if not body:
             return
-        return f'{strong(self.title)} ({format_page_number(idx, len(self.content))})\n\n{body}'
+        return f"{strong(self.title)} ({format_page_number(idx, len(self.content))})\n\n{body}"
 
 
 class EmbedPagination(Pagination):
     """A Pagination that provides only embed content."""
 
-    def __init__(self, embeds: Sequence[Embed2], title: Optional[str], set_timestamp: bool = True) -> None:
+    def __init__(
+        self, embeds: Sequence[Embed2], title: Optional[str], set_timestamp: bool = True
+    ) -> None:
         super().__init__([(None, e) for e in embeds])
         self.title = title
         self.timestamp = set_timestamp
@@ -341,7 +363,9 @@ class EmbedPagination(Pagination):
         if not embed:
             return
         if self.title:
-            embed = embed.set_title(f'{self.title} ({format_page_number(idx, len(self.content))})')
+            embed = embed.set_title(
+                f"{self.title} ({format_page_number(idx, len(self.content))})"
+            )
         if self.timestamp:
             embed = embed.set_timestamp()
         return embed
@@ -356,21 +380,28 @@ class EmbedPagination(Pagination):
 
     def with_context(self, ctx: Context, ttl=600):
         """Create a Paginator object attached to this Context."""
+
         def from_message(m: Message):
             return self(ctx.bot, m, ttl, ctx.author)
+
         return from_message
 
     @classmethod
     def from_lines(
-        cls, lines: list[str],
+        cls,
+        lines: list[str],
         title: Optional[str] = None,
-        *, newline: str = '\n',
+        *,
+        newline: str = "\n",
         size: int = 720,
         init: Callable[[Embed2], Embed2] = lambda x: x,
     ):
         if not lines:
-            lines = ['(none)']
-        return cls([
-            init(Embed2(description=newline.join(lines)))
-            for lines in chapterize_items(lines, size)
-        ], title)
+            lines = ["(none)"]
+        return cls(
+            [
+                init(Embed2(description=newline.join(lines)))
+                for lines in chapterize_items(lines, size)
+            ],
+            title,
+        )

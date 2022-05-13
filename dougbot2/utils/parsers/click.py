@@ -23,7 +23,7 @@ from typing import Any, Optional, TypeVar
 import click
 from discord.ext.commands import Command
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def option(
@@ -63,13 +63,14 @@ def option(
             cmd = f.__click__ = click.Command(name)
         cmd.params.append(opt)
         return f
+
     return wrapper
 
 
 def build_parser(f: Command):
-    cmd: click.Command = getattr(f, '__click__', None)
+    cmd: click.Command = getattr(f, "__click__", None)
     if not cmd:
-        cmd = getattr(f._callback, '__click__', None)
+        cmd = getattr(f._callback, "__click__", None)
     if not cmd:
         return
     for opt in cmd.params:

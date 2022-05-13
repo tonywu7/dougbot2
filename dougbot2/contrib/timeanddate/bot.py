@@ -17,10 +17,10 @@
 from dataclasses import dataclass
 from textwrap import dedent
 from typing import Optional, Union
+from zoneinfo import ZoneInfo
 
 import arrow
 import emoji
-import pytz
 from discord import Member, Role
 from geopy import Location
 from geopy.exc import GeocoderTimedOut
@@ -58,7 +58,7 @@ from .models import DateTimeSettings, RoleTimezone
 
 @dataclass
 class _TimezoneOrigin:
-    timezone: pytz.BaseTzInfo
+    timezone: ZoneInfo
     subject: Optional[Union[Member, Role]] = None
     location: Optional[Location] = None
 
@@ -242,7 +242,7 @@ class TimeandDate(
         except ValueError:
             return None
         tzname = get_tzfinder().timezone_at(lng=point.longitude, lat=point.latitude)
-        return _TimezoneOrigin(pytz.timezone(tzname))
+        return _TimezoneOrigin(ZoneInfo(tzname))
 
     async def get_timezone_by_location(
         self, ctx: Surroundings, query: str
@@ -255,7 +255,7 @@ class TimeandDate(
             return None
         point = place.point
         tzname = get_tzfinder().timezone_at(lng=point.longitude, lat=point.latitude)
-        return _TimezoneOrigin(pytz.timezone(tzname), location=place)
+        return _TimezoneOrigin(ZoneInfo(tzname), location=place)
 
     async def get_location(self, ctx: Surroundings, query: str) -> Location:
         try:
@@ -263,7 +263,7 @@ class TimeandDate(
         except GeocoderTimedOut:
             raise ServiceUnavailable("Searching on OpenStreetMap took too long.")
 
-    async def set_timezone(self, member: Member, tz: pytz.BaseTzInfo):
+    async def set_timezone(self, member: Member, tz: ZoneInfo):
         settings, created = await DateTimeSettings.get_or_create(member)
         settings.timezone = tz
         await async_save(settings)

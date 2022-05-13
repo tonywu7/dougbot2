@@ -30,13 +30,15 @@ class Gatekeeper:
 
     def __init__(self):
         from .models import Blacklisted
-        self.log = logging.getLogger('discord.gatekeeper')
-        self._query = Blacklisted.objects.values_list('snowflake', flat=True)
+
+        self.log = logging.getLogger("discord.gatekeeper")
+        self._query = Blacklisted.objects.values_list("snowflake", flat=True)
 
     @sync_to_async
     def add(self, obj: Object):
         """Add a Discord Object to the blacklist."""
         from .models import Blacklisted
+
         try:
             blacklisted = Blacklisted(snowflake=obj.id)
             blacklisted.save()
@@ -47,6 +49,7 @@ class Gatekeeper:
     def discard(self, obj: Object):
         """Remove a Discord Object from the blacklist."""
         from .models import Blacklisted
+
         try:
             blacklisted = Blacklisted.objects.get(snowflake=obj.id)
             blacklisted.delete()
@@ -72,7 +75,9 @@ class Gatekeeper:
         Return `True` any of the message, its guild, its channel, or its author
         has been blacklisted.
         """
-        return not await self.match(message, message.guild, message.channel, message.author)
+        return not await self.match(
+            message, message.guild, message.channel, message.author
+        )
 
     async def on_reaction_add(self, reaction, member):
         """Screen an `on_reaction_add` event.
@@ -94,8 +99,15 @@ class Gatekeeper:
         Return `True` any of the originating guild, channel,
         the message, or the user add the reaction is blacklisted.
         """
-        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
-                                            evt.message_id, evt.user_id)]
+        entities = [
+            Object(id_)
+            for id_ in (
+                evt.guild_id or 0,
+                evt.channel_id or 0,
+                evt.message_id,
+                evt.user_id,
+            )
+        ]
         return not await self.match(*entities)
 
     async def on_raw_reaction_remove(self, evt: RawReactionActionEvent):
@@ -104,18 +116,27 @@ class Gatekeeper:
         Return `True` any of the originating guild, channel,
         the message, or the user removing the reaction is blacklisted.
         """
-        entities = [Object(id_) for id_ in (evt.guild_id or 0, evt.channel_id or 0,
-                                            evt.message_id, evt.user_id)]
+        entities = [
+            Object(id_)
+            for id_ in (
+                evt.guild_id or 0,
+                evt.channel_id or 0,
+                evt.message_id,
+                evt.user_id,
+            )
+        ]
         return not await self.match(*entities)
 
     async def handle(self, event_name: str, *args, **kwargs) -> bool:
         """Evaluate the event and return `True` if there is a match against the blacklist."""
-        handler = getattr(self, f'on_{event_name}', None)
+        handler = getattr(self, f"on_{event_name}", None)
         if not handler:
             return True
         try:
             return await handler(*args, **kwargs)
         except Exception as e:
-            self.log.error('Error while evaluating gatekeeper '
-                           f'criteria for {event_name}', exc_info=e)
+            self.log.error(
+                "Error while evaluating gatekeeper " f"criteria for {event_name}",
+                exc_info=e,
+            )
             return True

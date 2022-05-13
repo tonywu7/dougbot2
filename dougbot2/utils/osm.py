@@ -32,7 +32,7 @@ from ..blueprints import Surroundings
 def parse_point_no_warning(s: str):
     """Parse a geopy.Point with all warnings suppressed."""
     with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=UserWarning)
+        warnings.filterwarnings("ignore", category=UserWarning)
         return Point.from_string(s)
 
 
@@ -40,7 +40,7 @@ def parse_point_strict(s: str):
     """Parse a geopy.Point, raising all warnings as exceptions."""
     try:
         with warnings.catch_warnings():
-            warnings.filterwarnings('error', category=UserWarning)
+            warnings.filterwarnings("error", category=UserWarning)
             return Point.from_string(s)
     except UserWarning as e:
         raise ValueError from e
@@ -56,17 +56,18 @@ class ManagedAioHTTPAdapter(AioHTTPAdapter):
 
     @session.setter
     def session(self, ses: ClientSession):
-        self.__dict__['session'] = ses
+        self.__dict__["session"] = ses
 
     @session.deleter
     def session(self):
-        self.__dict__.pop('session', None)
+        self.__dict__.pop("session", None)
 
 
 def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
     """Initialize a default geolocator using the Nominatim API."""
     locator = Nominatim(
-        timeout=10, user_agent=settings.USER_AGENT,
+        timeout=10,
+        user_agent=settings.USER_AGENT,
         adapter_factory=ManagedAioHTTPAdapter,
     )
     locator.adapter.session = session
@@ -75,15 +76,15 @@ def make_geolocator(session: Optional[ClientSession] = None) -> Nominatim:
 
 def format_coarse_location(location: Location) -> str:
     """Create a string representation of a geopy.Location that is at most city-level precise."""
-    info: dict = location.raw.get('address', {})
+    info: dict = location.raw.get("address", {})
     levels = [
-        ('country', 'country_code', 'continent'),
-        ('state', 'state_district', 'province', 'region', 'county'),
-        ('city', 'municipality', 'town', 'village', 'locality'),
+        ("country", "country_code", "continent"),
+        ("state", "state_district", "province", "region", "county"),
+        ("city", "municipality", "town", "village", "locality"),
     ]
     segments = [[*filter(None, (info.get(k) for k in tags))] for tags in levels]
     segments = [s[0] for s in segments if s]
-    return ', '.join(reversed(segments))
+    return ", ".join(reversed(segments))
 
 
 @command(hidden=True)

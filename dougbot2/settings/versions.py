@@ -10,9 +10,9 @@ def list_versions() -> dict[str, str]:
 
     return {
         APP_NAME: __version__,
-        'python': python_version(),
-        'discord.py': discord_version,
-        'django': django_version,
-        'aiohttp': aiohttp_version,
-        'jinja': jinja_version,
+        "python": python_version(),
+        "discord.py": discord_version,
+        "django": django_version,
+        "aiohttp": aiohttp_version,
+        "jinja": jinja_version,
     }

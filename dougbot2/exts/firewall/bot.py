@@ -41,32 +41,38 @@ class Firewall(Cog):
         Check if the cog is marked as disabled on the web console.
         Check if the command can be run in DMs (if the context is a DM context).
         """
-        for check in asyncio.as_completed([
-            dm.dm_allowed_check(ctx),
-        ]):
+        for check in asyncio.as_completed(
+            [
+                dm.dm_allowed_check(ctx),
+            ]
+        ):
             if not await check:
                 return False
         return True
 
-    @command('444')
-    @doc.description('Globally forbid an entity from interacting with the bot.')
-    @doc.discussion('Detail', (
-        f'All command invocations are ignored and all events (including {code("on_message")})'
-        " are silently dropped.\nThe name of this command comes from nginx's"
-        f' {a("HTTP 444", "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#nginx")}'
-        ' status code.'
-    ))
+    @command("444")
+    @doc.description("Globally forbid an entity from interacting with the bot.")
+    @doc.discussion(
+        "Detail",
+        (
+            f'All command invocations are ignored and all events (including {code("on_message")})'
+            " are silently dropped.\nThe name of this command comes from nginx's"
+            f' {a("HTTP 444", "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#nginx")}'
+            " status code."
+        ),
+    )
     @doc.restriction(is_owner)
     @doc.hidden
     async def _blacklist(
-        self, ctx: Surroundings,
+        self,
+        ctx: Surroundings,
         entity: Union[User, Member, Role, TextChannel],
-        free: Optional[Constant[Literal['free']]],
+        free: Optional[Constant[Literal["free"]]],
     ):
         if free:
             await self._gatekeeper.discard(entity)
             return await ctx.respond().success().run()
         else:
             await self._gatekeeper.gatekeeper.add(entity)
-            msg = f'All events from entity {code(entity)} will be dropped.'
+            msg = f"All events from entity {code(entity)} will be dropped."
             return await ctx.respond(msg).run()

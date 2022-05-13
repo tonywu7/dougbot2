@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import datetime
 from collections.abc import Callable
+from datetime import datetime
 
 import pytz
 from jinja2 import Environment
@@ -32,12 +32,13 @@ _filters: dict[str, Callable] = {}
 def _register(path: list[str]):
     def wrapper(cls):
         for name, func in vars(cls).items():
-            filter_name = name.removeprefix('f_')
+            filter_name = name.removeprefix("f_")
             if filter_name == name:
                 continue
-            filter_name = '.'.join([*path, filter_name])
+            filter_name = ".".join([*path, filter_name])
             _filters[filter_name] = func
         return cls
+
     return wrapper
 
 
@@ -50,7 +51,7 @@ class BuiltinFilters:
         return hex(value)
 
 
-@_register(('time',))
+@_register(("time",))
 class DatetimeFilters:
     def f_astimezone(value: datetime, timezone: str) -> datetime:
         tz = pytz.timezone(timezone)

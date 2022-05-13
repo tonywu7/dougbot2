@@ -35,7 +35,7 @@ class Color2(Colour):
         ``value`` raises :exc:`NotImplementedError`.
     """
 
-    __slots__ = ('_value',)
+    __slots__ = ("_value",)
 
     def __init__(self, value: int | Color2):
         """Create a :class:`Color2` object.
@@ -56,13 +56,13 @@ class Color2(Colour):
 
     @value.setter
     def value(self, v):
-        raise NotImplementedError(f'{type(self).__name__} is immutable.')
+        raise NotImplementedError(f"{type(self).__name__} is immutable.")
 
     def __getstate__(self):
-        return {'_value': self._value}
+        return {"_value": self._value}
 
     def __setstate__(self, d):
-        self._value = d['_value']
+        self._value = d["_value"]
 
     def __index__(self):
         """Return the underlying ``value`` as an :class:`int`.

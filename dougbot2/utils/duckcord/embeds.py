@@ -29,7 +29,7 @@ from typing import Any, TypeVar
 import attr
 from discord import Colour, Embed, Guild, Member, User
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 _EMPTY = Embed.Empty
 _EmptyType = type(_EMPTY)
@@ -63,10 +63,12 @@ class _Serializable:
         try:
             return cls(**info)
         except Exception as e:
-            raise ValueError(f'Cannot convert {info} to {cls}') from e
+            raise ValueError(f"Cannot convert {info} to {cls}") from e
 
     def to_dict(self) -> dict:
-        return attr.asdict(self, recurse=True, filter=attr.filters.exclude(type(Embed.Empty)))
+        return attr.asdict(
+            self, recurse=True, filter=attr.filters.exclude(type(Embed.Empty))
+        )
 
     def for_json(self) -> dict:
         return self.to_dict()
@@ -77,6 +79,7 @@ def _optional_convert(converter: Callable[[], T]) -> Callable[[Any], T]:
         if _is_empty(v):
             return _EMPTY
         return converter(v)
+
     return convert
 
 
@@ -100,9 +103,13 @@ class EmbedField(_Serializable):
 
     def check_oversized(self):
         if len(self.name) > LEN_LIMIT_FIELD_NAME:
-            raise EmbedOversizedError(f'Field "{self.name}": field name', LEN_LIMIT_FIELD_NAME)
+            raise EmbedOversizedError(
+                f'Field "{self.name}": field name', LEN_LIMIT_FIELD_NAME
+            )
         if len(self.value) > LEN_LIMIT_FIELD_VALUE:
-            raise EmbedOversizedError(f'Field "{self.name}": field content', LEN_LIMIT_FIELD_VALUE)
+            raise EmbedOversizedError(
+                f'Field "{self.name}": field content', LEN_LIMIT_FIELD_VALUE
+            )
 
 
 @attr.s(slots=True, eq=True, frozen=True)
@@ -117,7 +124,7 @@ class EmbedAuthor(_Serializable):
 
     def check_oversized(self):
         if len(self.name) > LEN_LIMIT_AUTHOR_NAME:
-            raise EmbedOversizedError('Author name', LEN_LIMIT_AUTHOR_NAME)
+            raise EmbedOversizedError("Author name", LEN_LIMIT_AUTHOR_NAME)
 
 
 @attr.s(slots=True, eq=True, frozen=True)
@@ -145,7 +152,7 @@ class EmbedFooter(_Serializable):
 
     def check_oversized(self):
         if len(self.text) > LEN_LIMIT_FOOTER_TEXT:
-            raise EmbedOversizedError('Footer text', LEN_LIMIT_FOOTER_TEXT)
+            raise EmbedOversizedError("Footer text", LEN_LIMIT_FOOTER_TEXT)
 
 
 @attr.s(slots=True, eq=True, frozen=True)
@@ -190,11 +197,22 @@ class Embed2:
     be derived from the template, updating info (such as timestamp) as needed,
     without the need to manually call :meth:`discord.Embed.copy`.
     """
-    timestamp: datetime = attr.ib(factory=lambda: _EMPTY, converter=_datetime_convert, validator=attr.validators.instance_of((datetime, type(_EMPTY))))
-    color: Colour = attr.ib(converter=_optional_convert(lambda c: c if isinstance(c, Colour) else Colour(int(c))),
-                            factory=Colour.default)
 
-    fields: tuple[EmbedField] = attr.ib(factory=tuple, converter=lambda t: tuple(EmbedField.instantiate(d) for d in t))
+    timestamp: datetime = attr.ib(
+        factory=lambda: _EMPTY,
+        converter=_datetime_convert,
+        validator=attr.validators.instance_of((datetime, type(_EMPTY))),
+    )
+    color: Colour = attr.ib(
+        converter=_optional_convert(
+            lambda c: c if isinstance(c, Colour) else Colour(int(c))
+        ),
+        factory=Colour.default,
+    )
+
+    fields: tuple[EmbedField] = attr.ib(
+        factory=tuple, converter=lambda t: tuple(EmbedField.instantiate(d) for d in t)
+    )
 
     title: str = attr.ib(converter=_optional_convert(str), default=_EMPTY)
     description: str = attr.ib(converter=_optional_convert(str), default=_EMPTY)
@@ -203,12 +221,20 @@ class Embed2:
     author: EmbedAuthor = attr.ib(converter=EmbedAuthor.instantiate, default=_EMPTY)
     footer: EmbedFooter = attr.ib(converter=EmbedFooter.instantiate, default=_EMPTY)
 
-    image: EmbedAttachment = attr.ib(converter=EmbedAttachment.instantiate, default=_EMPTY)
-    thumbnail: EmbedAttachment = attr.ib(converter=EmbedAttachment.instantiate, default=_EMPTY)
-    video: EmbedAttachment = attr.ib(converter=EmbedAttachment.instantiate, default=_EMPTY)
-    provider: EmbedProvider = attr.ib(converter=EmbedProvider.instantiate, default=_EMPTY)
+    image: EmbedAttachment = attr.ib(
+        converter=EmbedAttachment.instantiate, default=_EMPTY
+    )
+    thumbnail: EmbedAttachment = attr.ib(
+        converter=EmbedAttachment.instantiate, default=_EMPTY
+    )
+    video: EmbedAttachment = attr.ib(
+        converter=EmbedAttachment.instantiate, default=_EMPTY
+    )
+    provider: EmbedProvider = attr.ib(
+        converter=EmbedProvider.instantiate, default=_EMPTY
+    )
 
-    type: str = attr.ib(default='rich')
+    type: str = attr.ib(default="rich")
 
     @property
     def colour(self):
@@ -251,15 +277,17 @@ class Embed2:
         if ensure_limits:
             self.check_oversized()
 
-        info = attr.asdict(self, recurse=True, filter=attr.filters.exclude(type(Embed.Empty)))
+        info = attr.asdict(
+            self, recurse=True, filter=attr.filters.exclude(type(Embed.Empty))
+        )
 
         timestamp = self.timestamp
         if isinstance(timestamp, datetime):
-            info['timestamp'] = timestamp.isoformat()
+            info["timestamp"] = timestamp.isoformat()
 
         color = self.color
         if isinstance(color, Colour):
-            info['color'] = color.value
+            info["color"] = color.value
 
         return info
 
@@ -284,7 +312,9 @@ class Embed2:
         fields = [*self.fields, EmbedField(name=name, value=value, inline=inline)]
         return attr.evolve(self, fields=fields)
 
-    def insert_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> Embed2:
+    def insert_field_at(
+        self, index: int, *, name: str, value: str, inline: bool = True
+    ) -> Embed2:
         """Return a new embed with a field inserted at ``index``.
 
         Field ``n`` becomes field ``n + 1`` after insert. If the index is
@@ -297,10 +327,16 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        fields = [*self.fields[:index], EmbedField(name=name, value=value, inline=inline), *self.fields[index:]]
+        fields = [
+            *self.fields[:index],
+            EmbedField(name=name, value=value, inline=inline),
+            *self.fields[index:],
+        ]
         return attr.evolve(self, fields=fields)
 
-    def set_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> Embed2:
+    def set_field_at(
+        self, index: int, *, name: str, value: str, inline: bool = True
+    ) -> Embed2:
         """Return a new embed with the field at ``index`` replaced.
 
         If the index is out of range, a new field will be inserted at the end
@@ -313,10 +349,14 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        fields = [*self.fields[:index], EmbedField(name=name, value=value, inline=inline), *self.fields[index + 1:]]
+        fields = [
+            *self.fields[:index],
+            EmbedField(name=name, value=value, inline=inline),
+            *self.fields[index + 1 :],
+        ]
         return attr.evolve(self, fields=fields)
 
-    def get_field_value(self, key: str, default: T = '') -> str | T:
+    def get_field_value(self, key: str, default: T = "") -> str | T:
         """Return the value of the embed field with name ``key`` if it is found,\
             otherwise return ``default``.
         """
@@ -350,7 +390,9 @@ class Embed2:
             return attr.evolve(self, timestamp=_EMPTY)
         return attr.evolve(self, timestamp=timestamp)
 
-    def set_author(self, *, name: str | None, url: str = _EMPTY, icon_url: str = _EMPTY) -> Embed2:
+    def set_author(
+        self, *, name: str | None, url: str = _EMPTY, icon_url: str = _EMPTY
+    ) -> Embed2:
         """Return a new embed with author info set.
 
         Pass ``name=None`` to remove the author field.
@@ -435,8 +477,7 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        author = EmbedAuthor(name=str(person), url=url,
-                             icon_url=person.avatar_url)
+        author = EmbedAuthor(name=str(person), url=url, icon_url=person.avatar_url)
         return attr.evolve(self, author=author, color=person.color)
 
     def decorated(self, guild: Guild, *, url: str = _EMPTY):
@@ -447,8 +488,7 @@ class Embed2:
         :return: The resulting embed.
         :rtype: :class:`Embed2`
         """
-        author = EmbedAuthor(name=str(guild), url=url,
-                             icon_url=guild.icon_url)
+        author = EmbedAuthor(name=str(guild), url=url, icon_url=guild.icon_url)
         return attr.evolve(self, author=author)
 
     def set_author_url(self, url: str | None) -> Embed2:
@@ -471,11 +511,11 @@ class Embed2:
         :raises: :class:duckcord.embeds.EmbedOversizedError
         """
         if len(self.title) > LEN_LIMIT_TITLE:
-            raise EmbedOversizedError('Embed title', LEN_LIMIT_TITLE)
+            raise EmbedOversizedError("Embed title", LEN_LIMIT_TITLE)
         if len(self.description) > LEN_LIMIT_DESC:
-            raise EmbedOversizedError('Embed description', LEN_LIMIT_DESC)
+            raise EmbedOversizedError("Embed description", LEN_LIMIT_DESC)
         if len(self.fields) > LEN_LIMIT_NUM_FIELDS:
-            raise EmbedOversizedError('Embed fields', LEN_LIMIT_NUM_FIELDS, 'fields')
+            raise EmbedOversizedError("Embed fields", LEN_LIMIT_NUM_FIELDS, "fields")
         for f in self.fields:
             f.check_oversized()
         if isinstance(self.author, EmbedAuthor):
@@ -484,24 +524,28 @@ class Embed2:
             self.footer.check_oversized()
 
     def __len__(self) -> int:
-        return sum([
-            len(self.title), len(self.description),
-            sum(len(f) for f in self.fields),
-            len(self.footer), len(self.author),
-        ])
+        return sum(
+            [
+                len(self.title),
+                len(self.description),
+                sum(len(f) for f in self.fields),
+                len(self.footer),
+                len(self.author),
+            ]
+        )
 
     def __str__(self) -> str:
         lines = []
         if self.title:
-            lines.append(f'__**{self.title}**__')
+            lines.append(f"__**{self.title}**__")
         if self.description:
-            lines.append(self.description + '\n')
+            lines.append(self.description + "\n")
         for f in self.fields:
-            lines.append(f'**{f.name}**')
-            lines.append(f.value + '\n')
-        return '\n'.join(lines)
+            lines.append(f"**{f.name}**")
+            lines.append(f.value + "\n")
+        return "\n".join(lines)
 
 
 class EmbedOversizedError(ValueError):
-    def __init__(self, component: str, limit: str, unit='characters'):
-        super().__init__(f'{component} oversized: {limit} {unit}')
+    def __init__(self, component: str, limit: str, unit="characters"):
+        super().__init__(f"{component} oversized: {limit} {unit}")

@@ -26,16 +26,16 @@ from .defaults import get_defaults
 
 def _arg_delimiter(idx: int, param: Parameter):
     if idx == 0:
-        return 'skip'
+        return "skip"
     if (
         param.annotation is Surroundings
         or isinstance(param.annotation, type)
         and issubclass(param.annotation, Context)
     ):
-        return 'skip'
+        return "skip"
     if param.kind is Parameter.VAR_KEYWORD:
-        return 'break'
-    return 'proceed'
+        return "break"
+    return "proceed"
 
 
 def setup(bot: MissionControl):
@@ -46,12 +46,12 @@ def setup(bot: MissionControl):
     err.set_error_blurb(exc.NotAcceptable, err.exception_to_str)
     err.set_error_blurb(
         exc.ServiceUnavailable,
-        lambda ctx, exc: f'{exc}\nPlease try again later.',
+        lambda ctx, exc: f"{exc}\nPlease try again later.",
     )
     err.set_error_blurb(exc.DirectMessageForbidden, err.exception_to_str)
 
-    err.add_error_fluff(exc.NotAcceptable, 'Bad input')
-    err.add_error_fluff(exc.ServiceUnavailable, 'Temporarily unavailable')
-    err.add_error_fluff(exc.DirectMessageForbidden, 'Direct message forbidden')
+    err.add_error_fluff(exc.NotAcceptable, "Bad input")
+    err.add_error_fluff(exc.ServiceUnavailable, "Temporarily unavailable")
+    err.add_error_fluff(exc.DirectMessageForbidden, "Direct message forbidden")
 
-    os.environ['NLTK_DATA'] = get_defaults().default.nltk_data
+    os.environ["NLTK_DATA"] = get_defaults().default.nltk_data

@@ -23,21 +23,20 @@ from dougbot2.utils.dm import is_direct_message
 from dougbot2.utils.markdown import strong
 
 
-class Summon(
-    Gear, name='Summon', order=200,
-    description='', hidden=True
-):
+class Summon(Gear, name="Summon", order=200, description="", hidden=True):
     @sync_to_async
     def get_prefix(self, guild_id: int) -> str:
         return Server.objects.get(snowflake=guild_id).prefix
 
-    @Gear.listener('on_message')
+    @Gear.listener("on_message")
     async def on_bare_mention(self, msg: Message):
         """Reply with the bot's prefix in this server if the bot is mentioned without anything else."""
         bot = self.bot
         if is_direct_message(msg):
             return
-        if msg.content == f'<@!{bot.user.id}>':
+        if msg.content == f"<@!{bot.user.id}>":
             prefix = await self.get_prefix(msg.guild.id)
-            example = f'{prefix}echo'
-            return await msg.reply(f'Prefix is {strong(prefix)}\nExample command: {strong(example)}')
+            example = f"{prefix}echo"
+            return await msg.reply(
+                f"Prefix is {strong(prefix)}\nExample command: {strong(example)}"
+            )

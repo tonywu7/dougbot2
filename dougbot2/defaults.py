@@ -17,8 +17,8 @@
 from contextlib import suppress
 from pathlib import Path
 from typing import Callable, Optional, TypeVar
-import emoji
 
+import emoji
 import toml
 from attr import define, field
 from discord import AllowedMentions
@@ -26,7 +26,7 @@ from django.conf import settings
 
 from .utils.duckcord import Color2, Permissions2
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def unpacking(init: Callable[..., T]) -> Callable[[dict], T]:
@@ -83,8 +83,8 @@ class _Emotes:
             e = emoji.emojize(v)
             if e == v:
                 raise ValueError(
-                    f'Loading config.toml: cannot convert {v} to a valid emoji.'
-                    ' See https://carpedm20.github.io/emoji/all.html',
+                    f"Loading config.toml: cannot convert {v} to a valid emoji."
+                    " See https://carpedm20.github.io/emoji/all.html",
                 )
             setattr(self, k, e)
 
@@ -116,8 +116,8 @@ def _get_project_dir() -> Path:
 
 def _load_defaults() -> Defaults:
     data: Optional[dict] = None
-    config_path = _get_instance_dir() / 'config.toml'
-    default_config_path = _get_project_dir() / 'config-default.toml'
+    config_path = _get_instance_dir() / "config.toml"
+    default_config_path = _get_project_dir() / "config-default.toml"
     with suppress(toml.TomlDecodeError, OSError), open(config_path) as f:
         data = toml.load(f)
     if not data:
@@ -125,8 +125,8 @@ def _load_defaults() -> Defaults:
             data = toml.load(f)
     if data is None:
         raise RuntimeError(
-            'Cannot load program constants from either'
-            f' {config_path} or {default_config_path}.',
+            "Cannot load program constants from either"
+            f" {config_path} or {default_config_path}.",
         )
     global _config
     _config = Defaults(**data)

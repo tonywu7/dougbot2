@@ -20,11 +20,12 @@ from dougbot2.discord import Gear
 
 
 class ReplyUtils(
-    Gear, name='Reply utilities',
+    Gear,
+    name="Reply utilities",
     order=99,
-    description='',
+    description="",
 ):
-    @Gear.listener('on_message')
+    @Gear.listener("on_message")
     async def on_bot_reply(self, msg: Message):
         """Implement a listener that auto-deletes the bot's replies to commands.
 
@@ -42,7 +43,7 @@ class ReplyUtils(
         referrer: Message = ref.cached_message
         bot.set_cache(msg.id, 31536000, referrer=referrer.id)
 
-    @Gear.listener('on_raw_message_delete')
+    @Gear.listener("on_raw_message_delete")
     async def on_command_call_delete(self, ev: RawMessageDeleteEvent):
         bot = self.bot
         channel = bot.get_channel(ev.channel_id)

@@ -26,8 +26,14 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpRequest
 
 
-def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: str = '', aud: str = '',
-              nbf: datetime | timedelta = timedelta(seconds=0), **claims) -> str:
+def gen_token(
+    req: HttpRequest,
+    exp: int | float | datetime | timedelta,
+    sub: str = "",
+    aud: str = "",
+    nbf: datetime | timedelta = timedelta(seconds=0),
+    **claims,
+) -> str:
     """Create a JWT.
 
     Arguments are standard JWT claims. Additional claims may be passed with **kwargs.
@@ -36,26 +42,28 @@ def gen_token(req: HttpRequest, exp: int | float | datetime | timedelta, sub: st
     By default, `iat` and `nbf` are current time, `iss` is the domain of the current site.
     A UUID will be generated for `jti`.
     """
-    payload = {f'ts2:{k}': v for k, v in claims.items()}
+    payload = {f"ts2:{k}": v for k, v in claims.items()}
     now = datetime.now(timezone.utc)
-    payload['iss'] = iss = get_current_site(req).domain
+    payload["iss"] = iss = get_current_site(req).domain
     if sub:
-        payload['sub'] = str(sub)
-    payload['aud'] = str(aud or iss)
-    payload['iat'] = now.timestamp()
+        payload["sub"] = str(sub)
+    payload["aud"] = str(aud or iss)
+    payload["iat"] = now.timestamp()
     if isinstance(exp, (int, float)):
         exp = timedelta(seconds=exp)
     if isinstance(exp, timedelta):
         exp = now + exp
-    payload['exp'] = exp.timestamp()
+    payload["exp"] = exp.timestamp()
     if not isinstance(nbf, datetime):
         nbf = now + nbf
-    payload['nbf'] = nbf.timestamp()
-    payload['jti'] = str(uuid.uuid4())
-    return jwt.encode(payload, settings.SECRET_KEY, 'HS256')
+    payload["nbf"] = nbf.timestamp()
+    payload["jti"] = str(uuid.uuid4())
+    return jwt.encode(payload, settings.SECRET_KEY, "HS256")
 
 
-def validate_token(req: HttpRequest, token: str, sub=None, aud=None) -> tuple[str, Optional[dict]]:
+def validate_token(
+    req: HttpRequest, token: str, sub=None, aud=None
+) -> tuple[str, Optional[dict]]:
     """Validate a JWT against a request.
 
     :param req: The request context
@@ -74,13 +82,14 @@ def validate_token(req: HttpRequest, token: str, sub=None, aud=None) -> tuple[st
     iss = get_current_site(req).domain
     aud = str(aud or iss)
     try:
-        decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'],
-                             issuer=iss, audience=aud)
+        decoded = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=["HS256"], issuer=iss, audience=aud
+        )
     except jwt.ExpiredSignatureError:
-        return 'expired', None
+        return "expired", None
     except jwt.InvalidTokenError:
-        return 'invalid', None
-    if sub and decoded.get('sub') != str(sub):
-        return 'invalid', None
-    decoded = {k.replace('ts2:', ''): v for k, v in decoded.items()}
-    return 'valid', decoded
+        return "invalid", None
+    if sub and decoded.get("sub") != str(sub):
+        return "invalid", None
+    decoded = {k.replace("ts2:", ""): v for k, v in decoded.items()}
+    return "valid", decoded

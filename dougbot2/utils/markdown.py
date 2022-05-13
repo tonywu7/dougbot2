@@ -30,86 +30,91 @@ from discord.utils import escape_markdown
 from django.utils.datastructures import MultiValueDict
 from markdown import Markdown
 
-RE_USER_MENTION = re.compile(r'<@(\d+)>')
-RE_ROLE_MENTION = re.compile(r'<@&(\d+)>')
-RE_CHANNEL_MENTION = re.compile(r'<#(\d+)>')
+RE_USER_MENTION = re.compile(r"<@(\d+)>")
+RE_ROLE_MENTION = re.compile(r"<@&(\d+)>")
+RE_CHANNEL_MENTION = re.compile(r"<#(\d+)>")
 
-RE_CODE_START = re.compile(r'```(\w+)$')
-RE_CODE_END = re.compile(r'^(.*?)```')
+RE_CODE_START = re.compile(r"```(\w+)$")
+RE_CODE_END = re.compile(r"^(.*?)```")
 
-RE_URL = re.compile(r'https?://\S*(\.[^)\]<\s]+)+[^)\]<\s]*')
+RE_URL = re.compile(r"https?://\S*(\.[^)\]<\s]+)+[^)\]<\s]*")
 
 _TIMESTAMP_FORMATS = Literal[
-    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
-    'full', 'long', 'date', 'relative',
+    "yy/mm/dd",
+    "hh:mm:ss",
+    "hh:mm",
+    "full",
+    "long",
+    "date",
+    "relative",
 ]
 TIMESTAMP_PROCESSOR: dict[_TIMESTAMP_FORMATS, str] = {
-    'yy/mm/dd': 'd',
-    'hh:mm:ss': 'T',
-    'hh:mm': 't',
-    'full': 'F',
-    'long': 'f',
-    'date': 'D',
-    'relative': 'R',
+    "yy/mm/dd": "d",
+    "hh:mm:ss": "T",
+    "hh:mm": "t",
+    "full": "F",
+    "long": "f",
+    "date": "D",
+    "relative": "R",
 }
 
 
 def tag(obj) -> str:
     # TODO: remove
     if isinstance(obj, User):
-        return f'<@{obj.id}>'
+        return f"<@{obj.id}>"
     if isinstance(obj, GuildChannel):
-        return f'<#{obj.id}>'
+        return f"<#{obj.id}>"
     if isinstance(obj, Role):
         if obj.is_default():
-            return '@everyone'
-        return f'<@&{obj.id}>'
+            return "@everyone"
+        return f"<@&{obj.id}>"
     return obj
 
 
 def tag_literal(kind: str, val: int):
     """Format this integer as a Discord mention as if it is a Discord object."""
     return {
-        'user': '<@%(val)s>',
-        'member': '<@%(val)s>',
-        'channel': '<#%(val)s>',
-        'role': '<@&%(val)s>',
-    }[kind] % {'val': val}
+        "user": "<@%(val)s>",
+        "member": "<@%(val)s>",
+        "channel": "<#%(val)s>",
+        "role": "<@&%(val)s>",
+    }[kind] % {"val": val}
 
 
 def em(s: str) -> str:
     """Format as italics."""
-    return f'_{s}_'
+    return f"_{s}_"
 
 
 def strong(s: str) -> str:
     """Format as bold."""
-    return f'**{s}**'
+    return f"**{s}**"
 
 
 def u(s: str) -> str:
     """Format as underline."""
-    return f'__{s}__'
+    return f"__{s}__"
 
 
 def code(s: str) -> str:
     """Format as monospace characters."""
-    return f'`{s}`'
+    return f"`{s}`"
 
 
-def pre(s: str, lang='') -> str:
+def pre(s: str, lang="") -> str:
     """Format as a code block, optionally with syntax highlighting."""
-    return f'```{lang}\n{s}\n```'
+    return f"```{lang}\n{s}\n```"
 
 
 def strike(s: str) -> str:
     """Format as a strikethrough."""
-    return f'~~{s}~~'
+    return f"~~{s}~~"
 
 
 def redact(s: str) -> str:
     """Format as redaction."""
-    return f'||{s}||'
+    return f"||{s}||"
 
 
 def blockquote(s: str) -> str:
@@ -118,18 +123,18 @@ def blockquote(s: str) -> str:
     The > character is added at the beginnings
     of every new line.
     """
-    return indent(s, '> ', predicate=lambda t: True)
+    return indent(s, "> ", predicate=lambda t: True)
 
 
 def E(s: str) -> str:
     # TODO: use the emoji package
     """Format as a Discord emote by name."""
-    return f':{s}:'
+    return f":{s}:"
 
 
 def a(text: str, href: str) -> str:
     """Format as a markdown hyperlink."""
-    return f'[{text}]({href})'
+    return f"[{text}]({href})"
 
 
 def verbatim(text: str) -> str:
@@ -143,20 +148,20 @@ def traffic_light(val: bool | None, strict=False):
     If `strict` is True, convert `None` to the `yellow` emoji.
     """
     if val:
-        return '🟢'
+        return "🟢"
     elif strict and val is None:
-        return '🟡'
+        return "🟡"
     else:
-        return '⛔'
+        return "⛔"
 
 
-def pointer(d: Literal['N', 'E', 'S', 'W']) -> str:
+def pointer(d: Literal["N", "E", "S", "W"]) -> str:
     """Make an arrow pointing towards a direction."""
     return {
-        'N': '↑',
-        'E': '→',
-        'S': '↓',
-        'W': '←',
+        "N": "↑",
+        "E": "→",
+        "S": "↓",
+        "W": "←",
     }[d]
 
 
@@ -173,10 +178,18 @@ def _unmark_element(element, stream=None):
     return stream.getvalue()
 
 
-def timestamp(t: datetime | float | int | str, f: Literal[
-    'yy/mm/dd', 'hh:mm:ss', 'hh:mm',
-    'full', 'long', 'date', 'relative',
-]) -> str:
+def timestamp(
+    t: datetime | float | int | str,
+    f: Literal[
+        "yy/mm/dd",
+        "hh:mm:ss",
+        "hh:mm",
+        "full",
+        "long",
+        "date",
+        "relative",
+    ],
+) -> str:
     """Create a Discord timestamp markdown from a timestamp.
 
     :param t: The timestamp
@@ -190,19 +203,19 @@ def timestamp(t: datetime | float | int | str, f: Literal[
     if isinstance(t, str):
         t = float(t)
     # TODO: accept also directly specifying the format
-    return f'<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>'
+    return f"<t:{floor(t):.0f}:{TIMESTAMP_PROCESSOR[f]}>"
 
 
-Markdown.output_formats['plain'] = _unmark_element
-_md = Markdown(output_format='plain')
+Markdown.output_formats["plain"] = _unmark_element
+_md = Markdown(output_format="plain")
 _md.stripTopLevelTags = False
 
 
 def untagged(text: str) -> str:
     """Remove all user/role/channel mentions and show their IDs instead."""
-    text = RE_USER_MENTION.sub(r'user:\1', text)
-    text = RE_ROLE_MENTION.sub(r'role:\1', text)
-    text = RE_CHANNEL_MENTION.sub(r'channel:\1', text)
+    text = RE_USER_MENTION.sub(r"user:\1", text)
+    text = RE_ROLE_MENTION.sub(r"role:\1", text)
+    text = RE_CHANNEL_MENTION.sub(r"channel:\1", text)
     return text
 
 
@@ -211,19 +224,19 @@ def unmarked(text: str) -> str:
     return _md.convert(text)
 
 
-def unwrap_codeblock(text: str, lang: str = '') -> str:
+def unwrap_codeblock(text: str, lang: str = "") -> str:
     """Remove the opening and closing backticks from a code block.
 
     If `lang` is specified, assert that the code block is marked
     as this language too.
     """
     text = text.strip()
-    sig = f'```{lang}'
-    if not text.startswith(f'{sig}\n'):
-        raise ValueError(f'Code block does not begin with {sig}')
-    if not text.endswith('\n```'):
-        raise ValueError('Code block does not end with ```')
-    return text.removeprefix(f'{sig}\n').removesuffix('```')
+    sig = f"```{lang}"
+    if not text.startswith(f"{sig}\n"):
+        raise ValueError(f"Code block does not begin with {sig}")
+    if not text.endswith("\n```"):
+        raise ValueError("Code block does not end with ```")
+    return text.removeprefix(f"{sig}\n").removesuffix("```")
 
 
 def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
@@ -241,7 +254,7 @@ def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
     lines = iter(text.splitlines())
     passed = []
     block = []
-    end = ''
+    end = ""
     for line in lines:
         if not block:
             passed.append(line)
@@ -249,20 +262,20 @@ def find_codeblock(text: str, langs: tuple[str, ...]) -> tuple[str, int]:
             if not matched:
                 continue
             if matched.group(1) in langs:
-                passed.append('')
+                passed.append("")
                 block.append(line)
             else:
-                return '', 0
+                return "", 0
         else:
             matched = RE_CODE_END.search(line)
             if matched:
                 block.append(matched.group(1))
-                end = '```'
+                end = "```"
                 break
             else:
                 block.append(line)
-    code = '\n'.join(block[1:])
-    length = len('\n'.join(passed)) + len(code) + len(end)
+    code = "\n".join(block[1:])
+    length = len("\n".join(passed)) + len(code) + len(end)
     return code, length
 
 

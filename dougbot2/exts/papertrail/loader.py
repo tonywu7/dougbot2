@@ -25,42 +25,42 @@ from ...blueprints import MissionControl
 def setup(bot: MissionControl):
     console = bot.console
     console.register_logger(
-        'command_throttling',
+        "command_throttling",
         errors.MaxConcurrencyReached,
         errors.CommandOnCooldown,
-        title='Command throttling triggered',
+        title="Command throttling triggered",
         level=logging.DEBUG,
     )
     console.register_logger(
-        'bot_forbidden',
+        "bot_forbidden",
         errors.BotMissingAnyRole,
         errors.BotMissingPermissions,
         errors.BotMissingRole,
-        title='Bot has insufficient permissions',
+        title="Bot has insufficient permissions",
         level=logging.WARNING,
     )
     console.register_logger(
-        'member_forbidden',
+        "member_forbidden",
         errors.MissingPermissions,
         errors.MissingAnyRole,
         errors.MissingRole,
-        title='Member has insufficient permissions',
+        title="Member has insufficient permissions",
         level=logging.DEBUG,
     )
     console.register_logger(
-        'not_owner',
+        "not_owner",
         errors.NotOwner,
-        title='Owner-only commands called',
+        title="Owner-only commands called",
         level=logging.DEBUG,
     )
     console.register_logger(
-        'uncaught_exception',
+        "uncaught_exception",
         errors.CommandInvokeError,
         errors.ArgumentParsingError,
         errors.ConversionError,
         errors.ExtensionError,
         errors.ClientException,
-        title='Uncaught exception',
+        title="Uncaught exception",
         level=logging.ERROR,
         show_stacktrace=True,
     )

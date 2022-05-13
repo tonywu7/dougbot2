@@ -27,21 +27,21 @@ class BadDocumentation(UserWarning):
         self.message = message
 
     def __str__(self) -> str:
-        return f'Bad documentation: {self.message}'
+        return f"Bad documentation: {self.message}"
 
 
 class MissingDescription(BadDocumentation):
     """Warning used internally to indicate missing documentation description."""
 
     def __init__(self, call_sign: str) -> None:
-        self.message = f'{call_sign}: No description provided'
+        self.message = f"{call_sign}: No description provided"
 
 
 class MissingExamples(BadDocumentation):
     """Warning used internally to indicate missing documentation examples."""
 
     def __init__(self, call_sign: str) -> None:
-        self.message = f'{call_sign}: No command example provided'
+        self.message = f"{call_sign}: No command example provided"
 
 
 class NoSuchCommand(UserInputError):
@@ -50,9 +50,9 @@ class NoSuchCommand(UserInputError):
     def __init__(self, query: str, potential_match: str = None, *args: object) -> None:
         super().__init__(*args)
         if potential_match:
-            self.message = f'No command named {strong(escape_markdown(query))}. Did you mean {strong(potential_match)}?'
+            self.message = f"No command named {strong(escape_markdown(query))}. Did you mean {strong(potential_match)}?"
         else:
-            self.message = f'No command named {strong(escape_markdown(query))}.'
+            self.message = f"No command named {strong(escape_markdown(query))}."
 
     def __str__(self) -> str:
         return self.message
@@ -66,17 +66,19 @@ class NoSuchSignature(IndexError):
         candidates: list[tuple[str, ...]],
         origin: str,
     ) -> None:
-        candidates = ', '.join([self._make_signature(name, args) for args in candidates])
+        candidates = ", ".join(
+            [self._make_signature(name, args) for args in candidates]
+        )
         super().__init__(
-            f'In {origin}:\nCommand signature'
+            f"In {origin}:\nCommand signature"
             f" {self._make_signature(name, arguments)} doesn't exist."
-            f' Candidates are {candidates}.',
+            f" Candidates are {candidates}.",
         )
 
     def _make_signature(self, name: str, arguments: tuple[str, ...]):
-        name = name.replace(' ', '.')
-        signature = ''.join([f'{arg}:' for arg in arguments])
-        return f'{name}({signature})'
+        name = name.replace(" ", ".")
+        signature = "".join([f"{arg}:" for arg in arguments])
+        return f"{name}({signature})"
 
 
 class NoSuchArgument(IndexError):
@@ -88,7 +90,7 @@ class NoSuchArgument(IndexError):
         origin: str,
     ):
         super().__init__(
-            f'In {origin}:\n'
+            f"In {origin}:\n"
             f"Command {name.replace(' ', '.')} has no argument {argument}."
-            f' Candidates are {candidates}.'
+            f" Candidates are {candidates}."
         )

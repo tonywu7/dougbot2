@@ -17,28 +17,61 @@
 
 from .async_ import async_first, async_get, async_list, async_save
 from .checks import (
-    can_embed, can_manage_messages, can_mention_everyone, can_react, can_upload,
+    can_embed,
+    can_manage_messages,
+    can_mention_everyone,
+    can_react,
+    can_upload,
 )
 from .datastructures import BigIntDict
 from .datetime import assumed_utc, strpduration, utcnow, utctimestamp
 from .dm import accept_dms
 from .duckcord.color import Color2
 from .duckcord.embeds import Embed2, EmbedField
-from .duckcord.permissions import (
-    PermissionOverride, Permissions2, get_total_perms,
-)
+from .duckcord.permissions import PermissionOverride, Permissions2, get_total_perms
 from .events import (
-    DeleteResponder, EmoteResponder, Responder, emote_added, emote_matches,
-    emote_no_bots, event_filter, run_responders, start_responders,
+    DeleteResponder,
+    EmoteResponder,
+    Responder,
+    emote_added,
+    emote_matches,
+    emote_no_bots,
+    event_filter,
+    run_responders,
+    start_responders,
 )
 from .markdown import (
-    E, a, blockquote, code, em, iter_urls, pointer, pre, redact, sized, strike,
-    strong, tag, tag_literal, timestamp, traffic_light, u, unmarked, untagged,
-    unwrap_codeblock, urlqueryset, verbatim,
+    E,
+    a,
+    blockquote,
+    code,
+    em,
+    iter_urls,
+    pointer,
+    pre,
+    redact,
+    sized,
+    strike,
+    strong,
+    tag,
+    tag_literal,
+    timestamp,
+    traffic_light,
+    u,
+    unmarked,
+    untagged,
+    unwrap_codeblock,
+    urlqueryset,
+    verbatim,
 )
 from .message import attachment_is_type, is_direct_message
 from .pagination import (
-    EmbedPagination, ParagraphStream, TextPagination, chapterize,
-    chapterize_fields, chapterize_items, trunc_for_field,
+    EmbedPagination,
+    ParagraphStream,
+    TextPagination,
+    chapterize,
+    chapterize_fields,
+    chapterize_items,
+    trunc_for_field,
 )
 from .response import ResponseInit
