@@ -1,8 +1,12 @@
-# telescope2
+# This is no longer maintained.
+
+---
+
+# dougbot2
 
 **Yet another Discord bot for the DougDoug Discord server.**
 
-[bot.dougdistrict.xyz](https://bot.dougdistrict.xyz)
+~~[bot.dougdistrict.xyz](https://bot.dougdistrict.xyz)~~
 
 ### Install
 
